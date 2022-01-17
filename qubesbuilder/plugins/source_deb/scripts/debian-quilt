@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2015 Jason Mehring <nrgaway@gmail.com>
+# Copyright (C) 2021 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+
+# Originally from https://github.com/QubesOS/qubes-core-agent-linux
+#
+# Given a series.conf file and debian patches directory, patches
+# are copied to debian patch directory
+
+USAGE="${0} <series.conf> <patchdir>"
+
+set -e
+set -o pipefail
+
+SERIES_CONF="${1}"
+PATCH_DIR="${2}"
+
+if test $# -lt 2 || [ ! -e "${SERIES_CONF}" ]; then
+	echo "${USAGE}" >&2
+	exit 1
+fi
+
+# Ensure output patch directory exists
+mkdir -p "${PATCH_DIR}"
+
+# We use series.conf directory to be the reference for patches
+# given in series.conf.
+ORIG_SRC="$(dirname "${SERIES_CONF}")"
+
+# Clear patch series.conf file
+rm -f "${PATCH_DIR}/series"
+touch "${PATCH_DIR}/series"
+
+while read patch_file
+do
+    if [ -f "${ORIG_SRC}/${patch_file}" ]; then
+        echo -e "${patch_file##*/}" >> "${PATCH_DIR}/series"
+        cp --preserve=timestamps "${ORIG_SRC}/${patch_file}" "${PATCH_DIR}"
+    fi
+done < "${SERIES_CONF}"
+touch --reference="${SERIES_CONF}" "${PATCH_DIR}/series"
+touch --reference="${SERIES_CONF}" "${PATCH_DIR}"

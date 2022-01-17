@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2019 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+# Copyright (C) 2020 Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -e
+set -o pipefail
+
+if [ "${DEBUG}" == 1 ]; then
+    set -x
+fi
+
+print_usage() {
+cat >&2 <<USAGE
+Usage: $0 release package_set dist output_dir comps
+Create Qubes repository skeleton for RPM distributions family
+USAGE
+}
+
+if [ $# -lt 3 ] ; then
+    print_usage
+    exit 1
+fi
+
+release="$1"
+package_set="$2"
+dist="$3"
+output_dir="$4"
+comps="$5"
+
+mkdir -p "$output_dir"
+cd "$output_dir"
+
+if [[ $release =~ r[1-9].[0-9] ]] && [[ $package_set =~ (host|dom0|vm) ]] && [[ $dist =~ (fc[1-9][0-9]|centos[1-9][0-9]*|centos-stream[1-9][0-9]*|tumbleweed|leap[1-9][0-9]\.[0-9]) ]]
+then
+    # Add comps
+    mkdir -p "$output_dir/$release"
+    cp "$comps" "$output_dir/$release"
+
+    for repo in current current-testing security-testing unstable
+    do
+        mkdir -p "$release/$repo/$package_set/$dist/repodata"
+        mkdir -p "$release/$repo/$package_set/$dist/rpm"
+        ln -sf "../../../comps-${package_set}.xml" "$release/$repo/$package_set/$dist/comps.xml"
+    done
+fi
+
+if [[ $release =~ r[1-9].[0-9] ]]; then
+    for repo in templates-itl templates-itl-testing templates-community templates-community-testing
+    do
+        mkdir -p "$release/$repo/repodata"
+        mkdir -p "$release/$repo/rpm"
+    done
+fi

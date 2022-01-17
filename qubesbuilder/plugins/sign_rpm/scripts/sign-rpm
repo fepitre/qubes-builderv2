@@ -1,0 +1,78 @@
+#!/usr/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -e
+set -o pipefail
+
+if [ "${DEBUG}" == 1 ]; then
+    set -x
+fi
+
+usage() {
+echo "Usage: $(basename "$0") [OPTIONS]...
+This script signs RPM with provided signing key and path. It assumes ~/.rpmmacros
+is configured according to the GPG client provided by RPM macro __gpg.
+
+Options:
+    --db-path     RPM database with keys to verify signature
+    --sign-key    Sign key to be used
+    --rpm         RPM file path to sign
+    --check-only  Check if signature is needed. If signature is needed it will exit with code 2.
+"
+}
+
+if ! OPTS=$(getopt -o hd:s:r:c --long help,db-path:,sign-key:,rpm:,check-only -n "$0" -- "$@"); then
+    echo "ERROR: Failed while parsing options."
+    exit 1
+fi
+
+eval set -- "$OPTS"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h | --help) usage ;;
+        -d | --db-path) DB_PATH="$2"; shift ;;
+        -s | --sign-key ) SIGN_KEY="$2"; shift ;;
+        -r | --rpm ) RPM="$2"; shift ;;
+        -c | --check-only ) CHECK_ONLY=1; shift ;;
+    esac
+    shift
+done
+
+if ! [ -e "$RPM" ]; then
+    echo "ERROR: Cannot find '$RPM'."
+    exit 1
+fi
+
+RPMSIGN_OPTS="--digest-algo=sha256 --rpmv3 --key-id=${SIGN_KEY}"
+
+if [ "$(rpmkeys --dbpath="$DB_PATH" --checksig -- "$RPM")" != "$RPM: digests signatures OK" ]; then
+    if [ "$CHECK_ONLY" == "1" ]; then
+        echo "WARNING: Check only requested. $RPM is not signed!"
+        exit 2
+    fi
+    # shellcheck disable=SC2086
+    setsid -w rpmsign ${RPMSIGN_OPTS} --addsign -- "$RPM" </dev/null || exit 1
+else
+    if [ "$CHECK_ONLY" != "1" ]; then
+        echo "INFO: RPM has already a valid signature. Skipping..."
+    fi
+fi

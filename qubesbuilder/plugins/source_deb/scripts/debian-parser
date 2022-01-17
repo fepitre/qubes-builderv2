@@ -1,0 +1,463 @@
+#!/usr/bin/python3 -O
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2014 Jason Mehring <nrgaway@gmail.com>
+# Copyright (C) 2017 Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>
+# Copyright (C) 2021 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+
+# Originally from https://github.com/QubesOS/qubes-builder
+
+"""
+Parses some Debian package files
+"""
+
+from __future__ import print_function
+
+import argparse
+import calendar
+import os
+import re
+import sys
+from email.utils import parsedate_tz
+from pprint import pprint
+
+DEBUG = False
+
+
+def debug(message, *arg, **args):
+    if DEBUG:
+        from pprint import pprint
+        # pprint(message,  *arg,  **args)
+        pprint(message)
+
+
+def main(argv):
+    global DEBUG
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest='mode', help='commands')
+
+    # -----------------------------------------------------------------------------
+    # debug / test
+    # -----------------------------------------------------------------------------
+    parser.add_argument('--debug', action='store_true',
+                        help='Enable debug output')
+
+    # -----------------------------------------------------------------------------
+    # control
+    # -----------------------------------------------------------------------------
+    control_parser = subparsers.add_parser(
+        'control',
+        help='Parses values within debian/control',
+        description='Parses the debian/control package file and returns requested values'
+    )
+    control_parser.add_argument('--build-depends', action='store_true',
+                                help='Parse Build-Depends')
+
+    control_parser.add_argument('--qubes-build-depends', action='store', nargs='?',
+                                help='Parse X-Qubes-Build-Depends-<distro> field. '
+                                     'Needs distro as argument.')
+
+    control_parser.add_argument('--depends', action='store_true',
+                                help='Parse Depends')
+
+    control_parser.add_argument('--recommends', action='store_true',
+                                help='Parse Recommends')
+
+    control_parser.add_argument('--source', action='store_true',
+                                help='Parse Source')
+
+    control_parser.add_argument('--maintainer', action='store_true',
+                                help='Parse Maintainer')
+
+    control_parser.add_argument('--uploaders', action='store_true',
+                                help='Parse Uploaders')
+
+    control_parser.add_argument('--section', action='store_true',
+                                help='Parse Section')
+
+    control_parser.add_argument('--priority', action='store_true',
+                                help='Parse Priority')
+
+    control_parser.add_argument('--standards-version', action='store_true',
+                                help='Parse Standards Version')
+
+    control_parser.add_argument('--homepage', action='store_true',
+                                help='Parse Homepage')
+
+    control_parser.add_argument('--vcs-browser', action='store_true',
+                                help='Parse VCS Browser')
+
+    control_parser.add_argument('--vcs-git', action='store_true',
+                                help='Parse VCS Git')
+
+    control_parser.add_argument('--package', action='store_true',
+                                help='Parse Package')
+
+    control_parser.add_argument('--architecture', action='store_true',
+                                help='Parse Architecture')
+
+    # control_parser.add_argument( '--section', action='store_true', default='binary',
+    #        help='Parse Section')
+
+    # control_parser.add_argument( '--priority', action='store_true',
+    #        help='Parse Priority')
+
+    control_parser.add_argument('--essential', action='store_true',
+                                help='Parse Essential')
+
+    control_parser.add_argument('--description', action='store_true',
+                                help='Parse Description')
+
+    # control_parser.add_argument( '--homepage', action='store_true',
+    #        help='Parse Homepage')
+
+    control_parser.add_argument('--built-using', action='store_true',
+                                help='Parse Built Using')
+
+    control_parser.add_argument('--package-field', action='store_true',
+                                help='Parse Package Field')
+
+    control_parser.add_argument('filename', action='store', nargs='?',
+                                default='debian/control',
+                                help='Location of debian/control file')
+
+    # -----------------------------------------------------------------------------
+    # changelog
+    # -----------------------------------------------------------------------------
+    changelog_parser = subparsers.add_parser(
+        'changelog',
+        help="""Parses values with debian/changelog and returns specified labels.
+        Single labels will be returned as text,  while multiple labels will
+        be returned in json format""",
+        description='Parses the debian/changelog package file and returns requested values'
+    )
+    changelog_parser.add_argument('--package-name', action='store_true',
+                                  help='Return package name')
+
+    changelog_parser.add_argument('--package-version', action='store_true',
+                                  help='Return package version.  Will not contain EPOC.')
+
+    changelog_parser.add_argument('--package-version-epoc', action='store_true',
+                                  help='Returns package EPOC version number. '
+                                       'If no EPOC exist it wil be assumed to be 0')
+
+    changelog_parser.add_argument('--package-revision', action='store_true',
+                                  help='Return package version.  Will not contain EPOC.')
+
+    changelog_parser.add_argument('--package-version-full', action='store_true',
+                                  help='Return fullpackage version which will include EPOC.')
+
+    changelog_parser.add_argument('--package-release-name', action='store_true',
+                                  help='Return package release name '
+                                       '(<package-name>_<package-version>) '
+                                       'with no EPOC included')
+
+    changelog_parser.add_argument('--package-release-name-full', action='store_true',
+                                  help='Return package release name '
+                                       '(<package-name>_<package-version>-<revision>) '
+                                       'with no EPOC included')
+
+    changelog_parser.add_argument('--package-distribution', action='store_true',
+                                  help='Return package distribution such as develop, low')
+
+    changelog_parser.add_argument('--package-urgency', action='store_true',
+                                  help='Return package urgency such as urgent low')
+
+    changelog_parser.add_argument('--source-date-epoch', action='store_true',
+                                  help='Return timestamp of last modification, in epoch format')
+
+    changelog_parser.add_argument('filename', action='store',
+                                  help='Location of debian/control file')
+
+    args = vars(parser.parse_args())
+
+    if not args['filename'] or not os.path.exists(args['filename']):
+        print('You must provide a proper filename containing debian package file', file=sys.stderr)
+        sys.exit(1)
+
+    if 'debug' in args.keys():
+        DEBUG = args.pop('debug', False)
+
+    if DEBUG:
+        pprint(args)
+
+    # Remove any null variables argparse set
+    for key, value in list(args.items()):
+        if not value:
+            args.pop(key, None)
+    if DEBUG:
+        pprint(args)
+
+    mode = args.pop('mode', '')
+    if mode in ['control']:
+        parseControlFile(**args)
+    elif mode in ['changelog']:
+        parseChangelog(**args)
+
+
+class Control:
+    def __init__(self):
+        self.control = {}
+        self.add('source', 'source', 'simple_re', None)
+        self.add('maintainer', 'source', 'simple_re', None)
+        self.add('uploaders', 'source', 'simple_re', None)
+        self.add('section', 'source', 'simple_re', None)
+        self.add('priority', 'source', 'simple_re', None)
+        self.add('build-depends', 'source', 'multiline_re', 'comma_re')
+        self.add('qubes-build-depends', 'source', 'multiline_re', 'comma_re')
+        self.add('standards-version', 'source', 'simple_re', None)
+        self.add('homepage', 'source', 'simple_re', None)
+        self.add('vcs-browser', 'source', 'simple_re', None)
+        self.add('vcs-git', 'source', 'simple_re', None)
+
+        self.add('package', 'binary', 'simple_re', None)
+        self.add('architecture', 'binary', 'simple_re', None)
+        self.add('section', 'binary', 'simple_re', None)
+        self.add('priority', 'binary', 'simple_re', None)
+        self.add('essential', 'binary', 'simple_re', None)
+        self.add('depends', 'binary', 'multiline_re', 'comma_re')
+        self.add('recommends', 'binary', 'multiline_re', 'comma_re')
+        self.add('description', 'binary', 'multiline_re', None)
+        self.add('homepage', 'binary', 'simple_re', None)
+        self.add('built-using', 'binary', 'simple_re', None)
+        self.add('package-field', 'binary', 'simple_re', None)
+
+    def add(self, field, paragraph, field_re, value_re):
+        self.control[field] = {
+            'paragraph': paragraph,
+            'field_re': field_re,
+            'value_re': value_re,
+        }
+
+    def get(self, field, key=None):
+        if field is None:
+            return None
+        field = self.name(field)
+        if key:
+            return self.control.get(field, {}).get(key, None)
+        else:
+            return self.control.get(field, {})
+
+    def name(self, field):
+        return field.lower().replace('_', '-')
+
+
+def getContent(filename):
+    """
+    """
+    try:
+        with open(filename) as file_:
+            content = file_.read()
+            if DEBUG:
+                debug(content)
+        content = ''.join(l for l in content.splitlines(True)
+                          if not l.startswith('#'))
+    except IOError:
+        sys.exit(1)
+    return content
+
+
+def _test_version(changelog, package_full_version):
+    changelog['package_version_full'] = package_full_version
+    changelog = _changelog_version(changelog)
+
+    return [changelog['package_version_epoc'],
+            changelog['package_version'],
+            changelog['package_revision']]
+
+
+def _changelog_version(changelog):
+    """Split apart epoch, version and revsion
+
+    - epoch is identified by version contains a colon.  Version number or revison
+      may not have a colon if epoch is not defined
+    - revision is identified by the first hyphen.  Version number or revision
+      may not have any hyphens if revision is not defined
+
+    epoch is an int
+
+    valid characters are as follows:
+      epoch defined    : '0-9a-zA-Z.+-:~'
+      epoch not defined: '0-9a-zA-Z.+-~'
+
+      remove hyphen from above list if revision is not defined
+
+    >>> changelog = {'package_release_name': '',
+    ...              'package_name': '',
+    ...              'package_version_full':  '',
+    ...              'package_distrib': '',
+    ...              'package_urgency': '',
+    ...              }
+
+    >>> _test_version(changelog, '2014.7.2+ds-1')
+    ['', '2014.7.2+ds', '1']
+
+    >>> _test_version(changelog, '2001:4.4.1-6')
+    ['2001', '4.4.1', '6']
+
+    >>> _test_version(changelog, '2001:2014.7.2+ds-1')
+    ['2001', '2014.7.2+ds', '1']
+
+    >>> _test_version(changelog, '2001:2014.7-2+ds-1')
+    ['2001', '2014.7-2+ds', '1']
+
+    >>> _test_version(changelog, '2014.7.2+ds-1')
+    ['', '2014.7.2+ds', '1']
+
+    >>> _test_version(changelog, '2001:2014.7-2+d:s-1')
+    ['2001', '2014.7-2+d:s', '1']
+    """
+    version_re = re.compile(r"""
+        (?P<package_version_epoc> ^[\d]+(?=:) |) (:?)
+        (?P<package_version>
+            [\d][0-9a-zA-Z.+-:~]*(?=[-]) |
+            [\d][0-9a-zA-Z.+:~]*
+        )
+        ([-] |)(?P<package_revision> .* |)
+        $
+        """, re.VERBOSE)
+
+    match = version_re.match(changelog['package_version_full'])
+
+    if match:
+        version = match.groupdict()
+        changelog.update(version)
+        changelog['package_release_name'] = '{0[package_name]}_{0[package_version]}'.format(
+            changelog)
+
+        if changelog['package_revision']:
+            changelog[
+                'package_release_name_full'] = '{package_name}_{package_version}-{package_revision}'.format(
+                **changelog)
+
+        else:
+            changelog['package_release_name_full'] = changelog['package_release_name']
+
+    return changelog
+
+
+def parseChangelog(filename, **args):
+    """
+    """
+    content = getContent(filename)
+
+    changelog_re = re.compile(
+        r'^(?P<package_name>.*) \((?P<package_version_full>.*)\) (?P<package_distrib>.*); (?P<package_urgency>.*)$')
+    last_change_re = re.compile(r'^ --.*  (?P<last_change_time>.*)$')
+    match = changelog_re.match(content.split('\n')[0].strip())
+    changelog = match.groupdict()
+
+    changelog = _changelog_version(changelog)
+
+    for line in content.splitlines():
+        match = last_change_re.match(line)
+        if match:
+            timestamp_tuple = parsedate_tz(match.group('last_change_time'))
+            changelog['source_date_epoch'] = str(
+                calendar.timegm(timestamp_tuple) - timestamp_tuple[9])
+            break
+
+    # Clear out values from changelog that were not selected so we return only requested
+    # changelog
+    for key, value in list(changelog.items()):
+        if key not in args.keys():
+            changelog.pop(key, None)
+
+    if len(changelog) == 1:
+        print(' '.join(changelog.values()))
+    elif len(changelog) > 1:
+        import json
+        print(json.dumps(changelog))
+
+    return changelog
+
+
+def parseControlFile(filename, **args):
+    """
+    """
+    info = []
+    field_re = None
+    value_re = None
+    control = Control()
+
+    # DEPENDS_RE = re.compile(r'^Build-Depends:(.*?)^[A-Z].*?:', re.MULTILINE|re.DOTALL)
+    # PACKAGE_RE = re.compile(r'([a-zA-Z]{1}.+?)[,\s\$]', re.MULTILINE|re.DOTALL)
+
+    PARAGRAPH_RE = r''
+    RE_OPTIONS = re.MULTILINE | re.DOTALL | re.IGNORECASE
+
+    regex = {
+        'simple_re': (r'^{0}:(?P<{1}>.*)$', re.MULTILINE | re.IGNORECASE),
+        'folded_re': (r'', None),
+        'multiline_re': (r'^{0}:(.*?)^[A-Z#].*?:', re.MULTILINE | re.DOTALL | re.IGNORECASE),
+        'comma_re': (r'([a-zA-Z]{1}.+?)(?:\[.*?\]|)(?:,|\s*?$)', re.MULTILINE | re.IGNORECASE),
+    }
+
+    for key in args.keys():
+        # Maybe rename key from 'Some_Name' to 'some-name'
+        item = control.get(key)
+        if not item.get:
+            continue
+
+        key_original = key
+        key = control.name(key)
+        if key == 'qubes-build-depends':
+            distro = args.get(key_original, '')
+            key = 'x-{0}-{1}'.format(key, distro) if distro else key
+
+        paragraph_re = None  # Not implemented yet
+
+        item_re, item_re_options = regex.get(item.get('field_re', 'SIMPLE_RE'), ('', None))
+        field_re = re.compile(item_re.format(key, key_original), item_re_options)
+
+        item_re, item_re_options = regex.get(item.get('value_re', None), ('', None))
+        if item_re and item_re_options:
+            value_re = re.compile(item_re, item_re_options)
+        elif item_re:
+            value_re = re.compile(item_re)
+
+        # We should only have one item to process
+        # TODO: Fix argparse not to send None values
+        break
+
+    if field_re:
+        content = getContent(filename)
+    field = field_re.search(content)
+
+    if field and value_re:
+        debug(field.groups())
+        values = value_re.findall(field.group(1))
+        if values:
+            debug(values)
+            # if value_re.pattern == regex.get('comma_re')[0]:
+            #    pass
+            for value in values:
+                debug(value.rsplit(' ')[0].strip())
+                info.append(value.rsplit(' ')[0].strip())
+        print(' '.join(info))
+    elif field:
+        try:
+            print(field.group(key_original).strip())
+        except IndexError:
+            pass
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

@@ -1,0 +1,85 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2012 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -e
+set -o pipefail
+
+if [ "${DEBUG}" == 1 ]; then
+    set -x
+fi
+
+print_usage() {
+    cat >&2 <<USAGE
+Usage: $0 release output_dir
+Create Qubes repository skeleton for Debian distributions family
+USAGE
+}
+
+if [ $# -lt 2 ]; then
+    print_usage
+    exit 1
+fi
+
+release="$1"
+output_dir="$2"
+
+mkdir -p "${output_dir}"
+
+if [[ $release =~ r[1-9].[0-9] ]]; then
+    mkdir -p "${output_dir}/$release/vm/conf"
+    mkdir -p "${output_dir}/$release/vm/db"
+
+    rm -f "${output_dir}/$release/vm/conf/distributions"
+    for dist in buster bullseye bookworm trixie; do
+        for repo in current current-testing security-testing unstable; do
+            label_suffix=""
+            codename_suffix=""
+            if [ "$repo" == "current-testing" ]; then
+                label_suffix=" (updates candidates)"
+                codename_suffix="-testing"
+            fi
+            if [ "$repo" == "security-testing" ]; then
+                label_suffix=" (security updates candidates)"
+                codename_suffix="-securitytesting"
+            fi
+            if [ "$repo" == "unstable" ]; then
+                label_suffix=" (experimental)"
+                codename_suffix="-unstable"
+            fi
+            cat <<EOF >>"${output_dir}/$release/vm/conf/distributions"
+Origin: Qubes OS Debian
+Label: Qubes Debian${label_suffix}
+Codename: ${dist}${codename_suffix}
+AlsoAcceptFor: ${dist}
+Architectures: amd64 source
+Components: main
+Description: Apt repository with Qubes OS ${release} domU support tools for Debian ${dist}
+Tracking: all includebuildinfos
+
+EOF
+        done
+    done
+
+    for repo in current current-testing security-testing unstable; do
+        mkdir -p "${output_dir}/${release}/${repo}"
+        ln -sf ../vm "${output_dir}/${release}/${repo}/"
+    done
+fi

@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2018 Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>
+# Copyright (C) 2020 Rusty Bird <rustybird@net-c.com>
+# Copyright (C) 2021 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Based on PLD Linux:
+# https://git.pld-linux.org/?p=packages/rpm-build-tools.git;a=blob;f=builder.sh;h=3c9a33648d2cb1b1410939c16637c7d9cac3b09d;hb=HEAD#l468
+
+# create tempfile. as secure as possible
+my_tempfile() {
+        prefix=builder.$PACKAGE_NAME
+        mktemp --tmpdir -t "$prefix.XXXXXX"
+}
+
+ORIG_SRC="$1"
+SPECFILE="$2"
+gitlog=$(my_tempfile) speclog=$(my_tempfile)
+
+log_entries=50
+
+# rpm5.org/rpm.org do not parse any other date format than 'Wed Jan 1 1997'
+# otherwise i'd use --date=iso here
+# http://rpm5.org/cvs/fileview?f=rpm/build/parseChangelog.c&v=2.44.2.1
+# http://rpm.org/gitweb?p=rpm.git;a=blob;f=build/parseChangelog.c;h=56ba69daa41d65ec9fd18c9f371b8ff14118cdca;hb=a113baa510a004476edc44b5ebaaf559238a18b6#l33
+# NOTE: changelog date is always in UTC for rpmbuild
+# * 1265749244 +0000 Random Hacker <nikt@pld-linux.org> 9370900
+git -C "$ORIG_SRC" rev-list --no-merges --date-order -${log_entries:-20} HEAD 2>/dev/null | while read -r sha1; do
+        git -C "$ORIG_SRC" log -n 1 "$sha1" --format=format:"* %cd %an <%ae> - %h%n- %s%n%n" --date=raw | sed -re 's/^- +- */- /'| sed '/^$/q'
+done > "$gitlog"
+
+# clamp timestamps to be in chronological order (rpmbuild requires it)
+tac "$gitlog" | awk '/^\* /{ if ($2 < prev_time) {gsub($2, prev_time)} else {prev_time=$2} } {print}' |tac > "$gitlog"-
+mv -f "$gitlog"- "$gitlog"
+
+# add link to full git logs
+giturl="$(git -C "$ORIG_SRC" remote get-url origin)"
+gitauthor="Qubes OS Team <qubes-devel@googlegroups.com>"
+gitdate=$(git -C "$ORIG_SRC" log -n 1 --date=raw --format=format:"%cd")
+LC_ALL=C gawk -vgiturl="$giturl" -vgitauthor="$gitauthor" -vgitdate="$gitdate" 'BEGIN{
+        printf("* %s %s\n- For complete changelog see: %s\n", strftime("%a %b %d %Y", gitdate), gitauthor, giturl);
+        print;
+        exit
+}' > "$speclog"
+
+LC_ALL=C gawk '/^\* /{printf("* %s %s\n", strftime("%a %b %d %Y", $2), substr($0, length($1)+length($2)+length($3)+4)); next}{print}' "$gitlog" >> "$speclog"
+sed -i -e "/@CHANGELOG@/{r ${speclog}" -e "d}" "$SPECFILE"
+rm -f "$gitlog" "$speclog"

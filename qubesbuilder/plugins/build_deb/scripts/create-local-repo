@@ -1,0 +1,85 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Based on QubesOS/qubes-builder-debian/update-local-repo.sh
+
+set -e
+if [ "${DEBUG:-0}" -eq 1 ]; then
+    set -x
+fi
+
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <repo_dir> <distribution> <suite>"
+    exit 1
+fi
+
+REPO_DIR=$1
+DISTRIBUTION="$2"
+SUITE=$3
+
+mkdir -p "$REPO_DIR/conf"
+
+calc_sha1() {
+    f="dists/$SUITE/$1"
+    echo -n " "
+    echo -n "$(sha256sum "$f" | cut -d' ' -f 1)" ""
+    echo -n "$(stat -c %s "$f")" ""
+    echo "$1"
+}
+
+mkdir -p "$REPO_DIR/conf"
+cd "$REPO_DIR"
+
+cat << EOF > "${REPO_DIR}/conf/distributions"
+Origin: Qubes OS $DISTRIBUTION
+Label: Qubes OS $DISTRIBUTION
+Codename: $SUITE
+Architectures: amd64 source
+Components: main
+Description: APT repository with Qubes OS domU support tools for $DISTRIBUTION $SUITE
+Tracking: all includebuildinfos
+EOF
+
+# Initialize empty repository
+
+mkdir -p "dists/$SUITE/main/binary-amd64"
+dpkg-scanpackages --multiversion . > "dists/$SUITE/main/binary-amd64/Packages"
+gzip -9c "dists/$SUITE/main/binary-amd64/Packages" > "dists/$SUITE/main/binary-amd64/Packages.gz"
+
+cat > "dists/$SUITE/Release" <<EOF
+Label: Qubes builder repo
+Suite: $SUITE
+Codename: $SUITE
+Date: $(LC_ALL=C date -u +"%a, %d %b %Y %H:%M:%S %Z")
+Architectures: amd64
+Components: main
+SHA256:
+EOF
+
+calc_sha1 main/binary-amd64/Packages >> "dists/$SUITE/Release"
+calc_sha1 main/binary-amd64/Packages.gz >> "dists/$SUITE/Release"
+
+# Provision the local repository based on *.changes files
+mapfile -d $'\0' changes_files < <(find "${REPO_DIR}" -name '*.changes' -not -path "${REPO_DIR}/dists" -not -path "${REPO_DIR}/pool" -print0)
+for changes in ${changes_files[*]}
+do
+    reprepro -b "${REPO_DIR}" --ignore=surprisingbinary --ignore=surprisingarch include "$SUITE" "$changes"
+done

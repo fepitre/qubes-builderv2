@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2021 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -e
+[ "$DEBUG" = "1" ] && set -x
+
+usage() {
+echo "Usage: $(basename "$0") [OPTIONS]...
+This script downloads and verifies a file.
+
+Options:
+    --file-url         File URL
+    --checksum-file    Checksum for file to be downloaded
+    --checksum-method  Checksum method (default: sha256sum)
+    --signature-url    Signature file URL
+    --pubkey-file      GPG public key file to be used for verification
+    --output-dir       Output directory
+"
+}
+
+if ! OPTS=$(getopt -o hf:c:m:s:p:o: --long help,file-url:,checksum-file:,checksum-cmd:,signature-url:,pubkey-file:,output-dir: -n "$0" -- "$@"); then
+    echo "ERROR: Failed while parsing options."
+    exit 1
+fi
+
+eval set -- "$OPTS"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h | --help) usage ;;
+        -f | --file-url ) FILE_URL="$2"; shift ;;
+        -c | --checksum-file ) FILE_CHECKSUM="$2"; shift ;;
+        -m | --checksum-cmd ) CHECKSUM_CMD="$2"; shift ;;
+        -s | --signature-url ) SIGNATURE_URL="$2"; shift ;;
+        -p | --pubkey-file ) PUBKEY_FILE="$2"; shift ;;
+        -o | --output-dir ) OUTPUT_DIR="$2"; shift ;;
+    esac
+    shift
+done
+
+if [ -z "${FILE_URL}" ]; then
+    printf "ERROR: Please provide file URL.\n"
+    exit 1
+fi
+FETCH_CMD=(curl --proto '=https' --proto-redir '=https' --tlsv1.2 --http1.1 -sSfL -o)
+FILE_NAME="$(basename "$FILE_URL")"
+
+if [ -z "${FILE_CHECKSUM}" ] && [ -z "${SIGNATURE_URL}" ] && [ -z "${PUBKEY_FILE}" ]; then
+    echo "ERROR: Please provide either CHECKSUM or SIGNATURE_URL and PUBKEY_FILE."
+    exit 1
+fi
+
+if [ -n "${FILE_CHECKSUM}" ] && ! [ -e "${FILE_CHECKSUM}" ]; then
+    echo "ERROR: Cannot find '${FILE_CHECKSUM}' checksum for '${FILE_NAME}'."
+    exit 1
+fi
+
+if [ -n "${SIGNATURE_URL}" ] && [ -z "${PUBKEY_FILE}" ]; then
+    echo "ERROR: Please provide PUBKEY_FILE to be used with SIGNATURE_URL."
+    exit 1
+fi
+
+if [ -z "${SIGNATURE_URL}" ] && [ -n "${PUBKEY_FILE}" ]; then
+    echo "ERROR: Please provide SIGNATURE_URL to be used with PUBKEY_FILE."
+    exit 1
+fi
+
+if [ -n "${SIGNATURE_URL}" ] && [ ! -e "${PUBKEY_FILE}" ]; then
+    echo "ERROR: Cannot find '${PUBKEY_FILE}' pubkey for '${SIGNATURE_URL}'."
+    exit 1
+fi
+
+# Download file with untrusted suffix
+"${FETCH_CMD[@]}" "${FILE_NAME}.untrusted" "$FILE_URL"
+
+if [ -n "${FILE_CHECKSUM}" ]; then
+    if [ -z "${CHECKSUM_CMD}" ]; then
+        CHECKSUM_CMD=sha256sum
+    fi
+    # Check downloaded file with respect to provided checksum file
+    "${CHECKSUM_CMD}" --status -c <(printf "%s  -\n" "$(cat "${FILE_CHECKSUM}")") \
+      < "${FILE_NAME}.untrusted" || { echo "${CHECKSUM_CMD}: wrong checksum on '${FILE_NAME}.untrusted'."; exit 1; }
+
+elif [ -n "${SIGNATURE_URL}" ] && [ -n "${PUBKEY_FILE}" ]; then
+    SIGNATURE_FILE_NAME="$(basename "${SIGNATURE_URL}")"
+
+    # Download signature file
+    "${FETCH_CMD[@]}" "${SIGNATURE_FILE_NAME}" "${SIGNATURE_URL}"
+
+    # Import pubkey
+    keyring="$(mktemp -u)"
+	gpg --no-auto-check-trustdb --no-default-keyring --keyring "$keyring" -q --import "${PUBKEY_FILE}"
+
+	# Verify file
+	gpgv --keyring "$keyring" "${SIGNATURE_FILE_NAME}" "${FILE_NAME}.untrusted" 2>/dev/null
+else
+    exit 1
+fi
+
+# Remove untrusted suffix
+if [ -n "${OUTPUT_DIR}" ]; then
+    mkdir -p "${OUTPUT_DIR}"
+else
+    OUTPUT_DIR='.'
+fi
+
+mv "${FILE_NAME}.untrusted" "${OUTPUT_DIR}/${FILE_NAME}"

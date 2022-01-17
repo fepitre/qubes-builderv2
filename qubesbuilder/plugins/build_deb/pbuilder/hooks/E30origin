@@ -1,0 +1,23 @@
+#!/bin/sh
+
+cat >/etc/dpkg/origins/qubes <<EOF
+Parent: Debian
+Vendor: Qubes
+Vendor-URL: https://www.qubes-org.org/
+Bugs: https://github.com/QubesOS/qubes-issues
+EOF
+
+mkdir -p /etc/perl/Dpkg/Vendor
+cat >/etc/perl/Dpkg/Vendor/Qubes.pm <<EOF
+package Dpkg::Vendor::Qubes;
+our \$VERSION = '0.01';
+
+use parent qw(Dpkg::Vendor::Debian);
+
+sub run_hook {
+    my (\$self, \$hook, @params) = @_;
+    return \$self->SUPER::run_hook(\$hook, @params);
+}
+
+1;
+EOF

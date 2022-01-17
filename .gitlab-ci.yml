@@ -1,0 +1,40 @@
+stages:
+  - test
+
+variables:
+  DEBUG: "1"
+
+lint:
+  stage: test
+  script:
+    - PYTHONPATH=. pylint --junitxml=pylint.xml qubesbuilder
+  artifacts:
+    when: always
+    reports:
+      junit: pylint.xml
+
+mypy:
+  stage: test
+  script:
+    - mypy --install-types --non-interactive --junit-xml mypy.xml qubesbuilder
+  artifacts:
+    reports:
+      junit: mypy.xml
+
+tests:
+  stage: test
+  image: docker/compose:latest
+  services:
+    - docker:dind
+  tags:
+    - docker
+  artifacts:
+    paths:
+      - artifacts/htmlcov/
+    reports:
+      junit: artifacts/app.xml
+      cobertura: artifacts/coverage.xml
+  coverage: '/TOTAL.*\s(\d+)%/'
+  script:
+    - docker-compose -f tests/docker-compose.yml build test
+    - docker-compose -f tests/docker-compose.yml run test

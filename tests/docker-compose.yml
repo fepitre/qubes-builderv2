@@ -1,0 +1,20 @@
+version: '3'
+services:
+  base:
+    image: localhost/qubes-builder-fedora
+    build:
+      context: ..
+      dockerfile: dockerfiles/fedora.Dockerfile
+
+  test:
+    restart: always
+    privileged: true
+    build:
+      context: ..
+      dockerfile: dockerfiles/ci.Dockerfile
+    volumes:
+      - ..:/qubesbuilder
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PYTHONPATH=/qubesbuilder
+    command: pytest-3 -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml tests/

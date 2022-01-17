@@ -1,0 +1,96 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2018 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+# Copyright (C) 2018 Marek Marczykowski-Górecki <marmarek@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+
+# Originally from https://github.com/QubesOS/qubes-builder
+
+set -e
+[ "$DEBUG" = "1" ] && set -x
+
+TAR_VERSION="$(tar --version | head -1 | awk '{print $4}')"
+
+GIT_ARCHIVE_SRC="$(readlink -f "$1")"
+GIT_ARCHIVE_TYPE="${2##*.}"
+GIT_TARBALL_NAME="${2%.$GIT_ARCHIVE_TYPE}"
+
+if [ "x$3" != "x" ]; then
+    GIT_ARCHIVE_PREFIX="$3"
+else
+    GIT_ARCHIVE_PREFIX=${GIT_TARBALL_NAME##*/}
+    GIT_ARCHIVE_PREFIX=${GIT_ARCHIVE_PREFIX%.tar}
+    GIT_ARCHIVE_PREFIX=${GIT_ARCHIVE_PREFIX%.orig}
+    GIT_ARCHIVE_PREFIX="${GIT_ARCHIVE_PREFIX}/"
+fi
+
+# We enter in the qubes source component
+pushd "$GIT_ARCHIVE_SRC"
+
+# Define SOURCE_DATE_EPOCH from git latest commit timestamp
+SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)
+
+# Create the archive:
+# - based on https://reproducible-builds.org/docs/archives/
+# - excluding .git, pkgs folder and prevent probable not so
+#   clever implementation of 'tar' which would result in
+#   an infinity loop due to tar '.'
+
+if [ "$(printf '%s\n' "$TAR_VERSION" "1.28" | sort -V | head -n1)" == "1.28" ]; then
+    tar --sort=name \
+        --mtime="@${SOURCE_DATE_EPOCH}" \
+        --owner=0 --group=0 --numeric-owner \
+        --mode=go=rX \
+        --xform="s%^\./%${GIT_ARCHIVE_PREFIX}%" \
+        --exclude-vcs-ignores \
+        --exclude-ignore=.tarignore \
+        --exclude pkgs --exclude '.git/*' --exclude "${GIT_TARBALL_NAME}" \
+        -cf "${GIT_TARBALL_NAME}" .
+else
+    tarignore_opts=()
+    if [ -r .tarignore ]; then
+        while read -r pattern; do
+            tarignore_opts+=("-not" "-name" "$pattern")
+        done < .tarignore
+    fi
+    find . -not -path './.git/*' -not -path './pkgs*' \
+        -not -name "${GIT_TARBALL_NAME}" \
+        "${tarignore_opts[@]}" -print0 |
+    LC_ALL=C sort -z |
+    tar --no-recursion --null -T - \
+        --mtime="@${SOURCE_DATE_EPOCH}" \
+        --mode=go=rX \
+        --owner=0 --group=0 --numeric-owner \
+        --xform="s%^\./%${GIT_ARCHIVE_PREFIX}%" \
+        -cf "${GIT_TARBALL_NAME}"
+fi
+
+case "$GIT_ARCHIVE_TYPE" in
+    "gz") gzip -fn "${GIT_TARBALL_NAME}"
+        ;;
+    "bz2") bzip2 -f "${GIT_TARBALL_NAME}"
+        ;;
+    "xz") xz -f "${GIT_TARBALL_NAME}"
+        ;;
+    *) echo "Unsupported archive format..."
+        exit 1;;
+esac
+
+popd

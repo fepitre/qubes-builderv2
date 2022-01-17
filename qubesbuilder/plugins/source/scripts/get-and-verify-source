@@ -1,0 +1,392 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Based on 'get-sources' and 'verify-git-tag' from https://github.com/QubesOS/qubes-builder
+
+set -efo pipefail
+[ "${DEBUG-}" = "1" ] && set -x
+
+usage() {
+    echo "Usage: $(basename "$0") [OPTIONS]...
+This script downloads and verifies a git repository.
+
+Options:
+    --git-baseurl                            Base url of git repos.
+    --git-prefix                             Whose repo to clone.
+    --git-suffix                             Git component dir suffix (default .git).
+    --git-url                                Use provided URL instead of base url, prefix and suffix.
+    --git-remote                             Use provided remote name from git configuration instead of explicit URL.
+    --git-branch                             Git branch.
+    --component                              Component to clone.
+    --clean                                  Remove previous sources (use git up vs git clone).
+    --fetch-only                             Fetch sources but do not merge.
+    --ignore-missing                         Exit with code 0 if remote branch doesn't exists.
+    --repo                                   Specify repository directory, component will be guessed based on basename.
+    --keys-dir                               Directory containing keys to the armor format.
+    --keyring-dir-git                        Directory to create component git keyring.
+    --insecure-skip-checking                 Disable signed tag checking.
+    --less-secure-signed-commits-sufficient  Allow signed commits instead of requiring signed tags. This is less secure
+                                             because only commits that have been reviewed are tagged.
+    --maintainer                             Allowed maintainer provided as KEYID assumed to be available as KEYID.asc
+                                             under provided --keys-dir directory. Can be used multiple times.
+"
+}
+
+print_headers() {
+    if [ -z "$GIT_OPTIONS" ]; then
+        GIT_INFOS="$GIT_URL $BRANCH"
+    else
+        GIT_INFOS="$GIT_URL $BRANCH (options: $GIT_OPTIONS)"
+    fi
+
+    echo "-> Updating sources for $COMPONENT..."
+    echo "--> Fetching from $GIT_INFOS..."
+}
+
+verify_git_obj() {
+    local content newsig_number
+    content=$(git -c gpg.program=gpg -c gpg.minTrustLevel=fully "verify-$1" --raw -- "$2" 2>&1 >/dev/null) &&
+        newsig_number=$(printf %s\\n "$content" | grep -c '^\[GNUPG:] NEWSIG') &&
+        [ "$newsig_number" = 1 ] && {
+        printf %s\\n "$content" |
+            grep '^\[GNUPG:] TRUST_\(FULLY\|ULTIMATE\) 0 pgp$' >/dev/null
+    }
+}
+
+exit_clean() {
+    local exit_code=$?
+    if [ $exit_code -gt 0 ]; then
+        # if verification failed, remove fetched content to make sure we'll not
+        # use it
+        if "$fresh_clone"; then
+            rm -rf "$REPO"
+        else
+            rm -f "$REPO/.git/FETCH_HEAD"
+        fi
+    fi
+    exit "$exit_code"
+}
+
+if ! OPTS=$(getopt -o '' -l help,git-baseurl:,git-prefix:,git-suffix:,git-url:,git-remote:,git-branch:,component:,clean:,fetch-only:,ignore-missing:,repo:,keys-dir:,keyring-dir-git:,insecure-skip-checking,less-secure-signed-commits-sufficient,maintainer: -n "$0" -- "$@"); then
+    echo "ERROR: Failed while parsing options."
+    exit 1
+fi
+
+eval set -- "$OPTS"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --help) usage ;;
+    --git-baseurl)
+        GIT_BASEURL="$2"
+        shift
+        ;;
+    --git-prefix)
+        GIT_PREFIX="$2"
+        shift
+        ;;
+    --git-suffix)
+        GIT_SUFFIX="$2"
+        shift
+        ;;
+    --git-url)
+        GIT_URL="$2"
+        shift
+        ;;
+    --git-remote)
+        GIT_REMOTE="$2"
+        shift
+        ;;
+    --git-branch)
+        BRANCH="$2"
+        shift
+        ;;
+    --component)
+        COMPONENT="$2"
+        shift
+        ;;
+    --clean)
+        CLEAN="$2"
+        shift
+        ;;
+    --fetch-only)
+        FETCH_ONLY="$2"
+        shift
+        ;;
+    --ignore-missing)
+        IGNORE_MISSING="$2"
+        shift
+        ;;
+    --repo)
+        REPO="$2"
+        shift
+        ;;
+    --keys-dir)
+        KEYS_DIR="$2"
+        shift
+        ;;
+    --keyring-dir-git)
+        KEYRING_DIR_GIT="$2"
+        shift
+        ;;
+    --insecure-skip-checking)
+        INSECURE_SKIP_CHECKING=1
+        shift
+        ;;
+    --less-secure-signed-commits-sufficient)
+        LESS_SECURE_SIGNED_COMMITS_SUFFICIENT=1
+        shift
+        ;;
+    --maintainer)
+        MAINTAINERS+=("$2")
+        shift
+        ;;
+    esac
+    shift
+done
+
+# Sanity check on provided maintainers
+for maint in ${MAINTAINERS[*]}; do
+    if ! [[ "$maint" =~ ^[a-fA-F0-9]{40}$ ]]; then
+        echo "Invalid maintainer provided: $maint"
+        exit 1
+    fi
+done
+
+if ! [[ "${INSECURE_SKIP_CHECKING=}" =~ ^[A-Za-z0-9$'\x20\n'-]*$ ]]; then
+    echo 'ERROR: Invalid value for INSECURE_SKIP_CHECKING' >&2
+    exit 1
+elif ! [[ "${LESS_SECURE_SIGNED_COMMITS_SUFFICIENT=}" =~ ^[A-Za-z0-9$'\x20\n'-]*$ ]]; then
+    echo 'ERROR: Invalid value for LESS_SECURE_SIGNED_COMMITS_SUFFICIENT' >&2
+    exit 1
+fi
+
+# Ensure to have COMPONENT set
+[ -z "$COMPONENT" ] && {
+    echo "ERROR: COMPONENT is not set!" >&2
+    exit 1
+}
+
+# Default repository name based on COMPONENT
+[ -z "$REPO" ] && REPO="$COMPONENT"
+
+# Ensure to have a location for generating a GPG keyring to verify GIT tag/commit
+[ -z "$KEYRING_DIR_GIT" ] && {
+    echo "ERROR: KEYRING_DIR_GIT is not set!" >&2
+    exit 1
+}
+
+# Default GIT suffix
+[ -z "$GIT_SUFFIX" ] && GIT_SUFFIX='.git'
+
+# Default GIT branch
+[ -z "$BRANCH" ] && BRANCH='master'
+
+# Allow to override URL for which COMPONENT is cloned
+if [ -n "${GIT_URL-}" ]; then
+    GIT_URL="$GIT_URL"
+elif [ -n "${GIT_BASEURL}" ] && [ -n "${GIT_PREFIX}" ]; then
+    GIT_URL=$GIT_BASEURL/$GIT_PREFIX$COMPONENT$GIT_SUFFIX
+else
+    echo 'ERROR: Cannot determine how to clone repository!' >&2
+    exit 1
+fi
+
+# Override GIT_URL with GIT_REMOTE if given
+[ -n "${GIT_REMOTE=}" ] && GIT_URL=$GIT_REMOTE
+
+# Default values
+: "${IGNORE_MISSING=0}"
+: "${GIT_CLONE_FAST=0}"
+
+# Define common GIT options
+GIT_OPTIONS=
+if [ "$GIT_CLONE_FAST" = "1" ]; then
+    GIT_OPTIONS+="--depth=1"
+fi
+
+# Sanity check on BRANCH and REPO
+if ! [[ "$BRANCH" =~ ^[A-Za-z][A-Za-z0-9._-]+$ ]]; then
+    printf 'Invalid branch %q\n' "$BRANCH" >&2
+    exit 1
+elif ! [[ "$REPO" =~ ^[A-Za-z][A-Za-z0-9-]*$ ]]; then
+    printf 'Invalid repository %q\n' "$REPO" >&2
+    exit 1
+fi
+
+trap 'exit_clean' 0 1 2 3 6 15
+
+fresh_clone=false
+if [ -d "$REPO" ] && [ "${CLEAN-}" != '1' ]; then
+    cd "$REPO"
+    if [ "$GIT_CLONE_FAST" != "1" ] && [ "$(git rev-parse --is-shallow-repository)" == "true" ]; then
+        GIT_OPTIONS+="--unshallow"
+    fi
+    print_headers
+    if ! git fetch $GIT_OPTIONS -q --tags -- "$GIT_URL" "$BRANCH"; then
+        if [ "$IGNORE_MISSING" = "1" ]; then exit 0; else exit 1; fi
+    fi
+    VERIFY_REF=FETCH_HEAD fresh_clone=false
+    # shellcheck disable=SC2103
+    cd - >/dev/null
+else
+    rm -rf "$REPO"
+    print_headers
+    if ! git clone $GIT_OPTIONS -n -q -b "$BRANCH" "$GIT_URL" "$REPO"; then
+        if [ "$IGNORE_MISSING" == "1" ]; then exit 0; else exit 1; fi
+    fi
+    VERIFY_REF=HEAD fresh_clone=:
+fi
+
+export CHECK=signed-tag
+
+verify=true
+if [ "$INSECURE_SKIP_CHECKING" == "1" ]; then
+    verify=false
+elif [ "$LESS_SECURE_SIGNED_COMMITS_SUFFICIENT" == "1" ]; then
+    CHECK=signed-tag-or-commit
+fi
+
+VERIFY_REF=$(git -C "$REPO" rev-parse -q --verify "$VERIFY_REF") || exit
+
+if [ "$verify" = 'false' ]; then
+    echo -e '\033[1;31m--> NOT verifying tags\033[0;0m'
+else
+    if [[ $CHECK == 'signed-tag-or-commit' ]]; then
+        echo "--> Verifying tags or commits..."
+    else
+        echo "--> Verifying tags..."
+    fi
+
+    GNUPGHOME="$(readlink -m "$KEYRING_DIR_GIT")"
+    export GNUPGHOME
+    if [ ! -d "$GNUPGHOME" ]; then
+        mkdir -p "$GNUPGHOME"
+        chmod 700 "$GNUPGHOME"
+        gpg --import "$KEYS_DIR/qubes-developers-keys.asc"
+        # Trust Qubes Master Signing Key
+        echo '427F11FD0FAA4B080123F01CDDFA1A3E36879494:6:' | gpg --import-ownertrust
+    fi
+    if [ "$KEYS_DIR/qubes-developers-keys.asc" -nt "$GNUPGHOME/pubring.gpg" ]; then
+        gpg --import "$KEYS_DIR/qubes-developers-keys.asc"
+        touch "$GNUPGHOME/pubring.gpg"
+    fi
+    for keyid in ${MAINTAINERS[*]}; do
+        gpg --import "$KEYS_DIR/$keyid.asc" || exit 1
+        echo "$keyid:6:" | gpg --import-ownertrust
+    done
+    gpgconf --kill gpg-agent
+
+    pushd "$REPO" >/dev/null || exit 2
+
+    expected_hash="$VERIFY_REF"
+    hash_len=${#expected_hash}
+    if [ "$hash_len" -ne 40 ] && [ "$hash_len" -ne 64 ]; then
+        echo "---> Bad Git hash value (wrong length); failing" >&2
+        exit 1
+    elif ! [[ "$expected_hash" =~ ^[a-f0-9]+$ ]]; then
+        echo "---> Bad Git hash value (bad character); failing" >&2
+        exit 1
+    fi
+
+    # Git format string, see man:git-for-each-ref(1) for details.
+    #
+    # The %(if)...%(then)...%(end) skips lightweight tags, which have no object to
+    # point to.  The colons allow a SHA-1 hash to be distinguished from a truncated
+    # SHA-256 hash, and also allow a truncated line to be detected.
+    format='%(if:equals=tag)%(objecttype)%(then)%(objectname):%(object):%(end)'
+    tags="$(git tag "--points-at=$expected_hash" "--format=$format" | head -c 500)" || exit 1
+    for tag in $tags; do
+        if ((${#tag} != hash_len * 2 + 2)); then
+            echo '---> Bad Git hash value (wrong length); failing' >&2
+            exit 1
+        elif ! [[ "${tag:hash_len}" == ":$expected_hash:" ]]; then
+            printf %s\\n "---> Tag has wrong hash (found ${tag:hash_len+1:hash_len}, expected $expected_hash)" >&2
+            exit 1
+        fi
+        tag="${tag:0:hash_len}"
+        if verify_git_obj tag "$tag"; then
+            echo "---> Good tag $tag"
+        else
+            echo "---> Invalid tag $tag"
+            exit 1
+        fi
+    done
+
+    if [ -z "${tag+x}" ]; then
+        echo "---> No tag pointing at $expected_hash"
+        if verify_git_obj commit "$expected_hash"; then
+            case $CHECK in
+            signed-tag-or-commit)
+                echo "---> $expected_hash does not have a signed tag"
+                echo "---> However, it is signed by a trusted key, and \$CHECK is set to $CHECK"
+                echo "---> Accepting it anyway"
+                ;;
+            signed-tag)
+                echo "---> $expected_hash is a commit signed by a trusted key ― did the signer forget to add a tag?"
+                exit 1
+                ;;
+            *)
+                echo "---> internal error (this is a bug)"
+                exit 1
+                ;;
+            esac
+        else
+            echo "---> Invalid commit $expected_hash"
+            exit 1
+        fi
+    fi
+    popd >/dev/null || exit 1
+fi
+
+if [ "${FETCH_ONLY-}" == "1" ]; then
+    exit 0
+fi
+
+pushd "$REPO" &>/dev/null || exit 2
+
+CURRENT_BRANCH="$(exec git rev-parse --abbrev-ref HEAD)"
+if [ "$CURRENT_BRANCH" != "$BRANCH" ] || "$fresh_clone"; then
+    if [ -z "${NO_COLOR=}" ]; then
+        red=$'\033[1;31m' green=$'\033[1;32m' normal=$'\033[0;0m'
+    else
+        # shellcheck disable=SC1007
+        red= green= normal=
+    fi
+    if [ -n "$(git name-rev --name-only "$BRANCH" 2>/dev/null)" ]; then
+        echo "--> Switching branch from $CURRENT_BRANCH branch to ${green}$BRANCH${normal}"
+        git checkout -B "$BRANCH" "$VERIFY_REF" || exit 1
+    else
+        echo -e "--> Switching branch from $CURRENT_BRANCH branch to new ${red}$BRANCH${normal}"
+        git checkout "$VERIFY_REF" -b "$BRANCH" || exit 1
+    fi
+fi
+
+if ! "$fresh_clone"; then
+    echo "--> Merging..."
+    git -c merge.verifySignatures=no merge --ff-only --commit -q "$VERIFY_REF"
+    tracking_branch="refs/remotes/$GIT_REMOTE/$BRANCH"
+    if [ -f ".git/$tracking_branch" ]; then
+        git update-ref -- "$tracking_branch" "$VERIFY_REF"
+    fi
+fi
+
+popd >/dev/null || exit 1

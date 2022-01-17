@@ -1,0 +1,50 @@
+#!/usr/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# This script is responsible to move RPMs from a directory to another by
+# filtering DIST and ARCH. A packages.list file is generated.
+
+set -e
+set -o pipefail
+
+if [ "${DEBUG}" == 1 ]; then
+    set -x
+fi
+
+SOURCE_DIR="$1"
+TARGET_DIR="$2"
+DIST_TAG="$3"
+ARCH="$4"
+
+if ! [ -d "$SOURCE_DIR" ]; then
+    echo "ERROR: Cannot find SOURCE_DIR."
+    exit 1
+fi
+
+mkdir -p "$TARGET_DIR"
+echo -n > "$SOURCE_DIR"/packages.list
+
+for rpm in "${SOURCE_DIR}/"*".${DIST_TAG}.${ARCH}.rpm"
+do
+    echo "Found $rpm"
+    mv "$rpm" "${TARGET_DIR}/"
+    basename "$rpm" >> "$SOURCE_DIR"/packages.list
+done

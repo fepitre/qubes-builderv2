@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2021 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import os
+import sys
+
+from debian.deb822 import Dsc
+
+
+def main(dsc, debian_release):
+    if not os.path.exists(dsc):
+        print(f"Cannot find '{dsc}'.")
+        return 1
+
+    try:
+        debian_release = int(debian_release)
+    except ValueError:
+        print(f"Cannot parse Debian release number '{debian_release}'.")
+        return 1
+
+    with open(dsc) as f:
+        parsed_dsc = Dsc(f)
+
+    version = parsed_dsc["Version"]
+    packages = parsed_dsc["Package-list"].strip("\n").splitlines()
+    for pkg in packages:
+        # See https://man7.org/linux/man-pages/man5/dsc.5.html
+        package, package_type, section, priority, key_value_list = pkg.split(maxsplit=5)
+        optional_keys = {}
+        for val in key_value_list.strip().split():
+            if val.startswith("arch="):
+                optional_keys["arch"] = val.split("=")[1]
+            if val.startswith("profile="):
+                optional_keys["profile"] = val.split("=")[1]
+            if val.startswith("essential="):
+                optional_keys["essential"] = val.split("=")[1]
+        arch = optional_keys.get("arch", None).replace("any", "amd64")
+        if not arch:
+            print(f"Cannot find arch.")
+            return
+        print(f"{package}_{version}_{arch}.{package_type}")
+        print(f"{package}-dbgsym_{version}_{arch}.{package_type}")
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print(f"usage: {sys.argv[0]} dsc debian_release_number")
+        sys.exit(1)
+    sys.exit(main(sys.argv[1], sys.argv[2]))
