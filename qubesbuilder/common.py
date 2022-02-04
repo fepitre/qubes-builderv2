@@ -24,7 +24,7 @@ PROJECT_PATH = Path(__file__).resolve().parents[1]
 
 
 def is_filename_valid(filename: str) -> bool:
-    if filename.startswith("-") or filename == "":
+    if filename == "" or filename[0] in ("-", "."):
         return False
     for c in filename:
         if c not in digits + ascii_letters + '-_.+':
