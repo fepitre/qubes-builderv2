@@ -111,3 +111,18 @@ artifacts/
 ├── repository-publish  <- Qubes OS repositories that are synced to {yum,deb,...}.qubes-os.org.
 └── sources             <- Qubes component source.
 ```
+
+### Signing with Split GPG
+
+If you plan to sign packages with Split GPG, don't forget to add to your `~/.rpmmacros`:
+```
+%__gpg /usr/bin/qubes-gpg-client-wrapper
+
+%__gpg_check_password_cmd   %{__gpg} \
+        gpg --batch --no-verbose -u "%{_gpg_name}" -s
+
+%__gpg_sign_cmd /bin/sh sh -c '/usr/bin/qubes-gpg-client-wrapper \\\
+        --batch --no-verbose \\\
+        %{?_gpg_digest_algo:--digest-algo %{_gpg_digest_algo}} \\\
+        -u "%{_gpg_name}" -sb %{__plaintext_filename} >%{__signature_filename}'
+```
