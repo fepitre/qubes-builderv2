@@ -91,7 +91,7 @@ def main(ctx: click.Context, verbose: int, debug: bool, builder_conf: Path,
 # FIXME: Find a better design to register necessary plugins for each stage.
 def _stage(obj: ContextObj, stage_name: str):
     click.echo(f"Running stage: {stage_name}")
-    executor = obj.config.get_stages()[stage_name]
+    executor = obj.config.get_stages()[stage_name]["executor"]
 
     for component in obj.components:
         for dist in obj.distributions:

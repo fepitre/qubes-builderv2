@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Dict
 
 import yaml
 
@@ -53,7 +53,7 @@ class Config:
         self._stages: dict = {}
 
         # Qubes OS components
-        self._components: List[Union[dict, str]] = []
+        self._components: List[Component] = []
 
         # Artifacts directory location
         if self._conf.get("artifacts-dir", None):
@@ -96,8 +96,7 @@ class Config:
         return PROJECT_PATH / "qubesbuilder" / "plugins"
 
     def parse_stage_from_config(self, stage_name: str):
-        stage = None
-
+        executor = None
         default_executor = self._conf.get("executor", {})
         executor_type = default_executor.get("type", "docker")
         executor_options = default_executor.get("options", {"image": "qubes-builder-fedora:latest"})
@@ -112,14 +111,15 @@ class Config:
                     stage_options["executor"].get("type", None):
                 executor_type = stage_options["executor"]["type"]
                 executor_options = stage_options["executor"].get("options", {})
-                stage = getExecutor(executor_type, executor_options)
+                executor = getExecutor(executor_type, executor_options)
                 break
-        if not stage:
+        if not executor:
             # FIXME: default executor?
-            stage = getExecutor(executor_type, executor_options)
+            executor = getExecutor(executor_type, executor_options)
+        stage = {"executor": executor}
         return stage
 
-    def parse_component_from_config(self, component_name: Union[str, Dist]):
+    def parse_component_from_config(self, component_name: Union[str, Dict]) -> Component:
         component_default_url = f"https://github.com/QubesOS/qubes-{component_name}"
         component_default_branch = "master"
         if isinstance(component_name, str):
