@@ -41,15 +41,14 @@ log = get_logger("cli")
               help="Output logs.")
 @click.option("--debug/--no-debug", default=None, is_flag=True,
               help="Print full traceback on exception.")
-@click.option("--builder-conf", default=Path("builder.yml"),
-              type=click.Path(exists=True, resolve_path=True, path_type=Path),
+@click.option("--builder-conf", default="builder.yml",
               help="Path to configuration file (default: builder.yml).")
 @click.option("--component", "-c", default=None, multiple=True,
               help="Override component in configuration file (can be repeated).")
 @click.option("--distribution", "-d", default=None, multiple=True,
               help="Override distribution in configuration file (can be repeated).")
 @click.pass_context
-def main(ctx: click.Context, verbose: int, debug: bool, builder_conf: Path,
+def main(ctx: click.Context, verbose: int, debug: bool, builder_conf: str,
          component: List = None, distribution: List = None):
     config = Config(builder_conf)
     ctx.obj = ContextObj(config)

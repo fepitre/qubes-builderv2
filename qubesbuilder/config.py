@@ -36,7 +36,10 @@ log = get_logger("config")
 
 class Config:
 
-    def __init__(self, conf_file: Path):
+    def __init__(self, conf_file: Union[Path, str]):
+        if isinstance(conf_file, str):
+            conf_file = Path(conf_file).resolve()
+
         if not conf_file.exists():
             raise ConfigException(f"Cannot find config '{conf_file}'.")
 
