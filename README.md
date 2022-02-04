@@ -15,14 +15,20 @@ a fresh and new cage will be used. It remains only the signing and publishing pr
 inside a cage. This is to be improved in the future.
 
 For now, only Docker or Podman executor is available and Qubes OS DispVM is coming really soon. Only Docker executor
-inside a Fedora AppVM has been used by the author for validating the current development.
+inside a Fedora/Debian AppVM has been used by the author for validating the current development.
 
 ## How-to
 
 ### Dependencies
 
+Fedora:
 ```bash
-$ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split python3-pyyaml rpmdevtools docker python3-docker podman python3-podman
+$ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split python3-pyyaml rpm docker python3-docker podman python3-podman
+```
+
+Debian:
+```bash
+$ sudo apt install python3-packaging createrepo-c devscripts gpg qubes-gpg-split python3-yaml rpm docker python3-docker
 ```
 
 ### Docker executor

@@ -21,10 +21,19 @@ from contextlib import contextmanager
 from pathlib import Path, PurePath
 from typing import List, Tuple
 
-from docker import DockerClient
-from docker.errors import DockerException
-from podman import PodmanClient
-from podman.errors import PodmanError
+try:
+    from docker import DockerClient
+    from docker.errors import DockerException
+except ImportError:
+    DockerClient = None
+    DockerException = Exception
+
+try:
+    from podman import PodmanClient
+    from podman.errors import PodmanError
+except ImportError:
+    PodmanClient = None
+    PodmanError = Exception
 
 from qubesbuilder.executors import Executor, log, ExecutorException
 
@@ -35,8 +44,12 @@ class ContainerExecutor(Executor):
         self._container_client = container_client
         self._kwargs = kwargs
         if self._container_client == "podman":
+            if PodmanClient is None:
+                raise ExecutorException(f"Cannot find 'podman' on the system.")
             self._client = PodmanClient
         elif self._container_client == "docker":
+            if DockerClient is None:
+                raise ExecutorException(f"Cannot find 'docker' on the system.")
             self._client = DockerClient
         else:
             raise ExecutorException(f"Unknown container client '{self._container_client}'.")
@@ -58,7 +71,7 @@ class ContainerExecutor(Executor):
         try:
             yield self._client(**self._kwargs)
         except (PodmanError, DockerException, ValueError) as e:
-            raise ExecutorException("Cannot connect to container client.") from e
+            raise ExecutorException(str(e)) from e
 
     def copy_in(self, container, source_path: Path, destination_dir: PurePath):
         src = source_path.expanduser().absolute().as_posix()

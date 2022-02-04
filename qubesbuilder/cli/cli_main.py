@@ -36,7 +36,7 @@ from qubesbuilder.plugins.helpers import getSourcePlugin, getBuildPlugin, \
 log = get_logger("cli")
 
 
-@aliased_group("qb", invoke_without_command=True, chain=True)
+@aliased_group("qb", chain=True)
 @click.option("--verbose/--no-verbose", default=None, is_flag=True,
               help="Output logs.")
 @click.option("--debug/--no-debug", default=None, is_flag=True,
