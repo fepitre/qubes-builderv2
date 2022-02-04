@@ -21,6 +21,11 @@ mypy:
     reports:
       junit: mypy.xml
 
+shellcheck:
+  stage: test
+  script:
+    - shellcheck -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
+
 tests:
   stage: test
   image: docker/compose:latest
