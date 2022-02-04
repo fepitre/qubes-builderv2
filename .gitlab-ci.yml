@@ -31,7 +31,7 @@ shellcheck:
   stage: test
   image: fedora:latest
   before_script:
-    - sudo dnf install -y ShellCheck
+    - sudo dnf install -y ShellCheck git
   script:
     - shellcheck -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
 
