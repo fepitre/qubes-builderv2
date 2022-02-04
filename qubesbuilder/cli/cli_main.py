@@ -50,6 +50,10 @@ log = get_logger("cli")
 @click.pass_context
 def main(ctx: click.Context, verbose: int, debug: bool, builder_conf: Path,
          component: List = None, distribution: List = None):
+
+    if not isinstance(builder_conf, Path):
+        builder_conf = Path(builder_conf).resolve()
+
     config = Config(builder_conf)
     ctx.obj = ContextObj(config)
 
