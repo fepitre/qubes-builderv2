@@ -107,10 +107,10 @@ elif [ -n "${SIGNATURE_URL}" ] && [ -n "${PUBKEY_FILE}" ]; then
 
     # Import pubkey
     keyring="$(mktemp -u)"
-	gpg --no-auto-check-trustdb --no-default-keyring --keyring "$keyring" -q --import "${PUBKEY_FILE}"
+    gpg --no-auto-check-trustdb --no-default-keyring --keyring "$keyring" -q --import "${PUBKEY_FILE}"
 
-	# Verify file
-	gpgv --keyring "$keyring" "${SIGNATURE_FILE_NAME}" "${FILE_NAME}.untrusted" 2>/dev/null
+    # Verify file
+    gpgv --keyring "$keyring" "${SIGNATURE_FILE_NAME}" "${FILE_NAME}.untrusted" 2>/dev/null
 else
     exit 1
 fi
