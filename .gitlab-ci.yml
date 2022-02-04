@@ -10,7 +10,7 @@ lint:
   before_script:
     - sudo dnf install -y python3-pylint
   script:
-    - PYTHONPATH=. pylint --junitxml=pylint.xml qubesbuilder
+    - PYTHONPATH=. pylint-3 --junitxml=pylint.xml qubesbuilder
   artifacts:
     when: always
     reports:
