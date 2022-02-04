@@ -53,13 +53,15 @@ def provision_local_repository(spec: str, repository_dir: Path,
         # srpm
         srpm_path = prep_artifacts_dir / source_info["srpm"]
         target_path = target_dir / source_info["srpm"]
-        target_path.hardlink_to(srpm_path)
+        # target_path.hardlink_to(srpm_path)
+        os.link(srpm_path, target_path)
 
         # rpms
         for rpm in packages_list:
             rpm_path = build_artifacts_dir / "rpm" / rpm
             target_path = target_dir / rpm
-            target_path.hardlink_to(rpm_path)
+            # target_path.hardlink_to(rpm_path)
+            os.link(rpm_path, target_path)
     except (ValueError, PermissionError, NotImplementedError) as e:
         msg = f"{component}:{dist}:{spec}: Failed to provision local repository."
         raise BuildException(msg) from e

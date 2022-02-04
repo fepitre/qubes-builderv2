@@ -162,7 +162,8 @@ class RPMPublishPlugin(PublishPlugin):
                     for rpm in packages_list:
                         target_path = target_dir / "rpm" / rpm.name
                         target_path.unlink(missing_ok=True)
-                        target_path.hardlink_to(rpm)
+                        # target_path.hardlink_to(rpm)
+                        os.link(rpm, target_path)
                 except (ValueError, PermissionError, NotImplementedError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to publish packages."
                     raise PublishException(msg) from e

@@ -62,7 +62,8 @@ def provision_local_repository(debian_directory: str, repository_dir: Path,
         # create hardlinks
         for f in files:
             target_path = target_dir / f.name
-            target_path.hardlink_to(f)
+            # target_path.hardlink_to(f)
+            os.link(f, target_path)
     except (ValueError, PermissionError, NotImplementedError) as e:
         msg = f"{component}:{dist}:{debian_directory}: Failed to create repository."
         raise BuildException(msg) from e
