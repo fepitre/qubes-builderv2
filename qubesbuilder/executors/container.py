@@ -93,7 +93,7 @@ class ContainerExecutor(Executor):
         with self.get_client() as client:
             # prepare container for given image and command
             image = client.images.get(self.attrs["Id"])
-            # create a disposable container that will be removed after execution
+            # FIXME: create a disposable container that will be removed after execution
             container = client.containers.create(
                 image, cmd, privileged=True, environment=environment)
             log.info(f"Executing '{' '.join(cmd)}' in {container}...")
