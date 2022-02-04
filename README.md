@@ -95,6 +95,12 @@ You can start building the components defined in this devel configuration as:
 $ ./qb fetch prep build
 ```
 
+If GPG is setup on your host, specify key and client to be used inside `builder.yml`. Then, you can test sign and 
+publish stages:
+```bash
+$ ./qb sign publish
+```
+
 Artifacts can be found under `artifacts` directory:
 ```
 artifacts/
