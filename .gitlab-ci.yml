@@ -6,6 +6,9 @@ variables:
 
 lint:
   stage: test
+  image: fedora:latest
+  before_script:
+    - sudo dnf install -y python3-pylint
   script:
     - PYTHONPATH=. pylint --junitxml=pylint.xml qubesbuilder
   artifacts:
@@ -15,6 +18,9 @@ lint:
 
 mypy:
   stage: test
+  image: fedora:latest
+  before_script:
+    - sudo dnf install -y python3-mypy
   script:
     - mypy --install-types --non-interactive --junit-xml mypy.xml qubesbuilder
   artifacts:
@@ -23,6 +29,9 @@ mypy:
 
 shellcheck:
   stage: test
+  image: fedora:latest
+  before_script:
+    - sudo dnf install -y ShellCheck
   script:
     - shellcheck -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
 
