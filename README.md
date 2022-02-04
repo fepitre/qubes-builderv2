@@ -29,6 +29,8 @@ inside a Fedora AppVM has been used by the author for validating the current dev
 - rpmdevtools
 - docker
 - python3-docker
+- podman
+- python3-podman
 
 ### Docker executor
 
