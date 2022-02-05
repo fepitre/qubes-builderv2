@@ -21,21 +21,21 @@ from contextlib import contextmanager
 from pathlib import Path, PurePath
 from typing import List, Tuple
 
+from qubesbuilder.executors import Executor, log, ExecutorException
+
 try:
     from docker import DockerClient
     from docker.errors import DockerException
 except ImportError:
     DockerClient = None
-    DockerException = Exception
+    DockerException = ExecutorException
 
 try:
     from podman import PodmanClient
     from podman.errors import PodmanError
 except ImportError:
     PodmanClient = None
-    PodmanError = Exception
-
-from qubesbuilder.executors import Executor, log, ExecutorException
+    PodmanError = ExecutorException
 
 
 class ContainerExecutor(Executor):
