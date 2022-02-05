@@ -1,4 +1,4 @@
-FROM localhost/qubes-builder-fedora:latest
+FROM fepitre/qubes-builder-fedora:latest
 MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
 
 RUN dnf -y update && \
