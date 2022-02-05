@@ -157,7 +157,7 @@ def test_dist_unknown_package_set():
 def test_dist_unknown():
     with pytest.raises(DistException) as e:
         Dist("host-lfs")
-    msg = "Unsupported distribution"
+    msg = "Unsupported distribution 'host-lfs'"
     assert str(e.value) == msg
 
 

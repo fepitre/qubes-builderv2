@@ -71,7 +71,7 @@ class ContainerExecutor(Executor):
         try:
             yield self._client(**self._kwargs)
         except (PodmanError, DockerException, ValueError) as e:
-            raise ExecutorException(str(e)) from e
+            raise ExecutorException("Cannot connect to container client.") from e
 
     def copy_in(self, container, source_path: Path, destination_dir: PurePath):
         src = source_path.expanduser().absolute().as_posix()
