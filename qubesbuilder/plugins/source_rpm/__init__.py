@@ -112,27 +112,10 @@ class RPMSourcePlugin(SourcePlugin):
                     (source_dir / f"{spec_bn}_package_release_name", artifacts_dir),
                     (source_dir / f"{spec_bn}_packages.list", artifacts_dir)
                 ]
-
                 bash_cmd = [
-                    f"{PLUGINS_DIR}/source_rpm/scripts/query-spec "
-                    f"{source_dir} {source_dir / spec} "
-                    f"\'%{{name}}-%{{version}}-%{{release}}\n\' {self.dist.tag} | head -1"
-                    f"> {source_dir / spec_bn}_package_release_name"
+                    f"{PLUGINS_DIR}/source_rpm/scripts/get-source-info "
+                    f"{source_dir} {source_dir / spec} {self.dist.tag}"
                 ]
-
-                bash_cmd += [
-                    f"{PLUGINS_DIR}/source_rpm/scripts/query-spec "
-                    f"{source_dir} {source_dir / spec} "
-                    f"%{{SOURCE0}} {self.dist.tag} | awk '{{print $2}}'"
-                    f">> {source_dir / spec_bn}_package_release_name"
-                ]
-
-                bash_cmd += [
-                    f"{PLUGINS_DIR}/source_rpm/scripts/query-spec {source_dir} {source_dir / spec} "
-                    f"PACKAGES_LIST {self.dist.tag}"
-                    f"> {source_dir / spec_bn}_packages.list"
-                ]
-
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
                     self.executor.run(cmd, copy_in, copy_out, environment=self.environment)

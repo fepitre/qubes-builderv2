@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# This script parses and creates a file containing package info
+# necessary for the build process.
+
+set -e
+set -o pipefail
+
+if [ "${DEBUG}" == 1 ]; then
+    set -x
+fi
+
+if test $# -ne 3; then
+	echo "Usage: source_dir spec_file dist_tag"
+	exit 1
+fi
+
+SOURCE_DIR="$1"
+SPEC_FILE="$2"
+DIST_TAG="$3"
+
+SCRIPTS_DIR="$(dirname "$0")"
+SPEC_BN="$(basename "$SPEC_FILE")"
+SPEC_BN="${SPEC_BN%.spec}"
+
+"${SCRIPTS_DIR}"/query-spec \
+    "$SOURCE_DIR" "$SPEC_FILE" '%{name}-%{version}-%{release}\n' "${DIST_TAG}" | head -1 \
+    > "${SOURCE_DIR}/${SPEC_BN}_package_release_name"
+
+"${SCRIPTS_DIR}"/query-spec \
+    "$SOURCE_DIR" "$SPEC_FILE" '%{SOURCE0}' "${DIST_TAG}" | awk '{print $2}' \
+    >> "${SOURCE_DIR}/${SPEC_BN}_package_release_name"
+
+"${SCRIPTS_DIR}"/query-spec \
+    "$SOURCE_DIR" "$SPEC_FILE" PACKAGES_LIST "${DIST_TAG}" \
+    > "${SOURCE_DIR}/${SPEC_BN}_packages.list"
