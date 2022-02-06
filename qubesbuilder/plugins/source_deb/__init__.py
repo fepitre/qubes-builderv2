@@ -93,15 +93,6 @@ class DEBSourcePlugin(SourcePlugin):
                 # Source component directory inside executors
                 source_dir = BUILDER_DIR / self.component.name
 
-                # Command that is used to update changelog before generating source
-                process_changelog_cmd = [
-                    f"cd {source_dir}",
-                    f"{PLUGINS_DIR}/source_deb/scripts/debian-changelog --verify",
-                    f"debchange -t -l+{self.dist.tag}u 'Build for {self.dist.name}'",
-                    f"debchange -t --force-distribution -r -D {self.dist.name} {self.dist.name}",
-                    f"{PLUGINS_DIR}/source_deb/scripts/clamp-changelog-entry-date {source_dir}/{directory}/changelog"
-                ]
-
                 # Generate package release name
                 copy_in = [
                     (self.component.source_dir, BUILDER_DIR / self.component.name),
@@ -115,24 +106,18 @@ class DEBSourcePlugin(SourcePlugin):
                 ]
 
                 # Update changelog
-                bash_cmd = process_changelog_cmd
-
-                bash_cmd += [
-                    f"{PLUGINS_DIR}/source_deb/scripts/debian-parser "
-                    f"changelog --package-release-name "
-                    f"{source_dir}/{directory}/changelog "
-                    f"> {source_dir / f'{directory}_package_release_name'}"
+                bash_cmd = [
+                    f"{PLUGINS_DIR}/source_deb/scripts/modify-changelog-for-build "
+                    f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
                 ]
 
                 bash_cmd += [
-                    f"{PLUGINS_DIR}/source_deb/scripts/debian-parser "
-                    f"changelog --package-release-name-full "
-                    f"{source_dir}/{directory}/changelog "
-                    f">> {source_dir / f'{directory}_package_release_name'}"
+                    f"{PLUGINS_DIR}/source_deb/scripts/get-source-info {source_dir} {directory}"
                 ]
 
                 env = self.environment
                 env.update({"LC_ALL": "C", "DEBFULLNAME": "Builder", "DEBEMAIL": "user@localhost"})
+
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
                     self.executor.run(cmd, copy_in, copy_out, environment=env)
@@ -192,7 +177,10 @@ class DEBSourcePlugin(SourcePlugin):
                 bash_cmd = self.parameters.get("source", {}).get("commands", [])
 
                 # Update changelog
-                bash_cmd += process_changelog_cmd
+                bash_cmd += [
+                    f"{PLUGINS_DIR}/source_deb/scripts/modify-changelog-for-build "
+                    f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
+                ]
 
                 # Create archive if no external file is provided.
                 if not self.parameters.get("files", []):

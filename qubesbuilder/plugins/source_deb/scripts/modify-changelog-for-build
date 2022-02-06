@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# This script updates Debian changelog in order to build
+# the component according to Qubes OS packaging.
+
+set -e
+set -o pipefail
+
+if [ "${DEBUG}" == 1 ]; then
+    set -x
+fi
+
+if test $# -ne 4; then
+	echo "Usage: source_dir debian_directory dist_name dist_tag"
+	exit 1
+fi
+
+SOURCE_DIR="$1"
+DEBIAN_DIRECTORY="$2"
+DIST_NAME="$3"
+DIST_TAG="$4"
+
+SCRIPTS_DIR="$(dirname "$0")"
+
+cd "$SOURCE_DIR"
+
+"${SCRIPTS_DIR}"/debian-changelog --verify
+debchange -t -l+"$DIST_TAG"u "Build for $DIST_NAME"
+debchange -t --force-distribution -r -D "$DIST_NAME" "$DIST_NAME"
+"${SCRIPTS_DIR}"/clamp-changelog-entry-date "${SOURCE_DIR}/${DEBIAN_DIRECTORY}/changelog"
