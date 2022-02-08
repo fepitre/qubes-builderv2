@@ -1,0 +1,173 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Originally based on QubesOS/qubes-builder-rpm/prepare-chroot-builder
+
+set -e
+if [ "${VERBOSE:-0}" -ge 2 ] || [ "${DEBUG:-0}" -eq "1" ]; then
+    set -x
+    DNF_OPTS=()
+else
+    DNF_OPTS=(-q)
+fi
+
+INSTALL_DIR="$1"
+DIST_NAME="$2"
+DIST_VER="$3"
+CACHE_DIR="$4"
+BUILDER_REPO_DIR="$5"
+PKG_LIST_FILE="$6"
+
+PLUGIN_DIR="$(readlink -f "$(dirname "$0")"/../)"
+CHROOT_CACHE_FILE=
+
+DNF_OPTS+=("--releasever=${DIST_VER}" "--installroot=$INSTALL_DIR")
+
+if [ -z "$PKG_LIST_FILE" ]; then
+    if [ -e "${PLUGIN_DIR}/dnf/build-pkgs-base-${DIST_NAME}-${DIST_VER}.list" ]; then
+        PKG_LIST_FILE="${PLUGIN_DIR}/dnf/build-pkgs-base-${DIST_NAME}-${DIST_VER}.list"
+    elif [ -e "${PLUGIN_DIR}/dnf/build-pkgs-base-${DIST_NAME}.list" ]; then
+        PKG_LIST_FILE="${PLUGIN_DIR}/dnf/build-pkgs-base-${DIST_NAME}.list"
+    else
+        echo "ERROR: Unsupported DIST"
+        return 1
+    fi
+    if [ "0$CACHE_CHROOT" -eq 1 ]; then
+        CHROOT_CACHE_FILE="${CACHE_DIR}/chroot-${DIST}-base.tar"
+    fi
+fi
+
+prepare_chroot_proc () {
+    mount -t proc proc "$INSTALL_DIR/proc"
+
+    chroot "$INSTALL_DIR" ln -nsf /proc/self/fd /dev/fd
+    chroot "$INSTALL_DIR" ln -nsf /proc/self/fd/0 /dev/stdin
+    chroot "$INSTALL_DIR" ln -nsf /proc/self/fd/1 /dev/stdout
+    chroot "$INSTALL_DIR" ln -snf /proc/self/fd/2 /dev/stderr
+}
+
+if ! [ -d "$INSTALL_DIR/home/user" ] && [ -r "$CHROOT_CACHE_FILE" ]; then
+    mkdir -p "$INSTALL_DIR"
+    tar xf "$CHROOT_CACHE_FILE" "$INSTALL_DIR"
+fi
+
+# Bootstrap chroot
+"${PLUGIN_DIR}/scripts/prepare-chroot-base" "$INSTALL_DIR" "$DIST_NAME" "$DIST_VER" "$CACHE_DIR"
+
+mkdir -p "$INSTALL_DIR/etc/dnf/vars"
+echo "$INSTALL_DIR" > "$INSTALL_DIR/etc/dnf/vars/sysroot"
+echo "$BUILDER_REPO_DIR" > "$INSTALL_DIR/etc/dnf/vars/builder_repo_dir"
+
+echo "INFO: Preparing chroot mount points..."
+if ! [ -r "$INSTALL_DIR/proc/cpuinfo" ]; then
+    prepare_chroot_proc
+fi
+
+if ! [ -e "$INSTALL_DIR/home/user/.prepared_base" ]; then
+    echo "INFO: Creating user..."
+    # use host resolv.conf inside chroot
+    rm -f "$INSTALL_DIR/etc/resolv.conf"
+    cp /etc/resolv.conf "$INSTALL_DIR/etc/"
+
+    # setup user and group
+    if [ -z "$USER_UID" ] && [ -n "$SUDO_UID" ]; then
+        USER_UID="$SUDO_UID"
+    elif [ -z "$USER_UID" ]; then
+        USER_UID=1000
+    fi
+    if [ -z "$USER_GID" ] && [ -n "$SUDO_GID" ]; then
+        USER_GID="$SUDO_GID"
+    elif [ -z "$USER_GID" ]; then
+        USER_GID=1000
+    fi
+    existing_gid=$(chroot "$INSTALL_DIR" id -g user 2>/dev/null || :)
+    if [ -z "$existing_gid" ]; then
+        chroot "$INSTALL_DIR" groupadd -g "$USER_GID" user
+    elif [ "$existing_gid" != "$USER_GID" ]; then
+        chroot "$INSTALL_DIR" groupmod -g "$USER_GID" user
+    fi
+    existing_uid=$(chroot "$INSTALL_DIR" id -u user 2>/dev/null || :)
+    if [ -z "$existing_uid" ]; then
+        chroot "$INSTALL_DIR" useradd -g user -u "$USER_UID" user
+    elif [ "$existing_uid" != "$USER_UID" ]; then
+        chroot "$INSTALL_DIR" usermod -u "$USER_UID" user
+    fi
+
+    chroot "$INSTALL_DIR" sh -c "chown -R user /home/user;su -c 'mkdir -p qubes-src' - user"
+fi
+
+cp "${PLUGIN_DIR}/repos/builder-local.repo" "$INSTALL_DIR/etc/yum.repos.d/"
+sed -i -e "s#ROOT#$PWD#" "$INSTALL_DIR"/etc/yum.repos.d/*-local.repo
+
+if [ -n "$USE_QUBES_REPO_VERSION" ]; then
+    cp "${PLUGIN_DIR}/repos/qubes-repo-${PACKAGE_SET}-${DIST_NAME}.repo" "$INSTALL_DIR/etc/yum.repos.d/"
+
+    if [ "x$QUBES_MIRROR" != "x" ]; then
+        sed -i "s#baseurl.*yum.qubes-os.org#baseurl = $QUBES_MIRROR#" \
+            "$INSTALL_DIR"/etc/yum.repos.d/qubes-repo-*.repo
+    fi
+
+    sed -i -e "s#%DIST%#$DIST#" "$INSTALL_DIR"/etc/yum.repos.d/qubes-repo-*.repo
+    sed -i -e "s#%QUBESVER%#$USE_QUBES_REPO_VERSION#" "$INSTALL_DIR"/etc/yum.repos.d/qubes-repo-*.repo
+
+    if [ "${DIST_NAME}" = "fedora" ]; then
+        QUBES_SIGNING_KEY="RPM-GPG-KEY-qubes-$USE_QUBES_REPO_VERSION-primary"
+    fi
+    if [ "${DIST_NAME}" = "centos-stream" ]; then
+        QUBES_SIGNING_KEY="RPM-GPG-KEY-qubes-$USE_QUBES_REPO_VERSION-centos"
+    fi
+
+    if [ -r "${PLUGIN_DIR}/keys/$QUBES_SIGNING_KEY" ]; then
+        cp "${PLUGIN_DIR}/keys/$QUBES_SIGNING_KEY" "$INSTALL_DIR/etc/pki/rpm-gpg/"
+        chroot "$INSTALL_DIR" rpm --import "/etc/pki/rpm-gpg/$QUBES_SIGNING_KEY" || true
+    fi
+
+    if [ "0$USE_QUBES_REPO_TESTING" -gt 0 ]; then
+        chroot "$INSTALL_DIR" dnf config-manager --set-enabled 'qubes-builder-*-current-testing'
+    fi
+fi
+
+if ! [ -r "$INSTALL_DIR/proc/cpuinfo" ]; then
+    prepare_chroot_proc
+fi
+
+# remove systemd-resolved symlink
+rm -f "$INSTALL_DIR/etc/resolv.conf"
+cp /etc/resolv.conf "$INSTALL_DIR/etc/"
+# some packages assumes existence of this file
+touch "$INSTALL_DIR"/etc/fstab
+chmod 644 "$INSTALL_DIR"/etc/fstab
+
+echo "INFO: Installing build base packages..."
+
+if [ "$DIST_NAME" = "centos-stream" ]; then
+    if [ "${DIST_VER}" -eq 8 ]; then
+        chroot "$INSTALL_DIR" dnf --disablerepo='qubes*' --releasever="$DIST_VER" copr enable -y fepitre/epel-8-qubes
+        chroot "$INSTALL_DIR" dnf config-manager --disable --releasever="$DIST_VER" '*modular'
+    fi
+fi
+
+# shellcheck disable=SC2086,SC2046
+dnf "${DNF_OPTS[@]}" install -y $(cat ${PKG_LIST_FILE})
+
+if [ -n "$CHROOT_CACHE_FILE" ]; then
+    tar cf "$CHROOT_CACHE_FILE" --one-file-system "$INSTALL_DIR"
+fi

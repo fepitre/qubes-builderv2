@@ -1,0 +1,237 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Originally based on QubesOS/qubes-builder-rpm/prepare-chroot-base
+
+# This script bootstraps a chroot located at INSTALL_DIR for a given DIST.
+# It can be used either for template build process or legacy chroot build.
+
+set -e
+if [ "${VERBOSE:-0}" -ge 2 ] || [ "${DEBUG:-0}" -eq 1 ]; then
+    set -x
+    DNF_OPTS=()
+else
+    DNF_OPTS=(-q)
+fi
+
+set -o pipefail
+
+INSTALL_DIR="$1"
+DIST_NAME="$2"
+DIST_VER="$3"
+CACHE_DIR="$4"
+
+PLUGIN_DIR="$(readlink -f "$(dirname "$0")"/../)"
+DOWNLOAD_DIR="${CACHE_DIR}/base_rpms"
+
+if [ -e "${PLUGIN_DIR}/dnf/bootstrap-dnf-${DIST_NAME}-${DIST_VER}.conf" ]; then
+    DNF_BOOTSTRAP_CONF="${PLUGIN_DIR}/dnf/bootstrap-dnf-${DIST_NAME}-${DIST_VER}.conf"
+elif [ -e "${PLUGIN_DIR}/dnf/bootstrap-dnf-${DIST_NAME}.conf" ]; then
+    DNF_BOOTSTRAP_CONF="${PLUGIN_DIR}/dnf/bootstrap-dnf-${DIST_NAME}.conf"
+else
+    echo "ERROR: Cannot find DNF bootstrap configuration."
+    return 1
+fi
+
+DNF=dnf
+DNF_OPTS+=(--releasever "$DIST_VER" --installroot="${INSTALL_DIR}" "--downloaddir=$DOWNLOAD_DIR" --downloadonly)
+
+# Ensure INSTALL_DIR exists
+mkdir -p "$INSTALL_DIR"
+
+if ! [ -f "${INSTALL_DIR}/tmp/.prepared_base" ]; then
+    echo "INFO: Initializing RPM database..."
+    # We want signature checks.
+    RPM_OPTS=('--define=_pkgverify_level all')
+    # Delta RPMs and zchunk are unnecessary attack surface
+    DNF_OPTS+=(--setopt=deltarpm=False --setopt=deltarpm_percentage=0 --setopt=zchunk=0)
+    # Debian by default keep rpmdb in ~/.rpmdb
+    # OpenSUSE by default keep rpmdb in /usr/lib/sysimage/rpm
+    RPM_OPTS+=("--define=_dbpath %{_var}/lib/rpm")
+    if grep -q openSUSE /etc/os-release; then
+        # Since OpenSUSE enable gpgcheck by default, make it find the keys
+        mkdir -p "${INSTALL_DIR}/usr/lib/sysimage"
+        ln -ns ../../../var/lib/rpm "${INSTALL_DIR}/usr/lib/sysimage/rpm"
+    fi
+    rpm "${RPM_OPTS[@]}" --initdb --root="${INSTALL_DIR}"
+
+    if [ "${DIST_NAME}" = "fedora" ]; then
+        rpm "${RPM_OPTS[@]}" --import --root="${INSTALL_DIR}" -- \
+            "${PLUGIN_DIR}/keys/RPM-GPG-KEY-fedora-${DIST_VER}-primary"
+    fi
+
+    if [ "${DIST_NAME}" = "centos-stream" ] || [ "${DIST_NAME}" = "centos" ]; then
+        rpm "${RPM_OPTS[@]}" --import --root="${INSTALL_DIR}" -- \
+            "${PLUGIN_DIR}/keys/RPM-GPG-KEY-CentOS-${DIST_VER}" \
+            "${PLUGIN_DIR}/keys/RPM-GPG-KEY-EPEL-${DIST_VER}"
+    fi
+
+    echo "INFO: Retrieving core RPM packages..."
+
+    if [ "${DIST_NAME}" = "fedora" ]; then
+        INITIAL_PACKAGES=(filesystem setup fedora-release dnf dnf-plugins-core)
+        # avoid pulling in glibc-all-langpacks to save space
+        INITIAL_PACKAGES+=(glibc-langpack-en)
+
+        # coreutils conflicts with coreutils-single
+        INITIAL_PACKAGES+=(--exclude=coreutils-single)
+
+        # curl-minimal conflicts with curl, same for libcurl
+        INITIAL_PACKAGES+=(--exclude=curl --exclude=libcurl)
+
+        # For Fedora 34+ we try to exclude pipewire until we switch
+        # to it completely.
+        INITIAL_PACKAGES+=(--exclude=pipewire-*)
+
+        mkdir -p -- "${DOWNLOAD_DIR}"
+        yumconf=$(mktemp)
+
+        if [ "x${FEDORA_MIRROR}" != "x" ]; then
+            awk '
+            BEGIN {
+                mirror=ARGV[1];     delete ARGV[1];
+                releasever=ARGV[2]; delete ARGV[2];
+            }
+            {
+                gsub("^metalink", "#metalink");
+                gsub("^#baseurl=.*/(linux|fedora)/", "baseurl=" mirror "/");
+                gsub("\\$releasever", releasever);
+                print;
+            }' "${FEDORA_MIRROR%/}" "${DIST_VER}" \
+                <"${DNF_BOOTSTRAP_CONF}" \
+                >"$yumconf"
+        else
+            sed -e "s/\\\$releasever/${DIST_VER}/g" \
+                -e "s#\\\$plugindir#${PLUGIN_DIR}#g" \
+                <"${DNF_BOOTSTRAP_CONF}" \
+                >"$yumconf"
+        fi
+    fi
+
+    if [ "${DIST_NAME}" = "centos-stream" ]; then
+        INITIAL_PACKAGES=(filesystem setup epel-release)
+
+        # coreutils conflicts with coreutils-single
+        INITIAL_PACKAGES=(--exclude=coreutils-single "${INITIAL_PACKAGES[@]}")
+        INITIAL_PACKAGES+=(centos-stream-release centos-stream-repos dnf dnf-plugins-core)
+
+        # Add groupadd, su etc.
+        INITIAL_PACKAGES+=(shadow-utils util-linux)
+
+        mkdir -p -- "${DOWNLOAD_DIR}"
+        yumconf=$(mktemp)
+        yumconftmp=$(mktemp)
+
+        sed -e "s/\\\$releasever/${DIST_VER}/g" \
+            <"${DNF_BOOTSTRAP_CONF}" \
+            >"$yumconf"
+
+        if [ "x${CENTOS_MIRROR}" != "x" ]; then
+            awk '
+            BEGIN {
+                mirror=ARGV[1];     delete ARGV[1];
+            }
+            {
+                gsub("^mirrorlist", "#mirrorlist");
+                gsub("^#baseurl=.*/(centos|CentOS)/", "baseurl=" mirror "/");
+                print;
+            }' "${CENTOS_MIRROR%/}" \
+                <"$yumconf" \
+                >"$yumconftmp"
+            mv "$yumconftmp" "$yumconf"
+        fi
+
+        if [ "x${EPEL_MIRROR}" != "x" ]; then
+            awk '
+            BEGIN {
+                mirror=ARGV[1];     delete ARGV[1];
+            }
+            {
+                gsub("^metalink", "#metalink");
+                gsub("^#baseurl=.*/epel/", "baseurl=" mirror "/");
+                print;
+            }' "${EPEL_MIRROR%/}" \
+                <"$yumconf" \
+                >"$yumconftmp"
+            mv "$yumconftmp" "$yumconf"
+        fi
+    fi
+
+    "$DNF" "${DNF_OPTS[@]}" -c "$yumconf" -y install "${INITIAL_PACKAGES[@]}"
+    rm -f "$yumconf"
+
+    echo "INFO: Verifying signatures..."
+    set +x
+    for file in "${DOWNLOAD_DIR}"/*; do
+        result=$(rpmkeys "${RPM_OPTS[@]}" --root="${INSTALL_DIR}" --checksig -- "${file}") || {
+            echo "Filename: ${file} failed verification.  Exiting!"
+            exit 1
+        }
+        [[ "$result" == "$file: digests signatures OK" ]] || {
+            echo "Filename: ${file} is not signed.  Exiting!"
+            exit 1
+        }
+    done
+
+    echo "INFO: Printing hashes of downloaded packages:"
+    sha256sum "${DOWNLOAD_DIR}/"*.rpm
+    if [ "${VERBOSE:-0}" -ge 2 ] || [ "${DEBUG:-0}" -eq 1 ]; then
+        set -x
+    fi
+
+    # Prepare /dev nodes
+    mkdir -p "${INSTALL_DIR}/dev/"
+    for f in null urandom zero random console; do
+        cp -a "/dev/$f" "$INSTALL_DIR/dev/" || true
+    done
+
+    # Create loop devices as much as Mock does
+    mknod -m 0666 "$INSTALL_DIR/dev/loop-control" c 10 237
+
+    for i in $(seq 0 8); do
+        mknod -m 0666 "$INSTALL_DIR/dev/loop$i" b 7 "$i"
+    done
+
+    echo "INFO: Installing core RPM packages..."
+    rpm "${RPM_OPTS[@]}" -U --replacepkgs --root="${INSTALL_DIR}" -- "${DOWNLOAD_DIR}/"*.rpm || exit 1
+fi
+
+# this part is executed also when updating chroot
+
+if [ "${DIST_NAME}" = "fedora" ]; then
+    if [ -e "${PLUGIN_DIR}/repos/fedora-${DIST_VER}.repo" ]; then
+        # override fedora repo files, in a way that prevents an updated
+        # package restoring them
+        for f in "${INSTALL_DIR}/etc/yum.repos.d/"fedora*.repo; do
+            echo "# this file is intentionally cleared" >"$f"
+        done
+        cp -f "${PLUGIN_DIR}/repos/fedora-${DIST_VER}.repo" "${INSTALL_DIR}/etc/yum.repos.d/"
+        cp -f "${PLUGIN_DIR}/repos/fedora-${DIST_VER}"*.metalink "${INSTALL_DIR}/etc/yum.repos.d/"
+    fi
+fi
+
+if [ "${DIST_NAME}" = "centos-stream" ] || [ "${DIST_NAME}" = "centos" ]; then
+    if [ "${DIST_VER}" = "8" ]; then
+        sed -i "s/enabled=0/enabled=1/g" "${INSTALL_DIR}/etc/yum.repos.d/CentOS-Stream-PowerTools.repo"
+    fi
+fi
+
+touch "${INSTALL_DIR}/tmp/.prepared_base"
