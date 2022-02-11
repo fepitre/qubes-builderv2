@@ -28,7 +28,7 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import BUILDER_DIR, PLUGINS_DIR, BUILD_DIR, DISTFILES_DIR
-from qubesbuilder.plugins.source import SourcePlugin, SourceException
+from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 log = get_logger("source_rpm")
 
@@ -121,21 +121,21 @@ class RPMSourcePlugin(SourcePlugin):
                     self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to get source information."
-                    raise SourceException(msg) from e
+                    raise SourceError(msg) from e
 
                 # Read package release name
                 with open(artifacts_dir / f"{spec_bn}_package_release_name") as f:
                     data = f.read().splitlines()
                 if len(data) < 2:
                     msg = f"{self.component}:{self.dist}:{spec}: Invalid data."
-                    raise SourceException(msg)
+                    raise SourceError(msg)
 
                 source_rpm = f"{data[0]}.src.rpm"
                 # Source0 may contain an URL
                 source_orig = os.path.basename(data[1])
                 if not is_filename_valid(source_rpm) and not is_filename_valid(source_orig):
                     msg = f"{self.component}:{self.dist}:{spec}: Invalid source names."
-                    raise SourceException(msg)
+                    raise SourceError(msg)
 
                 # Read packages list
                 packages_list = []
@@ -144,7 +144,7 @@ class RPMSourcePlugin(SourcePlugin):
                 for line in data:
                     if not is_filename_valid(line):
                         msg = f"{self.component}:{self.dist}:{spec}: Invalid package name."
-                        raise SourceException(msg)
+                        raise SourceError(msg)
                     packages_list.append(line)
 
                 #
@@ -202,7 +202,7 @@ class RPMSourcePlugin(SourcePlugin):
                     self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to generate SRPM."
-                    raise SourceException(msg) from e
+                    raise SourceError(msg) from e
 
                 # Save package information we parsed for next stages
                 try:
@@ -218,7 +218,7 @@ class RPMSourcePlugin(SourcePlugin):
                     os.remove(artifacts_dir / f'{spec_bn}_packages.list')
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to write source info."
-                    raise SourceException(msg) from e
+                    raise SourceError(msg) from e
                 except OSError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to clean artifacts."
-                    raise SourceException(msg) from e
+                    raise SourceError(msg) from e

@@ -29,7 +29,7 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import BUILDER_DIR, BUILD_DIR, PLUGINS_DIR, REPOSITORY_DIR
-from qubesbuilder.plugins.build import BuildPlugin, BuildException
+from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
 log = get_logger("build_rpm")
 
@@ -64,7 +64,7 @@ def provision_local_repository(spec: str, repository_dir: Path,
             os.link(rpm_path, target_path)
     except (ValueError, PermissionError, NotImplementedError) as e:
         msg = f"{component}:{dist}:{spec}: Failed to provision local repository."
-        raise BuildException(msg) from e
+        raise BuildError(msg) from e
 
 
 class RPMBuildPlugin(BuildPlugin):
@@ -150,7 +150,7 @@ class RPMBuildPlugin(BuildPlugin):
                         source_info = yaml.safe_load(f.read())
                 except (FileNotFoundError, PermissionError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to read source info."
-                    raise BuildException(msg) from e
+                    raise BuildError(msg) from e
 
                 #
                 # Build from SRPM
@@ -204,7 +204,7 @@ class RPMBuildPlugin(BuildPlugin):
                                       no_fail_copy_out=True)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to build RPMs."
-                    raise BuildException(msg) from e
+                    raise BuildError(msg) from e
 
                 # Get packages list that have been actually built from predicted ones
                 packages_list = []
@@ -226,4 +226,4 @@ class RPMBuildPlugin(BuildPlugin):
                         f.write(yaml.safe_dump(info))
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to write build info."
-                    raise BuildException(msg) from e
+                    raise BuildError(msg) from e

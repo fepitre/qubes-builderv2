@@ -3,7 +3,7 @@ from pathlib import Path
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
-from qubesbuilder.plugins import PluginException
+from qubesbuilder.plugins import PluginError
 from qubesbuilder.plugins.build_deb import DEBBuildPlugin
 from qubesbuilder.plugins.build_rpm import RPMBuildPlugin
 from qubesbuilder.plugins.publish_deb import DEBPublishPlugin
@@ -23,7 +23,7 @@ def getSourcePlugin(component: QubesComponent, dist: QubesDistribution, plugins_
         source_plugin = RPMSourcePlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs)
     else:
-        raise PluginException(f"{dist}: unsupported dist.")
+        raise PluginError(f"{dist}: unsupported dist.")
     return source_plugin
 
 
@@ -36,7 +36,7 @@ def getBuildPlugin(component: QubesComponent, dist: QubesDistribution, plugins_d
         build_plugin = RPMBuildPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs)
     else:
-        raise PluginException(f"{dist}: unsupported dist.")
+        raise PluginError(f"{dist}: unsupported dist.")
     return build_plugin
 
 
@@ -49,7 +49,7 @@ def getSignPlugin(component: QubesComponent, dist: QubesDistribution, plugins_di
         sign_plugin = RPMSignPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs)
     else:
-        raise PluginException(f"{dist}: unsupported dist.")
+        raise PluginError(f"{dist}: unsupported dist.")
     return sign_plugin
 
 
@@ -62,5 +62,5 @@ def getPublishPlugin(component: QubesComponent, dist: QubesDistribution, plugins
         publish_plugin = RPMPublishPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs)
     else:
-        raise PluginException(f"{dist}: unsupported dist.")
+        raise PluginError(f"{dist}: unsupported dist.")
     return publish_plugin

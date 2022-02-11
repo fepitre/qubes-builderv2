@@ -27,9 +27,9 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.build import BuildException
+from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_rpm import provision_local_repository
-from qubesbuilder.plugins.sign import SignPlugin, SignException
+from qubesbuilder.plugins.sign import SignPlugin, SignError
 
 log = get_logger("sign_rpm")
 
@@ -113,7 +113,7 @@ class RPMSignPlugin(SignPlugin):
                 self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create RPM dbpath."
-                raise SignException(msg) from e
+                raise SignError(msg) from e
 
             for spec in self.parameters["spec"]:
                 # spec file basename will be used as prefix for some artifacts
@@ -141,7 +141,7 @@ class RPMSignPlugin(SignPlugin):
                         self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to sign RPMs."
-                    raise SignException(msg) from e
+                    raise SignError(msg) from e
 
                 # Re-provision builder local repository with signatures
                 repository_dir = self.get_repository_dir() / self.dist.distribution
@@ -152,5 +152,5 @@ class RPMSignPlugin(SignPlugin):
                                                packages_list=build_info["rpms"],
                                                prep_artifacts_dir=prep_artifacts_dir,
                                                build_artifacts_dir=build_artifacts_dir)
-                except BuildException as e:
-                    raise SignException from e
+                except BuildError as e:
+                    raise SignError from e

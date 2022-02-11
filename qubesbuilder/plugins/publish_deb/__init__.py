@@ -24,7 +24,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.publish import PublishPlugin, PublishException
+from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_deb")
 
@@ -91,7 +91,7 @@ class DEBPublishPlugin(PublishPlugin):
                     ("current-testing", "security-testing", "unstable"):
                 msg = f"{self.component}:{self.dist}: " \
                       f"Refusing to publish components into '{self.publish_repository}'."
-                raise PublishException(msg)
+                raise PublishError(msg)
 
             # Build artifacts (source included)
             build_artifacts_dir = self.get_component_dir(stage="build")
@@ -102,7 +102,7 @@ class DEBPublishPlugin(PublishPlugin):
             artifacts_dir = self.get_repository_publish_dir() / self.dist.family
 
             if not sign_artifacts_dir.exists():
-                raise PublishException("Cannot find keyring from sign stage.")
+                raise PublishError("Cannot find keyring from sign stage.")
 
             # Create publish repository skeleton
             create_skeleton_cmd = [
@@ -115,7 +115,7 @@ class DEBPublishPlugin(PublishPlugin):
                 self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
-                raise PublishException(msg) from e
+                raise PublishError(msg) from e
 
             for directory in self.parameters["build"]:
                 # Read information from build stage
@@ -139,7 +139,7 @@ class DEBPublishPlugin(PublishPlugin):
                     self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to sign packages."
-                    raise PublishException(msg) from e
+                    raise PublishError(msg) from e
 
                 # Publishing packages
                 try:
@@ -154,4 +154,4 @@ class DEBPublishPlugin(PublishPlugin):
                     self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
-                    raise PublishException(msg) from e
+                    raise PublishError(msg) from e

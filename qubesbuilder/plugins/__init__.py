@@ -31,7 +31,7 @@ DISTFILES_DIR = BUILDER_DIR / "distfiles"
 REPOSITORY_DIR = BUILDER_DIR / "repository"
 
 
-class PluginException(Exception):
+class PluginError(Exception):
     """
     Base plugin exception
     """

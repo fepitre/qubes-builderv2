@@ -23,12 +23,12 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import Plugin, PluginException
+from qubesbuilder.plugins import Plugin, PluginError
 
 log = get_logger("build")
 
 
-class BuildException(PluginException):
+class BuildError(PluginError):
     pass
 
 
@@ -37,8 +37,8 @@ class BuildPlugin(Plugin):
     BuildPlugin manages generic distribution build.
     """
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
-                 artifacts_dir: Path, verbose: bool = False, debug: bool = False,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
+                 plugins_dir: Path, artifacts_dir: Path, verbose: bool = False, debug: bool = False,
                  use_qubes_repo: dict = None):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir,
                          artifacts_dir=artifacts_dir, verbose=verbose, debug=debug)

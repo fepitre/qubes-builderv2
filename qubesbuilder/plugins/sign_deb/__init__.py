@@ -26,9 +26,9 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.build import BuildException
+from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_deb import provision_local_repository
-from qubesbuilder.plugins.sign import SignPlugin, SignException
+from qubesbuilder.plugins.sign import SignPlugin, SignError
 
 log = get_logger("sign_deb")
 
@@ -113,7 +113,7 @@ class DEBSignPlugin(SignPlugin):
                 self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to export public signing key."
-                raise SignException(msg) from e
+                raise SignError(msg) from e
 
             for directory in self.parameters["build"]:
                 # Read information from build stage
@@ -132,7 +132,7 @@ class DEBSignPlugin(SignPlugin):
                     self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to sign Debian packages."
-                    raise SignException(msg) from e
+                    raise SignError(msg) from e
 
                 # Re-provision builder local repository with signatures
                 repository_dir = self.get_repository_dir() / self.dist.distribution
@@ -145,6 +145,6 @@ class DEBSignPlugin(SignPlugin):
                                                source_info=build_info,
                                                packages_list=build_info["packages"],
                                                build_artifacts_dir=build_artifacts_dir)
-                except BuildException as e:
+                except BuildError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to re-provision local repository."
-                    raise SignException(msg) from e
+                    raise SignError(msg) from e

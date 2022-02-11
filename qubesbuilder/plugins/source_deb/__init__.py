@@ -28,7 +28,7 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import BUILDER_DIR, PLUGINS_DIR, BUILD_DIR, DISTFILES_DIR
-from qubesbuilder.plugins.source import SourcePlugin, SourceException
+from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 log = get_logger("source_deb")
 
@@ -124,21 +124,21 @@ class DEBSourcePlugin(SourcePlugin):
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: " \
                           f"Failed to get source information."
-                    raise SourceException(msg) from e
+                    raise SourceError(msg) from e
 
                 # Read package release name
                 with open(artifacts_dir / f"{directory}_package_release_name") as f:
                     data = f.read().splitlines()
                 if len(data) != 2:
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid data."
-                    raise SourceException(msg)
+                    raise SourceError(msg)
 
                 package_release_name = data[0]
                 package_release_name_full = data[1]
                 if not is_filename_valid(package_release_name) and \
                         not is_filename_valid(package_release_name_full):
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid source names."
-                    raise SourceException(msg)
+                    raise SourceError(msg)
 
                 source_dsc = f"{package_release_name_full}.dsc"
                 source_debian = f"{package_release_name_full}.debian.tar.xz"
@@ -147,7 +147,7 @@ class DEBSourcePlugin(SourcePlugin):
                     ext = self.parameters["files"][0]["url"].split(".")[-1]
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid extension '{ext}'."
                     if ext not in ("gz", "bz2", "gz", "lzma2"):
-                        raise SourceException(msg)
+                        raise SourceError(msg)
                 else:
                     ext = "gz"
                 source_orig = f"{package_release_name}.orig.tar.{ext}"
@@ -210,7 +210,7 @@ class DEBSourcePlugin(SourcePlugin):
                     self.executor.run(cmd, copy_in, copy_out)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to generate source."
-                    raise SourceException(msg) from e
+                    raise SourceError(msg) from e
 
                 # Read packages list
                 packages_list = []
@@ -219,7 +219,7 @@ class DEBSourcePlugin(SourcePlugin):
                 for line in data:
                     if not is_filename_valid(line):
                         msg = f"{self.component}:{self.dist}:{directory}: Invalid package name."
-                        raise SourceException(msg)
+                        raise SourceError(msg)
                     packages_list.append(line)
 
                 # Save package information we parsed for next stages
@@ -240,7 +240,7 @@ class DEBSourcePlugin(SourcePlugin):
                     os.remove(artifacts_dir / f'{directory}_packages.list')
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to write source info."
-                    raise SourceException(msg) from e
+                    raise SourceError(msg) from e
                 except OSError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to clean artifacts."
-                    raise SourceException(msg) from e
+                    raise SourceError(msg) from e

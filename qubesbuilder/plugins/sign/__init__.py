@@ -24,12 +24,12 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import Plugin, PluginException
+from qubesbuilder.plugins import Plugin, PluginError
 
 log = get_logger("sign")
 
 
-class SignException(PluginException):
+class SignError(PluginError):
     pass
 
 
@@ -52,4 +52,4 @@ class SignPlugin(Plugin):
 
     def run(self, stage: str):
         if stage == "publish" and not isinstance(self.executor, LocalExecutor):
-            raise SignException("This plugin only supports local executor.")
+            raise SignError("This plugin only supports local executor.")

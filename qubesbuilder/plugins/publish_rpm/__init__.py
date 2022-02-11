@@ -27,7 +27,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.publish import PublishPlugin, PublishException
+from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_rpm")
 
@@ -84,13 +84,13 @@ class RPMPublishPlugin(PublishPlugin):
                         ("templates-itl-testing", "templates-community-testing"):
                     msg = f"{self.component}:{self.dist}: " \
                           f"Refusing to publish templates into '{self.publish_repository}'."
-                    raise PublishException(msg)
+                    raise PublishError(msg)
             else:
                 if self.publish_repository.get("components", "current-testing") not in \
                         ("current-testing", "security-testing", "unstable"):
                     msg = f"{self.component}:{self.dist}: " \
                           f"Refusing to publish components into '{self.publish_repository}'."
-                    raise PublishException(msg)
+                    raise PublishError(msg)
 
             # Check if we have a signing key provided
             sign_key = self.sign_key.get(self.dist.distribution, None) or \
@@ -117,7 +117,7 @@ class RPMPublishPlugin(PublishPlugin):
             db_path = sign_artifacts_dir / 'rpmdb'
             if not db_path.exists():
                 msg = f"{self.component}: {self.dist}: Failed to find RPM DB path."
-                raise PublishException(msg)
+                raise PublishError(msg)
 
             # Create publish repository skeleton
             comps = self.plugins_dir / f"publish_rpm/comps/comps-{self.dist.package_set}.xml"
@@ -132,7 +132,7 @@ class RPMPublishPlugin(PublishPlugin):
                 self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
-                raise PublishException(msg) from e
+                raise PublishError(msg) from e
 
             for spec in self.parameters["spec"]:
                 # spec file basename will be used as prefix for some artifacts
@@ -161,7 +161,7 @@ class RPMPublishPlugin(PublishPlugin):
                         self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to check signatures."
-                    raise PublishException(msg) from e
+                    raise PublishError(msg) from e
 
                 # Publish packages with hardlinks to built RPMs
                 log.info(f"{self.component}:{self.dist}:{spec}: Publishing RPMs.")
@@ -174,7 +174,7 @@ class RPMPublishPlugin(PublishPlugin):
                         os.link(rpm, target_path)
                 except (ValueError, PermissionError, NotImplementedError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to publish packages."
-                    raise PublishException(msg) from e
+                    raise PublishError(msg) from e
 
                 # Createrepo published RPMs
                 log.info(f"{self.component}:{self.dist}:{spec}: Updating metadata.")
@@ -185,7 +185,7 @@ class RPMPublishPlugin(PublishPlugin):
                     self.executor.run(cmd)
                 except (ExecutorError, OSError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to 'createrepo_c'"
-                    raise PublishException(msg) from e
+                    raise PublishError(msg) from e
 
                 # Sign metadata
                 log.info(f"{self.component}:{self.dist}:{spec}: Signing metadata.")
@@ -198,4 +198,4 @@ class RPMPublishPlugin(PublishPlugin):
                     self.executor.run(cmd)
                 except (ExecutorError, OSError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to 'createrepo_c'"
-                    raise PublishException(msg) from e
+                    raise PublishError(msg) from e

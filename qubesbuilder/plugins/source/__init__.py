@@ -25,12 +25,12 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import Plugin, PluginException, BUILDER_DIR, PLUGINS_DIR
+from qubesbuilder.plugins import Plugin, PluginError, BUILDER_DIR, PLUGINS_DIR
 
 log = get_logger("source")
 
 
-class SourceException(PluginException):
+class SourceError(PluginError):
     pass
 
 
