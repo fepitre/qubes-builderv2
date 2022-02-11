@@ -46,8 +46,8 @@ class AliasedGroup(click.Group):
     A very simple alias engine for :class:`click.Group`
     """
 
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.aliases = {}
         self.debug = False
 
@@ -81,14 +81,14 @@ class AliasedGroup(click.Group):
         _, cmd, args = super().resolve_command(ctx, args)
         return cmd.name if cmd else None, cmd, args
 
-    def add_alias(self, **kwds):
+    def add_alias(self, **kwargs):
         """
         Add aliases to a command
 
         >>> cmd.add_alias(alias='original-command')
         """
-        assert all(alias not in (*self.aliases, *self.commands) for alias in kwds)
-        self.aliases.update(kwds)
+        assert all(alias not in (*self.aliases, *self.commands) for alias in kwargs)
+        self.aliases.update(kwargs)
 
 
 def aliased_group(name=None, **kwargs) -> Callable[[Callable], AliasedGroup]:
