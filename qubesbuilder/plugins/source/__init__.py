@@ -50,6 +50,12 @@ class SourcePlugin(Plugin):
         self.executor = executor
         self.skip_if_exists = skip_if_exists
 
+        self.environment = {}
+        if self.verbose:
+            self.environment["VERBOSE"] = 1
+        if self.debug:
+            self.environment["DEBUG"] = 1
+
     def update_parameters(self):
         """
         Update plugin parameters based on component .qubesbuilder.
@@ -113,7 +119,7 @@ class SourcePlugin(Plugin):
             cmd = [
                 "/bin/bash", "-c", "&&".join(bash_cmd)
             ]
-            self.executor.run(cmd, copy_in, copy_out)
+            self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
             # Update parameters based on previously fetched sources as .qubesbuilder
             # is now available.
@@ -160,4 +166,4 @@ class SourcePlugin(Plugin):
                 cmd = [
                     "/bin/bash", "-c", "&&".join(bash_cmd)
                 ]
-                self.executor.run(cmd, copy_in, copy_out)
+                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
