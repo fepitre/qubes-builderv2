@@ -23,10 +23,10 @@ from typing import Union, List
 import yaml
 from packaging.version import Version, InvalidVersion
 
-from qubesbuilder.exc import ComponentException
+from qubesbuilder.exc import ComponentError
 
 
-class Component:
+class QubesComponent:
     def __init__(self, source_dir: Union[str, Path], name: str = None, url: str = None,
                  branch: str = "master", insecure_skip_checking: bool = False,
                  less_secure_signed_commits_sufficient: bool = False, maintainers: List = None):
@@ -42,17 +42,17 @@ class Component:
 
     def get_parameters(self, placeholders: dict = None):
         if not self.source_dir.exists():
-            raise ComponentException(f"Cannot find source directory {self.source_dir}")
+            raise ComponentError(f"Cannot find source directory {self.source_dir}")
 
         version_file = self.source_dir / "version"
         if not version_file.exists():
-            raise ComponentException(f"Cannot find version file in {self.source_dir}")
+            raise ComponentError(f"Cannot find version file in {self.source_dir}")
 
         try:
             with open(version_file) as fd:
                 version = Version(fd.read().split('\n')[0]).base_version
         except InvalidVersion as e:
-            raise ComponentException(f"Invalid version for {self.source_dir}") from e
+            raise ComponentError(f"Invalid version for {self.source_dir}") from e
 
         release_file = self.source_dir / "rel"
         if not release_file.exists():
@@ -63,14 +63,14 @@ class Component:
                     release = fd.read().split('\n')[0]
                 Version(f"{version}-{release}")
             except (InvalidVersion, AssertionError) as e:
-                raise ComponentException(f"Invalid release for {self.source_dir}") from e
+                raise ComponentError(f"Invalid release for {self.source_dir}") from e
 
         self.version = version
         self.release = release
 
         build_file = self.source_dir / '.qubesbuilder'
         if not build_file.exists():
-            raise ComponentException(f"Cannot find '.qubesbuilder' in {self.source_dir}")
+            raise ComponentError(f"Cannot find '.qubesbuilder' in {self.source_dir}")
 
         with open(build_file) as f:
             data = f.read()
@@ -85,7 +85,7 @@ class Component:
         try:
             rendered_data = yaml.safe_load(data)
         except yaml.YAMLError as e:
-            raise ComponentException(f"Cannot render '.qubesbuilder'.") from e
+            raise ComponentError(f"Cannot render '.qubesbuilder'.") from e
 
         return rendered_data
 
@@ -93,7 +93,7 @@ class Component:
         return self.source_dir.name
 
     def __repr__(self):
-        return f"<Component {self.to_str()}>"
+        return f"<QubesComponent {self.to_str()}>"
 
     def __str__(self):
         return self.to_str()

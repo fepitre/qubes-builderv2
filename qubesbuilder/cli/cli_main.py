@@ -28,7 +28,7 @@ import click
 
 from qubesbuilder.cli.cli_base import ContextObj, aliased_group
 from qubesbuilder.config import Config
-from qubesbuilder.dist import Dist
+from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.log import get_logger, init_logging
 from qubesbuilder.plugins.helpers import getSourcePlugin, getBuildPlugin, \
     getSignPlugin, getPublishPlugin
@@ -68,6 +68,7 @@ def main(ctx: click.Context, verbose: int, debug: bool, builder_conf: str,
 
     ctx.obj.components = ctx.obj.config.get_components()
     ctx.obj.distributions = ctx.obj.config.get_distributions()
+    ctx.obj.templates = ctx.obj.config.get_templates()
 
     if component:
         components = []
@@ -80,7 +81,7 @@ def main(ctx: click.Context, verbose: int, debug: bool, builder_conf: str,
     if distribution:
         distributions = []
         for distribution_name in distribution:
-            distributions.append(Dist(distribution_name))
+            distributions.append(QubesDistribution(distribution_name))
         ctx.obj.distributions = distributions
 
 

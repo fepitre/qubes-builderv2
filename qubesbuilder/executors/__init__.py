@@ -19,13 +19,13 @@
 
 from abc import ABC, abstractmethod
 
-from qubesbuilder.exc import QubesBuilderException
+from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.log import get_logger
 
 log = get_logger("executor")
 
 
-class ExecutorException(QubesBuilderException):
+class ExecutorError(QubesBuilderError):
     """
     Base executor exception
     """

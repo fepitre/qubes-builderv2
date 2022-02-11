@@ -23,9 +23,9 @@ from pathlib import Path
 
 import yaml
 
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
-from qubesbuilder.executors import Executor, ExecutorException
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins.publish import PublishPlugin, PublishException
 
@@ -39,7 +39,7 @@ class RPMPublishPlugin(PublishPlugin):
 
     plugin_dependencies = ["publish", "sign_rpm"]
 
-    def __init__(self, component: Component, dist: Dist, executor: Executor, plugins_dir: Path,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, qubes_release: str, gpg_client: str, sign_key: dict,
                  publish_repository: str, verbose: bool = False, debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir, executor=executor,
@@ -122,7 +122,7 @@ class RPMPublishPlugin(PublishPlugin):
             cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
             try:
                 self.executor.run(cmd)
-            except ExecutorException as e:
+            except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
                 raise PublishException(msg) from e
 
@@ -151,7 +151,7 @@ class RPMPublishPlugin(PublishPlugin):
                         ]
                         cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                         self.executor.run(cmd)
-                except ExecutorException as e:
+                except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to check signatures."
                     raise PublishException(msg) from e
 
@@ -175,7 +175,7 @@ class RPMPublishPlugin(PublishPlugin):
                     shutil.rmtree(target_dir / "repodata")
                     cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
-                except (ExecutorException, OSError) as e:
+                except (ExecutorError, OSError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to 'createrepo_c'"
                     raise PublishException(msg) from e
 
@@ -188,6 +188,6 @@ class RPMPublishPlugin(PublishPlugin):
                 try:
                     cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
-                except (ExecutorException, OSError) as e:
+                except (ExecutorError, OSError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to 'createrepo_c'"
                     raise PublishException(msg) from e

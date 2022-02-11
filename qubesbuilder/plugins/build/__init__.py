@@ -19,8 +19,8 @@
 
 from pathlib import Path
 
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import Plugin, PluginException
@@ -37,7 +37,7 @@ class BuildPlugin(Plugin):
     BuildPlugin manages generic distribution build.
     """
 
-    def __init__(self, component: Component, dist: Dist, executor: Executor, plugins_dir: Path,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, verbose: bool = False, debug: bool = False,
                  use_qubes_repo: dict = None):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir,

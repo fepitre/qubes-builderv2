@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
 from qubesbuilder.plugins import PluginException
 from qubesbuilder.plugins.build_deb import DEBBuildPlugin
@@ -14,7 +14,7 @@ from qubesbuilder.plugins.source_deb import DEBSourcePlugin
 from qubesbuilder.plugins.source_rpm import RPMSourcePlugin
 
 
-def getSourcePlugin(component: Component, dist: Dist, plugins_dir: Path, executor: Executor,
+def getSourcePlugin(component: QubesComponent, dist: QubesDistribution, plugins_dir: Path, executor: Executor,
                     artifacts_dir: Path, **kwargs):
     if dist.is_deb():
         source_plugin = DEBSourcePlugin(
@@ -27,7 +27,7 @@ def getSourcePlugin(component: Component, dist: Dist, plugins_dir: Path, executo
     return source_plugin
 
 
-def getBuildPlugin(component: Component, dist: Dist, plugins_dir: Path, executor: Executor,
+def getBuildPlugin(component: QubesComponent, dist: QubesDistribution, plugins_dir: Path, executor: Executor,
                    artifacts_dir: Path, **kwargs):
     if dist.is_deb():
         build_plugin = DEBBuildPlugin(
@@ -40,7 +40,7 @@ def getBuildPlugin(component: Component, dist: Dist, plugins_dir: Path, executor
     return build_plugin
 
 
-def getSignPlugin(component: Component, dist: Dist, plugins_dir: Path, executor: Executor,
+def getSignPlugin(component: QubesComponent, dist: QubesDistribution, plugins_dir: Path, executor: Executor,
                   artifacts_dir: Path, **kwargs):
     if dist.is_deb():
         sign_plugin = DEBSignPlugin(
@@ -53,7 +53,7 @@ def getSignPlugin(component: Component, dist: Dist, plugins_dir: Path, executor:
     return sign_plugin
 
 
-def getPublishPlugin(component: Component, dist: Dist, plugins_dir: Path, executor: Executor,
+def getPublishPlugin(component: QubesComponent, dist: QubesDistribution, plugins_dir: Path, executor: Executor,
                      artifacts_dir: Path, **kwargs):
     if dist.is_deb():
         publish_plugin = DEBPublishPlugin(

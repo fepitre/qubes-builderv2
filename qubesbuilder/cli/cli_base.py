@@ -39,6 +39,7 @@ class ContextObj:
         self.config = config
         self.components = None
         self.distributions = None
+        self.templates = None
 
 
 class AliasedGroup(click.Group):

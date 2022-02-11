@@ -23,7 +23,7 @@ import logging
 import logging.config
 import os
 
-from qubesbuilder.exc import QubesBuilderException
+from qubesbuilder.exc import QubesBuilderError
 
 RootStreamHandler = logging.StreamHandler()
 
@@ -152,7 +152,7 @@ def init_logging(console=True, file_path=None, level='DEBUG'):
         try:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
         except OSError as e:
-            raise QubesBuilderException("Failed to initialize logging file") from e
+            raise QubesBuilderError("Failed to initialize logging file") from e
 
     logging.config.dictConfig(config)
 

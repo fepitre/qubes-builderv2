@@ -21,21 +21,21 @@ from contextlib import contextmanager
 from pathlib import Path, PurePath
 from typing import List, Tuple
 
-from qubesbuilder.executors import Executor, log, ExecutorException
+from qubesbuilder.executors import Executor, log, ExecutorError
 
 try:
     from docker import DockerClient
     from docker.errors import DockerException
 except ImportError:
     DockerClient = None
-    DockerException = ExecutorException
+    DockerException = ExecutorError
 
 try:
     from podman import PodmanClient
     from podman.errors import PodmanError
 except ImportError:
     PodmanClient = None
-    PodmanError = ExecutorException
+    PodmanError = ExecutorError
 
 
 class ContainerExecutor(Executor):
@@ -45,14 +45,14 @@ class ContainerExecutor(Executor):
         self._kwargs = kwargs
         if self._container_client == "podman":
             if PodmanClient is None:
-                raise ExecutorException(f"Cannot find 'podman' on the system.")
+                raise ExecutorError(f"Cannot find 'podman' on the system.")
             self._client = PodmanClient
         elif self._container_client == "docker":
             if DockerClient is None:
-                raise ExecutorException(f"Cannot find 'docker' on the system.")
+                raise ExecutorError(f"Cannot find 'docker' on the system.")
             self._client = DockerClient
         else:
-            raise ExecutorException(f"Unknown container client '{self._container_client}'.")
+            raise ExecutorError(f"Unknown container client '{self._container_client}'.")
 
         with self.get_client() as client:
             try:
@@ -62,7 +62,7 @@ class ContainerExecutor(Executor):
                     # Try to pull the image
                     image = client.images.pull(image_name)
             except (PodmanError, DockerException) as e:
-                raise ExecutorException(f"Cannot find {image_name}.") from e
+                raise ExecutorError(f"Cannot find {image_name}.") from e
 
         self.attrs = image.attrs
 
@@ -71,7 +71,7 @@ class ContainerExecutor(Executor):
         try:
             yield self._client(**self._kwargs)
         except (PodmanError, DockerException, ValueError) as e:
-            raise ExecutorException("Cannot connect to container client.") from e
+            raise ExecutorError("Cannot connect to container client.") from e
 
     def copy_in(self, container, source_path: Path, destination_dir: PurePath):
         src = source_path.expanduser().absolute().as_posix()
@@ -84,7 +84,7 @@ class ContainerExecutor(Executor):
             log.debug(f"copy-in (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
         except subprocess.SubprocessError as e:
-            raise ExecutorException from e
+            raise ExecutorError from e
 
     def copy_out(self, container, source_path: PurePath, destination_dir: Path):
         src = source_path.as_posix()
@@ -97,7 +97,7 @@ class ContainerExecutor(Executor):
             log.debug(f"copy-out (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
         except subprocess.SubprocessError as e:
-            raise ExecutorException from e
+            raise ExecutorError from e
 
     def run(self, cmd: List[str], copy_in: List[Tuple[Path, PurePath]] = None,
             copy_out: List[Tuple[PurePath, Path]] = None, environment=None,
@@ -131,20 +131,20 @@ class ContainerExecutor(Executor):
                     log.info(f"output: {line.decode('utf-8', errors='replace').rstrip()}")
             rc = process.poll()
             if rc != 0:
-                raise ExecutorException(f"Failed to stream output (status={rc}).")
+                raise ExecutorError(f"Failed to stream output (status={rc}).")
 
             # wait container
             status = container.wait()
             if self._container_client == "docker":
                 status = status["StatusCode"]
             if status != 0:
-                raise ExecutorException(f"Failed to run '{cmd}' (status={status}).")
+                raise ExecutorError(f"Failed to run '{cmd}' (status={status}).")
 
             # copy-out hook
             for src, dst in copy_out or []:
                 try:
                     self.copy_out(container, source_path=src, destination_dir=dst)
-                except ExecutorException as e:
+                except ExecutorError as e:
                     # Ignore copy-out failure if requested
                     if no_fail_copy_out:
                         log.warning(f"File not found inside container: {src}.")

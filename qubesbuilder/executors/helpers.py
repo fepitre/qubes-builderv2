@@ -1,4 +1,4 @@
-from qubesbuilder.executors import ExecutorException
+from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 
@@ -10,5 +10,5 @@ def getExecutor(executor_type, executor_options):
     elif executor_type == "local":
         executor = LocalExecutor()
     if not executor:
-        raise ExecutorException("Cannot determine which executor to use.")
+        raise ExecutorError("Cannot determine which executor to use.")
     return executor

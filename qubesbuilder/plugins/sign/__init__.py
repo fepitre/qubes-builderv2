@@ -19,8 +19,8 @@
 
 from pathlib import Path
 
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.log import get_logger
@@ -38,7 +38,7 @@ class SignPlugin(Plugin):
     SignPlugin manages generic distribution sign.
     """
 
-    def __init__(self, component: Component, dist: Dist, executor: Executor, plugins_dir: Path,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, gpg_client: str, sign_key: dict,
                  verbose: bool = False, debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir,

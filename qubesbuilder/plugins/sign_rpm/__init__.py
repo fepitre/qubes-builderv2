@@ -23,9 +23,9 @@ from pathlib import Path
 
 import yaml
 
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
-from qubesbuilder.executors import Executor, ExecutorException
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins.build import BuildException
 from qubesbuilder.plugins.build_rpm import provision_local_repository
@@ -41,7 +41,7 @@ class RPMSignPlugin(SignPlugin):
 
     plugin_dependencies = ["sign"]
 
-    def __init__(self, component: Component, dist: Dist, executor: Executor, plugins_dir: Path,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, gpg_client: str, sign_key: dict, verbose: bool = False,
                  debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir, executor=executor,
@@ -111,7 +111,7 @@ class RPMSignPlugin(SignPlugin):
             cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
             try:
                 self.executor.run(cmd)
-            except ExecutorException as e:
+            except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create RPM dbpath."
                 raise SignException(msg) from e
 
@@ -139,7 +139,7 @@ class RPMSignPlugin(SignPlugin):
                         ]
                         cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                         self.executor.run(cmd)
-                except ExecutorException as e:
+                except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to sign RPMs."
                     raise SignException(msg) from e
 

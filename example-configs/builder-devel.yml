@@ -20,11 +20,21 @@ sign-key:
   rpm: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
   deb: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
 
-host:
-  - fc32
-vm:
-  - bullseye
-  - fc35
+distributions:
+  - host-fc32
+  - vm-bullseye
+  - vm-fc35
+
+templates:
+  - fedora-35-xfce:
+      dist: fc35
+  - whonix-gw-16:
+      dist: bullseye
+      options:
+       - whonix-gateway
+       - minimal
+       - no-recommends
+
 
 artifacts-dir: /home/user/qubes-builderv2/artifacts
 

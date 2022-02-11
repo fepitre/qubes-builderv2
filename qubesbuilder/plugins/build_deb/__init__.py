@@ -24,9 +24,9 @@ from typing import List
 
 import yaml
 
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
-from qubesbuilder.executors import Executor, ExecutorException
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import BUILDER_DIR, BUILD_DIR, PLUGINS_DIR, REPOSITORY_DIR
 from qubesbuilder.plugins.build import BuildPlugin, BuildException
@@ -35,7 +35,7 @@ log = get_logger("build_deb")
 
 
 def provision_local_repository(debian_directory: str, repository_dir: Path,
-                               component: Component, dist: Dist, source_info: dict,
+                               component: QubesComponent, dist: QubesDistribution, source_info: dict,
                                packages_list: List, build_artifacts_dir: Path):
     """
     Provision local builder repository.
@@ -76,7 +76,7 @@ class DEBBuildPlugin(BuildPlugin):
 
     plugin_dependencies = ["source_deb", "build"]
 
-    def __init__(self, component: Component, dist: Dist, executor: Executor, plugins_dir: Path,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, verbose: bool = False, debug: bool = False,
                  use_qubes_repo: dict = None):
         super().__init__(component=component, dist=dist, executor=executor, plugins_dir=plugins_dir,
@@ -212,7 +212,7 @@ class DEBBuildPlugin(BuildPlugin):
                 try:
                     self.executor.run(cmd, copy_in, copy_out, environment=self.environment,
                                       no_fail_copy_out=True)
-                except ExecutorException as e:
+                except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to build packages."
                     raise BuildException(msg) from e
 

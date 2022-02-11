@@ -20,9 +20,9 @@ from pathlib import Path
 
 import yaml
 
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
-from qubesbuilder.executors import Executor, ExecutorException
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins.publish import PublishPlugin, PublishException
 
@@ -36,7 +36,7 @@ class DEBPublishPlugin(PublishPlugin):
 
     plugin_dependencies = ["publish"]
 
-    def __init__(self, component: Component, dist: Dist, executor: Executor, plugins_dir: Path,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, qubes_release: str, gpg_client: str, sign_key: dict,
                  publish_repository: str, verbose: bool = False, debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir, executor=executor,
@@ -106,7 +106,7 @@ class DEBPublishPlugin(PublishPlugin):
             cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
             try:
                 self.executor.run(cmd)
-            except ExecutorException as e:
+            except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
                 raise PublishException(msg) from e
 
@@ -130,7 +130,7 @@ class DEBPublishPlugin(PublishPlugin):
                         "/bin/bash", "-c", " && ".join(bash_cmd)
                     ]
                     self.executor.run(cmd)
-                except ExecutorException as e:
+                except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to sign packages."
                     raise PublishException(msg) from e
 
@@ -145,6 +145,6 @@ class DEBPublishPlugin(PublishPlugin):
                     ]
                     cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
-                except ExecutorException as e:
+                except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
                     raise PublishException(msg) from e

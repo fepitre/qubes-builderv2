@@ -21,7 +21,7 @@ import subprocess
 from pathlib import Path
 from typing import List, Tuple
 
-from qubesbuilder.executors import Executor, log, ExecutorException
+from qubesbuilder.executors import Executor, log, ExecutorError
 
 
 class LocalExecutor(Executor):
@@ -40,7 +40,7 @@ class LocalExecutor(Executor):
             else:
                 shutil.copy2(str(src), str(dst))
         except (shutil.Error, FileExistsError) as e:
-            raise ExecutorException from e
+            raise ExecutorError from e
 
     def copy_out(self, source_path: Path, destination_dir: Path):
         self.copy_in(source_path, destination_dir)
@@ -68,13 +68,13 @@ class LocalExecutor(Executor):
                 log.info(f"output: {line.decode('utf-8').rstrip()}")
         rc = process.poll()
         if rc != 0:
-            raise ExecutorException(f"Failed to run '{cmd}' (status={rc}).")
+            raise ExecutorError(f"Failed to run '{cmd}' (status={rc}).")
 
         # copy-out hook
         for src, dst in copy_out or []:
             try:
                 self.copy_out(source_path=src, destination_dir=dst)
-            except ExecutorException as e:
+            except ExecutorError as e:
                 # Ignore copy-out failure if requested
                 if no_fail_copy_out:
                     log.warning(f"File not found inside container: {src}.")

@@ -27,10 +27,10 @@ from typing import Optional, IO
 import click
 from click.exceptions import get_text_stderr
 
-from qubesbuilder.exc import QubesBuilderException
+from qubesbuilder.exc import QubesBuilderError
 
 
-class CliException(QubesBuilderException, click.ClickException):
+class CliError(QubesBuilderError, click.ClickException):
     """
     An exception that Click can handle and show to the user.
     """

@@ -23,9 +23,10 @@ from typing import Union, List, Dict
 import yaml
 
 from qubesbuilder.common import PROJECT_PATH
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
-from qubesbuilder.exc import ConfigException
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.template import QubesTemplate
+from qubesbuilder.exc import ConfigError
 from qubesbuilder.executors.helpers import getExecutor
 from qubesbuilder.log import get_logger
 
@@ -41,13 +42,13 @@ class Config:
             conf_file = Path(conf_file).resolve()
 
         if not conf_file.exists():
-            raise ConfigException(f"Cannot find config '{conf_file}'.")
+            raise ConfigError(f"Cannot find config '{conf_file}'.")
 
         try:
             with open(conf_file) as f:
                 self._conf = yaml.safe_load(f.read())
         except yaml.YAMLError as e:
-            raise ConfigException(f"Failed to parse config '{conf_file}'.") from e
+            raise ConfigError(f"Failed to parse config '{conf_file}'.") from e
 
         # Qubes OS distributions
         self._dists: List = []
@@ -56,7 +57,10 @@ class Config:
         self._stages: dict = {}
 
         # Qubes OS components
-        self._components: List[Component] = []
+        self._components: List[QubesComponent] = []
+
+        # Qubes OS Templates
+        self._templates: List[QubesComponent] = []
 
         # Artifacts directory location
         if self._conf.get("artifacts-dir", None):
@@ -74,10 +78,14 @@ class Config:
 
     def get_distributions(self):
         if not self._dists:
-            for package_set in ("host", "vm"):
-                for dist in self._conf.get(package_set, []):
-                    self._dists.append(Dist(f"{package_set}-{dist}"))
+            self._dists = [QubesDistribution(dist) for dist in self._conf.get("distributions", [])]
         return self._dists
+
+    def get_templates(self):
+        if not self._templates:
+            self._templates = [QubesTemplate(template)
+                               for template in self._conf.get("templates", [])]
+        return self._templates
 
     def get_stages(self):
         if not self._stages:
@@ -122,7 +130,7 @@ class Config:
         stage = {"executor": executor}
         return stage
 
-    def parse_component_from_config(self, component_name: Union[str, Dict]) -> Component:
+    def parse_component_from_config(self, component_name: Union[str, Dict]) -> QubesComponent:
         component_default_url = f"https://github.com/QubesOS/qubes-{component_name}"
         component_default_branch = "master"
         if isinstance(component_name, str):
@@ -132,7 +140,7 @@ class Config:
             component_name in self._conf.get("insecure-skip-checking", [])
         less_secure_signed_commits_sufficient = \
             component_name in self._conf.get("less-secure-signed-commits-sufficient", [])
-        component = Component(
+        component = QubesComponent(
             source_dir=self._artifacts_dir / "sources" / component_name,
             url=component_options.get("url", component_default_url),
             branch=component_options.get("branch", component_default_branch),

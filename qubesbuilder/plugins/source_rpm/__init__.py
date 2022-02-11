@@ -23,9 +23,9 @@ from pathlib import Path
 import yaml
 
 from qubesbuilder.common import is_filename_valid
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
-from qubesbuilder.executors import Executor, ExecutorException
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import BUILDER_DIR, PLUGINS_DIR, BUILD_DIR, DISTFILES_DIR
 from qubesbuilder.plugins.source import SourcePlugin, SourceException
@@ -43,7 +43,7 @@ class RPMSourcePlugin(SourcePlugin):
 
     plugin_dependencies = ["source"]
 
-    def __init__(self, component: Component, dist: Dist, executor: Executor, plugins_dir: Path,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, verbose: bool = False, debug: bool = False,
                  skip_if_exists: bool = False):
         super().__init__(component=component, dist=dist, executor=executor, plugins_dir=plugins_dir,
@@ -119,7 +119,7 @@ class RPMSourcePlugin(SourcePlugin):
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
                     self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
-                except ExecutorException as e:
+                except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to get source information."
                     raise SourceException(msg) from e
 
@@ -200,7 +200,7 @@ class RPMSourcePlugin(SourcePlugin):
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
                     self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
-                except ExecutorException as e:
+                except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to generate SRPM."
                     raise SourceException(msg) from e
 

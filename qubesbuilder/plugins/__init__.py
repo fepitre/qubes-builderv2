@@ -20,8 +20,8 @@
 from pathlib import Path, PurePath
 from typing import List
 
-from qubesbuilder.component import Component
-from qubesbuilder.dist import Dist
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.distribution import QubesDistribution
 
 # Directories inside executor
 BUILDER_DIR = PurePath("/builder")
@@ -44,7 +44,7 @@ class Plugin:
     """
     plugin_dependencies: List[str] = []
 
-    def __init__(self, component: Component, dist: Dist, plugins_dir: Path, artifacts_dir: Path,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, plugins_dir: Path, artifacts_dir: Path,
                  verbose: bool, debug: bool):
         self.component = component
         self.dist = dist

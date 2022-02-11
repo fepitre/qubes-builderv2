@@ -17,17 +17,21 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-class QubesBuilderException(Exception):
+class QubesBuilderError(Exception):
     pass
 
 
-class ComponentException(QubesBuilderException):
+class ComponentError(QubesBuilderError):
     pass
 
 
-class DistException(QubesBuilderException):
+class DistributionError(QubesBuilderError):
     pass
 
 
-class ConfigException(QubesBuilderException):
+class TemplateError(QubesBuilderError):
+    pass
+
+
+class ConfigError(QubesBuilderError):
     pass

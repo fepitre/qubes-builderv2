@@ -3,7 +3,7 @@ from pathlib import Path, PurePath
 
 import pytest
 
-from qubesbuilder.executors import ExecutorException
+from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 
 
@@ -39,14 +39,14 @@ def test_container_simple():
 
 
 def test_container_not_running():
-    with pytest.raises(ExecutorException) as e:
+    with pytest.raises(ExecutorError) as e:
         ContainerExecutor("docker", "fedora:latest", base_url="tcp://127.0.0.1:1234")
     msg = "Cannot connect to container client."
     assert str(e.value) == msg
 
 
 def test_container_unknown_image():
-    with pytest.raises(ExecutorException) as e:
+    with pytest.raises(ExecutorError) as e:
         ContainerExecutor("docker", "fedora-unknown:latest")
     msg = "Cannot find fedora-unknown:latest."
     assert str(e.value) == msg
