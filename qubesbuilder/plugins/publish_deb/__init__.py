@@ -38,7 +38,7 @@ class DEBPublishPlugin(PublishPlugin):
 
     def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, qubes_release: str, gpg_client: str, sign_key: dict,
-                 publish_repository: str, verbose: bool = False, debug: bool = False):
+                 publish_repository: dict, verbose: bool = False, debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir, executor=executor,
                          artifacts_dir=artifacts_dir, qubes_release=qubes_release,
                          gpg_client=gpg_client, sign_key=sign_key,
@@ -85,6 +85,13 @@ class DEBPublishPlugin(PublishPlugin):
             if not self.gpg_client:
                 log.info(f"{self.component}: Please specify GPG client to use!")
                 return
+
+            # Check publish repository is valid
+            if self.publish_repository.get("components", "current-testing") not in \
+                    ("current-testing", "security-testing", "unstable"):
+                msg = f"{self.component}:{self.dist}: " \
+                      f"Refusing to publish components into '{self.publish_repository}'."
+                raise PublishException(msg)
 
             # Build artifacts (source included)
             build_artifacts_dir = self.get_component_dir(stage="build")

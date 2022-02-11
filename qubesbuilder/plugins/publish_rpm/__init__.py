@@ -41,7 +41,7 @@ class RPMPublishPlugin(PublishPlugin):
 
     def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, qubes_release: str, gpg_client: str, sign_key: dict,
-                 publish_repository: str, verbose: bool = False, debug: bool = False):
+                 publish_repository: dict, verbose: bool = False, debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir, executor=executor,
                          artifacts_dir=artifacts_dir, qubes_release=qubes_release,
                          gpg_client=gpg_client, sign_key=sign_key,
@@ -79,10 +79,18 @@ class RPMPublishPlugin(PublishPlugin):
                 return
 
             # Check publish repository is valid
-            if self.publish_repository not in ("current-testing", "security-testing", "unstable"):
-                msg = f"{self.component}:{self.dist}: " \
-                      f"Refusing to publish into '{self.publish_repository}'."
-                raise PublishException(msg)
+            if self.component.is_template():
+                if self.publish_repository.get("templates", "templates-itl-testing") not in \
+                        ("templates-itl-testing", "templates-community-testing"):
+                    msg = f"{self.component}:{self.dist}: " \
+                          f"Refusing to publish templates into '{self.publish_repository}'."
+                    raise PublishException(msg)
+            else:
+                if self.publish_repository.get("components", "current-testing") not in \
+                        ("current-testing", "security-testing", "unstable"):
+                    msg = f"{self.component}:{self.dist}: " \
+                          f"Refusing to publish components into '{self.publish_repository}'."
+                    raise PublishException(msg)
 
             # Check if we have a signing key provided
             sign_key = self.sign_key.get(self.dist.distribution, None) or \

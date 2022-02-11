@@ -67,7 +67,9 @@ less-secure-signed-commits-sufficient:
   - core-qrexec
   - desktop-linux-xfce4-xfwm4
 
-publish-repository: current-testing
+publish-repository:
+  components: current-testing
+  templates: templates-itl-testing
 
 executor:
   type: docker

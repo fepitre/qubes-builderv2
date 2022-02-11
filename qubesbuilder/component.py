@@ -40,6 +40,9 @@ class QubesComponent:
         self.insecure_skip_checking = insecure_skip_checking
         self.less_secure_signed_commits_sufficient = less_secure_signed_commits_sufficient
 
+    def is_template(self):
+        return self.name.startswith("template-")
+
     def get_parameters(self, placeholders: dict = None):
         if not self.source_dir.exists():
             raise ComponentError(f"Cannot find source directory {self.source_dir}")

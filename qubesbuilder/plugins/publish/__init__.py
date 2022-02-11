@@ -40,7 +40,7 @@ class PublishPlugin(Plugin):
 
     def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
                  artifacts_dir: Path, qubes_release: str, gpg_client: str, sign_key: dict,
-                 publish_repository: str, verbose: bool = False, debug: bool = False):
+                 publish_repository: dict, verbose: bool = False, debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir,
                          artifacts_dir=artifacts_dir, verbose=verbose, debug=debug)
 
