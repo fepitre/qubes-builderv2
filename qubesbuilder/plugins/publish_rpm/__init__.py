@@ -80,16 +80,18 @@ class RPMPublishPlugin(PublishPlugin):
 
             # Check publish repository is valid
             if self.component.is_template():
-                if self.publish_repository.get("templates", "templates-itl-testing") not in \
+                publish_repository = self.publish_repository.get("templates", "templates-itl-testing")
+                if publish_repository not in \
                         ("templates-itl-testing", "templates-community-testing"):
                     msg = f"{self.component}:{self.dist}: " \
-                          f"Refusing to publish templates into '{self.publish_repository}'."
+                          f"Refusing to publish templates into '{publish_repository}'."
                     raise PublishError(msg)
             else:
-                if self.publish_repository.get("components", "current-testing") not in \
+                publish_repository = self.publish_repository.get("components", "current-testing")
+                if publish_repository not in \
                         ("current-testing", "security-testing", "unstable"):
                     msg = f"{self.component}:{self.dist}: " \
-                          f"Refusing to publish components into '{self.publish_repository}'."
+                          f"Refusing to publish components into '{publish_repository}'."
                     raise PublishError(msg)
 
             # Check if we have a signing key provided
@@ -165,7 +167,7 @@ class RPMPublishPlugin(PublishPlugin):
 
                 # Publish packages with hardlinks to built RPMs
                 log.info(f"{self.component}:{self.dist}:{spec}: Publishing RPMs.")
-                target_dir = artifacts_dir / f"{self.qubes_release}/{self.publish_repository}/{self.dist.package_set}/{self.dist.name}"
+                target_dir = artifacts_dir / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}/{self.dist.name}"
                 try:
                     for rpm in packages_list:
                         target_path = target_dir / "rpm" / rpm.name

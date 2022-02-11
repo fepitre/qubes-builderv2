@@ -87,10 +87,11 @@ class DEBPublishPlugin(PublishPlugin):
                 return
 
             # Check publish repository is valid
-            if self.publish_repository.get("components", "current-testing") not in \
+            publish_repository = self.publish_repository.get("components", "current-testing")
+            if publish_repository not in \
                     ("current-testing", "security-testing", "unstable"):
                 msg = f"{self.component}:{self.dist}: " \
-                      f"Refusing to publish components into '{self.publish_repository}'."
+                      f"Refusing to publish components into '{publish_repository}'."
                 raise PublishError(msg)
 
             # Build artifacts (source included)
@@ -145,7 +146,7 @@ class DEBPublishPlugin(PublishPlugin):
                 try:
                     log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
                     changes_file = build_artifacts_dir / build_info["changes"]
-                    target_dir = artifacts_dir / f"{self.qubes_release}/{self.publish_repository}/{self.dist.package_set}"
+                    target_dir = artifacts_dir / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}"
                     reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch -b {target_dir}"
                     bash_cmd = [
                         f"reprepro {reprepro_options} include {self.dist.name} {changes_file}"
