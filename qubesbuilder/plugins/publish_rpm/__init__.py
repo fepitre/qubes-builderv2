@@ -67,9 +67,6 @@ class RPMPublishPlugin(PublishPlugin):
             debug=debug,
         )
 
-        self.executor = executor
-        self.verbose = verbose
-        self.debug = debug
 
     def update_parameters(self):
         """

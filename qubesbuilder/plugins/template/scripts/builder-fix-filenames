@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Check template name length and fix if not under 32 characters
+# Return the result 
+
+BUILDER_SCRIPTS_DIR="$(dirname "$0")"
+
+. "${BUILDER_SCRIPTS_DIR}"/functions.sh >/dev/null
+
+# Check for custom template name
+templateNameDist "${TEMPLATE_NAME}"

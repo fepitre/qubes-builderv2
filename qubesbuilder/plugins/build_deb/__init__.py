@@ -108,12 +108,6 @@ class DEBBuildPlugin(BuildPlugin):
             use_qubes_repo=use_qubes_repo,
         )
 
-        self.environment = {}
-        if self.verbose:
-            self.environment["VERBOSE"] = 1
-        if self.debug:
-            self.environment["DEBUG"] = 1
-
     def update_parameters(self):
         """
         Update plugin parameters based on component .qubesbuilder.

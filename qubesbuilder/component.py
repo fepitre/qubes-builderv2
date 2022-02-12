@@ -101,7 +101,7 @@ class QubesComponent:
         except yaml.YAMLError as e:
             raise ComponentError(f"Cannot render '.qubesbuilder'.") from e
 
-        return rendered_data
+        return rendered_data or {}
 
     def to_str(self) -> str:
         return self.source_dir.name

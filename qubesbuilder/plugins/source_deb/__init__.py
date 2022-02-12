@@ -65,11 +65,7 @@ class DEBSourcePlugin(SourcePlugin):
             skip_if_exists=skip_if_exists,
         )
 
-        self.environment = {"DIST": self.dist.name}
-        if self.verbose:
-            self.environment["VERBOSE"] = 1
-        if self.debug:
-            self.environment["DEBUG"] = 1
+        self.environment.update({"DIST": self.dist.name})
 
     def update_parameters(self):
         """

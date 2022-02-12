@@ -91,7 +91,7 @@ class RPMBuildPlugin(BuildPlugin):
         artifacts_dir: Path,
         verbose: bool = False,
         debug: bool = False,
-        use_qubes_repo: bool = None,
+        use_qubes_repo: dict = None,
     ):
         super().__init__(
             component=component,
@@ -106,15 +106,12 @@ class RPMBuildPlugin(BuildPlugin):
 
         # Add some environment variables needed to render mock root configuration
         # FIXME: host is aliased as "dom0" for legacy
-        self.environment = {
+        self.environment.update({
             "DIST": self.dist.name,
             "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
             "USE_QUBES_REPO_VERSION": self.use_qubes_repo.get("version", None),
-        }
-        if self.verbose:
-            self.environment["VERBOSE"] = 1
-        if self.debug:
-            self.environment["DEBUG"] = 1
+            "USE_QUBES_REPO_TESTING": 1 if self.use_qubes_repo.get("testing", None) else 0,
+        })
 
     def update_parameters(self):
         """

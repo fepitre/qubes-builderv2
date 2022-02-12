@@ -28,10 +28,11 @@ distributions:
 templates:
   - fedora-35-xfce:
       dist: fc35
+      flavor: xfce
   - whonix-gw-16:
       dist: bullseye
+      flavor: whonix-gateway
       options:
-       - whonix-gateway
        - minimal
        - no-recommends
 

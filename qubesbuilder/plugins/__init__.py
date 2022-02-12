@@ -29,6 +29,7 @@ BUILD_DIR = BUILDER_DIR / "build"
 PLUGINS_DIR = BUILDER_DIR / "plugins"
 DISTFILES_DIR = BUILDER_DIR / "distfiles"
 REPOSITORY_DIR = BUILDER_DIR / "repository"
+CACHE_DIR = BUILDER_DIR / "cache"
 
 
 class PluginError(Exception):
@@ -74,6 +75,12 @@ class Plugin:
             "@SOURCE_DIR@": str(BUILDER_DIR / component.name),
         }
 
+        self.environment = {"DIST": self.dist.name}
+        if self.verbose:
+            self.environment["VERBOSE"] = 1
+        if self.debug:
+            self.environment["DEBUG"] = 1
+
     def run(self, stage: str):
         pass
 
@@ -94,6 +101,10 @@ class Plugin:
 
     def get_distfiles_dir(self):
         path = self.artifacts_dir / "distfiles"
+        return path.resolve()
+
+    def get_templates_dir(self):
+        path = self.artifacts_dir / "templates"
         return path.resolve()
 
     def get_component_dir(self, stage: str):

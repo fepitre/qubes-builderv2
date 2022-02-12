@@ -2,6 +2,7 @@ from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.template import QubesTemplate
 from qubesbuilder.executors import Executor
 from qubesbuilder.plugins import PluginError
 from qubesbuilder.plugins.build_deb import DEBBuildPlugin
@@ -12,6 +13,7 @@ from qubesbuilder.plugins.sign_deb import DEBSignPlugin
 from qubesbuilder.plugins.sign_rpm import RPMSignPlugin
 from qubesbuilder.plugins.source_deb import DEBSourcePlugin
 from qubesbuilder.plugins.source_rpm import RPMSourcePlugin
+from qubesbuilder.plugins.template import TemplatePlugin
 
 
 def getSourcePlugin(
@@ -96,3 +98,17 @@ def getPublishPlugin(
     else:
         raise PluginError(f"{dist}: unsupported dist.")
     return publish_plugin
+
+
+def getTemplatePlugin(
+    component: QubesComponent,
+    template: QubesTemplate,
+    plugins_dir: Path,
+    executor: Executor,
+    artifacts_dir: Path,
+    **kwargs,
+):
+    template_plugin = TemplatePlugin(
+        component, template, executor, plugins_dir, artifacts_dir, **kwargs
+    )
+    return template_plugin

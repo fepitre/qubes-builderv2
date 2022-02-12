@@ -67,14 +67,12 @@ class RPMSourcePlugin(SourcePlugin):
 
         # Add some environment variables needed to render mock root configuration
         # FIXME: host is aliased as "dom0" for legacy
-        self.environment = {
-            "DIST": self.dist.name,
-            "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
-        }
-        if self.verbose:
-            self.environment["VERBOSE"] = 1
-        if self.debug:
-            self.environment["DEBUG"] = 1
+        self.environment.update(
+            {
+                "DIST": self.dist.name,
+                "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
+            }
+        )
 
     def update_parameters(self):
         """

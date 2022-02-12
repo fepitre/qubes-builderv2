@@ -1,0 +1,121 @@
+#!/bin/bash
+
+set -e
+if [ "${DEBUG}" == "1" ]; then
+    set -x
+fi
+
+IMG="$1"
+INSTALL_DIR="$(readlink -m "${2}")"
+
+# ------------------------------------------------------------------------------
+# Configurations
+# ------------------------------------------------------------------------------
+
+BUILDER_SCRIPTS_DIR="$(dirname "$0")"
+LC_ALL=POSIX
+
+RETCODE=0
+
+. "${BUILDER_SCRIPTS_DIR}"/builder-setup >/dev/null
+. "${BUILDER_SCRIPTS_DIR}"/umount-kill >/dev/null
+
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <image_file> <install_dir>"
+    exit
+fi
+
+if [ -z "$TEMPLATE_ROOT_SIZE" ]; then
+    TEMPLATE_ROOT_SIZE=10G
+fi
+
+# ------------------------------------------------------------------------------
+# Make sure necessary directories exist
+# ------------------------------------------------------------------------------
+mkdir -p "${INSTALL_DIR}" "${CACHE_DIR}" "${PACKAGES_DIR}" "${ARTIFACTS_DIR}"
+
+# ------------------------------------------------------------------------------
+# Export needed environment variable
+# ------------------------------------------------------------------------------
+export INSTALL_DIR LC_ALL IMG
+
+# ------------------------------------------------------------------------------
+# Prepare for mount
+# ------------------------------------------------------------------------------
+DIST_TO_STR="${DIST_WITHOUT_FLAVOR}+${TEMPLATE_FLAVOR}"
+if [ ${#TEMPLATE_OPTIONS} -gt 0 ]; then
+    DIST_TO_STR="${DIST_TO_STR} (options: ${TEMPLATE_OPTIONS[*]})"
+fi
+echo "INFO: Preparing installation of ${DIST_TO_STR} template..."
+"${TEMPLATE_CONTENT_DIR}/00_prepare.sh"
+
+# ------------------------------------------------------------------------------
+# Mount image and install core OS
+# ------------------------------------------------------------------------------
+if [ -f "${IMG}" ]; then
+    echo "INFO: Image file already exists, assuming *update*..."
+    if [ "0$TEMPLATE_ROOT_WITH_PARTITIONS" -eq 1 ]; then
+        IMG_LOOP=$(/sbin/losetup -P -f --show "$IMG")
+        IMG_DEV=${IMG_LOOP}p3
+    else
+        IMG_LOOP=$(/sbin/losetup -f --show "$IMG")
+        IMG_DEV=${IMG_LOOP}
+    fi
+    udevadm settle --exit-if-exists="$IMG_DEV"
+else
+    echo "INFO: Initializing empty image..."
+    mkdir -p "$(dirname "${IMG}")"
+    truncate -s "$TEMPLATE_ROOT_SIZE" "${IMG}" || exit 1
+
+    if [ "0$TEMPLATE_ROOT_WITH_PARTITIONS" -eq 1 ]; then
+        echo "INFO: Creating partition table"
+        # have static UUIDs to make partition table reproducible
+        /usr/sbin/sfdisk "$IMG" <<EOF || exit 1
+label: gpt
+label-id: f4796a2a-e377-45bd-b539-d6d49e569055
+
+size=200MiB, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, uuid=fa4d6529-56da-47c7-ae88-e2dfecb72621, name="EFI System"
+size=2MiB, type=21686148-6449-6E6F-744E-656564454649, uuid=1e6c9db4-1e91-46c4-846a-2030dcb13b8c, name="BIOS boot partition"
+type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, uuid=693244e6-3e07-47bf-ad79-acade4293fe7, name="Root filesystem"
+EOF
+
+        IMG_LOOP=$(/sbin/losetup -P -f --show "$IMG")
+        IMG_DEV=${IMG_LOOP}p3
+    else
+        IMG_LOOP=$(/sbin/losetup -f --show "$IMG")
+        IMG_DEV=${IMG_LOOP}
+    fi
+    udevadm settle --exit-if-exists="$IMG_DEV"
+
+    echo "INFO: Creating filesystem..."
+    /sbin/mkfs.ext4 -q -F "${IMG_DEV}" || exit 1
+fi
+
+# Mount image at INSTALL_DIR location
+mount "${IMG_DEV}" "${INSTALL_DIR}" || exit 1
+
+# shellcheck disable=SC2064
+trap "umount_kill $(readlink -m "${INSTALL_DIR}")" EXIT
+
+# ------------------------------------------------------------------------------
+# Bootstrap and configure chroot
+# ------------------------------------------------------------------------------
+echo "INFO: Bootstrapping distribution..."
+"${TEMPLATE_CONTENT_DIR}/01_install_core.sh"
+
+# ------------------------------------------------------------------------------
+# Install package groups
+# ------------------------------------------------------------------------------
+echo "INFO: Installing package groups..."
+"${TEMPLATE_CONTENT_DIR}/02_install_groups.sh"
+
+# ------------------------------------------------------------------------------
+# Cleanup
+# ------------------------------------------------------------------------------
+trap - EXIT
+
+echo "INFO: Unmounting prepared_image..."
+umount_kill "$(readlink -m "${INSTALL_DIR}")" || true
+/sbin/losetup -d "${IMG_LOOP}"
+
+exit ${RETCODE}

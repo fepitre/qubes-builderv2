@@ -64,10 +64,6 @@ class DEBSignPlugin(SignPlugin):
             debug=debug,
         )
 
-        self.executor = executor
-        self.verbose = verbose
-        self.debug = debug
-
     def update_parameters(self):
         """
         Update plugin parameters based on component .qubesbuilder.

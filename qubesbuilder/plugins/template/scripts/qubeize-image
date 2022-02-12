@@ -1,0 +1,148 @@
+#!/bin/bash
+
+set -e
+if [ "${DEBUG}" == "1" ]; then
+    set -x
+fi
+
+BASE_IMG="$1"
+INSTALL_DIR="$(readlink -m "${2}")"
+
+# ------------------------------------------------------------------------------
+# Configurations and Conditionals
+# ------------------------------------------------------------------------------
+
+BUILDER_SCRIPTS_DIR="$(dirname "$0")"
+LC_ALL=POSIX
+IMG="${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}/root.img"
+
+. "${BUILDER_SCRIPTS_DIR}"/builder-setup >/dev/null
+. "${BUILDER_SCRIPTS_DIR}"/umount-kill >/dev/null
+. "${BUILDER_SCRIPTS_DIR}"/functions.sh >/dev/null
+
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <clean_image_file> <install_dir>"
+    exit
+fi
+
+if [ -z "${BASE_IMG}" ]; then
+    echo "Image file not specified!"
+    exit 1
+fi
+
+if [ -z "$INSTALL_DIR" ]; then
+    echo "INSTALL_DIR not given!"
+    exit 1
+fi
+
+# ------------------------------------------------------------------------------
+# Make sure necessary directories exist
+# ------------------------------------------------------------------------------
+mkdir -p "${INSTALL_DIR}" "${CACHE_DIR}" "${PACKAGES_DIR}"
+
+# ------------------------------------------------------------------------------
+# Export needed environment variable
+# ------------------------------------------------------------------------------
+export INSTALL_DIR LC_ALL BASE_IMG TEMPLATE_NAME IMG
+
+# ------------------------------------------------------------------------------
+# Cleanup function
+# ------------------------------------------------------------------------------
+function cleanup() {
+    errval=$?
+    trap - ERR
+    trap
+    umount_kill "$(readlink -m "${INSTALL_DIR}")" || true
+    /sbin/losetup -d "${IMG_LOOP}"
+    exit $errval
+}
+trap cleanup ERR
+
+# ------------------------------------------------------------------------------
+# Mount qubeized_image
+# ------------------------------------------------------------------------------
+mkdir -p "${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}"
+
+if [ "0$DISCARD_PREPARED_IMAGE" -eq "1" ]; then
+    echo "--> Moving $IMG to $IMG..."
+    mv "${BASE_IMG}" "$IMG" || exit 1
+else
+    echo "--> Copying $IMG to $IMG..."
+    cp "${BASE_IMG}" "$IMG" || exit 1
+fi
+
+echo "--> Mounting $IMG"
+if [ "0$TEMPLATE_ROOT_WITH_PARTITIONS" -eq 1 ]; then
+    IMG_LOOP=$(/sbin/losetup -P -f --show "$IMG")
+    IMG_DEV=${IMG_LOOP}p3
+else
+    IMG_LOOP=$(/sbin/losetup -f --show "$IMG")
+    IMG_DEV=${IMG_LOOP}
+fi
+udevadm settle --exit-if-exists="$IMG_DEV"
+mount "$IMG_DEV" "${INSTALL_DIR}" || exit 1
+
+# ------------------------------------------------------------------------------
+# Run qubeize script
+# ------------------------------------------------------------------------------
+"${TEMPLATE_CONTENT_DIR}/04_install_qubes.sh"
+
+# ------------------------------------------------------------------------------
+# Create App Menus
+# ------------------------------------------------------------------------------
+echo "--> Choosing appmenus whitelists..."
+_appmenus_dir="${APPMENUS_DIR:-${TEMPLATE_CONTENT_DIR}}"
+rm -f "${ARTIFACTS_DIR}/appmenus"
+
+appmenus="$(get_file_or_directory_for_current_flavor "${_appmenus_dir}/appmenus")"
+if [ -z "$appmenus" ]; then
+    appmenus="${PLUGINS_DIR}/template/appmenus_generic"
+fi
+ln -s "${appmenus}" "${ARTIFACTS_DIR}/appmenus"
+
+# ------------------------------------------------------------------------------
+# Create Template Config File
+# ------------------------------------------------------------------------------
+
+echo "--> Creating template config file..."
+_conf_dir="${CONFIG_DIR:-${TEMPLATE_CONTENT_DIR}}"
+rm -f "${ARTIFACTS_DIR}/template.conf"
+
+template_conf="$(get_file_or_directory_for_current_flavor "${_conf_dir}/template.conf")"
+if [ -z "$template_conf" ]; then
+    template_conf="${PLUGINS_DIR}/template/template_generic.conf"
+fi
+ln -s "${template_conf}" "${ARTIFACTS_DIR}/template.conf"
+
+# ------------------------------------------------------------------------------
+# Link directories so they can be mounted
+# ------------------------------------------------------------------------------
+echo "--> Linking /home to /rw/home..."
+mv "${INSTALL_DIR}/home" "${INSTALL_DIR}/home.orig"
+mkdir "${INSTALL_DIR}/home"
+
+echo "--> Linking /usr/local to /rw/usrlocal..."
+mv "${INSTALL_DIR}/usr/local" "${INSTALL_DIR}/usr/local.orig"
+mkdir "${INSTALL_DIR}/usr/local"
+
+echo "Reducing image size (calling cleanup_image)..."
+ls -als "$IMG"
+
+echo "--> Cleaning up image file..."
+"${TEMPLATE_CONTENT_DIR}"/09_cleanup.sh
+
+echo "--> Compacting image file..."
+/sbin/fstrim -v "${INSTALL_DIR}"
+
+ls -als "$IMG"
+
+# ------------------------------------------------------------------------------
+# Finish - unmount image
+# ------------------------------------------------------------------------------
+echo "--> Unmounting $IMG"
+umount_kill "${INSTALL_DIR}" || true
+/sbin/losetup -d "${IMG_LOOP}"
+
+echo "Qubeized image stored at: $IMG"
+
+chown -R --reference="${ARTIFACTS_DIR}" "${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}"

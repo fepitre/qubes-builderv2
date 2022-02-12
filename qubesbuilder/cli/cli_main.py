@@ -35,6 +35,7 @@ from qubesbuilder.plugins.helpers import (
     getBuildPlugin,
     getSignPlugin,
     getPublishPlugin,
+    getTemplatePlugin,
 )
 
 log = get_logger("cli")
@@ -125,7 +126,10 @@ def _stage(obj: ContextObj, stage_name: str):
     click.echo(f"Running stage: {stage_name}")
     executor = obj.config.get_stages()[stage_name]["executor"]
 
+    # Qubes components
     for component in obj.components:
+        if component.is_template():
+            continue
         for dist in obj.distributions:
             plugins = [
                 getSourcePlugin(
@@ -172,6 +176,60 @@ def _stage(obj: ContextObj, stage_name: str):
                     qubes_release=obj.config.get("qubes-release"),
                     publish_repository=obj.config.get("publish-repository"),
                 ),
+            ]
+            for plugin in plugins:
+                plugin.run(stage=stage_name)
+
+    # Qubes templates
+    for component in obj.components:
+        if not component.is_template():
+            continue
+        for template in obj.templates:
+            plugins = [
+                getSourcePlugin(
+                    component=component,
+                    dist=template.distribution,
+                    plugins_dir=obj.config.get_plugins_dir(),
+                    executor=executor,
+                    artifacts_dir=obj.config.get_artifacts_dir(),
+                    verbose=obj.config.verbose,
+                    debug=obj.config.debug,
+                    skip_if_exists=obj.config.get("reuse-fetched-source"),
+                ),
+                getTemplatePlugin(
+                    component=component,
+                    template=template,
+                    plugins_dir=obj.config.get_plugins_dir(),
+                    executor=executor,
+                    artifacts_dir=obj.config.get_artifacts_dir(),
+                    verbose=obj.config.verbose,
+                    debug=obj.config.debug,
+                    use_qubes_repo=obj.config.get("use-qubes-repo"),
+                ),
+                # getSignPlugin(
+                #     component=component,
+                #     dist=template.distribution,
+                #     plugins_dir=obj.config.get_plugins_dir(),
+                #     executor=executor,
+                #     artifacts_dir=obj.config.get_artifacts_dir(),
+                #     verbose=obj.config.verbose,
+                #     debug=obj.config.debug,
+                #     gpg_client=obj.config.get("gpg-client"),
+                #     sign_key=obj.config.get("sign-key"),
+                # ),
+                # getPublishPlugin(
+                #     component=component,
+                #     dist=template.distribution,
+                #     plugins_dir=obj.config.get_plugins_dir(),
+                #     executor=executor,
+                #     artifacts_dir=obj.config.get_artifacts_dir(),
+                #     verbose=obj.config.verbose,
+                #     debug=obj.config.debug,
+                #     gpg_client=obj.config.get("gpg-client"),
+                #     sign_key=obj.config.get("sign-key"),
+                #     qubes_release=obj.config.get("qubes-release"),
+                #     publish_repository=obj.config.get("publish-repository"),
+                # ),
             ]
             for plugin in plugins:
                 plugin.run(stage=stage_name)

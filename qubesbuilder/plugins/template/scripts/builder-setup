@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Setup env variables
+
+REQUIRED_ENV=(
+    DIST_WITHOUT_FLAVOR
+    DIST_NAME
+    DIST_VER
+    PLUGINS_DIR
+    ARTIFACTS_DIR
+    CACHE_DIR
+    TEMPLATE_CONTENT_DIR
+    TEMPLATE_NAME
+    TEMPLATE_FLAVOR
+)
+
+for var in ${REQUIRED_ENV[*]}; do
+    if [ -z "${!var}" ]; then
+        echo "Please provide environment variable: ${var}"
+        exit 1
+    fi
+done
+
+if [[ $(id -ur) != 0 ]] ; then
+    echo "This script should be run as root user."
+    exit 1
+fi

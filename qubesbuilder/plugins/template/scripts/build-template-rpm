@@ -1,0 +1,38 @@
+#!/bin/bash
+
+TEMPLATE_NAME="$1"
+ARTIFACTS_DIR="$2"
+
+set -e
+if [ "${DEBUG}" == "1" ]; then
+    set -x
+fi
+
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <template_name> <artifacts_dir>"
+    exit
+fi
+
+if [ -z "${TEMPLATE_NAME}" ] ; then
+    echo "TEMPLATE_NAME not given!"
+    exit 1
+fi
+
+if [ -z "${ARTIFACTS_DIR}" ] ; then
+    echo "ARTIFACTS_DIR not given!"
+    exit 1
+fi
+
+BUILDER_SCRIPTS_DIR="$(dirname "$0")"
+
+# Create RPM 
+rpmbuild --target noarch \
+         --define "template_name ${TEMPLATE_NAME}" \
+         --define "_sourcedir ${ARTIFACTS_DIR}" \
+         --define "_topdir ${ARTIFACTS_DIR}/rpmbuild" \
+         --define "_tmppath ${ARTIFACTS_DIR}/rpmbuild/tmp" \
+         -bb "${BUILDER_SCRIPTS_DIR}"/../template.spec
+
+if [ "0$DISCARD_PREPARED_IMAGE" -eq "1" ]; then
+    rm -rf "${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}"
+fi

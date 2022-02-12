@@ -63,9 +63,6 @@ class DEBPublishPlugin(PublishPlugin):
             verbose=verbose,
             debug=debug,
         )
-        self.executor = executor
-        self.verbose = verbose
-        self.debug = debug
 
     def update_parameters(self):
         """

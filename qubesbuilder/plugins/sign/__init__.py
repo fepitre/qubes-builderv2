@@ -60,8 +60,6 @@ class SignPlugin(Plugin):
         )
 
         self.executor = executor
-        self.verbose = verbose
-        self.debug = debug
         self.gpg_client = gpg_client
         self.sign_key = sign_key
 

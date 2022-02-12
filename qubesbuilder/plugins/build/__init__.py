@@ -57,6 +57,4 @@ class BuildPlugin(Plugin):
             debug=debug,
         )
         self.executor = executor
-        self.verbose = verbose
-        self.debug = debug
         self.use_qubes_repo = use_qubes_repo
