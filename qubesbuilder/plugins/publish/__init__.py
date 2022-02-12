@@ -38,12 +38,28 @@ class PublishPlugin(Plugin):
     PublishPlugin manages generic distribution publication.
     """
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path, qubes_release: str, gpg_client: str,
-                 sign_key: dict, publish_repository: dict, verbose: bool = False,
-                 debug: bool = False):
-        super().__init__(component=component, dist=dist, plugins_dir=plugins_dir,
-                         artifacts_dir=artifacts_dir, verbose=verbose, debug=debug)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        qubes_release: str,
+        gpg_client: str,
+        sign_key: dict,
+        publish_repository: dict,
+        verbose: bool = False,
+        debug: bool = False,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
 
         self.executor = executor
         self.verbose = verbose

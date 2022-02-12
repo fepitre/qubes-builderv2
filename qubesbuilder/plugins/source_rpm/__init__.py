@@ -43,12 +43,27 @@ class RPMSourcePlugin(SourcePlugin):
 
     plugin_dependencies = ["source"]
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path, verbose: bool = False, debug: bool = False,
-                 skip_if_exists: bool = False):
-        super().__init__(component=component, dist=dist, executor=executor, plugins_dir=plugins_dir,
-                         artifacts_dir=artifacts_dir, verbose=verbose, debug=debug,
-                         skip_if_exists=skip_if_exists)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+        skip_if_exists: bool = False,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            executor=executor,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+            skip_if_exists=skip_if_exists,
+        )
 
         # Add some environment variables needed to render mock root configuration
         # FIXME: host is aliased as "dom0" for legacy
@@ -70,7 +85,9 @@ class RPMSourcePlugin(SourcePlugin):
         # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
         parameters = self.component.get_parameters(self._placeholders)
         self.parameters.update(parameters.get(self.dist.package_set, {}).get("rpm", {}))
-        self.parameters.update(parameters.get(self.dist.distribution, {}).get("rpm", {}))
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("rpm", {})
+        )
 
     def run(self, stage: str):
         """
@@ -101,16 +118,16 @@ class RPMSourcePlugin(SourcePlugin):
 
                 # Generate %{name}-%{version}-%{release} and %Source0
                 copy_in = [
-                              (self.component.source_dir, source_dir),
-                              (self.plugins_dir / "source_rpm", PLUGINS_DIR),
-                          ] + [
-                              (self.plugins_dir / dependency, PLUGINS_DIR)
-                              for dependency in self.plugin_dependencies
-                          ]
+                    (self.component.source_dir, source_dir),
+                    (self.plugins_dir / "source_rpm", PLUGINS_DIR),
+                ] + [
+                    (self.plugins_dir / dependency, PLUGINS_DIR)
+                    for dependency in self.plugin_dependencies
+                ]
 
                 copy_out = [
                     (source_dir / f"{spec_bn}_package_release_name", artifacts_dir),
-                    (source_dir / f"{spec_bn}_packages.list", artifacts_dir)
+                    (source_dir / f"{spec_bn}_packages.list", artifacts_dir),
                 ]
                 bash_cmd = [
                     f"{PLUGINS_DIR}/source_rpm/scripts/get-source-info "
@@ -118,7 +135,9 @@ class RPMSourcePlugin(SourcePlugin):
                 ]
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
-                    self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                    self.executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to get source information."
                     raise SourceError(msg) from e
@@ -133,7 +152,9 @@ class RPMSourcePlugin(SourcePlugin):
                 source_rpm = f"{data[0]}.src.rpm"
                 # Source0 may contain an URL
                 source_orig = os.path.basename(data[1])
-                if not is_filename_valid(source_rpm) and not is_filename_valid(source_orig):
+                if not is_filename_valid(source_rpm) and not is_filename_valid(
+                    source_orig
+                ):
                     msg = f"{self.component}:{self.dist}:{spec}: Invalid source names."
                     raise SourceError(msg)
 
@@ -153,13 +174,13 @@ class RPMSourcePlugin(SourcePlugin):
 
                 # Copy-in distfiles, content and source
                 copy_in = [
-                              (distfiles_dir, BUILDER_DIR),
-                              (self.component.source_dir, source_dir),
-                              (self.plugins_dir / "source_rpm", PLUGINS_DIR),
-                          ] + [
-                              (self.plugins_dir / dependency, PLUGINS_DIR)
-                              for dependency in self.plugin_dependencies
-                          ]
+                    (distfiles_dir, BUILDER_DIR),
+                    (self.component.source_dir, source_dir),
+                    (self.plugins_dir / "source_rpm", PLUGINS_DIR),
+                ] + [
+                    (self.plugins_dir / dependency, PLUGINS_DIR)
+                    for dependency in self.plugin_dependencies
+                ]
 
                 # Copy-out source RPM
                 copy_out = [
@@ -186,12 +207,13 @@ class RPMSourcePlugin(SourcePlugin):
                 mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
                 mock_cmd = [
                     f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
-                    f"/usr/libexec/mock/mock", "--buildsrpm",
+                    f"/usr/libexec/mock/mock",
+                    "--buildsrpm",
                     f"--spec {source_dir / spec}",
                     f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
                     f"--sources={source_dir}",
                     f"--resultdir={BUILD_DIR}",
-                    "--disablerepo=builder-local"
+                    "--disablerepo=builder-local",
                 ]
                 if self.verbose:
                     mock_cmd.append("--verbose")
@@ -199,23 +221,24 @@ class RPMSourcePlugin(SourcePlugin):
                 bash_cmd += [" ".join(mock_cmd)]
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
-                    self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                    self.executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to generate SRPM."
+                    msg = (
+                        f"{self.component}:{self.dist}:{spec}: Failed to generate SRPM."
+                    )
                     raise SourceError(msg) from e
 
                 # Save package information we parsed for next stages
                 try:
                     with open(artifacts_dir / f"{spec_bn}_source_info.yml", "w") as f:
-                        info = {
-                            "srpm": source_rpm,
-                            "rpms": packages_list
-                        }
+                        info = {"srpm": source_rpm, "rpms": packages_list}
                         f.write(yaml.safe_dump(info))
 
                     # Clean previous text files as all info are stored inside source_info
-                    os.remove(artifacts_dir / f'{spec_bn}_package_release_name')
-                    os.remove(artifacts_dir / f'{spec_bn}_packages.list')
+                    os.remove(artifacts_dir / f"{spec_bn}_package_release_name")
+                    os.remove(artifacts_dir / f"{spec_bn}_packages.list")
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to write source info."
                     raise SourceError(msg) from e

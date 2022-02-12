@@ -37,11 +37,24 @@ class TemplatePlugin(Plugin):
     TemplatePlugin manages distribution build.
     """
 
-    def __init__(self, component: QubesComponent, template: QubesTemplate, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path, verbose: bool = False,
-                 debug: bool = False):
-        super().__init__(component=component, dist=template.distribution, plugins_dir=plugins_dir,
-                         artifacts_dir=artifacts_dir, verbose=verbose, debug=debug)
+    def __init__(
+        self,
+        component: QubesComponent,
+        template: QubesTemplate,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+    ):
+        super().__init__(
+            component=component,
+            dist=template.distribution,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
 
         self.executor = executor
         self.verbose = verbose

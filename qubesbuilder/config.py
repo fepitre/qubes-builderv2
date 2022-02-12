@@ -36,7 +36,6 @@ log = get_logger("config")
 
 
 class Config:
-
     def __init__(self, conf_file: Union[Path, str]):
         if isinstance(conf_file, str):
             conf_file = Path(conf_file).resolve()
@@ -78,13 +77,16 @@ class Config:
 
     def get_distributions(self):
         if not self._dists:
-            self._dists = [QubesDistribution(dist) for dist in self._conf.get("distributions", [])]
+            self._dists = [
+                QubesDistribution(dist) for dist in self._conf.get("distributions", [])
+            ]
         return self._dists
 
     def get_templates(self):
         if not self._templates:
-            self._templates = [QubesTemplate(template)
-                               for template in self._conf.get("templates", [])]
+            self._templates = [
+                QubesTemplate(template) for template in self._conf.get("templates", [])
+            ]
         return self._templates
 
     def get_stages(self):
@@ -110,7 +112,9 @@ class Config:
         executor = None
         default_executor = self._conf.get("executor", {})
         executor_type = default_executor.get("type", "docker")
-        executor_options = default_executor.get("options", {"image": "qubes-builder-fedora:latest"})
+        executor_options = default_executor.get(
+            "options", {"image": "qubes-builder-fedora:latest"}
+        )
 
         for s in self._conf.get("stages", []):
             if isinstance(s, str):
@@ -118,8 +122,9 @@ class Config:
             if stage_name != next(iter(s.keys())):
                 continue
             stage_options = next(iter(s.values()))
-            if stage_options.get("executor", None) and \
-                    stage_options["executor"].get("type", None):
+            if stage_options.get("executor", None) and stage_options["executor"].get(
+                "type", None
+            ):
                 executor_type = stage_options["executor"]["type"]
                 executor_options = stage_options["executor"].get("options", {})
                 executor = getExecutor(executor_type, executor_options)
@@ -130,22 +135,26 @@ class Config:
         stage = {"executor": executor}
         return stage
 
-    def parse_component_from_config(self, component_name: Union[str, Dict]) -> QubesComponent:
+    def parse_component_from_config(
+        self, component_name: Union[str, Dict]
+    ) -> QubesComponent:
         component_default_url = f"https://github.com/QubesOS/qubes-{component_name}"
         component_default_branch = "master"
         if isinstance(component_name, str):
             component_name = {component_name: {}}
         component_name, component_options = next(iter(component_name.items()))
-        insecure_skip_checking = \
-            component_name in self._conf.get("insecure-skip-checking", [])
-        less_secure_signed_commits_sufficient = \
-            component_name in self._conf.get("less-secure-signed-commits-sufficient", [])
+        insecure_skip_checking = component_name in self._conf.get(
+            "insecure-skip-checking", []
+        )
+        less_secure_signed_commits_sufficient = component_name in self._conf.get(
+            "less-secure-signed-commits-sufficient", []
+        )
         component = QubesComponent(
             source_dir=self._artifacts_dir / "sources" / component_name,
             url=component_options.get("url", component_default_url),
             branch=component_options.get("branch", component_default_branch),
             maintainers=component_options.get("maintainers", []),
             insecure_skip_checking=insecure_skip_checking,
-            less_secure_signed_commits_sufficient=less_secure_signed_commits_sufficient
+            less_secure_signed_commits_sufficient=less_secure_signed_commits_sufficient,
         )
         return component

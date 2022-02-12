@@ -16,14 +16,10 @@ def test_container_simple():
             f.write("Hello!\n")
 
         # Copy-in the previously created local file
-        copy_in = [
-            (hello, PurePath("/tmp/hello.md"))
-        ]
+        copy_in = [(hello, PurePath("/tmp/hello.md"))]
 
         # Copy-out the modified file
-        copy_out = [
-            (PurePath("/tmp/hello.md"), hello)
-        ]
+        copy_out = [(PurePath("/tmp/hello.md"), hello)]
         # Command that appends a line to the file
         cmd = ["/bin/bash", "-c", "echo It works! >> /tmp/hello.md"]
 

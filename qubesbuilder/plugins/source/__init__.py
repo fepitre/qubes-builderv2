@@ -42,11 +42,25 @@ class SourcePlugin(Plugin):
         - fetch: Downloads and verify external files
     """
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path, verbose: bool = False, debug: bool = False,
-                 skip_if_exists: bool = False):
-        super().__init__(component=component, dist=dist, plugins_dir=plugins_dir,
-                         artifacts_dir=artifacts_dir, verbose=verbose, debug=debug)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+        skip_if_exists: bool = False,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
         self.executor = executor
         self.skip_if_exists = skip_if_exists
 
@@ -64,8 +78,12 @@ class SourcePlugin(Plugin):
         # per package set and per distribution.
         parameters = self.component.get_parameters(self._placeholders)
         self.parameters.update(parameters.get("source", {}))
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("source", {}))
-        self.parameters.update(parameters.get(self.dist.distribution, {}).get("source", {}))
+        self.parameters.update(
+            parameters.get(self.dist.package_set, {}).get("source", {})
+        )
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("source", {})
+        )
 
     def run(self, stage: str):
         """
@@ -93,19 +111,20 @@ class SourcePlugin(Plugin):
                     return
 
             # Get GIT source for a given Qubes OS component
-            copy_in = [
-                (self.plugins_dir / "source", PLUGINS_DIR)
-            ]
-            copy_out = [
-                (source_dir, self.get_sources_dir())
-            ]
+            copy_in = [(self.plugins_dir / "source", PLUGINS_DIR)]
+            copy_out = [(source_dir, self.get_sources_dir())]
             get_sources_cmd = [
                 str(PLUGINS_DIR / "source/scripts/get-and-verify-source"),
-                "--component", self.component.name,
-                "--git-branch", self.component.branch,
-                "--git-url", self.component.url,
-                "--keyring-dir-git", str(BUILDER_DIR / "keyring"),
-                "--keys-dir", str(PLUGINS_DIR / "source/keys")
+                "--component",
+                self.component.name,
+                "--git-branch",
+                self.component.branch,
+                "--git-url",
+                self.component.url,
+                "--keyring-dir-git",
+                str(BUILDER_DIR / "keyring"),
+                "--keys-dir",
+                str(PLUGINS_DIR / "source/keys"),
             ]
             for maintainer in self.component.maintainers:
                 get_sources_cmd += ["--maintainer", maintainer]
@@ -113,12 +132,8 @@ class SourcePlugin(Plugin):
                 get_sources_cmd += ["--insecure-skip-checking"]
             if self.component.less_secure_signed_commits_sufficient:
                 get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
-            bash_cmd = [
-                f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)
-            ]
-            cmd = [
-                "/bin/bash", "-c", "&&".join(bash_cmd)
-            ]
+            bash_cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
+            cmd = ["/bin/bash", "-c", "&&".join(bash_cmd)]
             self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
             # Update parameters based on previously fetched sources as .qubesbuilder
@@ -135,35 +150,37 @@ class SourcePlugin(Plugin):
                     (self.plugins_dir / "source", PLUGINS_DIR),
                     (self.component.source_dir, BUILDER_DIR),
                 ]
-                copy_out = [
-                    (source_dir / fn, distfiles_dir)
-                ]
+                copy_out = [(source_dir / fn, distfiles_dir)]
                 # Build command for "download-and-verify-file". We let the script checking
                 # necessary options.
                 download_verify_cmd = [
                     str(PLUGINS_DIR / "source/scripts/download-and-verify-file"),
-                    "--output-dir", str(BUILDER_DIR / self.component.name),
-                    "--file-url", file['url'],
+                    "--output-dir",
+                    str(BUILDER_DIR / self.component.name),
+                    "--file-url",
+                    file["url"],
                 ]
                 if file.get("sha256", None):
                     download_verify_cmd += [
-                        "--checksum-cmd", "sha256sum", "--checksum-file",
-                        str(BUILDER_DIR / self.component.name / file['sha256']),
+                        "--checksum-cmd",
+                        "sha256sum",
+                        "--checksum-file",
+                        str(BUILDER_DIR / self.component.name / file["sha256"]),
                     ]
                 elif file.get("sha512", None):
                     download_verify_cmd += [
-                        "--checksum-cmd", "sha512sum", "--checksum-file",
-                        str(BUILDER_DIR / self.component.name / file['sha512']),
+                        "--checksum-cmd",
+                        "sha512sum",
+                        "--checksum-file",
+                        str(BUILDER_DIR / self.component.name / file["sha512"]),
                     ]
                 if file.get("signature", None):
-                    download_verify_cmd += ["--signature-url", file['signature']]
+                    download_verify_cmd += ["--signature-url", file["signature"]]
                 if file.get("pubkey", None):
-                    download_verify_cmd += ["--pubkey-file", file['pubkey']]
+                    download_verify_cmd += ["--pubkey-file", file["pubkey"]]
                 bash_cmd = [
                     f"cd {str(BUILDER_DIR / self.component.name)}",
-                    " ".join(download_verify_cmd)
+                    " ".join(download_verify_cmd),
                 ]
-                cmd = [
-                    "/bin/bash", "-c", "&&".join(bash_cmd)
-                ]
+                cmd = ["/bin/bash", "-c", "&&".join(bash_cmd)]
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)

@@ -27,10 +27,19 @@ from qubesbuilder.exc import ComponentError
 
 
 class QubesComponent:
-    def __init__(self, source_dir: Union[str, Path], name: str = None, url: str = None,
-                 branch: str = "master", insecure_skip_checking: bool = False,
-                 less_secure_signed_commits_sufficient: bool = False, maintainers: List = None):
-        self.source_dir: Path = Path(source_dir) if isinstance(source_dir, str) else source_dir
+    def __init__(
+        self,
+        source_dir: Union[str, Path],
+        name: str = None,
+        url: str = None,
+        branch: str = "master",
+        insecure_skip_checking: bool = False,
+        less_secure_signed_commits_sufficient: bool = False,
+        maintainers: List = None,
+    ):
+        self.source_dir: Path = (
+            Path(source_dir) if isinstance(source_dir, str) else source_dir
+        )
         self.name: str = name or self.source_dir.name
         self.version = ""
         self.release = ""
@@ -38,7 +47,9 @@ class QubesComponent:
         self.branch = branch
         self.maintainers = maintainers or []
         self.insecure_skip_checking = insecure_skip_checking
-        self.less_secure_signed_commits_sufficient = less_secure_signed_commits_sufficient
+        self.less_secure_signed_commits_sufficient = (
+            less_secure_signed_commits_sufficient
+        )
 
     def is_template(self):
         return self.name.startswith("template-")
@@ -53,7 +64,7 @@ class QubesComponent:
 
         try:
             with open(version_file) as fd:
-                version = Version(fd.read().split('\n')[0]).base_version
+                version = Version(fd.read().split("\n")[0]).base_version
         except InvalidVersion as e:
             raise ComponentError(f"Invalid version for {self.source_dir}") from e
 
@@ -63,7 +74,7 @@ class QubesComponent:
         else:
             try:
                 with open(release_file) as fd:
-                    release = fd.read().split('\n')[0]
+                    release = fd.read().split("\n")[0]
                 Version(f"{version}-{release}")
             except (InvalidVersion, AssertionError) as e:
                 raise ComponentError(f"Invalid release for {self.source_dir}") from e
@@ -71,7 +82,7 @@ class QubesComponent:
         self.version = version
         self.release = release
 
-        build_file = self.source_dir / '.qubesbuilder'
+        build_file = self.source_dir / ".qubesbuilder"
         if not build_file.exists():
             raise ComponentError(f"Cannot find '.qubesbuilder' in {self.source_dir}")
 

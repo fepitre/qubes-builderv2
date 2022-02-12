@@ -82,19 +82,34 @@ class RPMBuildPlugin(BuildPlugin):
 
     plugin_dependencies = ["source_rpm", "build"]
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
-                 artifacts_dir: Path, verbose: bool = False, debug: bool = False,
-                 use_qubes_repo: bool = None):
-        super().__init__(component=component, dist=dist, executor=executor, plugins_dir=plugins_dir,
-                         artifacts_dir=artifacts_dir, verbose=verbose, debug=debug,
-                         use_qubes_repo=use_qubes_repo)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+        use_qubes_repo: bool = None,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            executor=executor,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+            use_qubes_repo=use_qubes_repo,
+        )
 
         # Add some environment variables needed to render mock root configuration
         # FIXME: host is aliased as "dom0" for legacy
         self.environment = {
             "DIST": self.dist.name,
             "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
-            "USE_QUBES_REPO_VERSION": self.use_qubes_repo.get("version", None)
+            "USE_QUBES_REPO_VERSION": self.use_qubes_repo.get("version", None),
         }
         if self.verbose:
             self.environment["VERBOSE"] = 1
@@ -110,7 +125,9 @@ class RPMBuildPlugin(BuildPlugin):
         # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
         parameters = self.component.get_parameters(self._placeholders)
         self.parameters.update(parameters.get(self.dist.package_set, {}).get("rpm", {}))
-        self.parameters.update(parameters.get(self.dist.distribution, {}).get("rpm", {}))
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("rpm", {})
+        )
 
     def run(self, stage: str):
         """
@@ -169,9 +186,10 @@ class RPMBuildPlugin(BuildPlugin):
                     (distfiles_dir, BUILDER_DIR),
                     (self.plugins_dir / "build_rpm", PLUGINS_DIR),
                     (repository_dir, REPOSITORY_DIR),
-                    (prep_artifacts_dir / source_info["srpm"], BUILD_DIR)
+                    (prep_artifacts_dir / source_info["srpm"], BUILD_DIR),
                 ] + [
-                    (self.plugins_dir / plugin, PLUGINS_DIR) for plugin in self.plugin_dependencies
+                    (self.plugins_dir / plugin, PLUGINS_DIR)
+                    for plugin in self.plugin_dependencies
                 ]
 
                 copy_out = [
@@ -190,7 +208,7 @@ class RPMBuildPlugin(BuildPlugin):
                     f"/usr/libexec/mock/mock",
                     f"--rebuild {BUILD_DIR / source_info['srpm']}",
                     f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
-                    f"--resultdir={BUILD_DIR}"
+                    f"--resultdir={BUILD_DIR}",
                 ]
                 if self.verbose:
                     mock_cmd.append("--verbose")
@@ -208,8 +226,13 @@ class RPMBuildPlugin(BuildPlugin):
 
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
-                    self.executor.run(cmd, copy_in, copy_out, environment=self.environment,
-                                      no_fail_copy_out=True)
+                    self.executor.run(
+                        cmd,
+                        copy_in,
+                        copy_out,
+                        environment=self.environment,
+                        no_fail_copy_out=True,
+                    )
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to build RPMs."
                     raise BuildError(msg) from e
@@ -221,16 +244,21 @@ class RPMBuildPlugin(BuildPlugin):
                         packages_list.append(rpm)
 
                 # Provision builder local repository
-                provision_local_repository(spec=spec, component=self.component,
-                                           dist=self.dist, repository_dir=repository_dir,
-                                           source_info=source_info, packages_list=packages_list,
-                                           prep_artifacts_dir=prep_artifacts_dir,
-                                           build_artifacts_dir=artifacts_dir)
+                provision_local_repository(
+                    spec=spec,
+                    component=self.component,
+                    dist=self.dist,
+                    repository_dir=repository_dir,
+                    source_info=source_info,
+                    packages_list=packages_list,
+                    prep_artifacts_dir=prep_artifacts_dir,
+                    build_artifacts_dir=artifacts_dir,
+                )
 
                 # Save package information we parsed for next stages
                 try:
                     with open(artifacts_dir / f"{spec_bn}_build_info.yml", "w") as f:
-                        info = {"srpm": source_info['srpm'], "rpms": packages_list}
+                        info = {"srpm": source_info["srpm"], "rpms": packages_list}
                         f.write(yaml.safe_dump(info))
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to write build info."

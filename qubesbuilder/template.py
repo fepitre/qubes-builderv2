@@ -32,9 +32,11 @@ class QubesTemplate:
             raise TemplateError("Invalid value for template.")
 
         try:
-            dist = template_desc.get('dist', None)
-            if not dist or dist.startswith('host-'):
-                raise TemplateError(f"Invalid provided distribution for template '{self.name}'")
+            dist = template_desc.get("dist", None)
+            if not dist or dist.startswith("host-"):
+                raise TemplateError(
+                    f"Invalid provided distribution for template '{self.name}'"
+                )
             if not dist.startswith("vm-"):
                 dist = f"vm-{dist}"
             self.distribution = QubesDistribution(dist)

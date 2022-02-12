@@ -43,16 +43,29 @@ class DEBSourcePlugin(SourcePlugin):
 
     plugin_dependencies = ["source"]
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path, verbose: bool = False, debug: bool = False,
-                 skip_if_exists: bool = False):
-        super().__init__(component=component, dist=dist, executor=executor, plugins_dir=plugins_dir,
-                         artifacts_dir=artifacts_dir, verbose=verbose, debug=debug,
-                         skip_if_exists=skip_if_exists)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+        skip_if_exists: bool = False,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            executor=executor,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+            skip_if_exists=skip_if_exists,
+        )
 
-        self.environment = {
-            "DIST": self.dist.name
-        }
+        self.environment = {"DIST": self.dist.name}
         if self.verbose:
             self.environment["VERBOSE"] = 1
         if self.debug:
@@ -67,7 +80,9 @@ class DEBSourcePlugin(SourcePlugin):
         # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
         parameters = self.component.get_parameters(self._placeholders)
         self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(parameters.get(self.dist.distribution, {}).get("deb", {}))
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("deb", {})
+        )
 
     def run(self, stage: str):
         """
@@ -116,14 +131,22 @@ class DEBSourcePlugin(SourcePlugin):
                 ]
 
                 env = self.environment
-                env.update({"LC_ALL": "C", "DEBFULLNAME": "Builder", "DEBEMAIL": "user@localhost"})
+                env.update(
+                    {
+                        "LC_ALL": "C",
+                        "DEBFULLNAME": "Builder",
+                        "DEBEMAIL": "user@localhost",
+                    }
+                )
 
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
                     self.executor.run(cmd, copy_in, copy_out, environment=env)
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: " \
-                          f"Failed to get source information."
+                    msg = (
+                        f"{self.component}:{self.dist}:{directory}: "
+                        f"Failed to get source information."
+                    )
                     raise SourceError(msg) from e
 
                 # Read package release name
@@ -135,8 +158,9 @@ class DEBSourcePlugin(SourcePlugin):
 
                 package_release_name = data[0]
                 package_release_name_full = data[1]
-                if not is_filename_valid(package_release_name) and \
-                        not is_filename_valid(package_release_name_full):
+                if not is_filename_valid(
+                    package_release_name
+                ) and not is_filename_valid(package_release_name_full):
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid source names."
                     raise SourceError(msg)
 
@@ -160,7 +184,7 @@ class DEBSourcePlugin(SourcePlugin):
                 copy_in = [
                     (self.component.source_dir, BUILDER_DIR / self.component.name),
                     (self.plugins_dir / "source_deb", PLUGINS_DIR),
-                    (distfiles_dir, BUILDER_DIR)
+                    (distfiles_dir, BUILDER_DIR),
                 ]
                 for dependency in self.plugin_dependencies:
                     copy_in += [(self.plugins_dir / dependency, PLUGINS_DIR)]
@@ -170,7 +194,7 @@ class DEBSourcePlugin(SourcePlugin):
                     (BUILDER_DIR / source_orig, artifacts_dir),
                     (BUILDER_DIR / source_debian, artifacts_dir),
                     (BUILDER_DIR / source_dsc, artifacts_dir),
-                    (BUILDER_DIR / f"{directory}_packages.list", artifacts_dir)
+                    (BUILDER_DIR / f"{directory}_packages.list", artifacts_dir),
                 ]
 
                 # Init command with .qubesbuilder command entries
@@ -186,23 +210,28 @@ class DEBSourcePlugin(SourcePlugin):
                 if not self.parameters.get("files", []):
                     bash_cmd += [
                         f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
-                        f"mv {source_dir}/{source_orig} {BUILDER_DIR}"
+                        f"mv {source_dir}/{source_orig} {BUILDER_DIR}",
                     ]
                 else:
                     for file in self.parameters["files"]:
                         fn = os.path.basename(file["url"])
-                        bash_cmd.append(f"mv {DISTFILES_DIR}/{fn} {BUILDER_DIR}/{source_orig}")
+                        bash_cmd.append(
+                            f"mv {DISTFILES_DIR}/{fn} {BUILDER_DIR}/{source_orig}"
+                        )
 
                 gen_packages_list_cmd = [
                     f"{PLUGINS_DIR}/source_deb/scripts/debian-get-packages-list",
-                    str(BUILDER_DIR / source_dsc), self.dist.version,
-                    f">{BUILDER_DIR}/{directory}_packages.list"
+                    str(BUILDER_DIR / source_dsc),
+                    self.dist.version,
+                    f">{BUILDER_DIR}/{directory}_packages.list",
                 ]
 
                 # Run 'dpkg-source' inside build directory
                 bash_cmd += [
-                    f"cd {BUILD_DIR}", f"cp -r {source_dir / directory} .",
-                    "dpkg-source -b .", " ".join(gen_packages_list_cmd)
+                    f"cd {BUILD_DIR}",
+                    f"cp -r {source_dir / directory} .",
+                    "dpkg-source -b .",
+                    " ".join(gen_packages_list_cmd),
                 ]
 
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
@@ -236,8 +265,8 @@ class DEBSourcePlugin(SourcePlugin):
                         f.write(yaml.safe_dump(info))
 
                     # Clean previous text files as all info are stored inside source_info
-                    os.remove(artifacts_dir / f'{directory}_package_release_name')
-                    os.remove(artifacts_dir / f'{directory}_packages.list')
+                    os.remove(artifacts_dir / f"{directory}_package_release_name")
+                    os.remove(artifacts_dir / f"{directory}_packages.list")
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to write source info."
                     raise SourceError(msg) from e

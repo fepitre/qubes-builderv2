@@ -27,7 +27,7 @@ def is_filename_valid(filename: str) -> bool:
     if filename == "" or filename[0] in ("-", "."):
         return False
     for c in filename:
-        if c not in digits + ascii_letters + '-_.+':
+        if c not in digits + ascii_letters + "-_.+":
             return False
     return True
 
@@ -36,8 +36,8 @@ def is_filename_valid(filename: str) -> bool:
 def sanitize_line(untrusted_line):
     line = bytearray(untrusted_line)
     for i, c in enumerate(line):
-        if 0x20 <= c <= 0x7e:
+        if 0x20 <= c <= 0x7E:
             pass
         else:
-            line[i] = 0x2e
-    return bytearray(line).decode('ascii')
+            line[i] = 0x2E
+    return bytearray(line).decode("ascii")

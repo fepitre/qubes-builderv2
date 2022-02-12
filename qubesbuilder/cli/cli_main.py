@@ -30,26 +30,52 @@ from qubesbuilder.cli.cli_base import ContextObj, aliased_group
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.log import get_logger, init_logging
-from qubesbuilder.plugins.helpers import getSourcePlugin, getBuildPlugin, \
-    getSignPlugin, getPublishPlugin
+from qubesbuilder.plugins.helpers import (
+    getSourcePlugin,
+    getBuildPlugin,
+    getSignPlugin,
+    getPublishPlugin,
+)
 
 log = get_logger("cli")
 
 
 @aliased_group("qb", chain=True)
-@click.option("--verbose/--no-verbose", default=None, is_flag=True,
-              help="Output logs.")
-@click.option("--debug/--no-debug", default=None, is_flag=True,
-              help="Print full traceback on exception.")
-@click.option("--builder-conf", default="builder.yml",
-              help="Path to configuration file (default: builder.yml).")
-@click.option("--component", "-c", default=None, multiple=True,
-              help="Override component in configuration file (can be repeated).")
-@click.option("--distribution", "-d", default=None, multiple=True,
-              help="Override distribution in configuration file (can be repeated).")
+@click.option("--verbose/--no-verbose", default=None, is_flag=True, help="Output logs.")
+@click.option(
+    "--debug/--no-debug",
+    default=None,
+    is_flag=True,
+    help="Print full traceback on exception.",
+)
+@click.option(
+    "--builder-conf",
+    default="builder.yml",
+    help="Path to configuration file (default: builder.yml).",
+)
+@click.option(
+    "--component",
+    "-c",
+    default=None,
+    multiple=True,
+    help="Override component in configuration file (can be repeated).",
+)
+@click.option(
+    "--distribution",
+    "-d",
+    default=None,
+    multiple=True,
+    help="Override distribution in configuration file (can be repeated).",
+)
 @click.pass_context
-def main(ctx: click.Context, verbose: int, debug: bool, builder_conf: str,
-         component: List = None, distribution: List = None):
+def main(
+    ctx: click.Context,
+    verbose: int,
+    debug: bool,
+    builder_conf: str,
+    component: List = None,
+    distribution: List = None,
+):
     config = Config(builder_conf)
     ctx.obj = ContextObj(config)
 
@@ -110,7 +136,7 @@ def _stage(obj: ContextObj, stage_name: str):
                     artifacts_dir=obj.config.get_artifacts_dir(),
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
-                    skip_if_exists=obj.config.get("reuse-fetched-source")
+                    skip_if_exists=obj.config.get("reuse-fetched-source"),
                 ),
                 getBuildPlugin(
                     component=component,
@@ -120,7 +146,7 @@ def _stage(obj: ContextObj, stage_name: str):
                     artifacts_dir=obj.config.get_artifacts_dir(),
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
-                    use_qubes_repo=obj.config.get("use-qubes-repo")
+                    use_qubes_repo=obj.config.get("use-qubes-repo"),
                 ),
                 getSignPlugin(
                     component=component,
@@ -131,7 +157,7 @@ def _stage(obj: ContextObj, stage_name: str):
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
                     gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key")
+                    sign_key=obj.config.get("sign-key"),
                 ),
                 getPublishPlugin(
                     component=component,
@@ -144,8 +170,8 @@ def _stage(obj: ContextObj, stage_name: str):
                     gpg_client=obj.config.get("gpg-client"),
                     sign_key=obj.config.get("sign-key"),
                     qubes_release=obj.config.get("qubes-release"),
-                    publish_repository=obj.config.get("publish-repository")
-                )
+                    publish_repository=obj.config.get("publish-repository"),
+                ),
             ]
             for plugin in plugins:
                 plugin.run(stage=stage_name)
@@ -154,6 +180,7 @@ def _stage(obj: ContextObj, stage_name: str):
 #
 # Fetch
 #
+
 
 @click.command()
 @click.pass_obj
@@ -165,6 +192,7 @@ def fetch(obj: ContextObj):
 # Prep
 #
 
+
 @click.command()
 @click.pass_obj
 def prep(obj: ContextObj):
@@ -174,6 +202,7 @@ def prep(obj: ContextObj):
 #
 # Build
 #
+
 
 @click.command()
 @click.pass_obj
@@ -185,6 +214,7 @@ def build(obj: ContextObj):
 # Post
 #
 
+
 @click.command()
 @click.pass_obj
 def post(obj: ContextObj):
@@ -194,6 +224,7 @@ def post(obj: ContextObj):
 #
 # Verify
 #
+
 
 @click.command()
 @click.pass_obj
@@ -205,6 +236,7 @@ def verify(obj: ContextObj):
 # Sign
 #
 
+
 @click.command()
 @click.pass_obj
 def sign(obj: ContextObj):
@@ -214,6 +246,7 @@ def sign(obj: ContextObj):
 #
 # Publish
 #
+
 
 @click.command()
 @click.pass_obj
@@ -233,12 +266,14 @@ main.add_command(post)
 main.add_command(verify)
 main.add_command(sign)
 main.add_command(publish)
-main.add_alias(**{
-    "f": "fetch",
-    "pr": "prep",
-    "b": "build",
-    "po": "post",
-    "v": "verify",
-    "s": "sign",
-    "pu": "publish",
-})
+main.add_alias(
+    **{
+        "f": "fetch",
+        "pr": "prep",
+        "b": "build",
+        "po": "post",
+        "v": "verify",
+        "s": "sign",
+        "pu": "publish",
+    }
+)

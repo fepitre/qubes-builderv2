@@ -23,13 +23,17 @@ from qubesbuilder.executors import Executor, log
 
 
 class QubesExecutor(Executor):
-
     def __init__(self, **kwargs):
         self._kwargs = kwargs
 
-    def run(self, cmd: List[str], copy_in: List[Tuple[Path, PurePath]] = None,
-            copy_out: List[Tuple[PurePath, Path]] = None, environment=None,
-            no_fail_copy_out=False):
+    def run(
+        self,
+        cmd: List[str],
+        copy_in: List[Tuple[Path, PurePath]] = None,
+        copy_out: List[Tuple[PurePath, Path]] = None,
+        environment=None,
+        no_fail_copy_out=False,
+    ):
 
         log.info(f"Executing '{' '.join(cmd)}' in DispVM...")
 

@@ -28,6 +28,7 @@ class LocalExecutor(Executor):
     """
     Local executor
     """
+
     def copy_in(self, source_path: Path, destination_dir: Path):
         src = source_path.expanduser().absolute()
         dst = destination_dir.expanduser().absolute()
@@ -45,9 +46,14 @@ class LocalExecutor(Executor):
     def copy_out(self, source_path: Path, destination_dir: Path):
         self.copy_in(source_path, destination_dir)
 
-    def run(self, cmd: List[str], copy_in: List[Tuple[Path, Path]] = None,
-            copy_out: List[Tuple[Path, Path]] = None, environment=None,
-            no_fail_copy_out=False):
+    def run(
+        self,
+        cmd: List[str],
+        copy_in: List[Tuple[Path, Path]] = None,
+        copy_out: List[Tuple[Path, Path]] = None,
+        environment=None,
+        no_fail_copy_out=False,
+    ):
 
         log.info(f"Executing '{' '.join(cmd)}' locally...")
 
@@ -56,8 +62,9 @@ class LocalExecutor(Executor):
             self.copy_in(source_path=src, destination_dir=dst)
 
         # stream output for command
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                   env=environment)
+        process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=environment
+        )
         while True:
             if not process.stdout:
                 break

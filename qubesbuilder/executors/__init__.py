@@ -29,6 +29,7 @@ class ExecutorError(QubesBuilderError):
     """
     Base executor exception
     """
+
     pass
 
 
@@ -36,6 +37,7 @@ class Executor(ABC):
     """
     Base executor class
     """
+
     @abstractmethod
     def copy_in(self, *args, **kwargs):
         pass

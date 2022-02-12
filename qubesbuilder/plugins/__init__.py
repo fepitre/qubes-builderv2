@@ -35,6 +35,7 @@ class PluginError(Exception):
     """
     Base plugin exception
     """
+
     pass
 
 
@@ -42,10 +43,18 @@ class Plugin:
     """
     Base plugin implementation
     """
+
     plugin_dependencies: List[str] = []
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, plugins_dir: Path, artifacts_dir: Path,
-                 verbose: bool, debug: bool):
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool,
+        debug: bool,
+    ):
         self.component = component
         self.dist = dist
         self.plugins_dir = plugins_dir
@@ -58,11 +67,11 @@ class Plugin:
 
         # Default placeholders
         self._placeholders = {
-            '@BUILDER_DIR@': str(BUILDER_DIR),
-            '@BUILD_DIR@': str(BUILD_DIR),
-            '@PLUGINS_DIR@': str(PLUGINS_DIR),
-            '@DISTFILES_DIR@': str(DISTFILES_DIR),
-            '@SOURCE_DIR@': str(BUILDER_DIR / component.name)
+            "@BUILDER_DIR@": str(BUILDER_DIR),
+            "@BUILD_DIR@": str(BUILD_DIR),
+            "@PLUGINS_DIR@": str(PLUGINS_DIR),
+            "@DISTFILES_DIR@": str(DISTFILES_DIR),
+            "@SOURCE_DIR@": str(BUILDER_DIR / component.name),
         }
 
     def run(self, stage: str):
@@ -89,6 +98,9 @@ class Plugin:
 
     def get_component_dir(self, stage: str):
         path = self.artifacts_dir / "components" / self.component.name
-        path = path / f"{self.component.version}-{self.component.release}/{self.dist.distribution}"
+        path = (
+            path
+            / f"{self.component.version}-{self.component.release}/{self.dist.distribution}"
+        )
         path = path / stage
         return path.resolve()

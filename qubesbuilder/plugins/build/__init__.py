@@ -37,11 +37,25 @@ class BuildPlugin(Plugin):
     BuildPlugin manages generic distribution build.
     """
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path, verbose: bool = False, debug: bool = False,
-                 use_qubes_repo: dict = None):
-        super().__init__(component=component, dist=dist, plugins_dir=plugins_dir,
-                         artifacts_dir=artifacts_dir, verbose=verbose, debug=debug)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+        use_qubes_repo: dict = None,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
         self.executor = executor
         self.verbose = verbose
         self.debug = debug

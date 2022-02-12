@@ -36,14 +36,33 @@ class DEBPublishPlugin(PublishPlugin):
 
     plugin_dependencies = ["publish"]
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path, qubes_release: str, gpg_client: str,
-                 sign_key: dict, publish_repository: dict, verbose: bool = False,
-                 debug: bool = False):
-        super().__init__(component=component, dist=dist, plugins_dir=plugins_dir, executor=executor,
-                         artifacts_dir=artifacts_dir, qubes_release=qubes_release,
-                         gpg_client=gpg_client, sign_key=sign_key,
-                         publish_repository=publish_repository, verbose=verbose, debug=debug)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        qubes_release: str,
+        gpg_client: str,
+        sign_key: dict,
+        publish_repository: dict,
+        verbose: bool = False,
+        debug: bool = False,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            plugins_dir=plugins_dir,
+            executor=executor,
+            artifacts_dir=artifacts_dir,
+            qubes_release=qubes_release,
+            gpg_client=gpg_client,
+            sign_key=sign_key,
+            publish_repository=publish_repository,
+            verbose=verbose,
+            debug=debug,
+        )
         self.executor = executor
         self.verbose = verbose
         self.debug = debug
@@ -57,7 +76,9 @@ class DEBPublishPlugin(PublishPlugin):
         # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
         parameters = self.component.get_parameters(self._placeholders)
         self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(parameters.get(self.dist.distribution, {}).get("deb", {}))
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("deb", {})
+        )
 
     def run(self, stage: str):
         """
@@ -76,8 +97,9 @@ class DEBPublishPlugin(PublishPlugin):
                 return
 
             # Check if we have a signing key provided
-            sign_key = self.sign_key.get(self.dist.distribution, None) or \
-                       self.sign_key.get("deb", None)
+            sign_key = self.sign_key.get(
+                self.dist.distribution, None
+            ) or self.sign_key.get("deb", None)
             if not sign_key:
                 log.info(f"{self.component}:{self.dist}: No signing key found.")
                 return
@@ -88,11 +110,18 @@ class DEBPublishPlugin(PublishPlugin):
                 return
 
             # Check publish repository is valid
-            publish_repository = self.publish_repository.get("components", "current-testing")
-            if publish_repository not in \
-                    ("current-testing", "security-testing", "unstable"):
-                msg = f"{self.component}:{self.dist}: " \
-                      f"Refusing to publish components into '{publish_repository}'."
+            publish_repository = self.publish_repository.get(
+                "components", "current-testing"
+            )
+            if publish_repository not in (
+                "current-testing",
+                "security-testing",
+                "unstable",
+            ):
+                msg = (
+                    f"{self.component}:{self.dist}: "
+                    f"Refusing to publish components into '{publish_repository}'."
+                )
                 raise PublishError(msg)
 
             # Build artifacts (source included)
@@ -109,7 +138,8 @@ class DEBPublishPlugin(PublishPlugin):
             # Create publish repository skeleton
             create_skeleton_cmd = [
                 f"{self.plugins_dir}/publish_deb/scripts/create-skeleton",
-                self.qubes_release, str(artifacts_dir)
+                self.qubes_release,
+                str(artifacts_dir),
             ]
             bash_cmd = [" ".join(create_skeleton_cmd)]
             cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
@@ -125,19 +155,23 @@ class DEBPublishPlugin(PublishPlugin):
                     build_info = yaml.safe_load(f.read())
 
                 if not build_info.get("changes", None):
-                    log.info(f"{self.component}:{self.dist}:{directory}: Nothing to sign.")
+                    log.info(
+                        f"{self.component}:{self.dist}:{directory}: Nothing to sign."
+                    )
                     continue
 
                 # Verify signatures
                 try:
-                    log.info(f"{self.component}:{self.dist}:{directory}: Verifying signatures.")
+                    log.info(
+                        f"{self.component}:{self.dist}:{directory}: Verifying signatures."
+                    )
                     bash_cmd = []
                     for file in ("dsc", "changes", "buildinfo"):
                         fname = build_artifacts_dir / build_info[file]
-                        bash_cmd += [f"gpg2 -q --homedir {keyring_dir} --verify {fname}"]
-                    cmd = [
-                        "/bin/bash", "-c", " && ".join(bash_cmd)
-                    ]
+                        bash_cmd += [
+                            f"gpg2 -q --homedir {keyring_dir} --verify {fname}"
+                        ]
+                    cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to sign packages."
@@ -145,9 +179,14 @@ class DEBPublishPlugin(PublishPlugin):
 
                 # Publishing packages
                 try:
-                    log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
+                    log.info(
+                        f"{self.component}:{self.dist}:{directory}: Publishing packages."
+                    )
                     changes_file = build_artifacts_dir / build_info["changes"]
-                    target_dir = artifacts_dir / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}"
+                    target_dir = (
+                        artifacts_dir
+                        / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}"
+                    )
                     reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch -b {target_dir}"
                     bash_cmd = [
                         f"reprepro {reprepro_options} include {self.dist.name} {changes_file}"

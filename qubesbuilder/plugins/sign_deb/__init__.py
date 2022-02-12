@@ -40,12 +40,29 @@ class DEBSignPlugin(SignPlugin):
 
     plugin_dependencies = ["sign", "build_deb"]
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path, gpg_client: str, sign_key: dict,
-                 verbose: bool = False, debug: bool = False):
-        super().__init__(component=component, dist=dist, plugins_dir=plugins_dir, executor=executor,
-                         artifacts_dir=artifacts_dir, gpg_client=gpg_client, sign_key=sign_key,
-                         verbose=verbose, debug=debug)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        gpg_client: str,
+        sign_key: dict,
+        verbose: bool = False,
+        debug: bool = False,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            plugins_dir=plugins_dir,
+            executor=executor,
+            artifacts_dir=artifacts_dir,
+            gpg_client=gpg_client,
+            sign_key=sign_key,
+            verbose=verbose,
+            debug=debug,
+        )
 
         self.executor = executor
         self.verbose = verbose
@@ -60,7 +77,9 @@ class DEBSignPlugin(SignPlugin):
         # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
         parameters = self.component.get_parameters(self._placeholders)
         self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(parameters.get(self.dist.distribution, {}).get("deb", {}))
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("deb", {})
+        )
 
     def run(self, stage: str):
         """
@@ -79,8 +98,9 @@ class DEBSignPlugin(SignPlugin):
                 return
 
             # Check if we have a signing key provided
-            sign_key = self.sign_key.get(self.dist.distribution, None) or \
-                       self.sign_key.get("deb", None)
+            sign_key = self.sign_key.get(
+                self.dist.distribution, None
+            ) or self.sign_key.get("deb", None)
             if not sign_key:
                 log.info(f"{self.component}:{self.dist}: No signing key found.")
                 return
@@ -103,10 +123,10 @@ class DEBSignPlugin(SignPlugin):
             keyring_dir.mkdir(mode=0o700)
 
             # Export public key and generate local keyring
-            sign_key_asc = artifacts_dir / f'{sign_key}.asc'
+            sign_key_asc = artifacts_dir / f"{sign_key}.asc"
             bash_cmd = [
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
-                f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}"
+                f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}",
             ]
             cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
             try:
@@ -121,10 +141,14 @@ class DEBSignPlugin(SignPlugin):
                     build_info = yaml.safe_load(f.read())
 
                 if not build_info.get("changes", None):
-                    log.info(f"{self.component}:{self.dist}:{directory}: Nothing to sign.")
+                    log.info(
+                        f"{self.component}:{self.dist}:{directory}: Nothing to sign."
+                    )
                     continue
                 try:
-                    log.info(f"{self.component}:{self.dist}:{directory}: Signing from '{build_info['changes']}' info.")
+                    log.info(
+                        f"{self.component}:{self.dist}:{directory}: Signing from '{build_info['changes']}' info."
+                    )
                     bash_cmd = [
                         f"debsign -k{sign_key} -p{self.gpg_client} --no-re-sign {build_artifacts_dir / build_info['changes']}"
                     ]
@@ -139,12 +163,15 @@ class DEBSignPlugin(SignPlugin):
                 try:
                     # We use build_info that contains source_info and build_artifacts_dir
                     # which contains sources files.
-                    provision_local_repository(debian_directory=directory,
-                                               component=self.component,
-                                               dist=self.dist, repository_dir=repository_dir,
-                                               source_info=build_info,
-                                               packages_list=build_info["packages"],
-                                               build_artifacts_dir=build_artifacts_dir)
+                    provision_local_repository(
+                        debian_directory=directory,
+                        component=self.component,
+                        dist=self.dist,
+                        repository_dir=repository_dir,
+                        source_info=build_info,
+                        packages_list=build_info["packages"],
+                        build_artifacts_dir=build_artifacts_dir,
+                    )
                 except BuildError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to re-provision local repository."
                     raise SignError(msg) from e

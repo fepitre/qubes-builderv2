@@ -86,12 +86,27 @@ class DEBBuildPlugin(BuildPlugin):
 
     plugin_dependencies = ["source_deb", "build"]
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
-                 artifacts_dir: Path, verbose: bool = False, debug: bool = False,
-                 use_qubes_repo: dict = None):
-        super().__init__(component=component, dist=dist, executor=executor, plugins_dir=plugins_dir,
-                         artifacts_dir=artifacts_dir, verbose=verbose, debug=debug,
-                         use_qubes_repo=use_qubes_repo)
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+        use_qubes_repo: dict = None,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            executor=executor,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+            use_qubes_repo=use_qubes_repo,
+        )
 
         self.environment = {}
         if self.verbose:
@@ -108,7 +123,9 @@ class DEBBuildPlugin(BuildPlugin):
         # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
         parameters = self.component.get_parameters(self._placeholders)
         self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(parameters.get(self.dist.distribution, {}).get("deb", {}))
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("deb", {})
+        )
 
     def run(self, stage: str):
         """
@@ -163,36 +180,49 @@ class DEBBuildPlugin(BuildPlugin):
                     (repository_dir, REPOSITORY_DIR),
                     (prep_artifacts_dir / source_info["dsc"], BUILD_DIR),
                     (prep_artifacts_dir / source_info["orig"], BUILD_DIR),
-                    (prep_artifacts_dir / source_info["debian"], BUILD_DIR)
+                    (prep_artifacts_dir / source_info["debian"], BUILD_DIR),
                 ]
                 # Copy-in plugin dependencies
                 copy_in += [
-                    (self.plugins_dir / plugin, PLUGINS_DIR) for plugin in
-                    self.plugin_dependencies
+                    (self.plugins_dir / plugin, PLUGINS_DIR)
+                    for plugin in self.plugin_dependencies
                 ]
 
                 results_dir = BUILDER_DIR / "pbuilder" / "results"
-                source_info["changes"] = source_info["dsc"].replace(".dsc", "_amd64.changes")
-                source_info["buildinfo"] = source_info["dsc"].replace(".dsc", "_amd64.buildinfo")
+                source_info["changes"] = source_info["dsc"].replace(
+                    ".dsc", "_amd64.changes"
+                )
+                source_info["buildinfo"] = source_info["dsc"].replace(
+                    ".dsc", "_amd64.buildinfo"
+                )
                 copy_out = [
-                    (results_dir / source_info["dsc"].replace(".dsc", "_amd64.changes"),
-                     artifacts_dir),
-                    (results_dir / source_info["dsc"].replace(".dsc", "_amd64.buildinfo"),
-                     artifacts_dir),
+                    (
+                        results_dir
+                        / source_info["dsc"].replace(".dsc", "_amd64.changes"),
+                        artifacts_dir,
+                    ),
+                    (
+                        results_dir
+                        / source_info["dsc"].replace(".dsc", "_amd64.buildinfo"),
+                        artifacts_dir,
+                    ),
                 ]
                 copy_out += [
-                    (results_dir / deb, artifacts_dir) for deb in source_info["packages"]
+                    (results_dir / deb, artifacts_dir)
+                    for deb in source_info["packages"]
                 ]
 
                 # Create local builder repository
-                extra_sources = f"deb [trusted=yes] file:///tmp/qubes-deb {self.dist.name} main"
+                extra_sources = (
+                    f"deb [trusted=yes] file:///tmp/qubes-deb {self.dist.name} main"
+                )
                 # extra_sources = ""
                 bash_cmd = [
                     f"{PLUGINS_DIR}/build_deb/scripts/create-local-repo {REPOSITORY_DIR} {self.dist.fullname} {self.dist.name}"
                 ]
 
                 if self.use_qubes_repo.get("version", None):
-                    qubes_version = self.use_qubes_repo['version']
+                    qubes_version = self.use_qubes_repo["version"]
                     extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name} main"
                     bash_cmd += [
                         f"gpg --dearmor "
@@ -220,8 +250,13 @@ class DEBBuildPlugin(BuildPlugin):
 
                 cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
-                    self.executor.run(cmd, copy_in, copy_out, environment=self.environment,
-                                      no_fail_copy_out=True)
+                    self.executor.run(
+                        cmd,
+                        copy_in,
+                        copy_out,
+                        environment=self.environment,
+                        no_fail_copy_out=True,
+                    )
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to build packages."
                     raise BuildError(msg) from e
@@ -234,16 +269,24 @@ class DEBBuildPlugin(BuildPlugin):
 
                 # We prefer to keep originally copied in source to cross check
                 # what's inside the resulting .changes file.
-                files = [prep_artifacts_dir / source_info[f] for f in ("orig", "dsc", "debian")]
+                files = [
+                    prep_artifacts_dir / source_info[f]
+                    for f in ("orig", "dsc", "debian")
+                ]
                 for file in files:
                     target_path = artifacts_dir / file.name
                     shutil.copy2(file, target_path)
 
                 # Provision builder local repository
-                provision_local_repository(debian_directory=directory, component=self.component,
-                                           dist=self.dist, repository_dir=repository_dir,
-                                           source_info=source_info, packages_list=packages_list,
-                                           build_artifacts_dir=artifacts_dir)
+                provision_local_repository(
+                    debian_directory=directory,
+                    component=self.component,
+                    dist=self.dist,
+                    repository_dir=repository_dir,
+                    source_info=source_info,
+                    packages_list=packages_list,
+                    build_artifacts_dir=artifacts_dir,
+                )
 
                 # Save package information we parsed for next stages
                 try:

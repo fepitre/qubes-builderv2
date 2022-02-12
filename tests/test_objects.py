@@ -179,10 +179,7 @@ def test_template():
             "fedora-42-xfce": {
                 "dist": "vm-fc42",
                 "flavor": "notset",
-                "options": [
-                    "no-recommends",
-                    "hardened"
-                ]
+                "options": ["no-recommends", "hardened"],
             }
         }
     )

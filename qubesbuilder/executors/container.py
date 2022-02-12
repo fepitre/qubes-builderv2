@@ -39,7 +39,6 @@ except ImportError:
 
 
 class ContainerExecutor(Executor):
-
     def __init__(self, container_client, image_name, **kwargs):
         self._container_client = container_client
         self._kwargs = kwargs
@@ -77,9 +76,7 @@ class ContainerExecutor(Executor):
         src = source_path.expanduser().absolute().as_posix()
         dst = destination_dir.as_posix()
 
-        cmd = [
-            self._container_client, "cp", str(src), f"{container.id}:{dst}"
-        ]
+        cmd = [self._container_client, "cp", str(src), f"{container.id}:{dst}"]
         try:
             log.debug(f"copy-in (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
@@ -90,25 +87,29 @@ class ContainerExecutor(Executor):
         src = source_path.as_posix()
         dst = destination_dir.expanduser().absolute().as_posix()
 
-        cmd = [
-            self._container_client, "cp", f"{container.id}:{src}", dst
-        ]
+        cmd = [self._container_client, "cp", f"{container.id}:{src}", dst]
         try:
             log.debug(f"copy-out (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
         except subprocess.SubprocessError as e:
             raise ExecutorError from e
 
-    def run(self, cmd: List[str], copy_in: List[Tuple[Path, PurePath]] = None,
-            copy_out: List[Tuple[PurePath, Path]] = None, environment=None,
-            no_fail_copy_out=False):
+    def run(
+        self,
+        cmd: List[str],
+        copy_in: List[Tuple[Path, PurePath]] = None,
+        copy_out: List[Tuple[PurePath, Path]] = None,
+        environment=None,
+        no_fail_copy_out=False,
+    ):
 
         with self.get_client() as client:
             # prepare container for given image and command
             image = client.images.get(self.attrs["Id"])
             # FIXME: create a disposable container that will be removed after execution
             container = client.containers.create(
-                image, cmd, privileged=True, environment=environment)
+                image, cmd, privileged=True, environment=environment
+            )
             log.info(f"Executing '{' '.join(cmd)}' in {container}...")
 
             # copy-in hook
@@ -119,8 +120,11 @@ class ContainerExecutor(Executor):
             container.start()
 
             # stream output
-            process = subprocess.Popen([self._container_client, "logs", "-f", container.id],
-                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            process = subprocess.Popen(
+                [self._container_client, "logs", "-f", container.id],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
             while True:
                 if not process.stdout:
                     break
@@ -128,7 +132,9 @@ class ContainerExecutor(Executor):
                 if process.poll() is not None:
                     break
                 if line:
-                    log.info(f"output: {line.decode('utf-8', errors='replace').rstrip()}")
+                    log.info(
+                        f"output: {line.decode('utf-8', errors='replace').rstrip()}"
+                    )
             rc = process.poll()
             if rc != 0:
                 raise ExecutorError(f"Failed to stream output (status={rc}).")

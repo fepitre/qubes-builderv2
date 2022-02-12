@@ -29,19 +29,16 @@ DEBIAN = {
     "buster": "10",
     "bullseye": "11",
     "bookworm": "12",
-    "trixie": "13"
+    "trixie": "13",
 }
 
-DEBIAN_ARCHITECTURE = {
-    "x86_64": "amd64",
-    "ppc64le": "ppc64el"
-}
+DEBIAN_ARCHITECTURE = {"x86_64": "amd64", "ppc64le": "ppc64el"}
 
 
 class QubesDistribution:
     def __init__(self, distribution: str):
         self.distribution = distribution
-        self.package_set, self.name = distribution.split('-', 1)
+        self.package_set, self.name = distribution.split("-", 1)
         if self.name == self.name.split(".")[0]:
             self.architecture = "x86_64"
         else:
@@ -66,7 +63,9 @@ class QubesDistribution:
         elif is_debian:
             self.fullname = "debian"
             self.version = DEBIAN[self.name]
-            self.architecture = DEBIAN_ARCHITECTURE.get(self.architecture, self.architecture)
+            self.architecture = DEBIAN_ARCHITECTURE.get(
+                self.architecture, self.architecture
+            )
             self.tag = f"deb{self.version}"
             self.family = "deb"
         else:

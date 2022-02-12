@@ -56,7 +56,7 @@ class AliasedGroup(click.Group):
         try:
             return self.main(*args, **kwargs)
         except Exception as exc:
-            click.secho(f'Error: {exc}', fg="red")
+            click.secho(f"Error: {exc}", fg="red")
             if self.debug is True:
                 traceback.print_exception(*sys.exc_info())
 
@@ -70,8 +70,7 @@ class AliasedGroup(click.Group):
         rv = click.Group.get_command(self, ctx, cmd_name)
         if rv is not None:
             return rv
-        matches = [x for x in self.list_commands(ctx)
-                   if x.startswith(cmd_name)]
+        matches = [x for x in self.list_commands(ctx) if x.startswith(cmd_name)]
         if not matches:
             return None
         elif len(matches) == 1:
