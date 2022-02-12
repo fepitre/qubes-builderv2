@@ -21,6 +21,7 @@ from contextlib import contextmanager
 from pathlib import Path, PurePath
 from typing import List, Tuple
 
+from qubesbuilder.common import sanitize_line
 from qubesbuilder.executors import Executor, log, ExecutorError
 
 try:
@@ -73,7 +74,7 @@ class ContainerExecutor(Executor):
             raise ExecutorError("Cannot connect to container client.") from e
 
     def copy_in(self, container, source_path: Path, destination_dir: PurePath):
-        src = source_path.expanduser().absolute().as_posix()
+        src = source_path.resolve()
         dst = destination_dir.as_posix()
 
         cmd = [self._container_client, "cp", str(src), f"{container.id}:{dst}"]
@@ -85,9 +86,9 @@ class ContainerExecutor(Executor):
 
     def copy_out(self, container, source_path: PurePath, destination_dir: Path):
         src = source_path.as_posix()
-        dst = destination_dir.expanduser().absolute().as_posix()
+        dst = destination_dir.resolve()
 
-        cmd = [self._container_client, "cp", f"{container.id}:{src}", dst]
+        cmd = [self._container_client, "cp", f"{container.id}:{src}", str(dst)]
         try:
             log.debug(f"copy-out (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
@@ -107,6 +108,7 @@ class ContainerExecutor(Executor):
             # prepare container for given image and command
             image = client.images.get(self.attrs["Id"])
             # FIXME: create a disposable container that will be removed after execution
+            cmd = ["bash", "-c", "&&".join(cmd)]
             container = client.containers.create(
                 image, cmd, privileged=True, environment=environment
             )
@@ -132,9 +134,7 @@ class ContainerExecutor(Executor):
                 if process.poll() is not None:
                     break
                 if line:
-                    log.info(
-                        f"output: {line.decode('utf-8', errors='replace').rstrip()}"
-                    )
+                    log.info(f"output: {sanitize_line(line).rstrip()}")
             rc = process.poll()
             if rc != 0:
                 raise ExecutorError(f"Failed to stream output (status={rc}).")

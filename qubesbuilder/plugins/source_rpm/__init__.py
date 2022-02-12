@@ -116,7 +116,7 @@ class RPMSourcePlugin(SourcePlugin):
 
                 # Generate %{name}-%{version}-%{release} and %Source0
                 copy_in = [
-                    (self.component.source_dir, source_dir),
+                    (self.component.source_dir, BUILDER_DIR),
                     (self.plugins_dir / "source_rpm", PLUGINS_DIR),
                 ] + [
                     (self.plugins_dir / dependency, PLUGINS_DIR)
@@ -127,11 +127,10 @@ class RPMSourcePlugin(SourcePlugin):
                     (source_dir / f"{spec_bn}_package_release_name", artifacts_dir),
                     (source_dir / f"{spec_bn}_packages.list", artifacts_dir),
                 ]
-                bash_cmd = [
+                cmd = [
                     f"{PLUGINS_DIR}/source_rpm/scripts/get-source-info "
                     f"{source_dir} {source_dir / spec} {self.dist.tag}"
                 ]
-                cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
                     self.executor.run(
                         cmd, copy_in, copy_out, environment=self.environment
@@ -148,7 +147,7 @@ class RPMSourcePlugin(SourcePlugin):
                     raise SourceError(msg)
 
                 source_rpm = f"{data[0]}.src.rpm"
-                # Source0 may contain an URL
+                # Source0 may contain a URL
                 source_orig = os.path.basename(data[1])
                 if not is_filename_valid(source_rpm) and not is_filename_valid(
                     source_orig
@@ -173,7 +172,7 @@ class RPMSourcePlugin(SourcePlugin):
                 # Copy-in distfiles, content and source
                 copy_in = [
                     (distfiles_dir, BUILDER_DIR),
-                    (self.component.source_dir, source_dir),
+                    (self.component.source_dir, BUILDER_DIR),
                     (self.plugins_dir / "source_rpm", PLUGINS_DIR),
                 ] + [
                     (self.plugins_dir / dependency, PLUGINS_DIR)
@@ -185,21 +184,23 @@ class RPMSourcePlugin(SourcePlugin):
                     (BUILD_DIR / source_rpm, artifacts_dir),
                 ]
 
-                bash_cmd = []
+                cmd = []
                 # Create archive if no external file is provided.
                 if not self.parameters.get("files", []):
-                    bash_cmd += [
+                    cmd += [
                         f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
                     ]
                 else:
                     for file in self.parameters["files"]:
                         fn = os.path.basename(file["url"])
-                        bash_cmd.append(f"mv {DISTFILES_DIR}/{fn} {source_dir}")
+                        cmd.append(f"mv {DISTFILES_DIR}/{fn} {source_dir}")
 
-                # Generate the spec that Mock will use for creating source RPM
-                bash_cmd += [
-                    f"{PLUGINS_DIR}/source_rpm/scripts/generate-spec "
-                    f"{source_dir} {source_dir / spec}.in {source_dir / spec}"
+                # Generate the spec that Mock will use for creating source RPM ensure 'mock'
+                # group can access build directory
+                cmd += [
+                    f"{PLUGINS_DIR}/source_rpm/scripts/generate-spec {source_dir} {source_dir / spec}.in {source_dir / spec}",
+                    f"mkdir -p {BUILD_DIR}",
+                    f"sudo chown -R user:mock {BUILD_DIR}",
                 ]
                 # Run 'mock' to generate source RPM
                 mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
@@ -216,8 +217,7 @@ class RPMSourcePlugin(SourcePlugin):
                 if self.verbose:
                     mock_cmd.append("--verbose")
 
-                bash_cmd += [" ".join(mock_cmd)]
-                cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
+                cmd += [" ".join(mock_cmd)]
                 try:
                     self.executor.run(
                         cmd, copy_in, copy_out, environment=self.environment

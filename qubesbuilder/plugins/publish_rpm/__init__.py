@@ -167,8 +167,7 @@ class RPMPublishPlugin(PublishPlugin):
                 str(artifacts_dir.absolute()),
                 str(comps.absolute()),
             ]
-            bash_cmd = [" ".join(create_skeleton_cmd)]
-            cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
+            cmd = [" ".join(create_skeleton_cmd)]
             try:
                 self.executor.run(cmd)
             except ExecutorError as e:
@@ -198,11 +197,10 @@ class RPMPublishPlugin(PublishPlugin):
                 log.info(f"{self.component}:{self.dist}:{spec}: Verifying signatures.")
                 try:
                     for rpm in packages_list:
-                        bash_cmd = [
+                        cmd = [
                             f"{self.plugins_dir}/sign_rpm/scripts/sign-rpm "
                             f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm} --check-only"
                         ]
-                        cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                         self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to check signatures."
@@ -226,10 +224,9 @@ class RPMPublishPlugin(PublishPlugin):
 
                 # Createrepo published RPMs
                 log.info(f"{self.component}:{self.dist}:{spec}: Updating metadata.")
-                bash_cmd = [f"cd {target_dir}", "createrepo_c -g comps.xml ."]
+                cmd = [f"cd {target_dir}", "createrepo_c -g comps.xml ."]
                 try:
                     shutil.rmtree(target_dir / "repodata")
-                    cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
                 except (ExecutorError, OSError) as e:
                     msg = (
@@ -240,11 +237,10 @@ class RPMPublishPlugin(PublishPlugin):
                 # Sign metadata
                 log.info(f"{self.component}:{self.dist}:{spec}: Signing metadata.")
                 repomd = target_dir / "repodata/repomd.xml"
-                bash_cmd = [
+                cmd = [
                     f"{self.gpg_client} --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc"
                 ]
                 try:
-                    cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
                 except (ExecutorError, OSError) as e:
                     msg = (

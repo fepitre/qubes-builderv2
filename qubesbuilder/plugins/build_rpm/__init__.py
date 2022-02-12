@@ -106,12 +106,16 @@ class RPMBuildPlugin(BuildPlugin):
 
         # Add some environment variables needed to render mock root configuration
         # FIXME: host is aliased as "dom0" for legacy
-        self.environment.update({
-            "DIST": self.dist.name,
-            "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
-            "USE_QUBES_REPO_VERSION": self.use_qubes_repo.get("version", None),
-            "USE_QUBES_REPO_TESTING": 1 if self.use_qubes_repo.get("testing", None) else 0,
-        })
+        self.environment.update(
+            {
+                "DIST": self.dist.name,
+                "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
+                "USE_QUBES_REPO_VERSION": self.use_qubes_repo.get("version", None),
+                "USE_QUBES_REPO_TESTING": 1
+                if self.use_qubes_repo.get("testing", None)
+                else 0,
+            }
+        )
 
     def update_parameters(self):
         """
@@ -193,8 +197,13 @@ class RPMBuildPlugin(BuildPlugin):
                     (BUILD_DIR / "rpm" / rpm, rpms_dir) for rpm in source_info["rpms"]
                 ]
 
-                # Createrepo of local builder repository
-                bash_cmd = [f"cd {REPOSITORY_DIR}", "createrepo_c ."]
+                # Createrepo of local builder repository and ensure 'mock' group can access
+                # build directory
+                cmd = [
+                    f"cd {REPOSITORY_DIR}",
+                    "createrepo_c .",
+                    f"sudo chown -R user:mock {BUILD_DIR}",
+                ]
 
                 # Run 'mock' to build source RPM
                 # On Fedora /usr/bin/mock is a (consolehelper) wrapper,
@@ -213,15 +222,13 @@ class RPMBuildPlugin(BuildPlugin):
                     mock_cmd.append("--enablerepo=qubes-current")
                 if self.use_qubes_repo and self.use_qubes_repo.get("testing"):
                     mock_cmd.append("--enablerepo=qubes-current-testing")
-                bash_cmd += [" ".join(mock_cmd)]
+                cmd += [" ".join(mock_cmd)]
 
                 # Move RPMs into a separate dir and generate packages list
-                bash_cmd += [
+                cmd += [
                     f"{PLUGINS_DIR}/build_rpm/scripts/filter-packages-by-dist-arch "
                     f"{BUILD_DIR} {BUILD_DIR}/rpm {self.dist.tag} {self.dist.architecture}"
                 ]
-
-                cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
                     self.executor.run(
                         cmd,

@@ -21,6 +21,7 @@ import subprocess
 from pathlib import Path
 from typing import List, Tuple
 
+from qubesbuilder.common import sanitize_line
 from qubesbuilder.executors import Executor, log, ExecutorError
 
 
@@ -30,8 +31,8 @@ class LocalExecutor(Executor):
     """
 
     def copy_in(self, source_path: Path, destination_dir: Path):
-        src = source_path.expanduser().absolute()
-        dst = destination_dir.expanduser().absolute()
+        src = source_path.resolve()
+        dst = destination_dir.resolve()
         try:
             if src.is_dir():
                 dst = dst / src.name
@@ -55,6 +56,8 @@ class LocalExecutor(Executor):
         no_fail_copy_out=False,
     ):
 
+        cmd = ["bash", "-c", "&&".join(cmd)]
+
         log.info(f"Executing '{' '.join(cmd)}' locally...")
 
         # copy-in hook
@@ -72,7 +75,7 @@ class LocalExecutor(Executor):
             if process.poll() is not None:
                 break
             if line:
-                log.info(f"output: {line.decode('utf-8').rstrip()}")
+                log.info(f"output: {sanitize_line(line).rstrip()}")
         rc = process.poll()
         if rc != 0:
             raise ExecutorError(f"Failed to run '{cmd}' (status={rc}).")

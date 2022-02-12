@@ -211,14 +211,14 @@ class DEBBuildPlugin(BuildPlugin):
                     f"deb [trusted=yes] file:///tmp/qubes-deb {self.dist.name} main"
                 )
                 # extra_sources = ""
-                bash_cmd = [
+                cmd = [
                     f"{PLUGINS_DIR}/build_deb/scripts/create-local-repo {REPOSITORY_DIR} {self.dist.fullname} {self.dist.name}"
                 ]
 
                 if self.use_qubes_repo.get("version", None):
                     qubes_version = self.use_qubes_repo["version"]
                     extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name} main"
-                    bash_cmd += [
+                    cmd += [
                         f"gpg --dearmor "
                         f"< {PLUGINS_DIR}/build_deb/keys/qubes-debian-r{qubes_version}.asc "
                         f"> {BUILDER_DIR}/pbuilder/qubes-keyring.gpg"
@@ -227,22 +227,20 @@ class DEBBuildPlugin(BuildPlugin):
                         extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name}-testing main"
 
                 # FIXME: allow to pass a prebuilt pbuilder base.tgz
-                bash_cmd += [
+                cmd += [
                     f"sudo -E pbuilder create "
                     f"--distribution {self.dist.name} "
                     f"--configfile {BUILDER_DIR}/pbuilder/pbuilderrc "
-                    f"--othermirror '{extra_sources}'"
+                    f"--othermirror \"{extra_sources}\""
                 ]
 
-                bash_cmd += [
+                cmd += [
                     f"sudo -E pbuilder build --override-config "
                     f"--distribution {self.dist.name} "
                     f"--configfile {BUILDER_DIR}/pbuilder/pbuilderrc "
-                    f"--othermirror '{extra_sources}' "
+                    f"--othermirror \"{extra_sources}\" "
                     f"{str(BUILD_DIR / source_info['dsc'])}"
                 ]
-
-                cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
                     self.executor.run(
                         cmd,

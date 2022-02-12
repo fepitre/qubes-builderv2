@@ -126,8 +126,7 @@ class SourcePlugin(Plugin):
                 get_sources_cmd += ["--insecure-skip-checking"]
             if self.component.less_secure_signed_commits_sufficient:
                 get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
-            bash_cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
-            cmd = ["/bin/bash", "-c", "&&".join(bash_cmd)]
+            cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
             self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
             # Update parameters based on previously fetched sources as .qubesbuilder
@@ -172,9 +171,8 @@ class SourcePlugin(Plugin):
                     download_verify_cmd += ["--signature-url", file["signature"]]
                 if file.get("pubkey", None):
                     download_verify_cmd += ["--pubkey-file", file["pubkey"]]
-                bash_cmd = [
+                cmd = [
                     f"cd {str(BUILDER_DIR / self.component.name)}",
                     " ".join(download_verify_cmd),
                 ]
-                cmd = ["/bin/bash", "-c", "&&".join(bash_cmd)]
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)

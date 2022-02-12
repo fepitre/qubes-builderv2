@@ -119,12 +119,11 @@ class RPMSignPlugin(SignPlugin):
                 shutil.rmtree(artifacts_dir)
             db_path = artifacts_dir / "rpmdb"
             sign_key_asc = artifacts_dir / f"{sign_key}.asc"
-            bash_cmd = [
+            cmd = [
                 f"mkdir -p {db_path}",
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
                 f"rpmkeys --dbpath={db_path} --import {sign_key_asc}",
             ]
-            cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
             try:
                 self.executor.run(cmd)
             except ExecutorError as e:
@@ -153,11 +152,11 @@ class RPMSignPlugin(SignPlugin):
                         log.info(
                             f"{self.component}:{self.dist}:{spec}: Signing '{rpm.name}'."
                         )
-                        bash_cmd = [
+                        cmd = [
                             f"{self.plugins_dir}/sign_rpm/scripts/sign-rpm "
                             f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm}"
                         ]
-                        cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
+
                         self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to sign RPMs."

@@ -138,8 +138,7 @@ class DEBPublishPlugin(PublishPlugin):
                 self.qubes_release,
                 str(artifacts_dir),
             ]
-            bash_cmd = [" ".join(create_skeleton_cmd)]
-            cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
+            cmd = [" ".join(create_skeleton_cmd)]
             try:
                 self.executor.run(cmd)
             except ExecutorError as e:
@@ -162,13 +161,12 @@ class DEBPublishPlugin(PublishPlugin):
                     log.info(
                         f"{self.component}:{self.dist}:{directory}: Verifying signatures."
                     )
-                    bash_cmd = []
+                    cmd = []
                     for file in ("dsc", "changes", "buildinfo"):
                         fname = build_artifacts_dir / build_info[file]
-                        bash_cmd += [
+                        cmd += [
                             f"gpg2 -q --homedir {keyring_dir} --verify {fname}"
                         ]
-                    cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to sign packages."
@@ -185,10 +183,9 @@ class DEBPublishPlugin(PublishPlugin):
                         / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}"
                     )
                     reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch -b {target_dir}"
-                    bash_cmd = [
+                    cmd = [
                         f"reprepro {reprepro_options} include {self.dist.name} {changes_file}"
                     ]
-                    cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to publish packages."

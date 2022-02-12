@@ -120,11 +120,10 @@ class DEBSignPlugin(SignPlugin):
 
             # Export public key and generate local keyring
             sign_key_asc = artifacts_dir / f"{sign_key}.asc"
-            bash_cmd = [
+            cmd = [
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
                 f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}",
             ]
-            cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
             try:
                 self.executor.run(cmd)
             except ExecutorError as e:
@@ -145,10 +144,9 @@ class DEBSignPlugin(SignPlugin):
                     log.info(
                         f"{self.component}:{self.dist}:{directory}: Signing from '{build_info['changes']}' info."
                     )
-                    bash_cmd = [
+                    cmd = [
                         f"debsign -k{sign_key} -p{self.gpg_client} --no-re-sign {build_artifacts_dir / build_info['changes']}"
                     ]
-                    cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                     self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to sign Debian packages."

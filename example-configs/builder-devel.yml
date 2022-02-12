@@ -81,6 +81,9 @@ executor:
   options:
     image: "qubes-builder-fedora:latest"
 
+executor:
+  type: qubes
+
 stages:
   - fetch
   - prep

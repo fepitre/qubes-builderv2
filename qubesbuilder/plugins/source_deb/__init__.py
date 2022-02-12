@@ -65,7 +65,14 @@ class DEBSourcePlugin(SourcePlugin):
             skip_if_exists=skip_if_exists,
         )
 
-        self.environment.update({"DIST": self.dist.name})
+        self.environment.update(
+            {
+                "DIST": self.dist.name,
+                "LC_ALL": "C",
+                "DEBFULLNAME": "Builder",
+                "DEBEMAIL": "user@localhost",
+            }
+        )
 
     def update_parameters(self):
         """
@@ -106,7 +113,7 @@ class DEBSourcePlugin(SourcePlugin):
 
                 # Generate package release name
                 copy_in = [
-                    (self.component.source_dir, BUILDER_DIR / self.component.name),
+                    (self.component.source_dir, BUILDER_DIR),
                     (self.plugins_dir / "source_deb", PLUGINS_DIR),
                 ]
                 for dependency in self.plugin_dependencies:
@@ -117,27 +124,18 @@ class DEBSourcePlugin(SourcePlugin):
                 ]
 
                 # Update changelog
-                bash_cmd = [
+                cmd = [
                     f"{PLUGINS_DIR}/source_deb/scripts/modify-changelog-for-build "
                     f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
                 ]
 
-                bash_cmd += [
+                cmd += [
                     f"{PLUGINS_DIR}/source_deb/scripts/get-source-info {source_dir} {directory}"
                 ]
-
-                env = self.environment
-                env.update(
-                    {
-                        "LC_ALL": "C",
-                        "DEBFULLNAME": "Builder",
-                        "DEBEMAIL": "user@localhost",
-                    }
-                )
-
-                cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
-                    self.executor.run(cmd, copy_in, copy_out, environment=env)
+                    self.executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
                 except ExecutorError as e:
                     msg = (
                         f"{self.component}:{self.dist}:{directory}: "
@@ -178,7 +176,7 @@ class DEBSourcePlugin(SourcePlugin):
 
                 # Copy-in distfiles, dependencies, source and Debian directory
                 copy_in = [
-                    (self.component.source_dir, BUILDER_DIR / self.component.name),
+                    (self.component.source_dir, BUILDER_DIR),
                     (self.plugins_dir / "source_deb", PLUGINS_DIR),
                     (distfiles_dir, BUILDER_DIR),
                 ]
@@ -194,24 +192,24 @@ class DEBSourcePlugin(SourcePlugin):
                 ]
 
                 # Init command with .qubesbuilder command entries
-                bash_cmd = self.parameters.get("source", {}).get("commands", [])
+                cmd = self.parameters.get("source", {}).get("commands", [])
 
                 # Update changelog
-                bash_cmd += [
+                cmd += [
                     f"{PLUGINS_DIR}/source_deb/scripts/modify-changelog-for-build "
                     f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
                 ]
 
                 # Create archive if no external file is provided.
                 if not self.parameters.get("files", []):
-                    bash_cmd += [
+                    cmd += [
                         f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
                         f"mv {source_dir}/{source_orig} {BUILDER_DIR}",
                     ]
                 else:
                     for file in self.parameters["files"]:
                         fn = os.path.basename(file["url"])
-                        bash_cmd.append(
+                        cmd.append(
                             f"mv {DISTFILES_DIR}/{fn} {BUILDER_DIR}/{source_orig}"
                         )
 
@@ -223,16 +221,15 @@ class DEBSourcePlugin(SourcePlugin):
                 ]
 
                 # Run 'dpkg-source' inside build directory
-                bash_cmd += [
+                cmd += [
+                    f"mkdir -p {BUILD_DIR}",
                     f"cd {BUILD_DIR}",
                     f"cp -r {source_dir / directory} .",
                     "dpkg-source -b .",
                     " ".join(gen_packages_list_cmd),
                 ]
-
-                cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
                 try:
-                    self.executor.run(cmd, copy_in, copy_out)
+                    self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to generate source."
                     raise SourceError(msg) from e
