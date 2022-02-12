@@ -34,14 +34,22 @@ from qubesbuilder.plugins.build import BuildPlugin, BuildError
 log = get_logger("build_rpm")
 
 
-def provision_local_repository(spec: str, repository_dir: Path,
-                               component: QubesComponent, dist: QubesDistribution, source_info: dict,
-                               packages_list: List, prep_artifacts_dir: Path,
-                               build_artifacts_dir: Path):
+def provision_local_repository(
+    spec: str,
+    repository_dir: Path,
+    component: QubesComponent,
+    dist: QubesDistribution,
+    source_info: dict,
+    packages_list: List,
+    prep_artifacts_dir: Path,
+    build_artifacts_dir: Path,
+):
     """
     Provision local builder repository.
     """
-    log.info(f"{component}:{dist}:{spec}: Provisioning local repository '{repository_dir}'.")
+    log.info(
+        f"{component}:{dist}:{spec}: Provisioning local repository '{repository_dir}'."
+    )
 
     # Create target directory that will have hardlinks to SRPM and built RPMs
     target_dir = repository_dir / f"{component.name}-{component.version}"

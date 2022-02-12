@@ -40,9 +40,9 @@ class DEBSignPlugin(SignPlugin):
 
     plugin_dependencies = ["sign", "build_deb"]
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
-                 artifacts_dir: Path, gpg_client: str, sign_key: dict, verbose: bool = False,
-                 debug: bool = False):
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
+                 plugins_dir: Path, artifacts_dir: Path, gpg_client: str, sign_key: dict,
+                 verbose: bool = False, debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir, executor=executor,
                          artifacts_dir=artifacts_dir, gpg_client=gpg_client, sign_key=sign_key,
                          verbose=verbose, debug=debug)

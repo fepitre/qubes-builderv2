@@ -34,13 +34,21 @@ from qubesbuilder.plugins.build import BuildPlugin, BuildError
 log = get_logger("build_deb")
 
 
-def provision_local_repository(debian_directory: str, repository_dir: Path,
-                               component: QubesComponent, dist: QubesDistribution, source_info: dict,
-                               packages_list: List, build_artifacts_dir: Path):
+def provision_local_repository(
+    debian_directory: str,
+    repository_dir: Path,
+    component: QubesComponent,
+    dist: QubesDistribution,
+    source_info: dict,
+    packages_list: List,
+    build_artifacts_dir: Path,
+):
     """
     Provision local builder repository.
     """
-    log.info(f"{component}:{dist}:{debian_directory}: Provisioning local repository '{repository_dir}'.")
+    log.info(
+        f"{component}:{dist}:{debian_directory}: Provisioning local repository '{repository_dir}'."
+    )
 
     # Create target directory that will have hardlinks to built packages
     target_dir = repository_dir / f"{component.name}-{component.version}"
@@ -51,12 +59,14 @@ def provision_local_repository(debian_directory: str, repository_dir: Path,
     try:
         # deb
         files = [build_artifacts_dir / deb for deb in packages_list]
-        files += [build_artifacts_dir / source_info[f] for f in ("orig", "dsc", "debian")]
+        files += [
+            build_artifacts_dir / source_info[f] for f in ("orig", "dsc", "debian")
+        ]
 
         # changes and buildinfo
         files += [
             build_artifacts_dir / source_info["changes"],
-            build_artifacts_dir / source_info["buildinfo"]
+            build_artifacts_dir / source_info["buildinfo"],
         ]
 
         # create hardlinks

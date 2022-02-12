@@ -43,8 +43,8 @@ class RPMSourcePlugin(SourcePlugin):
 
     plugin_dependencies = ["source"]
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
-                 artifacts_dir: Path, verbose: bool = False, debug: bool = False,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
+                 plugins_dir: Path, artifacts_dir: Path, verbose: bool = False, debug: bool = False,
                  skip_if_exists: bool = False):
         super().__init__(component=component, dist=dist, executor=executor, plugins_dir=plugins_dir,
                          artifacts_dir=artifacts_dir, verbose=verbose, debug=debug,

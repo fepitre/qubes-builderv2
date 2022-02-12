@@ -38,8 +38,8 @@ class SignPlugin(Plugin):
     SignPlugin manages generic distribution sign.
     """
 
-    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor, plugins_dir: Path,
-                 artifacts_dir: Path, gpg_client: str, sign_key: dict,
+    def __init__(self, component: QubesComponent, dist: QubesDistribution, executor: Executor,
+                 plugins_dir: Path, artifacts_dir: Path, gpg_client: str, sign_key: dict,
                  verbose: bool = False, debug: bool = False):
         super().__init__(component=component, dist=dist, plugins_dir=plugins_dir,
                          artifacts_dir=artifacts_dir, verbose=verbose, debug=debug)

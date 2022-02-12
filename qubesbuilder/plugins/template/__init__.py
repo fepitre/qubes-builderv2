@@ -38,8 +38,8 @@ class TemplatePlugin(Plugin):
     """
 
     def __init__(self, component: QubesComponent, template: QubesTemplate, executor: Executor,
-                 plugins_dir: Path, artifacts_dir: Path,
-                 verbose: bool = False, debug: bool = False):
+                 plugins_dir: Path, artifacts_dir: Path, verbose: bool = False,
+                 debug: bool = False):
         super().__init__(component=component, dist=template.distribution, plugins_dir=plugins_dir,
                          artifacts_dir=artifacts_dir, verbose=verbose, debug=debug)
 
