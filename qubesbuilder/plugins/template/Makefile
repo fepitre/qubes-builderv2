@@ -54,8 +54,12 @@ prepare:
 
 build: build-rootimg build-rpm
 
-build-rootimg: check
+build-rootimg: build-rootimg-prepare build-rootimg-qubeize
+
+build-rootimg-prepare: check
 	sudo env -i $(foreach var,$(TEMPLATE_ENV_WHITELIST),$(var)="$($(var))") $(BUILDER_DIR)/scripts/prepare-image $(ARTIFACTS_DIR)/prepared_images/$(TEMPLATE_NAME).img $(INSTALL_DIR)
+
+build-rootimg-qubeize: check
 	sudo env -i $(foreach var,$(TEMPLATE_ENV_WHITELIST),$(var)="$($(var))")	$(BUILDER_DIR)/scripts/qubeize-image $(ARTIFACTS_DIR)/prepared_images/$(TEMPLATE_NAME).img $(INSTALL_DIR)
 
 build-rpm: check
