@@ -1,3 +1,4 @@
+import os.path
 import tempfile
 from pathlib import Path, PurePath
 
@@ -77,6 +78,10 @@ def test_local_simple():
         assert data == "Hello!\nIt works!\n"
 
 
+@pytest.mark.skipif(
+    not os.path.exists("/var/run/qubes/this-is-appvm"),
+    reason="Qubes Admin VM is required!",
+)
 def test_qubes_simple():
     executor = QubesExecutor()
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -104,6 +109,10 @@ def test_qubes_simple():
         assert data == "Hello!\nIt works!\n"
 
 
+@pytest.mark.skipif(
+    not os.path.exists("/var/run/qubes/this-is-appvm"),
+    reason="Qubes Admin VM is required!",
+)
 def test_qubes_environment():
     executor = QubesExecutor()
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -118,11 +127,18 @@ def test_qubes_environment():
         # Copy-out the modified file
         copy_out = [(PurePath("/tmp/hello.md"), Path(temp_dir))]
         # Command that appends a line to the file
-        cmd = ["echo ${MY_ANSWER} >> /tmp/hello.md", "echo ${MY_QUESTION} >> /tmp/hello.md"]
+        cmd = [
+            "echo ${MY_ANSWER} >> /tmp/hello.md",
+            "echo ${MY_QUESTION} >> /tmp/hello.md",
+        ]
 
         # Execute the command
-        executor.run(cmd, copy_in, copy_out,
-                     environment={"MY_ANSWER": "Hi there!", "MY_QUESTION": "How are you?"})
+        executor.run(
+            cmd,
+            copy_in,
+            copy_out,
+            environment={"MY_ANSWER": "Hi there!", "MY_QUESTION": "How are you?"},
+        )
 
         # Read modified file that has been copied out from the container
         with open(hello) as f:

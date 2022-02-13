@@ -149,7 +149,9 @@ class ContainerExecutor(Executor):
             # copy-out hook
             for src_out, dst_out in copy_out or []:
                 try:
-                    self.copy_out(container, source_path=src_out, destination_dir=dst_out)
+                    self.copy_out(
+                        container, source_path=src_out, destination_dir=dst_out
+                    )
                 except ExecutorError as e:
                     # Ignore copy-out failure if requested
                     if no_fail_copy_out:

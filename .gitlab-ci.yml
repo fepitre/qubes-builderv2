@@ -16,7 +16,8 @@ mypy:
   stage: test
   image: fedora:latest
   before_script:
-    - sudo dnf install -y python3-mypy
+    - sudo dnf install -y python3-mypy python3-pip
+    - sudo python3 -m pip install types-PyYAML
   script:
     - mypy --install-types --non-interactive --junit-xml mypy.xml qubesbuilder
   artifacts:
@@ -30,6 +31,7 @@ shellcheck:
     - sudo dnf install -y ShellCheck git
   script:
     - shellcheck -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
+  allow_failure: true
 
 tests:
   stage: test
@@ -46,5 +48,7 @@ tests:
       cobertura: artifacts/coverage.xml
   coverage: '/TOTAL.*\s(\d+)%/'
   script:
+    - docker pull fedora:latest
     - docker-compose -f tests/docker-compose.yml build test
     - docker-compose -f tests/docker-compose.yml run test
+  allow_failure: true
