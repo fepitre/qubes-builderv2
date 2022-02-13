@@ -137,9 +137,7 @@ class TemplatePlugin(Plugin):
                 (BUILD_DIR / f"rpmbuild/RPMS/{rpm}", artifacts_dir / "rpm"),
             ]
 
-            bash_cmd = [f"make -C {PLUGINS_DIR}/template prepare build"]
-
-            cmd = ["/bin/bash", "-c", " && ".join(bash_cmd)]
+            cmd = [f"make -C {PLUGINS_DIR}/template prepare build"]
             try:
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
