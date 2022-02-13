@@ -8,13 +8,9 @@ lint:
   stage: test
   image: fedora:latest
   before_script:
-    - sudo dnf install -y python3-pylint
+    - sudo dnf install -y python3-black
   script:
-    - PYTHONPATH=. pylint-3 --junitxml=pylint.xml qubesbuilder
-  artifacts:
-    when: always
-    reports:
-      junit: pylint.xml
+    - black -v --diff --color --check qubesbuilder
 
 mypy:
   stage: test

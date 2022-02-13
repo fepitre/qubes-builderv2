@@ -115,8 +115,8 @@ class ContainerExecutor(Executor):
             log.info(f"Executing '{' '.join(cmd)}' in {container}...")
 
             # copy-in hook
-            for src, dst in copy_in or []:
-                self.copy_in(container, source_path=src, destination_dir=dst)
+            for src_in, dst_in in copy_in or []:
+                self.copy_in(container, source_path=src_in, destination_dir=dst_in)
 
             # run container
             container.start()
@@ -147,12 +147,12 @@ class ContainerExecutor(Executor):
                 raise ExecutorError(f"Failed to run '{cmd}' (status={status}).")
 
             # copy-out hook
-            for src, dst in copy_out or []:
+            for src_out, dst_out in copy_out or []:
                 try:
-                    self.copy_out(container, source_path=src, destination_dir=dst)
+                    self.copy_out(container, source_path=src_out, destination_dir=dst_out)
                 except ExecutorError as e:
                     # Ignore copy-out failure if requested
                     if no_fail_copy_out:
-                        log.warning(f"File not found inside container: {src}.")
+                        log.warning(f"File not found inside container: {src_out}.")
                         continue
                     raise e

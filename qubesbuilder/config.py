@@ -142,7 +142,7 @@ class Config:
         component_default_branch = "master"
         if isinstance(component_name, str):
             component_name = {component_name: {}}
-        component_name, component_options = next(iter(component_name.items()))
+        name, options = next(iter(component_name.items()))
         insecure_skip_checking = component_name in self._conf.get(
             "insecure-skip-checking", []
         )
@@ -150,10 +150,10 @@ class Config:
             "less-secure-signed-commits-sufficient", []
         )
         component = QubesComponent(
-            source_dir=self._artifacts_dir / "sources" / component_name,
-            url=component_options.get("url", component_default_url),
-            branch=component_options.get("branch", component_default_branch),
-            maintainers=component_options.get("maintainers", []),
+            source_dir=self._artifacts_dir / "sources" / name,
+            url=options.get("url", component_default_url),
+            branch=options.get("branch", component_default_branch),
+            maintainers=options.get("maintainers", []),
             insecure_skip_checking=insecure_skip_checking,
             less_secure_signed_commits_sufficient=less_secure_signed_commits_sufficient,
         )

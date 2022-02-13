@@ -67,7 +67,6 @@ class RPMPublishPlugin(PublishPlugin):
             debug=debug,
         )
 
-
     def update_parameters(self):
         """
         Update plugin parameters based on component .qubesbuilder.

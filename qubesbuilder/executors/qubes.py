@@ -84,7 +84,7 @@ class QubesExecutor(Executor):
             f"qubesbuilder.FileCopyOut+{str(src).replace('/', '__')}",
             "/usr/lib/qubes/qfile-unpacker",
             str(os.getuid()),
-            str(dst)
+            str(dst),
         ]
         try:
             log.debug(f"copy-out (cmd): {' '.join(cmd)}")
@@ -119,8 +119,8 @@ class QubesExecutor(Executor):
             subprocess.run(start_cmd, stdin=subprocess.DEVNULL)
 
             # copy-in hook
-            for src, dst in copy_in or []:
-                self.copy_in(dispvm, source_path=src, destination_dir=dst)
+            for src_in, dst_in in copy_in or []:
+                self.copy_in(dispvm, source_path=src_in, destination_dir=dst_in)
 
             bash_env = []
             if environment:
@@ -149,16 +149,18 @@ class QubesExecutor(Executor):
                     log.info(f"output: {sanitize_line(line).rstrip()}")
             rc = process.poll()
             if rc != 0:
-                raise ExecutorError(f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc}).")
+                raise ExecutorError(
+                    f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
+                )
 
             # copy-out hook
-            for src, dst in copy_out or []:
+            for src_out, dst_out in copy_out or []:
                 try:
-                    self.copy_out(dispvm, source_path=src, destination_dir=dst)
+                    self.copy_out(dispvm, source_path=src_out, destination_dir=dst_out)
                 except ExecutorError as e:
                     # Ignore copy-out failure if requested
                     if no_fail_copy_out:
-                        log.warning(f"File not found inside container: {src}.")
+                        log.warning(f"File not found inside container: {src_out}.")
                         continue
                     raise e
         finally:

@@ -229,7 +229,9 @@ class DEBSourcePlugin(SourcePlugin):
                     " ".join(gen_packages_list_cmd),
                 ]
                 try:
-                    self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                    self.executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to generate source."
                     raise SourceError(msg) from e

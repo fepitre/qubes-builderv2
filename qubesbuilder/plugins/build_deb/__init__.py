@@ -226,7 +226,11 @@ class DEBBuildPlugin(BuildPlugin):
                     if self.use_qubes_repo.get("testing", False):
                         extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name}-testing main"
 
-                # FIXME: allow to pass a prebuilt pbuilder base.tgz
+                # fmt: off
+                # FIXME: We disable black here because it removes escaped quotes. This
+                #  is until we use shlex.quote.
+
+                # FIXME: Allow to pass a prebuilt pbuilder base.tgz.
                 cmd += [
                     f"sudo -E pbuilder create "
                     f"--distribution {self.dist.name} "
@@ -241,6 +245,7 @@ class DEBBuildPlugin(BuildPlugin):
                     f"--othermirror \"{extra_sources}\" "
                     f"{str(BUILD_DIR / source_info['dsc'])}"
                 ]
+                # fmt: on
                 try:
                     self.executor.run(
                         cmd,

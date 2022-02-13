@@ -69,7 +69,7 @@ class TemplatePlugin(Plugin):
         )
         self.template = template
         self.executor = executor
-        self.use_qubes_repo = use_qubes_repo
+        self.use_qubes_repo = use_qubes_repo or {}
 
         self.environment.update(
             {

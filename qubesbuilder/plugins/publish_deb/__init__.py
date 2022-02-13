@@ -164,9 +164,7 @@ class DEBPublishPlugin(PublishPlugin):
                     cmd = []
                     for file in ("dsc", "changes", "buildinfo"):
                         fname = build_artifacts_dir / build_info[file]
-                        cmd += [
-                            f"gpg2 -q --homedir {keyring_dir} --verify {fname}"
-                        ]
+                        cmd += [f"gpg2 -q --homedir {keyring_dir} --verify {fname}"]
                     self.executor.run(cmd)
                 except ExecutorError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to sign packages."
