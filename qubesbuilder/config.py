@@ -143,10 +143,8 @@ class Config:
         if isinstance(component_name, str):
             component_name = {component_name: {}}
         name, options = next(iter(component_name.items()))
-        insecure_skip_checking = component_name in self._conf.get(
-            "insecure-skip-checking", []
-        )
-        less_secure_signed_commits_sufficient = component_name in self._conf.get(
+        insecure_skip_checking = name in self._conf.get("insecure-skip-checking", [])
+        less_secure_signed_commits_sufficient = name in self._conf.get(
             "less-secure-signed-commits-sufficient", []
         )
         component = QubesComponent(
