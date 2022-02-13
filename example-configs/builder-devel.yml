@@ -85,7 +85,11 @@ executor:
   type: qubes
 
 stages:
-  - fetch
+  - fetch:
+      executor:
+        type: docker
+        options:
+          image: "qubes-builder-fedora:latest"
   - prep
   - build
   - post
