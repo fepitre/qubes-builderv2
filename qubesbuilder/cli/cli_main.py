@@ -110,12 +110,13 @@ def main(
         for distribution_name in distribution:
             distributions.append(QubesDistribution(distribution_name))
         ctx.obj.distributions = distributions
-
-    # We ensure that requested distribution for template is in actual
-    # distributions for components build
-    for template in ctx.obj.templates:
-        if template.distribution not in ctx.obj.distributions:
-            ctx.obj.distributions.append(template.distribution)
+    else:
+        # We ensure that requested distribution for template is in
+        # actual distributions for components build only if
+        # distributions are not filtered by CLI.
+        for template in ctx.obj.templates:
+            if template.distribution not in ctx.obj.distributions:
+                ctx.obj.distributions.append(template.distribution)
 
 
 #
