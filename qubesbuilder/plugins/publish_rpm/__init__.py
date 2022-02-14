@@ -230,7 +230,7 @@ class RPMPublishPlugin(PublishPlugin):
                 repomd = target_dir / "repodata/repomd.xml"
                 cmd = [
                     f"rm -f {repomd}.asc",
-                    f"{self.gpg_client} --batch --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
+                    f"{self.gpg_client} --batch --no-tty --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
                 ]
                 try:
                     self.executor.run(cmd)
@@ -354,7 +354,7 @@ class RPMPublishPlugin(PublishPlugin):
             repomd = target_dir / "repodata/repomd.xml"
             cmd = [
                 f"rm -f {repomd}.asc",
-                f"{self.gpg_client} --batch --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
+                f"{self.gpg_client} --batch --no-tty --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
             ]
             try:
                 self.executor.run(cmd)
