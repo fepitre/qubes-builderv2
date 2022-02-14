@@ -7,3 +7,5 @@ RUN apt-get update && \
     && apt-get clean all
 
 RUN mkdir /builder /builder/plugins /builder/build
+
+RUN useradd -m user -u 1000

@@ -6,15 +6,53 @@ services:
       context: ..
       dockerfile: dockerfiles/fedora.Dockerfile
 
-  test:
-    restart: always
+  pytest:
     privileged: true
     build:
       context: ..
-      dockerfile: dockerfiles/ci.Dockerfile
+      dockerfile: tests/host-ci.Dockerfile
     volumes:
       - ..:/qubesbuilder
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONPATH=/qubesbuilder
     command: pytest-3 -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml tests/
+
+  host-fc32:
+    privileged: true
+    build:
+      context: ..
+      dockerfile: tests/host-ci.Dockerfile
+    volumes:
+      - ..:/qubesbuilder
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./gnupg:/root/.gnupg
+    environment:
+      - PYTHONPATH=/qubesbuilder
+    command: ./qb --verbose --debug --builder-conf tests/builder-ci.yml -d host-fc32 -c python-qasync -c core-vchan-xen -c core-qrexec all
+
+  vm-fc35:
+    privileged: true
+    build:
+      context: ..
+      dockerfile: tests/host-ci.Dockerfile
+    volumes:
+      - ..:/qubesbuilder
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./gnupg:/root/.gnupg
+    environment:
+      - PYTHONPATH=/qubesbuilder
+    command: ./qb --verbose --debug --builder-conf tests/builder-ci.yml -d vm-fc35 -c python-qasync -c core-vchan-xen -c core-qrexec all
+
+  vm-bullseye:
+    privileged: true
+    build:
+      context: ..
+      dockerfile: tests/host-ci.Dockerfile
+    volumes:
+      - ..:/qubesbuilder
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./gnupg:/root/.gnupg
+    environment:
+      - PYTHONPATH=/qubesbuilder
+    command: ./qb --verbose --debug --builder-conf tests/builder-ci.yml -d vm-bullseye -c python-qasync -c core-vchan-xen -c core-qrexec all
