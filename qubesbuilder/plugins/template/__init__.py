@@ -152,7 +152,7 @@ class TemplatePlugin(Plugin):
                     qubeized_image,
                 ),
                 (BUILD_DIR / f"build_timestamp_{self.template.name}", artifacts_dir),
-                (BUILD_DIR / f"rpmbuild/RPMS/{rpm}", artifacts_dir / "rpm"),
+                (BUILD_DIR / f"rpmbuild/RPMS/noarch/{rpm}", artifacts_dir / "rpm"),
             ]
 
             cmd = [f"make -C {PLUGINS_DIR}/template prepare build"]
