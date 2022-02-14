@@ -14,8 +14,8 @@ for example, cloning and verifying Git sources,rendering a SPEC file, generate S
 a fresh and new cage will be used. It remains only the signing and publishing process being executed locally and not
 inside a cage. This is to be improved in the future.
 
-For now, only Docker or Podman executor is available and Qubes OS DispVM is coming really soon. Only Docker executor
-inside a Fedora/Debian AppVM has been used by the author for validating the current development.
+For now, only Docker, Podman, Local and Qubes executors are available. Only Docker, Local and Qubes executors
+inside a Fedora/Debian AppVM have been used by the author for validating the current development.
 
 ## How-to
 
@@ -45,6 +45,35 @@ In order to use the Docker executor, you need to build the image using the provi
 $ docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
 ```
 
+### Qubes executor
+
+We assume that the default template chosen for building components inside a DispVM will be `fedora-35`. For that, install
+in the template the following dependencies:
+
+```bash
+$ sudo dnf install -y createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev
+```
+
+Then, clone default DispVM based on Fedora 35 `fedora-35-dvm` as `qubes-builder-dvm`. Set at least `30GB` for its
+private volume.You need to install `rpc/qubesbuilder.FileCopyIn` and `rpc/qubesbuilder.FileCopyOut` inside `fedora-35`.
+
+Assuming that your qube hosting `qubes-builder` is called `work-qubesos` (else you need to adjust policies), in `dom0`,
+copy `rpc/policy/50-qubesbuilder.policy` to `/etc/qubes/policy.d`.
+
+Now, start the disposable template `qubes-builder-dvm` and create the following directories:
+```bash
+$ sudo mkdir -p /rw/bind-dirs/builder /rw/config/qubes-bind-dirs.d
+```
+
+Create the file `/rw/config/qubes-bind-dirs.d/builder.conf` with content:
+```
+binds+=('/builder')
+```
+
+Append to `/rw/config/rc.local` the following:
+```
+mount /builder -o dev,suid,remount
+```
 ### Build stages
 
 The whole build process occurs during those ordered stages:
