@@ -80,7 +80,19 @@ class TemplatePlugin(Plugin):
             }
         )
 
+    def update_parameters(self):
+        """
+        Update plugin parameters based on component .qubesbuilder.
+        """
+        super().update_parameters()
+
+        # We call the get_parameters in order to set component version
+        self.component.get_parameters(self._placeholders)
+
     def run(self, stage: str):
+        # Update parameters
+        self.update_parameters()
+
         if stage == "build":
             source_dir = BUILDER_DIR / self.component.name
             repository_dir = self.get_repository_dir() / self.dist.distribution
