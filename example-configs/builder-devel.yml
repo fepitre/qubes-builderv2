@@ -76,13 +76,15 @@ publish-repository:
   components: current-testing
   templates: templates-itl-testing
 
-executor:
-  type: docker
-  options:
-    image: "qubes-builder-fedora:latest"
+#executor:
+#  type: docker
+#  options:
+#    image: "qubes-builder-fedora:latest"
 
 executor:
   type: qubes
+  options:
+    dispvm: "qubes-builder-dvm"
 
 stages:
   - fetch:

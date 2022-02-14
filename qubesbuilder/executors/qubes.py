@@ -28,7 +28,9 @@ from qubesbuilder.executors import Executor, ExecutorError, log
 
 
 class QubesExecutor(Executor):
-    def __init__(self, **kwargs):
+    def __init__(self, dispvm, **kwargs):
+        # dispvm is the template used for creating a disposable qube.
+        self.dispvm = dispvm
         self._kwargs = kwargs
 
     def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):

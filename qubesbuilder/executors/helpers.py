@@ -11,7 +11,7 @@ def getExecutor(executor_type, executor_options):
     elif executor_type == "local":
         executor = LocalExecutor()
     elif executor_type == "qubes":
-        executor = QubesExecutor()
+        executor = QubesExecutor(executor_options.get("dispvm", None))
     if not executor:
         raise ExecutorError("Cannot determine which executor to use.")
     return executor
