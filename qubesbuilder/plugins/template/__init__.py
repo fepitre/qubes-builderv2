@@ -131,11 +131,16 @@ class TemplatePlugin(Plugin):
                 (self.component.source_dir, BUILDER_DIR),
                 (self.plugins_dir / "template", PLUGINS_DIR),
                 (repository_dir, REPOSITORY_DIR),
-                (prepared_images, BUILD_DIR),
             ] + [
                 (self.plugins_dir / plugin, PLUGINS_DIR)
                 for plugin in self.plugin_dependencies
             ]
+
+            # Copy-in previously prepared base root img
+            if (prepared_images / f"{self.template.name}.img").exists():
+                copy_in += [
+                    (prepared_images / f"{self.template.name}.img", BUILD_DIR / "prepared_images"),
+                ]
 
             copy_out = [
                 (
