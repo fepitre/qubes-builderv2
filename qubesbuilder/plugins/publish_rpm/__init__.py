@@ -229,7 +229,8 @@ class RPMPublishPlugin(PublishPlugin):
                 log.info(f"{self.component}:{self.dist}:{spec}: Signing metadata.")
                 repomd = target_dir / "repodata/repomd.xml"
                 cmd = [
-                    f"{self.gpg_client} --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc"
+                    f"rm -f {repomd}.asc",
+                    f"{self.gpg_client} --batch --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
                 ]
                 try:
                     self.executor.run(cmd)
@@ -352,7 +353,8 @@ class RPMPublishPlugin(PublishPlugin):
             log.info(f"{self.component}:{self.template}: Signing metadata.")
             repomd = target_dir / "repodata/repomd.xml"
             cmd = [
-                f"{self.gpg_client} --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc"
+                f"rm -f {repomd}.asc",
+                f"{self.gpg_client} --batch --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
             ]
             try:
                 self.executor.run(cmd)
