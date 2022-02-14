@@ -229,14 +229,13 @@ class RPMPublishPlugin(PublishPlugin):
                 log.info(f"{self.component}:{self.dist}:{spec}: Signing metadata.")
                 repomd = target_dir / "repodata/repomd.xml"
                 cmd = [
-                    f"rm -f {repomd}.asc",
-                    f"{self.gpg_client} --batch --no-tty --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
+                    f"{self.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
                 ]
                 try:
                     self.executor.run(cmd)
                 except (ExecutorError, OSError) as e:
                     msg = (
-                        f"{self.component}:{self.dist}:{spec}: Failed to 'createrepo_c'"
+                        f"{self.component}:{self.dist}:{spec}:  Failed to sign metadata"
                     )
                     raise PublishError(msg) from e
 
@@ -353,11 +352,10 @@ class RPMPublishPlugin(PublishPlugin):
             log.info(f"{self.component}:{self.template}: Signing metadata.")
             repomd = target_dir / "repodata/repomd.xml"
             cmd = [
-                f"rm -f {repomd}.asc",
-                f"{self.gpg_client} --batch --no-tty --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
+                f"{self.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
             ]
             try:
                 self.executor.run(cmd)
             except (ExecutorError, OSError) as e:
-                msg = f"{self.component}:{self.template}: Failed to 'createrepo_c'"
+                msg = f"{self.component}:{self.template}: Failed to sign metadata"
                 raise PublishError(msg) from e
