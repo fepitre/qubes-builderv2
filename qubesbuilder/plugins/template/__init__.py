@@ -151,13 +151,14 @@ class TemplatePlugin(Plugin):
                     BUILD_DIR / "qubeized_images" / self.template.name / "root.img",
                     qubeized_image,
                 ),
-                (BUILD_DIR / f"build_timestamp_{self.template.name}", artifacts_dir),
                 (BUILD_DIR / f"rpmbuild/RPMS/noarch/{rpm}", artifacts_dir / "rpm"),
             ]
-
             cmd = [f"make -C {PLUGINS_DIR}/template prepare build"]
             try:
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to build template."
                 raise TemplateError(msg) from e
+
+            with open(artifacts_dir / f"build_timestamp_{self.template.name}", "w") as f:
+                f.write(template_timestamp)

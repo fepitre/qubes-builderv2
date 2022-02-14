@@ -29,12 +29,12 @@ templates:
   - fedora-35-xfce:
       dist: fc35
       flavor: xfce
-  - whonix-gw-16:
-      dist: bullseye
-      flavor: whonix-gateway
-      options:
-       - minimal
-       - no-recommends
+#  - whonix-gw-16:
+#      dist: bullseye
+#      flavor: whonix-gateway
+#      options:
+#       - minimal
+#       - no-recommends
 
 artifacts-dir: /home/user/qubes-builderv2/artifacts
 

@@ -66,11 +66,11 @@ def getSignPlugin(
     artifacts_dir: Path,
     **kwargs,
 ):
-    if dist.is_deb():
+    if dist.is_deb() and not component.is_template():
         sign_plugin = DEBSignPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
-    elif dist.is_rpm():
+    elif dist.is_rpm() or component.is_template():
         sign_plugin = RPMSignPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
@@ -87,11 +87,11 @@ def getPublishPlugin(
     artifacts_dir: Path,
     **kwargs,
 ):
-    if dist.is_deb():
+    if dist.is_deb() and not component.is_template():
         publish_plugin = DEBPublishPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
-    elif dist.is_rpm():
+    elif dist.is_rpm() or component.is_template():
         publish_plugin = RPMPublishPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
