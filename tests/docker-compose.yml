@@ -1,11 +1,5 @@
 version: '3'
 services:
-  base:
-    image: qubes-builder-fedora
-    build:
-      context: ..
-      dockerfile: dockerfiles/fedora.Dockerfile
-
   pytest:
     privileged: true
     build:

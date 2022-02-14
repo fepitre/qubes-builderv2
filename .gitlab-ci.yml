@@ -63,7 +63,7 @@ pytest:
       cobertura: artifacts/coverage.xml
   coverage: '/TOTAL.*\s(\d+)%/'
   script:
-    - docker pull fedora:latest
+    - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora:latest .
     - docker-compose -f tests/docker-compose.yml build pytest
     - docker-compose -f tests/docker-compose.yml run pytest
 
@@ -72,7 +72,7 @@ pytest:
 #
 
 .build_test_job:
-  stage: build
+  stage: test
   image: docker/compose:latest
   services:
     - docker:dind
@@ -82,8 +82,8 @@ pytest:
     paths:
       - artifacts
   script:
-    - docker pull fedora:latest
-    - docker-compose -f tests/docker-compose.yml build base "${CI_JOB_NAME}"
+    - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora:latest .
+    - docker-compose -f tests/docker-compose.yml build "${CI_JOB_NAME}"
     - docker-compose -f tests/docker-compose.yml run "${CI_JOB_NAME}"
 
 host-fc32:
