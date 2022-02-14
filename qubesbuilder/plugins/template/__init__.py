@@ -113,7 +113,7 @@ class TemplatePlugin(Plugin):
                 }
             )
 
-            rpm = f"qubes-{self.template.name}-{self.component.version}-{template_timestamp}.noarch.rpm"
+            rpm = f"qubes-template-{self.template.name}-{self.component.version}-{template_timestamp}.noarch.rpm"
 
             copy_in = [
                 (self.component.source_dir, BUILDER_DIR),
