@@ -27,7 +27,7 @@ from typing import List
 import click
 
 from qubesbuilder.cli.cli_base import ContextObj, aliased_group
-from qubesbuilder.config import Config
+from qubesbuilder.config import Config, STAGES
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.log import get_logger, init_logging
 from qubesbuilder.plugins.helpers import (
@@ -68,6 +68,13 @@ log = get_logger("cli")
     multiple=True,
     help="Override distribution in configuration file (can be repeated).",
 )
+@click.option(
+    "--template",
+    "-t",
+    default=None,
+    multiple=True,
+    help="Override template in configuration file (can be repeated).",
+)
 @click.pass_context
 def main(
     ctx: click.Context,
@@ -76,6 +83,7 @@ def main(
     builder_conf: str,
     component: List = None,
     distribution: List = None,
+    template: List = None,
 ):
     config = Config(builder_conf)
     ctx.obj = ContextObj(config)
@@ -105,18 +113,25 @@ def main(
                     components.append(comp)
         ctx.obj.components = components
 
+    if template:
+        templates = []
+        for template_name in template:
+            for tmpl in ctx.obj.templates:
+                if tmpl.name == template_name:
+                    templates.append(tmpl)
+        ctx.obj.templates = templates
+
+    # We ensure that requested distribution for template is in
+    # actual distributions for components.
+    for tmpl in ctx.obj.templates:
+        if tmpl.distribution not in ctx.obj.distributions:
+            ctx.obj.distributions.append(tmpl.distribution)
+
     if distribution:
         distributions = []
         for distribution_name in distribution:
             distributions.append(QubesDistribution(distribution_name))
         ctx.obj.distributions = distributions
-    else:
-        # We ensure that requested distribution for template is in
-        # actual distributions for components build only if
-        # distributions are not filtered by CLI.
-        for template in ctx.obj.templates:
-            if template.distribution not in ctx.obj.distributions:
-                ctx.obj.distributions.append(template.distribution)
 
 
 #
@@ -320,6 +335,13 @@ def publish(obj: ContextObj):
 #
 
 
+@click.command()
+@click.pass_obj
+def all(obj: ContextObj):
+    for stage in STAGES:
+        _stage(obj=obj, stage_name=stage)
+
+
 main.add_command(fetch)
 main.add_command(prep)
 main.add_command(build)
@@ -327,6 +349,9 @@ main.add_command(post)
 main.add_command(verify)
 main.add_command(sign)
 main.add_command(publish)
+
+main.add_command(all)
+
 main.add_alias(
     **{
         "f": "fetch",
