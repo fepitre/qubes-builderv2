@@ -139,7 +139,10 @@ class TemplatePlugin(Plugin):
             # Copy-in previously prepared base root img
             if (prepared_images / f"{self.template.name}.img").exists():
                 copy_in += [
-                    (prepared_images / f"{self.template.name}.img", BUILD_DIR / "prepared_images"),
+                    (
+                        prepared_images / f"{self.template.name}.img",
+                        BUILD_DIR / "prepared_images",
+                    ),
                 ]
 
             copy_out = [
@@ -160,5 +163,7 @@ class TemplatePlugin(Plugin):
                 msg = f"{self.component}:{self.dist}: Failed to build template."
                 raise TemplateError(msg) from e
 
-            with open(artifacts_dir / f"build_timestamp_{self.template.name}", "w") as f:
+            with open(
+                artifacts_dir / f"build_timestamp_{self.template.name}", "w"
+            ) as f:
                 f.write(template_timestamp)
