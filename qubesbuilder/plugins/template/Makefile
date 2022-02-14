@@ -18,7 +18,7 @@ ARTIFACTS_DIR ?= $(BUILDER_DIR)/artifacts
 
 # Required env variables for scripts
 REQUIRED_ENV := DIST_WITHOUT_FLAVOR DIST_NAME DIST_VER PLUGINS_DIR ARTIFACTS_DIR CACHE_DIR \
- 	TEMPLATE_CONTENT_DIR TEMPLATE_NAME PACKAGES_DIR
+ 	TEMPLATE_CONTENT_DIR TEMPLATE_NAME TEMPLATE_VERSION PACKAGES_DIR
 
 # Expose those variables to template-building scripts
 TEMPLATE_ENV_WHITELIST ?=
@@ -63,7 +63,7 @@ build-rootimg-qubeize: check
 	sudo env -i $(foreach var,$(TEMPLATE_ENV_WHITELIST),$(var)="$($(var))")	$(BUILDER_DIR)/scripts/qubeize-image $(ARTIFACTS_DIR)/prepared_images/$(TEMPLATE_NAME).img $(INSTALL_DIR)
 
 build-rpm: check
-	sudo env -i $(foreach var,$(TEMPLATE_ENV_WHITELIST),$(var)="$($(var))") $(BUILDER_DIR)/scripts/build-template-rpm $(TEMPLATE_NAME) $(ARTIFACTS_DIR)
+	sudo env -i $(foreach var,$(TEMPLATE_ENV_WHITELIST),$(var)="$($(var))") $(BUILDER_DIR)/scripts/build-template-rpm $(ARTIFACTS_DIR) $(TEMPLATE_NAME) $(TEMPLATE_VERSION) $(TEMPLATE_TIMESTAMP)
 
 clean:
 	sudo rm -fr $(ARTIFACTS_DIR)/qubeized_images/root.img.*

@@ -4,15 +4,15 @@
 #
 
 %{!?template_name: %global template_name %{getenv:TEMPLATE_NAME}}
-%{!?version: %global version %(cat version)}
-%{!?rel: %global rel %(cat build_timestamp_%{template_name} || echo unavailable)}
+%{!?template_version: %global template_version %{getenv:TEMPLATE_VERSION}}
+%{!?template_timestamp: %global template_timestamp %{getenv:TEMPLATE_TIMESTAMP}}
 
 %define dest_dir /var/lib/qubes/vm-templates/%{template_name}
 %define _binaries_in_noarch_packages_terminate_build 0
 
 Name:           qubes-template-%{template_name}
-Version:	    %{version}
-Release:	    %{rel}
+Version:	    %{template_version}
+Release:	    %{template_timestamp}
 Summary:	    Qubes OS template for %{template_name}
 License:	    GPLv3+
 URL:		    http://www.qubes-os.org
@@ -25,7 +25,7 @@ Requires:	    xdg-utils
 Requires(post):	tar
 BuildArch:      noarch
 Provides:	    qubes-template
-Obsoletes:      %{name} > %{version}-%{release}
+Obsoletes:      %{name} > %{template_version}-%{release}
 
 
 %description

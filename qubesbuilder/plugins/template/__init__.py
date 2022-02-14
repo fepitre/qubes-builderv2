@@ -100,6 +100,7 @@ class TemplatePlugin(Plugin):
                     "DIST_NAME": self.dist.fullname,
                     "DIST_VER": self.dist.version,
                     "TEMPLATE_NAME": self.template.name,
+                    "TEMPLATE_VERSION": self.component.version,
                     "TEMPLATE_FLAVOR": self.template.flavor,
                     "TEMPLATE_OPTIONS": " ".join(self.template.options),
                     "TEMPLATE_TIMESTAMP": template_timestamp,
