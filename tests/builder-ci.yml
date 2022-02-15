@@ -25,8 +25,6 @@ distributions:
   - vm-bullseye
   - vm-fc35
 
-artifacts-dir: /qubesbuilder/artifacts
-
 components:
   - python-qasync:
       url: https://github.com/fepitre/qubes-python-qasync
@@ -54,6 +52,22 @@ components:
       maintainers:
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
 
+templates:
+  - fedora-35-xfce:
+      dist: fc35
+      flavor: xfce
+  - bullseye:
+      dist: bullseye
+      options:
+       - standard
+       - firmware
+  - whonix-gw-16:
+      dist: bullseye
+      flavor: whonix-gateway
+      options:
+       - minimal
+       - no-recommends
+
 less-secure-signed-commits-sufficient:
   - python-qasync
   - core-vchan-xen
@@ -63,6 +77,7 @@ less-secure-signed-commits-sufficient:
 
 publish-repository:
   components: current-testing
+  templates: templates-itl-testing
 
 executor:
   type: docker

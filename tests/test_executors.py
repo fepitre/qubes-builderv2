@@ -83,7 +83,7 @@ def test_local_simple():
     reason="Qubes Admin VM is required!",
 )
 def test_qubes_simple():
-    executor = QubesExecutor()
+    executor = QubesExecutor("qubes-builder-dvm")
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a local file with some content
         hello = Path(temp_dir) / "hello.md"
@@ -114,7 +114,7 @@ def test_qubes_simple():
     reason="Qubes Admin VM is required!",
 )
 def test_qubes_environment():
-    executor = QubesExecutor()
+    executor = QubesExecutor("qubes-builder-dvm")
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a local file with some content
         hello = Path(temp_dir) / "hello.md"

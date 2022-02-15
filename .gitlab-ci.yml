@@ -1,10 +1,5 @@
 #
-# Qubes Builder CI
-#
-#  WIP: This repo will be soon integrated into our G2G
-#       setup in order to have 'vm' runner and 'qubes' runner.
-#       It will allow us to do more tests and especially
-#       validating QubesExecutor and template build process.
+# Qubes Builder Gitlab CI
 #
 
 stages:
@@ -22,6 +17,8 @@ variables:
 lint:
   stage: test
   image: fedora:latest
+  tags:
+    - docker
   before_script:
     - sudo dnf install -y python3-black
   script:
@@ -30,6 +27,8 @@ lint:
 mypy:
   stage: test
   image: fedora:latest
+  tags:
+    - docker
   before_script:
     - sudo dnf install -y python3-mypy python3-pip
     - sudo python3 -m pip install types-PyYAML
@@ -42,6 +41,8 @@ mypy:
 shellcheck:
   stage: test
   image: fedora:latest
+  tags:
+    - docker
   before_script:
     - sudo dnf install -y ShellCheck git
   script:
@@ -50,11 +51,8 @@ shellcheck:
 
 pytest:
   stage: test
-  image: docker/compose:latest
-  services:
-    - docker:dind
   tags:
-    - docker
+    - qubes
   artifacts:
     paths:
       - artifacts/htmlcov/
@@ -62,35 +60,85 @@ pytest:
       junit: artifacts/app.xml
       cobertura: artifacts/coverage.xml
   coverage: '/TOTAL.*\s(\d+)%/'
+  variables:
+    PYTHONPATH: .
   script:
-    - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora:latest .
-    - docker-compose -f tests/docker-compose.yml build pytest
-    - docker-compose -f tests/docker-compose.yml run pytest
+    - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
+    - pytest-3 -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml tests/
 
 #
-# build
+# build job skeleton
 #
 
-.build_test_job:
+.component_container_job:
   stage: test
-  image: docker/compose:latest
-  services:
-    - docker:dind
   tags:
-    - docker
+    - vm
   artifacts:
     paths:
       - artifacts
+  before_script:
+    - cp -r tests/gnupg ~/.gnupg
+    - chmod 700 ~/.gnupg
+    - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
   script:
-    - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora:latest .
-    - docker-compose -f tests/docker-compose.yml build "${CI_JOB_NAME}"
-    - docker-compose -f tests/docker-compose.yml run "${CI_JOB_NAME}"
+    - cp tests/builder-ci.yml builder.yml
+    - ./qb -d "${CI_JOB_NAME#container-}" qubes
 
-host-fc32:
-  extends: .build_test_job
+.component_qubes_job:
+  stage: test
+  tags:
+    - qubes
+  artifacts:
+    paths:
+      - artifacts
+  before_script:
+    - cp -r tests/gnupg ~/.gnupg
+    - chmod 700 ~/.gnupg
+  script:
+    - cp tests/builder-ci.yml builder.yml
+    - sed -i 's/docker/qubes/' builder.yml
+    - "sed -i 's|image:.*|dispvm: \"qubes-builder-dvm\"|' builder.yml"
+    - ./qb -d "${CI_JOB_NAME#qubes-}" qubes
 
-vm-fc35:
-  extends: .build_test_job
+.template_qubes_job:
+  stage: test
+  tags:
+    - qubes
+  before_script:
+    - cp -r tests/gnupg ~/.gnupg
+    - chmod 700 ~/.gnupg
+  script:
+    - cp tests/builder-ci.yml builder.yml
+    - sed -i 's/docker/qubes/' builder.yml
+    - "sed -i 's|image:.*|dispvm: \"qubes-builder-dvm\"|' builder.yml"
+    - ./qb -t "${CI_JOB_NAME#qubes-}" template
 
-vm-bullseye:
-  extends: .build_test_job
+#
+# Container executor
+#
+
+container-host-fc32:
+  extends: .component_container_job
+
+container-vm-fc35:
+  extends: .component_container_job
+
+container-vm-bullseye:
+  extends: .component_container_job
+
+#
+# Qubes executor
+#
+
+qubes-host-fc32:
+  extends: .component_qubes_job
+
+qubes-vm-fc35:
+  extends: .component_qubes_job
+
+qubes-vm-bullseye:
+  extends: .component_qubes_job
+
+qubes-fedora-35-xfce:
+  extends: .template_qubes_job
