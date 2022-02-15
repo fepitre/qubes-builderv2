@@ -104,57 +104,63 @@ class ContainerExecutor(Executor):
         no_fail_copy_out=False,
     ):
 
-        with self.get_client() as client:
-            # prepare container for given image and command
-            image = client.images.get(self.attrs["Id"])
-            # FIXME: create a disposable container that will be removed after execution
-            cmd = ["bash", "-c", "&&".join(cmd)]
-            container = client.containers.create(
-                image, cmd, privileged=True, environment=environment
-            )
-            log.info(f"Executing '{' '.join(cmd)}' in {container}...")
+        container = None
 
-            # copy-in hook
-            for src_in, dst_in in copy_in or []:
-                self.copy_in(container, source_path=src_in, destination_dir=dst_in)
+        try:
+            with self.get_client() as client:
+                # prepare container for given image and command
+                image = client.images.get(self.attrs["Id"])
+                # FIXME: create a disposable container that will be removed after execution
+                cmd = ["bash", "-c", "&&".join(cmd)]
+                container = client.containers.create(
+                    image, cmd, privileged=True, environment=environment
+                )
+                log.info(f"Executing '{' '.join(cmd)}' in {container}...")
 
-            # run container
-            container.start()
+                # copy-in hook
+                for src_in, dst_in in copy_in or []:
+                    self.copy_in(container, source_path=src_in, destination_dir=dst_in)
 
-            # stream output
-            process = subprocess.Popen(
-                [self._container_client, "logs", "-f", container.id],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-            )
-            while True:
-                if not process.stdout:
-                    break
-                line = process.stdout.readline()
-                if process.poll() is not None:
-                    break
-                if line:
-                    log.info(f"output: {sanitize_line(line).rstrip()}")
-            rc = process.poll()
-            if rc != 0:
-                raise ExecutorError(f"Failed to stream output (status={rc}).")
+                # run container
+                container.start()
 
-            # wait container
-            status = container.wait()
-            if self._container_client == "docker":
-                status = status["StatusCode"]
-            if status != 0:
-                raise ExecutorError(f"Failed to run '{cmd}' (status={status}).")
+                # stream output
+                process = subprocess.Popen(
+                    [self._container_client, "logs", "-f", container.id],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
+                while True:
+                    if not process.stdout:
+                        break
+                    line = process.stdout.readline()
+                    if process.poll() is not None:
+                        break
+                    if line:
+                        log.info(f"output: {sanitize_line(line).rstrip()}")
+                rc = process.poll()
+                if rc != 0:
+                    raise ExecutorError(f"Failed to stream output (status={rc}).")
 
-            # copy-out hook
-            for src_out, dst_out in copy_out or []:
-                try:
-                    self.copy_out(
-                        container, source_path=src_out, destination_dir=dst_out
-                    )
-                except ExecutorError as e:
-                    # Ignore copy-out failure if requested
-                    if no_fail_copy_out:
-                        log.warning(f"File not found inside container: {src_out}.")
-                        continue
-                    raise e
+                # wait container
+                status = container.wait()
+                if self._container_client == "docker":
+                    status = status["StatusCode"]
+                if status != 0:
+                    raise ExecutorError(f"Failed to run '{cmd}' (status={status}).")
+
+                # copy-out hook
+                for src_out, dst_out in copy_out or []:
+                    try:
+                        self.copy_out(
+                            container, source_path=src_out, destination_dir=dst_out
+                        )
+                    except ExecutorError as e:
+                        # Ignore copy-out failure if requested
+                        if no_fail_copy_out:
+                            log.warning(f"File not found inside container: {src_out}.")
+                            continue
+                        raise e
+        finally:
+            if container:
+                container.remove()
