@@ -31,7 +31,15 @@ from qubesbuilder.executors.helpers import getExecutor
 from qubesbuilder.log import get_logger
 
 STAGES = ["fetch", "prep", "build", "post", "verify", "sign", "publish"]
-
+STAGES_ALIAS = {
+    "f": "fetch",
+    "pr": "prep",
+    "b": "build",
+    "po": "post",
+    "v": "verify",
+    "s": "sign",
+    "pu": "publish",
+}
 log = get_logger("config")
 
 

@@ -145,7 +145,7 @@ artifacts/
 ├── distfiles           <- Extra source files.
 ├── repository          <- Qubes local builder repository (metadata are generated each time inside cages).
 ├── repository-publish  <- Qubes OS repositories that are synced to {yum,deb,...}.qubes-os.org.
-└── sources             <- Qubes component source.
+└── sources             <- Qubes components source.
 ```
 
 ### Signing with Split GPG

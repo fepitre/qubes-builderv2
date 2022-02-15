@@ -83,7 +83,7 @@ pytest:
     - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
   script:
     - cp tests/builder-ci.yml builder.yml
-    - ./qb -d "${CI_JOB_NAME#container-}" qubes
+    - ./qb -d "${CI_JOB_NAME#container-}" package all
 
 .component_qubes_job:
   stage: test
@@ -99,7 +99,7 @@ pytest:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/qubes/' builder.yml
     - "sed -i 's|image:.*|dispvm: \"qubes-builder-dvm\"|' builder.yml"
-    - ./qb -d "${CI_JOB_NAME#qubes-}" qubes
+    - ./qb -d "${CI_JOB_NAME#qubes-}" package all
 
 .template_qubes_job:
   stage: test
@@ -112,7 +112,7 @@ pytest:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/qubes/' builder.yml
     - "sed -i 's|image:.*|dispvm: \"qubes-builder-dvm\"|' builder.yml"
-    - ./qb -t "${CI_JOB_NAME#qubes-}" template
+    - ./qb -t "${CI_JOB_NAME#qubes-}" template all
 
 #
 # Container executor

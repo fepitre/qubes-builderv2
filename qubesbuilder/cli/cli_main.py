@@ -21,27 +21,21 @@
 QubesBuilder command-line interface.
 """
 
-from pathlib import Path
 from typing import List
 
 import click
 
 from qubesbuilder.cli.cli_base import ContextObj, aliased_group
+from qubesbuilder.cli.cli_package import package
+from qubesbuilder.cli.cli_template import template
 from qubesbuilder.config import Config, STAGES
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.log import get_logger, init_logging
-from qubesbuilder.plugins.helpers import (
-    getSourcePlugin,
-    getBuildPlugin,
-    getSignPlugin,
-    getPublishPlugin,
-    getTemplatePlugin,
-)
 
 log = get_logger("cli")
 
 
-@aliased_group("qb", chain=True)
+@aliased_group("qb")
 @click.option("--verbose/--no-verbose", default=None, is_flag=True, help="Output logs.")
 @click.option(
     "--debug/--no-debug",
@@ -85,6 +79,10 @@ def main(
     distribution: List = None,
     template: List = None,
 ):
+    """
+    Main CLI
+
+    """
     config = Config(builder_conf)
     ctx.obj = ContextObj(config)
 
@@ -134,232 +132,14 @@ def main(
         ctx.obj.distributions = distributions
 
 
-#
-# Generic function to trigger stage
-#
-# FIXME: Find a better design to register necessary plugins for each stage.
-def _stage(obj: ContextObj, stage_name: str):
-    click.echo(f"Running stage: {stage_name}")
-    executor = obj.config.get_stages()[stage_name]["executor"]
+main.epilog = f"""Stages:
+    {' '.join(STAGES)}
 
-    # Qubes components
-    for component in obj.components:
-        if component.is_template():
-            continue
-        for dist in obj.distributions:
-            plugins = [
-                getSourcePlugin(
-                    component=component,
-                    dist=dist,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    skip_if_exists=obj.config.get("reuse-fetched-source"),
-                ),
-                getBuildPlugin(
-                    component=component,
-                    dist=dist,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    use_qubes_repo=obj.config.get("use-qubes-repo"),
-                ),
-                getSignPlugin(
-                    component=component,
-                    dist=dist,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key"),
-                ),
-                getPublishPlugin(
-                    component=component,
-                    dist=dist,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key"),
-                    qubes_release=obj.config.get("qubes-release"),
-                    publish_repository=obj.config.get("publish-repository"),
-                ),
-            ]
-            for plugin in plugins:
-                plugin.run(stage=stage_name)
+Remark:
+    The Qubes OS components are separated in two groups: standard and template
+    components. Standard components will produce distributions packages and
+    template components will produce template packages.
+"""
 
-    # Qubes templates
-    for component in obj.components:
-        if not component.is_template():
-            continue
-        for template in obj.templates:
-            plugins = [
-                getSourcePlugin(
-                    component=component,
-                    dist=template.distribution,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    skip_if_exists=obj.config.get("reuse-fetched-source"),
-                ),
-                getTemplatePlugin(
-                    component=component,
-                    template=template,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    use_qubes_repo=obj.config.get("use-qubes-repo"),
-                ),
-                getSignPlugin(
-                    component=component,
-                    template=template,
-                    dist=template.distribution,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key"),
-                ),
-                getPublishPlugin(
-                    component=component,
-                    template=template,
-                    dist=template.distribution,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key"),
-                    qubes_release=obj.config.get("qubes-release"),
-                    publish_repository=obj.config.get("publish-repository"),
-                ),
-            ]
-            for plugin in plugins:
-                plugin.run(stage=stage_name)
-
-
-#
-# Fetch
-#
-
-
-@click.command()
-@click.pass_obj
-def fetch(obj: ContextObj):
-    _stage(obj=obj, stage_name="fetch")
-
-
-#
-# Prep
-#
-
-
-@click.command()
-@click.pass_obj
-def prep(obj: ContextObj):
-    _stage(obj=obj, stage_name="prep")
-
-
-#
-# Build
-#
-
-
-@click.command()
-@click.pass_obj
-def build(obj: ContextObj):
-    _stage(obj=obj, stage_name="build")
-
-
-#
-# Post
-#
-
-
-@click.command()
-@click.pass_obj
-def post(obj: ContextObj):
-    _stage(obj=obj, stage_name="post")
-
-
-#
-# Verify
-#
-
-
-@click.command()
-@click.pass_obj
-def verify(obj: ContextObj):
-    _stage(obj=obj, stage_name="verify")
-
-
-#
-# Sign
-#
-
-
-@click.command()
-@click.pass_obj
-def sign(obj: ContextObj):
-    _stage(obj=obj, stage_name="sign")
-
-
-#
-# Publish
-#
-
-
-@click.command()
-@click.pass_obj
-def publish(obj: ContextObj):
-    _stage(obj=obj, stage_name="publish")
-
-
-#
-#
-#
-
-
-@click.command()
-@click.pass_obj
-def all(obj: ContextObj):
-    for stage in STAGES:
-        _stage(obj=obj, stage_name=stage)
-
-
-main.add_command(fetch)
-main.add_command(prep)
-main.add_command(build)
-main.add_command(post)
-main.add_command(verify)
-main.add_command(sign)
-main.add_command(publish)
-
-main.add_command(all)
-
-main.add_alias(
-    **{
-        "f": "fetch",
-        "pr": "prep",
-        "b": "build",
-        "po": "post",
-        "v": "verify",
-        "s": "sign",
-        "pu": "publish",
-    }
-)
+main.add_command(package)
+main.add_command(template)

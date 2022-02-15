@@ -51,6 +51,7 @@ class AliasedGroup(click.Group):
         super().__init__(*args, **kwargs)
         self.aliases = {}
         self.debug = False
+        self.list_commands = self.list_commands_for_help
 
     def __call__(self, *args, **kwargs):
         try:
@@ -89,6 +90,15 @@ class AliasedGroup(click.Group):
         """
         assert all(alias not in (*self.aliases, *self.commands) for alias in kwargs)
         self.aliases.update(kwargs)
+
+    def format_epilog(self, ctx, formatter):
+        if self.epilog:
+            formatter.write_paragraph()
+            for line in self.epilog.split("\n"):
+                formatter.write_text(line)
+
+    def list_commands_for_help(self, ctx):
+        return list(self.commands.keys())
 
 
 def aliased_group(name=None, **kwargs) -> Callable[[Callable], AliasedGroup]:
