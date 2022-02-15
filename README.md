@@ -55,7 +55,8 @@ $ sudo dnf install -y createrepo_c debootstrap devscripts dpkg-dev git mock pbui
 ```
 
 Then, clone default DispVM based on Fedora 35 `fedora-35-dvm` as `qubes-builder-dvm`. Set at least `30GB` for its
-private volume.You need to install `rpc/qubesbuilder.FileCopyIn` and `rpc/qubesbuilder.FileCopyOut` inside `fedora-35`.
+private volume.You need to install `rpc/qubesbuilder.FileCopyIn` and `rpc/qubesbuilder.FileCopyOut` in
+`qubes-builder-dvm` at location `/usr/local/etc/qubes-rpc`.
 
 Assuming that your qube hosting `qubes-builder` is called `work-qubesos` (else you need to adjust policies), in `dom0`,
 copy `rpc/policy/50-qubesbuilder.policy` to `/etc/qubes/policy.d`.
@@ -74,6 +75,12 @@ Append to `/rw/config/rc.local` the following:
 ```
 mount /builder -o dev,suid,remount
 ```
+
+Set default DispVM of `work-qubesos` being `qubes-builder-dvm`:
+```bash
+$ qvm-prefs work-qubesos default_dispvm qubes-builder-dvm
+```
+
 ### Build stages
 
 The whole build process occurs during those ordered stages:
