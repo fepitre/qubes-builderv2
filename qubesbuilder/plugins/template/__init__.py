@@ -101,6 +101,7 @@ class TemplatePlugin(Plugin):
             prepared_images = artifacts_dir / "prepared_images"
             qubeized_image = artifacts_dir / "qubeized_images" / self.template.name
 
+            repository_dir.mkdir(parents=True, exist_ok=True)
             prepared_images.mkdir(parents=True, exist_ok=True)
             qubeized_image.mkdir(parents=True, exist_ok=True)
 
