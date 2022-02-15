@@ -50,7 +50,8 @@ template-name:
 
 prepare:
 	@echo "Building template: $(TEMPLATE_NAME) ($(TEMPLATE_TIMESTAMP))"
-	@echo $(TEMPLATE_TIMESTAMP) > $(ARTIFACTS_DIR)/build_timestamp_$(TEMPLATE_NAME)
+	mkdir -p $(ARTIFACTS_DIR)
+	echo $(TEMPLATE_TIMESTAMP) > $(ARTIFACTS_DIR)/build_timestamp_$(TEMPLATE_NAME)
 
 build: build-rootimg build-rpm
 
