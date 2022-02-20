@@ -139,7 +139,7 @@ class DEBSourcePlugin(SourcePlugin):
                 except ExecutorError as e:
                     msg = (
                         f"{self.component}:{self.dist}:{directory}: "
-                        f"Failed to get source information."
+                        f"Failed to get source information: {str(e)}."
                     )
                     raise SourceError(msg) from e
 
@@ -233,7 +233,7 @@ class DEBSourcePlugin(SourcePlugin):
                         cmd, copy_in, copy_out, environment=self.environment
                     )
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: Failed to generate source."
+                    msg = f"{self.component}:{self.dist}:{directory}: Failed to generate source: {str(e)}."
                     raise SourceError(msg) from e
 
                 # Read packages list
@@ -263,8 +263,8 @@ class DEBSourcePlugin(SourcePlugin):
                     os.remove(artifacts_dir / f"{directory}_package_release_name")
                     os.remove(artifacts_dir / f"{directory}_packages.list")
                 except (PermissionError, yaml.YAMLError) as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: Failed to write source info."
+                    msg = f"{self.component}:{self.dist}:{directory}: Failed to write source info: {str(e)}."
                     raise SourceError(msg) from e
                 except OSError as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: Failed to clean artifacts."
+                    msg = f"{self.component}:{self.dist}:{directory}: Failed to clean artifacts: {str(e)}."
                     raise SourceError(msg) from e

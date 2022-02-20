@@ -136,7 +136,7 @@ class RPMSourcePlugin(SourcePlugin):
                         cmd, copy_in, copy_out, environment=self.environment
                     )
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to get source information."
+                    msg = f"{self.component}:{self.dist}:{spec}: Failed to get source information: {str(e)}."
                     raise SourceError(msg) from e
 
                 # Read package release name
@@ -223,9 +223,7 @@ class RPMSourcePlugin(SourcePlugin):
                         cmd, copy_in, copy_out, environment=self.environment
                     )
                 except ExecutorError as e:
-                    msg = (
-                        f"{self.component}:{self.dist}:{spec}: Failed to generate SRPM."
-                    )
+                    msg = f"{self.component}:{self.dist}:{spec}: Failed to generate SRPM: {str(e)}."
                     raise SourceError(msg) from e
 
                 # Save package information we parsed for next stages
@@ -238,8 +236,8 @@ class RPMSourcePlugin(SourcePlugin):
                     os.remove(artifacts_dir / f"{spec_bn}_package_release_name")
                     os.remove(artifacts_dir / f"{spec_bn}_packages.list")
                 except (PermissionError, yaml.YAMLError) as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to write source info."
+                    msg = f"{self.component}:{self.dist}:{spec}: Failed to write source info: {str(e)}."
                     raise SourceError(msg) from e
                 except OSError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to clean artifacts."
+                    msg = f"{self.component}:{self.dist}:{spec}: Failed to clean artifacts: {str(e)}."
                     raise SourceError(msg) from e

@@ -255,7 +255,7 @@ class DEBBuildPlugin(BuildPlugin):
                         no_fail_copy_out=True,
                     )
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: Failed to build packages."
+                    msg = f"{self.component}:{self.dist}:{directory}: Failed to build packages: {str(e)}."
                     raise BuildError(msg) from e
 
                 # Get packages list that have been actually built from predicted ones

@@ -238,7 +238,7 @@ class RPMBuildPlugin(BuildPlugin):
                         no_fail_copy_out=True,
                     )
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to build RPMs."
+                    msg = f"{self.component}:{self.dist}:{spec}: Failed to build RPMs: {str(e)}."
                     raise BuildError(msg) from e
 
                 # Get packages list that have been actually built from predicted ones
