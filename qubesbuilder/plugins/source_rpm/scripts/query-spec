@@ -41,13 +41,6 @@ fi
 
 [[ "x$(basename "${spec_file}.in")" == "x.in" ]] && exit 0
 
-# $RPM_QUERY_DEFINES doesn't work here for multiple reasons:
-# - it isn't exported by Makefile.rpmbuilder
-# - it contains quoted spaces, which aren't handled properly when are part of a
-#   variable
-# To workaround this, define %{dist} manually - should be good enough for most
-# queries done through this script.
-
 if [ -r "${spec_file}.in" ]; then
     #rpm -q $RPM_QUERY_DEFINES --qf "$2" --specfile <(`dirname $0`/generate-spec "${spec_file}.in" /dev/stdout) 2>/dev/null
     # need to create a file due to a bug in process substitution (e.g. artwork package)
@@ -58,8 +51,7 @@ if [ -r "${spec_file}.in" ]; then
     elif [ "${query_field}" = "PACKAGES_LIST" ]; then
         "$(dirname "$0")"/query-builtrpms "${tmp_spec}" "$dist" 2>$ERR_OUTPUT
     else
-        rpm -q --define "dist .$dist" \
-            --qf "${query_field}" --specfile "${tmp_spec}" 2>$ERR_OUTPUT
+        rpm -q --define "dist .$dist" --qf "${query_field}" --specfile "${tmp_spec}" 2>$ERR_OUTPUT
     fi
     rm -f "${tmp_spec}"
 else
@@ -68,7 +60,6 @@ else
     elif [ "${query_field}" = "PACKAGES_LIST" ]; then
         "$(dirname "$0")"/query-builtrpms "${tmp_spec}" "$dist" 2>$ERR_OUTPUT
     else
-        rpm -q --define "dist .$dist" \
-            --qf "${query_field}" --specfile "${spec_file}" 2>$ERR_OUTPUT
+        rpm -q --define "dist .$dist" --qf "${query_field}" --specfile "${spec_file}" 2>$ERR_OUTPUT
     fi
 fi
