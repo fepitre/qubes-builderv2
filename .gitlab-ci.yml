@@ -70,7 +70,7 @@ pytest:
 # build job skeleton
 #
 
-.component_container_job:
+.component_docker_job:
   stage: test
   tags:
     - vm
@@ -83,7 +83,25 @@ pytest:
     - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
   script:
     - cp tests/builder-ci.yml builder.yml
-    - ./qb -d "${CI_JOB_NAME#container-}" package all
+    - ./qb -d "${CI_JOB_NAME#docker-}" package all
+
+.component_podman_job:
+  stage: test
+  tags:
+    - vm
+  artifacts:
+    paths:
+      - artifacts
+  before_script:
+    - cp -r tests/gnupg ~/.gnupg
+    - chmod 700 ~/.gnupg
+    - systemctl --user start podman
+    - podman build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
+  script:
+    - cp tests/builder-ci.yml builder.yml
+    - sed -i 's/docker/podman/' builder.yml
+    - ./qb -d "${CI_JOB_NAME#podman-}" package all
+
 
 .component_qubes_job:
   stage: test
@@ -115,17 +133,30 @@ pytest:
     - ./qb -t "${CI_JOB_NAME#qubes-}" template all
 
 #
-# Container executor
+# Podman executor
 #
 
-container-host-fc32:
-  extends: .component_container_job
+podman-host-fc32:
+  extends: .component_podman_job
 
-container-vm-fc35:
-  extends: .component_container_job
+podman-vm-fc35:
+  extends: .component_podman_job
 
-container-vm-bullseye:
-  extends: .component_container_job
+podman-vm-bullseye:
+  extends: .component_podman_job
+
+#
+# Docker executor
+#
+
+docker-host-fc32:
+  extends: .component_docker_job
+
+docker-vm-fc35:
+  extends: .component_docker_job
+
+docker-vm-bullseye:
+  extends: .component_docker_job
 
 #
 # Qubes executor

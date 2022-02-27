@@ -16,6 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import json
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path, PurePath
@@ -112,6 +113,10 @@ class ContainerExecutor(Executor):
                 image = client.images.get(self.attrs["Id"])
                 # FIXME: create a disposable container that will be removed after execution
                 cmd = ["bash", "-c", "&&".join(cmd)]
+                # FIXME: https://github.com/containers/podman/issues/11984
+                if self._container_client == "podman":
+                    for k, v in environment.copy().items():
+                        environment[k] = str(v)
                 container = client.containers.create(
                     image, cmd, privileged=True, environment=environment
                 )
