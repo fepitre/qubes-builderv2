@@ -130,7 +130,7 @@ pytest:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/qubes/' builder.yml
     - "sed -i 's|image:.*|dispvm: \"qubes-builder-dvm\"|' builder.yml"
-    - ./qb -t "${CI_JOB_NAME#qubes-}" template all
+    - ./qb -t "${CI_JOB_NAME#qubes-template-}" template all
 
 #
 # Podman executor
@@ -171,5 +171,5 @@ qubes-vm-fc35:
 qubes-vm-bullseye:
   extends: .component_qubes_job
 
-qubes-fedora-35-xfce:
+qubes-template-fedora-35-xfce:
   extends: .template_qubes_job
