@@ -142,8 +142,8 @@ podman-host-fc32:
 podman-vm-fc35:
   extends: .component_podman_job
 
-podman-vm-bullseye:
-  extends: .component_podman_job
+#podman-vm-bullseye:
+#  extends: .component_podman_job
 
 #
 # Docker executor
