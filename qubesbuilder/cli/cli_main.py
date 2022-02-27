@@ -86,6 +86,9 @@ def main(
     config = Config(builder_conf)
     ctx.obj = ContextObj(config)
 
+    # debug mode is also provided by builder configuration
+    ctx.command.debug = ctx.obj.config.debug  # type: ignore
+
     # verbose or debug is overridden by cli options
     if verbose is not None:
         ctx.obj.config.verbose = verbose
