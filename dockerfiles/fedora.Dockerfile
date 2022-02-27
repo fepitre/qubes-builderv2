@@ -8,10 +8,6 @@ RUN dnf -y update && \
         python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev \
     && dnf clean all
 
-RUN dnf -y update && \
-    dnf install -y systemd-udev \
-    && dnf clean all
-
 RUN mkdir /builder /builder/plugins /builder/build
 
 RUN useradd -m user -u 1000
