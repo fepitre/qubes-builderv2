@@ -53,7 +53,7 @@ def _template_stage(obj: ContextObj, stage_name: str):
                 ),
                 getSignPlugin(
                     component=component,
-                    template=template,
+                    template=tmpl,
                     dist=tmpl.distribution,
                     plugins_dir=obj.config.get_plugins_dir(),
                     executor=executor,
@@ -65,7 +65,7 @@ def _template_stage(obj: ContextObj, stage_name: str):
                 ),
                 getPublishPlugin(
                     component=component,
-                    template=template,
+                    template=tmpl,
                     dist=tmpl.distribution,
                     plugins_dir=obj.config.get_plugins_dir(),
                     executor=executor,
