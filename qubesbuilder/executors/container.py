@@ -126,12 +126,10 @@ class ContainerExecutor(Executor):
                 for src_in, dst_in in copy_in or []:
                     self.copy_in(container, source_path=src_in, destination_dir=dst_in)
 
-                # run container
-                container.start()
-
-                # stream output
+                # FIXME: use attach method when podman-py will implement it
+                # start and attach for streaming output
                 process = subprocess.Popen(
-                    [self._container_client, "logs", "-f", container.id],
+                    [self._container_client, "start", "--attach", container.id],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                 )
@@ -145,14 +143,7 @@ class ContainerExecutor(Executor):
                         log.info(f"output: {sanitize_line(line).rstrip()}")
                 rc = process.poll()
                 if rc != 0:
-                    raise ExecutorError(f"Failed to stream output (status={rc}).")
-
-                # wait container
-                status = container.wait()
-                if self._container_client == "docker":
-                    status = status["StatusCode"]
-                if status != 0:
-                    raise ExecutorError(f"Failed to run '{cmd}' (status={status}).")
+                    raise ExecutorError(f"Failed to run '{cmd}' (status={rc}).")
 
                 # copy-out hook
                 for src_out, dst_out in copy_out or []:
@@ -168,4 +159,5 @@ class ContainerExecutor(Executor):
                         raise e
         finally:
             if container:
+                container.wait()
                 container.remove()
