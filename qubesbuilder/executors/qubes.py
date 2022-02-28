@@ -135,7 +135,7 @@ class QubesExecutor(Executor):
                 f'env {" ".join(bash_env)} bash -c \'{" && ".join(cmd)}\'',
             ]
 
-            log.info(f"Executing '{' '.join(qvm_run_cmd)}' in DispVM...")
+            log.info(f"{dispvm}: Executing '{' '.join(qvm_run_cmd)}'.")
 
             # stream output for command
             process = subprocess.Popen(
@@ -143,15 +143,16 @@ class QubesExecutor(Executor):
             )
             while True:
                 if not process.stdout:
+                    log.error(f"{dispvm}: No output!")
                     break
                 if process.poll() is not None:
                     break
                 for line in process.stdout:
-                    log.info(f"output: {sanitize_line(line).rstrip()}")
+                    log.info(f"{dispvm}: output: {sanitize_line(line).rstrip()}")
             rc = process.poll()
             if rc != 0:
                 raise ExecutorError(
-                    f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
+                    f"{dispvm}: Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
                 )
 
             # copy-out hook

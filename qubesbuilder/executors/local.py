@@ -58,7 +58,7 @@ class LocalExecutor(Executor):
 
         cmd = ["bash", "-c", "&&".join(cmd)]
 
-        log.info(f"Executing '{' '.join(cmd)}' locally...")
+        log.info(f"localhost: Executing '{' '.join(cmd)}'.")
 
         # copy-in hook
         for src, dst in copy_in or []:
@@ -70,15 +70,15 @@ class LocalExecutor(Executor):
         )
         while True:
             if not process.stdout:
+                log.error(f"localhost: No output!")
                 break
-            line = process.stdout.readline()
             if process.poll() is not None:
                 break
-            if line:
-                log.info(f"output: {sanitize_line(line).rstrip()}")
+            for line in process.stdout:
+                log.info(f"localhost: output: {sanitize_line(line).rstrip()}")
         rc = process.poll()
         if rc != 0:
-            raise ExecutorError(f"Failed to run '{cmd}' (status={rc}).")
+            raise ExecutorError(f"localhost: Failed to run '{cmd}' (status={rc}).")
 
         # copy-out hook
         for src, dst in copy_out or []:
