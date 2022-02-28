@@ -102,32 +102,32 @@ class SourcePlugin(Plugin):
                     shutil.rmtree(str(local_source_dir))
                 else:
                     log.info(f"{self.component}: source already fetched. Skipping.")
-                    return
 
-            # Get GIT source for a given Qubes OS component
-            copy_in = [(self.plugins_dir / "source", PLUGINS_DIR)]
-            copy_out = [(source_dir, self.get_sources_dir())]
-            get_sources_cmd = [
-                str(PLUGINS_DIR / "source/scripts/get-and-verify-source"),
-                "--component",
-                self.component.name,
-                "--git-branch",
-                self.component.branch,
-                "--git-url",
-                self.component.url,
-                "--keyring-dir-git",
-                str(BUILDER_DIR / "keyring"),
-                "--keys-dir",
-                str(PLUGINS_DIR / "source/keys"),
-            ]
-            for maintainer in self.component.maintainers:
-                get_sources_cmd += ["--maintainer", maintainer]
-            if self.component.insecure_skip_checking:
-                get_sources_cmd += ["--insecure-skip-checking"]
-            if self.component.less_secure_signed_commits_sufficient:
-                get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
-            cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
-            self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            if not local_source_dir.exists():
+                # Get GIT source for a given Qubes OS component
+                copy_in = [(self.plugins_dir / "source", PLUGINS_DIR)]
+                copy_out = [(source_dir, self.get_sources_dir())]
+                get_sources_cmd = [
+                    str(PLUGINS_DIR / "source/scripts/get-and-verify-source"),
+                    "--component",
+                    self.component.name,
+                    "--git-branch",
+                    self.component.branch,
+                    "--git-url",
+                    self.component.url,
+                    "--keyring-dir-git",
+                    str(BUILDER_DIR / "keyring"),
+                    "--keys-dir",
+                    str(PLUGINS_DIR / "source/keys"),
+                ]
+                for maintainer in self.component.maintainers:
+                    get_sources_cmd += ["--maintainer", maintainer]
+                if self.component.insecure_skip_checking:
+                    get_sources_cmd += ["--insecure-skip-checking"]
+                if self.component.less_secure_signed_commits_sufficient:
+                    get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
+                cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
+                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
             # Update parameters based on previously fetched sources as .qubesbuilder
             # is now available.
@@ -139,6 +139,14 @@ class SourcePlugin(Plugin):
             # Download and verify files given in .qubesbuilder
             for file in self.parameters.get("files", []):
                 fn = os.path.basename(file["url"])
+                if (distfiles_dir / fn).exists():
+                    if not self.skip_if_exists:
+                        os.remove(distfiles_dir / fn)
+                    else:
+                        log.info(
+                            f"{self.component}: file {fn} already downloaded. Skipping."
+                        )
+                        continue
                 copy_in = [
                     (self.plugins_dir / "source", PLUGINS_DIR),
                     (self.component.source_dir, BUILDER_DIR),
