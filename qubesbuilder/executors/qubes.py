@@ -144,10 +144,9 @@ class QubesExecutor(Executor):
             while True:
                 if not process.stdout:
                     break
-                line = process.stdout.readline()
                 if process.poll() is not None:
                     break
-                if line:
+                for line in process.stdout:
                     log.info(f"output: {sanitize_line(line).rstrip()}")
             rc = process.poll()
             if rc != 0:
