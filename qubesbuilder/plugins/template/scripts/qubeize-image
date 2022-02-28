@@ -16,8 +16,11 @@ BUILDER_SCRIPTS_DIR="$(dirname "$0")"
 LC_ALL=POSIX
 IMG="${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}/root.img"
 
+# shellcheck source=qubesbuilder/plugins/template/scripts/builder-setup
 . "${BUILDER_SCRIPTS_DIR}"/builder-setup >/dev/null
+# shellcheck source=qubesbuilder/plugins/template/scripts/umount-kill
 . "${BUILDER_SCRIPTS_DIR}"/umount-kill >/dev/null
+# shellcheck source=qubesbuilder/plugins/template/scripts/functions.sh
 . "${BUILDER_SCRIPTS_DIR}"/functions.sh >/dev/null
 
 if [ $# -ne 2 ]; then

@@ -79,7 +79,7 @@ calc_sha1 main/binary-amd64/Packages.gz >> "dists/$SUITE/Release"
 
 # Provision the local repository based on *.changes files
 mapfile -d $'\0' changes_files < <(find "${REPO_DIR}" -name '*.changes' -not -path "${REPO_DIR}/dists" -not -path "${REPO_DIR}/pool" -print0)
-for changes in ${changes_files[*]}
+for changes in "${changes_files[@]}"
 do
     reprepro -b "${REPO_DIR}" --ignore=surprisingbinary --ignore=surprisingarch include "$SUITE" "$changes"
 done

@@ -17,7 +17,9 @@ LC_ALL=POSIX
 
 RETCODE=0
 
+# shellcheck source=qubesbuilder/plugins/template/scripts/builder-setup
 . "${BUILDER_SCRIPTS_DIR}"/builder-setup >/dev/null
+# shellcheck source=qubesbuilder/plugins/template/scripts/umount-kill
 . "${BUILDER_SCRIPTS_DIR}"/umount-kill >/dev/null
 
 if [ $# -ne 2 ]; then

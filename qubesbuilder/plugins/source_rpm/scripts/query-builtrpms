@@ -41,7 +41,7 @@ version_release_arch="$(rpmspec --srpm --define "dist .${DIST_TAG}" -q --qf '%{v
 readarray -t packages < <(rpmspec --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}\n' --builtrpms "${SPEC_FILE}")
 
 builtrpms=()
-for pkg in ${packages[*]}
+for pkg in "${packages[@]}"
 do
     builtrpms+=("${pkg}-${version_release_arch}.rpm")
     if [ "${pkg%%-devel}" == "${pkg}" ]; then

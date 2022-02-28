@@ -53,13 +53,14 @@ mountPoint() {
 
     # Strip any extra trailing slashes ('/') from path if they exist
     # since we are doing an exact string match on the path
-    echo "$(echo "${mount_point}" | sed s#//*#/#g)"
+    # shellcheck disable=SC2001
+    echo "${mount_point}" | sed s#//*#/#g
 }
 
 mountPoints() {
     local mount_point
     mount_point="$(mountPoint "${1}")"
-    echo "$(sudo grep "${mount_point}" /proc/mounts | cut -f2 -d" " | sort -r | grep "^${mount_point}")"
+    sudo grep "${mount_point}" /proc/mounts | cut -f2 -d" " | sort -r | grep "^${mount_point}"
 }
 
 # ${1} = full path to mountpoint;
@@ -68,7 +69,7 @@ umount_kill() {
     if [ "0${VERBOSE}" -le 2 ]; then
         # If enabled, turn off xtrace and remember its current setting.
         if test -o xtrace; then
-            true "$FUNCNAME: Disabling xtrace, because variable VERBOSE (${VERBOSE}) is lower than or equal 2..."
+            true "${FUNCNAME[0]}: Disabling xtrace, because variable VERBOSE (${VERBOSE}) is lower than or equal 2..."
             set +x
             XTRACE_WAS_SET=true
         fi
@@ -84,7 +85,7 @@ umount_kill() {
 
     echo "INFO: Attempting to kill any processes still running in '${mount_point}' before un-mounting"
     mounts="$(mountPoints "${mount_point}")"
-    for dir in ${mounts[@]}; do
+    for dir in "${mounts[@]}"; do
         # Escape filename (convert spaces to '\ ', etc
         dir="$(printf "%s" "${dir}")"
 
@@ -98,7 +99,7 @@ umount_kill() {
         if ! [ "${kill_only}" ]; then
 
             # Mount point found in mtab
-            if $(sudo mountpoint -q "${dir}"); then
+            if sudo mountpoint -q "${dir}"; then
                 echo "INFO: umount ${dir}"
                 sudo umount -n "${dir}" 2>/dev/null || sudo umount -n -l "${dir}" 2>/dev/null ||
                     echo "ERROR: umount ${dir} unsuccessful!"
@@ -109,6 +110,7 @@ umount_kill() {
                 echo "INFO: not a regular mount point: ${dir}"
                 base="$(basename "${dir}")"
                 dir="$(dirname "${dir}")"
+                # shellcheck disable=SC2001
                 base="$(echo "${base}" | sed 's/[\].*$//')"
                 dir="${dir}/${base}"
                 sudo umount -v -f -n "${dir}" 2>/dev/null || sudo umount -v -f -n -l "${dir}" 2>/dev/null ||
@@ -119,14 +121,14 @@ umount_kill() {
 
     if [ "$XTRACE_WAS_SET" == "true" ]; then
         set -x
-        true "$FUNCNAME: Restoring xtrace..."
+        true "${FUNCNAME[0]}: Restoring xtrace..."
     fi
 }
 
 kill_processes_in_mount() {
-    umount_kill ${1} "false" || :
+    umount_kill "${1}" "false" || :
 }
 
-if [ $(basename "${0}") == "umount_kill.sh" -a "${1}" ]; then
+if [ "$(basename "${0}")" == "umount_kill.sh" ] && "${1}"; then
     umount_kill "${1}"
 fi

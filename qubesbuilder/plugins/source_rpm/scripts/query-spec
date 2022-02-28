@@ -39,7 +39,7 @@ if [ $# -lt 4 ]; then
     exit 1
 fi
 
-[[ "x$(basename "${spec_file}.in")" == "x.in" ]] && exit 0
+[[ "$(basename "${spec_file}.in")" == ".in" ]] && exit 0
 
 if [ -r "${spec_file}.in" ]; then
     #rpm -q $RPM_QUERY_DEFINES --qf "$2" --specfile <(`dirname $0`/generate-spec "${spec_file}.in" /dev/stdout) 2>/dev/null

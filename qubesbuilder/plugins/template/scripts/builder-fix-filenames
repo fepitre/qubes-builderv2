@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # Check template name length and fix if not under 32 characters
-# Return the result 
+# Return the result
 
 BUILDER_SCRIPTS_DIR="$(dirname "$0")"
 
+# shellcheck source=qubesbuilder/plugins/template/scripts/functions.sh
 . "${BUILDER_SCRIPTS_DIR}"/functions.sh >/dev/null
 
 # Check for custom template name
+#shellcheck disable=SC2153
 templateNameDist "${TEMPLATE_NAME}"

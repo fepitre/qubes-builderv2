@@ -164,7 +164,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Sanity check on provided maintainers
-for maint in ${MAINTAINERS[*]}; do
+for maint in "${MAINTAINERS[@]}"; do
     if ! [[ "$maint" =~ ^[a-fA-F0-9]{40}$ ]]; then
         echo "Invalid maintainer provided: $maint"
         exit 1
@@ -201,11 +201,11 @@ fi
 [ -z "$BRANCH" ] && BRANCH='master'
 
 # Allow to override URL for which COMPONENT is cloned
-if [ -n "${GIT_URL-}" ]; then
-    GIT_URL="$GIT_URL"
-elif [ -n "${GIT_BASEURL}" ] && [ -n "${GIT_PREFIX}" ]; then
+if [ -n "${GIT_BASEURL}" ] && [ -n "${GIT_PREFIX}" ]; then
     GIT_URL=$GIT_BASEURL/$GIT_PREFIX$COMPONENT$GIT_SUFFIX
-else
+fi
+
+if [ -z "${GIT_URL-}" ]; then
     echo 'ERROR: Cannot determine how to clone repository!' >&2
     exit 1
 fi
@@ -289,7 +289,7 @@ else
         gpg --import "$KEYS_DIR/qubes-developers-keys.asc"
         touch "$GNUPGHOME/pubring.gpg"
     fi
-    for keyid in ${MAINTAINERS[*]}; do
+    for keyid in "${MAINTAINERS[@]}"; do
         gpg --import "$KEYS_DIR/$keyid.asc" || exit 1
         echo "$keyid:6:" | gpg --import-ownertrust
     done

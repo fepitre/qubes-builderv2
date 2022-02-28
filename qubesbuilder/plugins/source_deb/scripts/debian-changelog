@@ -72,7 +72,7 @@ deb_version=$($debian_parser changelog --package-version $previous_changelog)
 deb_revision=$($debian_parser changelog --package-revision $previous_changelog)
 deb_epoc=$($debian_parser changelog --package-version-epoc $previous_changelog)
 
-# drop dist-specific suffix for version comparision
+# drop dist-specific suffix for version comparison
 deb_revision=${deb_revision%+deb*}
 
 version="$(sed 's/-rc/~rc/' version)"
@@ -87,7 +87,7 @@ if [ -z "$deb_revision" ]; then
     revision=""
 fi
 
-if [ "x$1" = "x--verify" ]; then
+if [ "$1" = "--verify" ]; then
     if [ "${deb_version}-${deb_revision}" = "${version}-${revision}" ]; then
         exit 0
     else
@@ -125,11 +125,12 @@ if [ "${deb_version}-${deb_revision}" != "${version}-${revision}" ]; then
     # Add new version number and git commit history to changelog
     # -----------------------------------------------------------------------------
     IFS=%
+    # shellcheck disable=SC2034
     (
         git log --no-merges --topo-order --reverse --pretty=format:%an%%%ae%%%ad%%%s "${previous_tag}"..HEAD
         echo
     ) |
-        while read a_name a_email date sum; do
+        while read -r a_name a_email date sum; do
             export DEBFULLNAME="${a_name}"
             export DEBEMAIL="${a_email}"
             debchange --newversion="${new_version}" --no-auto-nmu --nomultimaint-merge --multimaint -- "${sum}"

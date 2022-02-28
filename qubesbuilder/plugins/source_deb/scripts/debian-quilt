@@ -1,4 +1,4 @@
-#!/bin/bash
+qubesbuilder/plugins/source_deb/scripts/debian-quilt#!/bin/bash
 #
 # The Qubes OS Project, http://www.qubes-os.org
 #
@@ -50,7 +50,7 @@ ORIG_SRC="$(dirname "${SERIES_CONF}")"
 rm -f "${PATCH_DIR}/series"
 touch "${PATCH_DIR}/series"
 
-while read patch_file
+while read -r patch_file
 do
     if [ -f "${ORIG_SRC}/${patch_file}" ]; then
         echo -e "${patch_file##*/}" >> "${PATCH_DIR}/series"

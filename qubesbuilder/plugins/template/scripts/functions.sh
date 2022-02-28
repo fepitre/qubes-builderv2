@@ -14,6 +14,7 @@ if [ "0${VERBOSE}" -ge 2 ] || [ "${DEBUG}" == "1" ]; then
         local retval
         # Need to capture exit code after running chroot or systemd-nspawn
         # so it will be available as a return value
+        # shellcheck disable=SC2015
         if [ "${SYSTEMD_NSPAWN_ENABLE}"  == "1" ]; then
             systemd-nspawn -D "${INSTALL_DIR}" -M "${DIST}" ${1+"$@"} && { retval=$?; true; } || { retval=$?; true; }
         else
@@ -38,24 +39,24 @@ fi
 output() {
     if [ "0${VERBOSE}" -ge 1 ] && [[ -z ${TEST} ]]; then
         # Don't echo if -x is set since it will already be displayed via true
-        [[ ${-/x} != $- ]] || echo -e ""$@""
+        [[ ${-/x} != "$-" ]] || echo -e "$@"
     fi
 }
 
 info() {
-    output "INFO: $@" || :
+    output "INFO: $*" || :
 }
 
 debug() {
-    output "DEBUG: $@" || :
+    output "DEBUG: $*" || :
 }
 
 warn() {
-    output "WARNING: $@" || :
+    output "WARNING: $*" || :
 }
 
 error() {
-    output "ERROR: $@" || :
+    output "ERROR: $*" || :
 }
 
 # ------------------------------------------------------------------------------
@@ -97,7 +98,7 @@ get_file_or_directory_for_current_flavor() {
         ext=""
         resource_without_ext="${resource}"
     fi
-
+    # shellcheck disable=SC2153
     if [ -n "${suffix}" ] && [ -e "${resource_dir}/${resource_without_ext}_${suffix}${ext}" ]; then
         file_or_directory="${resource_dir}/${resource_without_ext}_${suffix}${ext}"
     elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}_${TEMPLATE_FLAVOR}${ext}" ]; then
@@ -122,6 +123,7 @@ containsFlavor() {
     fi
 
     # Check the template flavors next
+    # shellcheck disable=SC2153
     elementIn "${flavor}" "${TEMPLATE_OPTIONS[@]}" && {
         retval=0
     }
@@ -132,15 +134,14 @@ containsFlavor() {
 templateFlavorPrefix() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
 
-    # If TEMPLATE_FLAVOR_PREFIX is not already an array, make it one
-    if ! [[ "$(declare -p TEMPLATE_FLAVOR_PREFIX 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        TEMPLATE_FLAVOR_PREFIX=( ${TEMPLATE_FLAVOR_PREFIX} )
+    if [ -z "${TEMPLATE_FLAVOR_PREFIX}" ]; then
+        TEMPLATE_FLAVOR_PREFIX=()
     fi
 
     for element in "${TEMPLATE_FLAVOR_PREFIX[@]}"
     do
         if [ "${element%:*}" == "${DIST}+${template_flavor}" ]; then
-            echo ${element#*:}
+            echo "${element#*:}"
             return
         fi
     done
@@ -155,11 +156,13 @@ templateFlavorPrefix() {
 
 templateNameFixLength() {
     local template_name="${1}"
-    local temp_name=(${template_name//+/ })
+    local temp_name
     local index=$(( ${#temp_name[@]}-1 ))
 
+    read -r -a temp_name <<< "${template_name//+/ }"
+
     while [ ${#template_name} -ge 32 ]; do
-        template_name=$(printf '%s' ${temp_name[0]})
+        template_name=$(printf '%s' "${temp_name[0]}")
         if [ $index -gt 0 ]; then
             template_name+=$(printf '+%s' "${temp_name[@]:1:index}")
         fi
@@ -177,29 +180,30 @@ templateNameDist() {
     template_name="$(templateName)" && dist_name="${template_name}"
 
     # Automaticly correct name length if it's greater than 32 chars
-    dist_name="$(templateNameFixLength ${dist_name})"
+    dist_name="$(templateNameFixLength "${dist_name}")"
 
     # Remove and '+' characters from name since they are invalid for name
     dist_name="${dist_name//+/-}"
-    echo ${dist_name}
+    echo "${dist_name}"
 }
 
 templateName() {
     local template_flavor=${1:-${TEMPLATE_FLAVOR}}
+    local template_name
+    local template_options
     retval=1 # Default is 1; mean no replace happened
 
     # Only apply options if $1 was not passed
     if [ -n "${1}" ] || [ "X${TEMPLATE_OPTIONS}" == "X" ]; then
-        local template_options=
+        template_options=
     else
-        local template_options=$(printf '+%s' "${TEMPLATE_OPTIONS[@]}")
+        template_options=$(printf '+%s' "${TEMPLATE_OPTIONS[@]}")
     fi
 
-    local template_name="$(templateFlavorPrefix ${template_flavor})${template_flavor}${template_options}"
+    template_name="$(templateFlavorPrefix "${template_flavor}")${template_flavor}${template_options}"
 
-    # If TEMPLATE_LABEL is not already an array, make it one
-    if ! [[ "$(declare -p TEMPLATE_LABEL 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        TEMPLATE_LABEL=( ${TEMPLATE_LABEL} )
+    if [ -z "${TEMPLATE_LABEL}" ]; then
+        TEMPLATE_LABEL=()
     fi
 
     for element in "${TEMPLATE_LABEL[@]}"; do
@@ -210,7 +214,8 @@ templateName() {
         fi
     done
 
-    echo "$(templateNameFixLength ${template_name})"
+    # shellcheck disable=SC2005
+    echo "$(templateNameFixLength "${template_name}")"
     return $retval
 }
 
@@ -227,9 +232,11 @@ templateName() {
 setArrayAsGlobal() {
     local array="$1"
     local export_as="$2"
-    local code=$(declare -p "$array" 2> /dev/null || true)
-    local replaced="${code/$array/$export_as}"
-    eval ${replaced/declare -/declare -g}
+    local code
+    local replaced
+    code=$(declare -p "$array" 2> /dev/null || true)
+    replaced="${code/$array/$export_as}"
+    eval "${replaced/declare -/declare -g}"
 }
 
 
@@ -247,7 +254,7 @@ elementIn () {
 }
 
 # ------------------------------------------------------------------------------
-# Spilts the path and returns an array of parts
+# Splits the path and returns an array of parts
 #
 # $1: Full path of file to split
 # $2: Global variable name to use for export
@@ -275,29 +282,29 @@ splitPath() {
         ext=""
         dotext=""
     fi
-
+    # shellcheck disable=SC2034
     declare -A PARTS=([full]="$1" [dir]="$dir" [base]="$base" [ext]="$ext" [dotext]="$dotext")
-    setArrayAsGlobal PARTS $return_global_var
+    setArrayAsGlobal PARTS "$return_global_var"
 }
 
 templateDirs() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
+    local template_flavor_prefix
     local match=0
 
-    # If TEMPLATE_FLAVOR_DIR is not already an array, make it one
-    if ! [[ "$(declare -p TEMPLATE_FLAVOR_DIR 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        TEMPLATE_FLAVOR_DIR=( ${TEMPLATE_FLAVOR_DIR} )
+    if [ -z "${TEMPLATE_FLAVOR_DIR}" ]; then
+        TEMPLATE_FLAVOR_DIR=()
     fi
 
     for element in "${TEMPLATE_FLAVOR_DIR[@]}"
     do
         # (wheezy+whonix-gateway / wheezy+whonix-gateway+gnome[+++] / wheezy+gnome )
-        if [ "${element%:*}" == "$(templateName ${template_flavor})" ]; then
+        if [ "${element%:*}" == "$(templateName "${template_flavor}")" ]; then
             eval echo -e "${element#*:}"
             match=1
 
         # Very short name compare (+proxy)
-        elif [ "${element:0:1}" == "+" -a "${element%:*}" == "+${template_flavor}" ]; then
+        elif [ "${element:0:1}" == "+" ] && [ "${element%:*}" == "+${template_flavor}" ]; then
             eval echo -e "${element#*:}"
             match=1
 
@@ -312,8 +319,8 @@ templateDirs() {
         return
     fi
 
-    local template_flavor_prefix="$(templateFlavorPrefix ${template_flavor})"
-    if [ -n "${template_flavor}" -a "${template_flavor}" == "+" ]; then
+    template_flavor_prefix="$(templateFlavorPrefix "${template_flavor}")"
+    if [ -n "${template_flavor}" ] && [ "${template_flavor}" == "+" ]; then
         local dir="${TEMPLATE_CONTENT_DIR}/${template_flavor_prefix}"
     elif [ -n "${template_flavor}" ]; then
         local dir="${TEMPLATE_CONTENT_DIR}/${template_flavor_prefix}${template_flavor}"
@@ -352,7 +359,8 @@ templateFile() {
     for template_dir in "${template_dirs[@]}"; do
         # No template flavor
         if [ -z "${template_flavor}" ]; then
-            if [ "${suffix}" ]; then
+            if [ -n "${suffix}" ]; then
+                # shellcheck disable=SC2154
                 exists "${TEMPLATE_CONTENT_DIR}/${path_parts[base]}_${suffix}${path_parts[dotext]}" || true
             else
                 exists "${TEMPLATE_CONTENT_DIR}/${path_parts[base]}${path_parts[dotext]}" || true
@@ -361,7 +369,7 @@ templateFile() {
         fi
 
         # Locate file in directory named after flavor
-        if [ "${suffix}" ]; then
+        if [ -n "${suffix}" ]; then
             # Append suffix to filename (before extension)
             # `minimal` is the template_flavor being used in comment example
 
@@ -403,12 +411,16 @@ copyTreeExec() {
     local dir="$2"
     local template_flavor="$3"
     local target_dir="$4"
+    local template_dirs
 
-    local template_dirs="$(templateDirs ${template_flavor})"
+    template_dirs="$(templateDirs "${template_flavor}")"
 
     for template_dir in "${template_dirs[@]}"; do
-        local source_dir="$(readlink -m ${source_dir:-${template_dir}}/${dir})"
-        local target_dir="$(readlink -m ${target_dir:-${INSTALLDIR}})"
+        local source_dir
+        local target_dir
+
+        source_dir="$(readlink -m "${source_dir:-${template_dir}}/${dir}")"
+        target_dir="$(readlink -m "${target_dir:-${INSTALL_DIR}}")"
 
         if ! [ -d "${source_dir}" ]; then
             debug "No extra files to copy for ${dir}"
@@ -488,7 +500,7 @@ getFileLocations() {
     declare -gA GLOBAL_CACHE
 
     callTemplateFunction "${filename}" "${suffix}" "${function}"
-    setArrayAsGlobal GLOBAL_CACHE $return_global_var
+    setArrayAsGlobal GLOBAL_CACHE "$return_global_var"
 
     if [ ! ${#GLOBAL_CACHE[@]} -eq 0 ]; then
         debug "Smart files located for: '${filename##*/}' (suffix: ${suffix}):"
@@ -522,6 +534,7 @@ buildStep() {
     info "Locating buildStep files: ${filename##*/} suffix: ${suffix}"
     getFileLocations "build_step_files" "${filename}" "${suffix}"
 
+    # shellcheck disable=SC2154
     for script in "${build_step_files[@]}"; do
         if [ "${script}" == "${filename}" ]; then
             error "Recursion detected!"
@@ -541,7 +554,7 @@ buildStep() {
 }
 
 # ------------------------------------------------------------------------------
-# Copy extra file tree to ${INSTALLDIR}
+# Copy extra file tree to ${INSTALL_DIR²}
 # TODO:  Allow copy per step (04_install_qubes.sh-files)
 #
 # To set file permissions is a PITA since git won't save them and will
@@ -554,7 +567,7 @@ buildStep() {
 # 5. Manually create facl backup used after copying: getfacl -R . > .facl
 # 6. If git complains; reset file ownership back to user.  The .facl file stored
 #    the file permissions and will be used to reset the file permissions after
-#    they get copied over to ${INSTALLDIR}
+#    they get copied over to ${INSTALL_DIR}
 # NOTE: Don't forget to redo this process if you add -OR- remove files
 # ------------------------------------------------------------------------------
 copyTree() {

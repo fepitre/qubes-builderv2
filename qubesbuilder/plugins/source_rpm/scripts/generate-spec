@@ -41,7 +41,7 @@ cp "$input" "$input.tmp"
 # 'rel', must contains list of release number corresponding to @REL@ @REL1@ ...
 while read -r ver
 do
-    if [ "x$vnum" = "x" ]; then
+    if [ -z "$vnum" ]; then
         sed -i "s|@VERSION@|$ver|g" "$input.tmp"
     else
         sed -i "s|@VERSION$vnum@|$ver|g" "$input.tmp"
@@ -52,7 +52,7 @@ done < "${source_dir}/version"
 if [ -e "${source_dir}/rel" ]; then
     while read -r rel
     do
-        if [ "x$rnum" = "x" ]; then
+        if [ -z "$rnum" ]; then
             sed -i "s|@REL@|$rel|g" "$input.tmp"
         else
             sed -i "s|@REL$rnum@|$rel|g" "$input.tmp"
