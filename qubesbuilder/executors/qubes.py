@@ -148,7 +148,8 @@ class QubesExecutor(Executor):
                 if process.poll() is not None:
                     break
                 for line in process.stdout:
-                    log.info(f"{dispvm}: output: {sanitize_line(line).rstrip()}")
+                    line = sanitize_line(line.rstrip(b"\n")).rstrip()
+                    log.info(f"{dispvm}: output: {line}")
             rc = process.poll()
             if rc != 0:
                 raise ExecutorError(

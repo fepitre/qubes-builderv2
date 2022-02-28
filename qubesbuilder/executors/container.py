@@ -140,8 +140,9 @@ class ContainerExecutor(Executor):
                     if process.poll() is not None:
                         break
                     for line in process.stdout:
+                        line = sanitize_line(line.rstrip(b"\n")).rstrip()
                         log.info(
-                            f"{container.short_id}: output: {sanitize_line(line).rstrip()}"
+                            f"{container.short_id}: output: {line}"
                         )
                 rc = process.poll()
                 if rc != 0:

@@ -75,7 +75,8 @@ class LocalExecutor(Executor):
             if process.poll() is not None:
                 break
             for line in process.stdout:
-                log.info(f"localhost: output: {sanitize_line(line).rstrip()}")
+                line = sanitize_line(line.rstrip(b"\n")).rstrip()
+                log.info(f"localhost: output: {line}")
         rc = process.poll()
         if rc != 0:
             raise ExecutorError(f"localhost: Failed to run '{cmd}' (status={rc}).")
