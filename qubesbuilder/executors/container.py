@@ -120,7 +120,7 @@ class ContainerExecutor(Executor):
                 container = client.containers.create(
                     image, cmd, privileged=True, environment=environment
                 )
-                log.info(f"{container.id}: Executing '{' '.join(cmd)}'.")
+                log.info(f"{container.short_id}: Executing '{' '.join(cmd)}'.")
 
                 # copy-in hook
                 for src_in, dst_in in copy_in or []:
@@ -135,15 +135,19 @@ class ContainerExecutor(Executor):
                 )
                 while True:
                     if not process.stdout:
-                        log.error(f"{container.id}: No output!")
+                        log.error(f"{container.short_id}: No output!")
                         break
                     if process.poll() is not None:
                         break
                     for line in process.stdout:
-                        log.info(f"{container.id}: output: {sanitize_line(line).rstrip()}")
+                        log.info(
+                            f"{container.short_id}: output: {sanitize_line(line).rstrip()}"
+                        )
                 rc = process.poll()
                 if rc != 0:
-                    raise ExecutorError(f"{container.id}: Failed to run '{cmd}' (status={rc}).")
+                    raise ExecutorError(
+                        f"{container.short_id}: Failed to run '{cmd}' (status={rc})."
+                    )
 
                 # copy-out hook
                 for src_out, dst_out in copy_out or []:
