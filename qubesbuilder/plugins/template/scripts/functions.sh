@@ -15,7 +15,7 @@ if [ "0${VERBOSE}" -ge 2 ] || [ "${DEBUG}" == "1" ]; then
         # Need to capture exit code after running chroot or systemd-nspawn
         # so it will be available as a return value
         if [ "${SYSTEMD_NSPAWN_ENABLE}"  == "1" ]; then
-            systemd-nspawn $systemd_bind -D "${INSTALL_DIR}" -M "${DIST}" ${1+"$@"} && { retval=$?; true; } || { retval=$?; true; }
+            systemd-nspawn -D "${INSTALL_DIR}" -M "${DIST}" ${1+"$@"} && { retval=$?; true; } || { retval=$?; true; }
         else
             /usr/sbin/chroot "${INSTALL_DIR}" ${1+"$@"} && { retval=$?; true; } || { retval=$?; true; }
         fi
@@ -24,7 +24,7 @@ if [ "0${VERBOSE}" -ge 2 ] || [ "${DEBUG}" == "1" ]; then
 else
     chroot_cmd() {
         if [ "${SYSTEMD_NSPAWN_ENABLE}"  == "1" ]; then
-            systemd-nspawn $systemd_bind -D "${INSTALL_DIR}" -M "${DIST}" ${1+"$@"}
+            systemd-nspawn -D "${INSTALL_DIR}" -M "${DIST}" ${1+"$@"}
         else
             /usr/sbin/chroot "${INSTALL_DIR}" ${1+"$@"}
         fi
