@@ -149,7 +149,7 @@ class QubesExecutor(Executor):
                     break
                 for line in process.stdout:
                     line = sanitize_line(line.rstrip(b"\n")).rstrip()
-                    log.info(f"{dispvm}: output: {line}")
+                    log.info(f"{dispvm}: output: {str(line)}")
             rc = process.poll()
             if rc != 0:
                 raise ExecutorError(
