@@ -31,7 +31,7 @@ mypy:
     - docker
   before_script:
     - sudo dnf install -y python3-mypy python3-pip
-    - sudo python3 -m pip install types-PyYAML
+    - sudo python3 -m pip install types-PyYAML types-python-dateutil
   script:
     - mypy --install-types --non-interactive --junit-xml mypy.xml qubesbuilder
   artifacts:
