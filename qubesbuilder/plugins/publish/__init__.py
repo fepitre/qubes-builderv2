@@ -28,6 +28,9 @@ from qubesbuilder.plugins import Plugin, PluginError
 
 log = get_logger("publish")
 
+# Define the minimum age for which packages can be published to 'current'
+MIN_AGE_DAYS = 5
+
 
 class PublishError(PluginError):
     pass

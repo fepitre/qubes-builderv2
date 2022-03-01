@@ -16,20 +16,20 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import datetime
 import os
 import shutil
 from pathlib import Path
 
-import yaml
 import dateutil.parser
+import yaml
 from dateutil.parser import parse as parsedate
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.publish import PublishPlugin, PublishError
+from qubesbuilder.plugins.publish import PublishPlugin, PublishError, MIN_AGE_DAYS
 from qubesbuilder.template import QubesTemplate
 
 log = get_logger("publish_rpm")
@@ -85,7 +85,7 @@ class RPMPublishPlugin(PublishPlugin):
             parameters.get(self.dist.distribution, {}).get("rpm", {})
         )
 
-    def run(self, stage: str):
+    def run(self, stage: str, publish_repository: str = None, ignore_min_age: bool = False):
         """
         Run plugging for given stage.
         """
@@ -108,27 +108,15 @@ class RPMPublishPlugin(PublishPlugin):
             log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
+        # FIXME: Refactor the code handling both standard and template components. It applies
+        #  for other plugins.
+
         # Publish stage for standard (not template) components
         if stage == "publish" and not self.component.is_template():
             # Check if we have RPM related content defined
             if not self.parameters.get("spec", []):
                 log.info(f"{self.component}:{self.dist}: Nothing to be done.")
                 return
-
-            # Check if publish repository is valid
-            publish_repository = self.publish_repository.get(
-                "components", "current-testing"
-            )
-            if publish_repository not in (
-                "current-testing",
-                "security-testing",
-                "unstable",
-            ):
-                msg = (
-                    f"{self.component}:{self.dist}: "
-                    f"Refusing to publish components into '{publish_repository}'."
-                )
-                raise PublishError(msg)
 
             # Source artifacts
             prep_artifacts_dir = self.get_component_dir(stage="prep")
@@ -137,6 +125,8 @@ class RPMPublishPlugin(PublishPlugin):
             # Sign artifacts
             sign_artifacts_dir = self.get_component_dir(stage="sign")
             # Publish artifacts
+            publish_artifacts_dir = self.get_component_dir(stage="publish")
+            # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.family
 
             # Ensure dbpath from sign stage (still) exists
@@ -164,6 +154,82 @@ class RPMPublishPlugin(PublishPlugin):
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
                 raise PublishError(msg) from e
+
+            # Check if publish repository is valid
+            if not publish_repository:
+                publish_repository = self.publish_repository.get(
+                    "components", "current-testing"
+                )
+            if publish_repository not in (
+                "current",
+                "current-testing",
+                "security-testing",
+                "unstable",
+            ):
+                msg = (
+                    f"{self.component}:{self.dist}: "
+                    f"Refusing to publish components into '{publish_repository}'."
+                )
+                raise PublishError(msg)
+
+            if publish_repository == "current":
+                nothing_to_publish = False
+                # If publish repository is 'current' we check that all packages provided by all
+                # spec files are published in testing repositories first.
+                for spec in self.parameters["spec"]:
+                    # spec file basename will be used as prefix for some artifacts
+                    spec_bn = os.path.basename(spec).replace(".spec", "")
+                    failure_msg = (
+                        f"{self.component}:{self.dist}:{spec}: "
+                        f"Refusing to publish to 'current' as packages are not "
+                        f"uploaded to 'current-testing' or 'security-testing' "
+                        f"for at least {MIN_AGE_DAYS} days."
+                    )
+                    # Check packages are published
+                    if not (
+                        publish_artifacts_dir / f"{spec_bn}_publish_info.yml"
+                    ).exists():
+                        raise PublishError(failure_msg)
+                    else:
+                        # Get existing publish info
+                        with open(
+                            publish_artifacts_dir / f"{spec_bn}_publish_info.yml"
+                        ) as f:
+                            publish_info = yaml.safe_load(f.read())
+                        # Check for valid repositories under which packages are published
+                        if publish_info.get("publish-repository", None) not in (
+                            "security-testing",
+                            "current-testing",
+                            "current",
+                        ):
+                            raise PublishError(failure_msg)
+                        # If publish repository is 'current' we check the next spec file
+                        if publish_info["publish-repository"] == "current":
+                            log.info(
+                                f"{self.component}:{self.dist}:{spec}: "
+                                f"Already published to 'current'."
+                            )
+                            nothing_to_publish = True
+                            continue
+                        # Check minimum day that packages are available for testing
+                        publish_date = datetime.datetime.utcfromtimestamp(
+                            os.stat(
+                                publish_artifacts_dir / f"{spec_bn}_publish_info.yml"
+                            ).st_mtime
+                        )
+                        # Check that packages have been published before threshold_date
+                        threshold_date = (
+                            datetime.datetime.utcnow()
+                            - datetime.timedelta(days=MIN_AGE_DAYS)
+                        )
+                        if not ignore_min_age and publish_date > threshold_date:
+                            raise PublishError(failure_msg)
+
+                if nothing_to_publish:
+                    log.info(
+                        f"{self.component}:{self.dist}: Already published to '{publish_repository}'."
+                    )
+                    return
 
             for spec in self.parameters["spec"]:
                 # spec file basename will be used as prefix for some artifacts
@@ -198,7 +264,10 @@ class RPMPublishPlugin(PublishPlugin):
                     raise PublishError(msg) from e
 
                 # Publish packages with hardlinks to built RPMs
-                log.info(f"{self.component}:{self.dist}:{spec}: Publishing RPMs.")
+                log.info(
+                    f"{self.component}:{self.dist}:{spec}: Publishing RPMs to '{publish_repository}'."
+                )
+                artifacts_dir = self.get_repository_publish_dir() / self.dist.family
                 target_dir = (
                     artifacts_dir
                     / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}/{self.dist.name}"
@@ -237,6 +306,19 @@ class RPMPublishPlugin(PublishPlugin):
                     msg = (
                         f"{self.component}:{self.dist}:{spec}:  Failed to sign metadata"
                     )
+                    raise PublishError(msg) from e
+
+                # Save package information we published for committing into current
+                publish_artifacts_dir.mkdir(parents=True, exist_ok=True)
+                try:
+                    with open(
+                        publish_artifacts_dir / f"{spec_bn}_publish_info.yml", "w"
+                    ) as f:
+                        info = build_info
+                        info["publish-repository"] = publish_repository
+                        f.write(yaml.safe_dump(info))
+                except (PermissionError, yaml.YAMLError) as e:
+                    msg = f"{self.component}:{self.dist}:{spec}: Failed to write publish info."
                     raise PublishError(msg) from e
 
         # Publish stage for template components
