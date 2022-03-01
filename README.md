@@ -104,24 +104,33 @@ Currently, only those are used:
 ### CLI
 
 ```bash
-Usage: qb [OPTIONS] COMMAND1 [ARGS]... [COMMAND2 [ARGS]...]...
+Usage: qb [OPTIONS] COMMAND [ARGS]...
+
+  Main CLI
 
 Options:
   --verbose / --no-verbose  Output logs.
   --debug / --no-debug      Print full traceback on exception.
-  --builder-conf PATH       Path to configuration file (default: builder.yml)
-  -c, --component TEXT      Override component in configuration file (can be repeated).
-  -d, --distribution TEXT   Override distribution in configuration file (can be repeated).
+  --builder-conf TEXT       Path to configuration file (default: builder.yml).
+  -c, --component TEXT      Override component in configuration file (can be
+                            repeated).
+  -d, --distribution TEXT   Override distribution in configuration file (can
+                            be repeated).
+  -t, --template TEXT       Override template in configuration file (can be
+                            repeated).
   --help                    Show this message and exit.
 
 Commands:
-  build
-  fetch
-  post
-  prep
-  publish
-  sign
-  verify
+  package   Package CLI
+  template  Template CLI
+
+Stages:
+    fetch prep build post verify sign publish
+
+Remark:
+    The Qubes OS components are separated in two groups: standard and template
+    components. Standard components will produce distributions packages and
+    template components will produce template packages.
 ```
 
 You may use the provided development `builder-devel.yml` configuration file under `example-configs` located as
@@ -129,13 +138,24 @@ You may use the provided development `builder-devel.yml` configuration file unde
 
 You can start building the components defined in this devel configuration as:
 ```bash
-$ ./qb fetch prep build
+$ ./qb package fetch prep build
 ```
 
-If GPG is setup on your host, specify key and client to be used inside `builder.yml`. Then, you can test sign and 
+If GPG is set up on your host, specify key and client to be used inside `builder.yml`. Then, you can test sign and
 publish stages:
 ```bash
-$ ./qb sign publish
+$ ./qb package sign publish
+```
+
+In this case, you may run simply
+```bash
+$ ./qb package all
+```
+for triggering the whole build process.
+
+Similarly, you can start building the templates defined in this devel configuration as:
+```bash
+$ ./qb template all
 ```
 
 Artifacts can be found under `artifacts` directory:
@@ -145,7 +165,8 @@ artifacts/
 ├── distfiles           <- Extra source files.
 ├── repository          <- Qubes local builder repository (metadata are generated each time inside cages).
 ├── repository-publish  <- Qubes OS repositories that are synced to {yum,deb,...}.qubes-os.org.
-└── sources             <- Qubes components source.
+├── sources             <- Qubes components source.
+└── templates           <- Template artifacts.
 ```
 
 ### Signing with Split GPG
