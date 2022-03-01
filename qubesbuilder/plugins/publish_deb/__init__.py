@@ -242,8 +242,7 @@ class DEBPublishPlugin(PublishPlugin):
                     )
                     changes_file = build_artifacts_dir / build_info["changes"]
                     target_dir = (
-                        artifacts_dir
-                        / f"{self.qubes_release}/{self.dist.package_set}"
+                        artifacts_dir / f"{self.qubes_release}/{self.dist.package_set}"
                     )
 
                     # reprepro options to ignore surprising binary and arch

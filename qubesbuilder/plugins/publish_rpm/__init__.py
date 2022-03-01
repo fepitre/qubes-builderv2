@@ -85,7 +85,9 @@ class RPMPublishPlugin(PublishPlugin):
             parameters.get(self.dist.distribution, {}).get("rpm", {})
         )
 
-    def run(self, stage: str, publish_repository: str = None, ignore_min_age: bool = False):
+    def run(
+        self, stage: str, publish_repository: str = None, ignore_min_age: bool = False
+    ):
         """
         Run plugging for given stage.
         """
@@ -185,7 +187,7 @@ class RPMPublishPlugin(PublishPlugin):
                         f"uploaded to 'current-testing' or 'security-testing' "
                         f"for at least {MIN_AGE_DAYS} days."
                     )
-                    # Check packages are published
+                    # Check packages are published in a testing repository
                     if not (
                         publish_artifacts_dir / f"{spec_bn}_publish_info.yml"
                     ).exists():
@@ -325,28 +327,62 @@ class RPMPublishPlugin(PublishPlugin):
         if stage == "publish" and self.component.is_template():
             # Check if we provided template to the plugin
             if not self.template:
-                log.info(f"{self.component}:{self.template}: Missing template.")
+                log.info(f"{self.component}: Missing template.")
                 return
-            # Check if publish repository is valid
-            publish_repository = self.publish_repository.get(
-                "templates", "templates-itl-testing"
-            )
-            if publish_repository not in (
-                "templates-itl-testing",
-                "templates-community-testing",
-            ):
-                msg = (
-                    f"{self.component}:{self.template}: "
-                    f"Refusing to publish templates into '{publish_repository}'."
-                )
-                raise PublishError(msg)
 
             # Build artifacts
             build_artifacts_dir = self.get_templates_dir()
             # Sign artifacts
             sign_artifacts_dir = self.get_component_dir(stage="sign")
             # Publish artifacts
+            publish_artifacts_dir = self.get_component_dir(stage="publish")
+            # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.family
+
+            if publish_repository in ("templates-itl", "templates-community"):
+                failure_msg = (
+                    f"{self.component}:{self.template}: "
+                    f"Refusing to publish to '{publish_repository}' as template is not uploaded "
+                    f"to '{publish_repository}-testing' for at least {MIN_AGE_DAYS} days."
+                )
+                # Check template is published in testing
+                if not (
+                    publish_artifacts_dir / f"{self.template.name}_publish_info.yml"
+                ).exists():
+                    raise PublishError(failure_msg)
+                else:
+                    # Get existing publish info
+                    with open(
+                        publish_artifacts_dir / f"{self.template.name}_publish_info.yml"
+                    ) as f:
+                        publish_info = yaml.safe_load(f.read())
+                    # Check for valid repositories under which packages are published
+                    if publish_info.get("publish-repository", None) not in (
+                        "templates-itl-testing",
+                        "templates-community-testing",
+                        "templates-itl",
+                        "templates-community",
+                    ):
+                        raise PublishError(failure_msg)
+                    if publish_info["publish-repository"] == publish_repository:
+                        log.info(
+                            f"{self.component}:{self.template}: Already published to '{publish_repository}'."
+                        )
+                        return
+
+                    # Check minimum day that packages are available for testing
+                    publish_date = datetime.datetime.utcfromtimestamp(
+                        os.stat(
+                            publish_artifacts_dir
+                            / f"{self.template.name}_publish_info.yml"
+                        ).st_mtime
+                    )
+                    # Check that packages have been published before threshold_date
+                    threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
+                        days=MIN_AGE_DAYS
+                    )
+                    if not ignore_min_age and publish_date > threshold_date:
+                        raise PublishError(failure_msg)
 
             # Ensure dbpath from sign stage (still) exists
             db_path = sign_artifacts_dir / "rpmdb"
@@ -440,4 +476,20 @@ class RPMPublishPlugin(PublishPlugin):
                 self.executor.run(cmd)
             except (ExecutorError, OSError) as e:
                 msg = f"{self.component}:{self.template}: Failed to sign metadata"
+                raise PublishError(msg) from e
+
+            # Save package information we published for committing into current
+            publish_artifacts_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                with open(
+                    publish_artifacts_dir / f"{self.template.name}_publish_info.yml",
+                    "w",
+                ) as f:
+                    info = {
+                        "publish-repository": publish_repository,
+                        "timestamp": timestamp,
+                    }
+                    f.write(yaml.safe_dump(info))
+            except (PermissionError, yaml.YAMLError) as e:
+                msg = f"{self.component}:{self.template}: Failed to write publish info."
                 raise PublishError(msg) from e
