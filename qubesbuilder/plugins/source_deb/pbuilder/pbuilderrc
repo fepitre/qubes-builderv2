@@ -132,7 +132,7 @@ DEBOOTSTRAPOPTS=(
 # or unset it to make it not a buildd type.
 # unset DEBOOTSTRAPOPTS
 
-DEBOOTSTRAPOPTS+=( "--keyring=/builder/plugins/build_deb/keys/${DISTRIBUTION}-${DIST_VENDOR}-archive-keyring.gpg" )
+DEBOOTSTRAPOPTS+=( "--keyring=/builder/plugins/source_deb/keys/${DISTRIBUTION}-${DIST_VENDOR}-archive-keyring.gpg" )
 
 # Keyrings to use for package verification with apt, not used for debootstrap
 # (use DEBOOTSTRAPOPTS). By default the debian-archive-keyring package inside

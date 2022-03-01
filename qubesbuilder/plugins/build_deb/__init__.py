@@ -170,7 +170,7 @@ class DEBBuildPlugin(BuildPlugin):
                 # Copy-in plugin, repository and sources
                 copy_in = [
                     (self.plugins_dir / "build_deb", PLUGINS_DIR),
-                    (self.plugins_dir / "build_deb" / "pbuilder", BUILDER_DIR),
+                    (self.plugins_dir / "source_deb" / "pbuilder", BUILDER_DIR),
                     (repository_dir, REPOSITORY_DIR),
                     (prep_artifacts_dir / source_info["dsc"], BUILD_DIR),
                     (prep_artifacts_dir / source_info["orig"], BUILD_DIR),
@@ -220,7 +220,7 @@ class DEBBuildPlugin(BuildPlugin):
                     extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name} main"
                     cmd += [
                         f"gpg --dearmor "
-                        f"< {PLUGINS_DIR}/build_deb/keys/qubes-debian-r{qubes_version}.asc "
+                        f"< {PLUGINS_DIR}/source_deb/keys/qubes-debian-r{qubes_version}.asc "
                         f"> {BUILDER_DIR}/pbuilder/qubes-keyring.gpg"
                     ]
                     if self.use_qubes_repo.get("testing", False):
