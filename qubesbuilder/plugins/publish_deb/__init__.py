@@ -180,9 +180,22 @@ class DEBPublishPlugin(PublishPlugin):
                         artifacts_dir
                         / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}"
                     )
+
+                    # reprepro options to ignore surprising binary and arch
                     reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch -b {target_dir}"
+
+                    # set debian suite according to publish repository
+                    debian_suite = self.dist.name
+                    if publish_repository == "current-testing":
+                        debian_suite += "-testing"
+                    elif publish_repository == "security-testing":
+                        debian_suite += "-securitytesting"
+                    elif publish_repository == "unstable":
+                        debian_suite += "-unstable"
+
+                    # reprepro command
                     cmd = [
-                        f"reprepro {reprepro_options} include {self.dist.name} {changes_file}"
+                        f"reprepro {reprepro_options} include {debian_suite} {changes_file}"
                     ]
                     self.executor.run(cmd)
                 except ExecutorError as e:

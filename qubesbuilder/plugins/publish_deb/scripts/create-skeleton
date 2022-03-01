@@ -44,8 +44,7 @@ output_dir="$2"
 mkdir -p "${output_dir}"
 
 if [[ $release =~ r[1-9].[0-9] ]]; then
-    mkdir -p "${output_dir}/$release/vm/conf"
-    mkdir -p "${output_dir}/$release/vm/db"
+    mkdir -p "${output_dir}/$release/vm/"{conf,db,dists,pool}
 
     rm -f "${output_dir}/$release/vm/conf/distributions"
     for dist in buster bullseye bookworm trixie; do
@@ -76,10 +75,5 @@ Tracking: all includebuildinfos
 
 EOF
         done
-    done
-
-    for repo in current current-testing security-testing unstable; do
-        mkdir -p "${output_dir}/${release}/${repo}"
-        ln -sf ../vm "${output_dir}/${release}/${repo}/"
     done
 fi
