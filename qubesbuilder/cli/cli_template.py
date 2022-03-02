@@ -2,12 +2,7 @@ import click
 
 from qubesbuilder.config import STAGES, STAGES_ALIAS
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
-from qubesbuilder.plugins.helpers import (
-    getSourcePlugin,
-    getTemplatePlugin,
-    getSignPlugin,
-    getPublishPlugin,
-)
+from qubesbuilder.plugins.helpers import getTemplatePlugin
 
 
 @aliased_group("template", chain=True)
@@ -26,60 +21,21 @@ def _template_stage(obj: ContextObj, stage_name: str):
     executor = obj.config.get_stages()[stage_name]["executor"]
 
     # Qubes templates
-    for component in obj.components:
-        if not component.is_template():
-            continue
-        for tmpl in obj.templates:
-            plugins = [
-                getSourcePlugin(
-                    component=component,
-                    dist=tmpl.distribution,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    skip_if_exists=obj.config.get("reuse-fetched-source"),
-                ),
-                getTemplatePlugin(
-                    component=component,
-                    template=tmpl,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    use_qubes_repo=obj.config.get("use-qubes-repo"),
-                ),
-                getSignPlugin(
-                    component=component,
-                    template=tmpl,
-                    dist=tmpl.distribution,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key"),
-                ),
-                getPublishPlugin(
-                    component=component,
-                    template=tmpl,
-                    dist=tmpl.distribution,
-                    plugins_dir=obj.config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key"),
-                    qubes_release=obj.config.get("qubes-release"),
-                    publish_repository=obj.config.get("publish-repository"),
-                ),
-            ]
-            for plugin in plugins:
-                plugin.run(stage=stage_name)
+    for tmpl in obj.templates:
+        template_plugin = getTemplatePlugin(
+            template=tmpl,
+            plugins_dir=obj.config.get_plugins_dir(),
+            executor=executor,
+            artifacts_dir=obj.config.get_artifacts_dir(),
+            verbose=obj.config.verbose,
+            debug=obj.config.debug,
+            use_qubes_repo=obj.config.get("use-qubes-repo"),
+            gpg_client=obj.config.get("gpg-client"),
+            sign_key=obj.config.get("sign-key"),
+            qubes_release=obj.config.get("qubes-release"),
+            publish_repository=obj.config.get("publish-repository"),
+        )
+        template_plugin.run(stage=stage_name)
 
 
 @click.command(name="all", short_help="Run all template stages.")

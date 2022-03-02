@@ -40,23 +40,21 @@ class PluginError(Exception):
     pass
 
 
-class Plugin:
+class BasePlugin:
     """
-    Base plugin implementation
+    Base plugin
     """
 
     plugin_dependencies: List[str] = []
 
     def __init__(
         self,
-        component: QubesComponent,
         dist: QubesDistribution,
         plugins_dir: Path,
         artifacts_dir: Path,
         verbose: bool,
         debug: bool,
     ):
-        self.component = component
         self.dist = dist
         self.plugins_dir = plugins_dir
         self.artifacts_dir = artifacts_dir
@@ -72,7 +70,6 @@ class Plugin:
             "@BUILD_DIR@": str(BUILD_DIR),
             "@PLUGINS_DIR@": str(PLUGINS_DIR),
             "@DISTFILES_DIR@": str(DISTFILES_DIR),
-            "@SOURCE_DIR@": str(BUILDER_DIR / component.name),
         }
 
         self.environment = {"DIST": self.dist.name}
@@ -106,6 +103,34 @@ class Plugin:
     def get_templates_dir(self):
         path = self.artifacts_dir / "templates"
         return path.resolve()
+
+
+class Plugin(BasePlugin):
+    """
+    Plugin for components
+    """
+
+    plugin_dependencies: List[str] = []
+
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool,
+        debug: bool,
+    ):
+        super().__init__(
+            dist=dist,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
+        self.component = component
+
+        self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
 
     def get_component_dir(self, stage: str):
         path = self.artifacts_dir / "components" / self.component.name

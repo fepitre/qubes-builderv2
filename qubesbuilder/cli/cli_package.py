@@ -26,8 +26,6 @@ def _component_stage(obj: ContextObj, stage_name: str):
     executor = obj.config.get_stages()[stage_name]["executor"]
 
     for component in obj.components:
-        if component.is_template():
-            continue
         for dist in obj.distributions:
             plugins = [
                 getSourcePlugin(

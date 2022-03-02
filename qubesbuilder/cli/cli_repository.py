@@ -3,6 +3,7 @@ import click
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.plugins.helpers import (
     getPublishPlugin,
+    getTemplatePlugin
 )
 
 
@@ -23,8 +24,6 @@ def _publish_to_repository(
 ):
     executor = obj.config.get_stages()["publish"]["executor"]
     for component in obj.components:
-        if component.is_template():
-            continue
         for dist in obj.distributions:
             publish_plugin = getPublishPlugin(
                 component=component,
@@ -116,29 +115,25 @@ def _publish_template_to_repository(
     obj: ContextObj, publish_repository: str, ignore_min_age: bool = False
 ):
     executor = obj.config.get_stages()["publish"]["executor"]
-    for component in obj.components:
-        if not component.is_template():
-            continue
-        for tmpl in obj.templates:
-            publish_plugin = getPublishPlugin(
-                component=component,
-                template=tmpl,
-                dist=tmpl.distribution,
-                plugins_dir=obj.config.get_plugins_dir(),
-                executor=executor,
-                artifacts_dir=obj.config.get_artifacts_dir(),
-                verbose=obj.config.verbose,
-                debug=obj.config.debug,
-                gpg_client=obj.config.get("gpg-client"),
-                sign_key=obj.config.get("sign-key"),
-                qubes_release=obj.config.get("qubes-release"),
-                publish_repository=obj.config.get("publish-repository"),
-            )
-            publish_plugin.run(
-                stage="publish",
-                publish_repository=publish_repository,
-                ignore_min_age=ignore_min_age,
-            )
+    for tmpl in obj.templates:
+        publish_plugin = getTemplatePlugin(
+            template=tmpl,
+            dist=tmpl.distribution,
+            plugins_dir=obj.config.get_plugins_dir(),
+            executor=executor,
+            artifacts_dir=obj.config.get_artifacts_dir(),
+            verbose=obj.config.verbose,
+            debug=obj.config.debug,
+            gpg_client=obj.config.get("gpg-client"),
+            sign_key=obj.config.get("sign-key"),
+            qubes_release=obj.config.get("qubes-release"),
+            publish_repository=obj.config.get("publish-repository"),
+        )
+        publish_plugin.run(
+            stage="publish",
+            publish_repository=publish_repository,
+            ignore_min_age=ignore_min_age,
+        )
 
 
 # ITL

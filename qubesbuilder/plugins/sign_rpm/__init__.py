@@ -21,9 +21,7 @@ import os
 import shutil
 from pathlib import Path
 
-import dateutil.parser
 import yaml
-from dateutil.parser import parse as parsedate
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
@@ -32,7 +30,6 @@ from qubesbuilder.log import get_logger
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_rpm import provision_local_repository
 from qubesbuilder.plugins.sign import SignPlugin, SignError
-from qubesbuilder.template import QubesTemplate
 
 log = get_logger("sign_rpm")
 
@@ -55,7 +52,6 @@ class RPMSignPlugin(SignPlugin):
         sign_key: dict,
         verbose: bool = False,
         debug: bool = False,
-        template: QubesTemplate = None,
     ):
         super().__init__(
             component=component,
@@ -68,7 +64,6 @@ class RPMSignPlugin(SignPlugin):
             verbose=verbose,
             debug=debug,
         )
-        self.template = template
 
     def update_parameters(self):
         """
@@ -107,7 +102,7 @@ class RPMSignPlugin(SignPlugin):
             return
 
         # Sign stage for standard components
-        if stage == "sign" and not self.component.is_template():
+        if stage == "sign":
             # Check if we have RPM related content defined
             if not self.parameters.get("spec", []):
                 log.info(f"{self.component}:{self.dist}: Nothing to be done.")
@@ -183,62 +178,3 @@ class RPMSignPlugin(SignPlugin):
                     )
                 except BuildError as e:
                     raise SignError from e
-
-        # Sign stage for templates
-        if stage == "sign" and self.component.is_template():
-            # Check if we provided template to the plugin
-            if not self.template:
-                log.info(f"{self.component}:{self.template}: Missing template.")
-                return
-            # Build artifacts
-            build_artifacts_dir = self.get_templates_dir()
-            # Sign artifacts
-            artifacts_dir = self.get_component_dir(stage)
-
-            # We ensure to create a clean keyring for RPM
-            if artifacts_dir.exists():
-                shutil.rmtree(artifacts_dir)
-            db_path = artifacts_dir / "rpmdb"
-            sign_key_asc = artifacts_dir / f"{sign_key}.asc"
-            cmd = [
-                f"mkdir -p {db_path}",
-                f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
-                f"rpmkeys --dbpath={db_path} --import {sign_key_asc}",
-            ]
-            try:
-                self.executor.run(cmd)
-            except ExecutorError as e:
-                msg = f"{self.component}:{self.template}: Failed to create RPM dbpath."
-                raise SignError(msg) from e
-
-            # Read information from build stage
-            with open(
-                build_artifacts_dir / f"build_timestamp_{self.template.name}"
-            ) as f:
-                data = f.read().splitlines()
-
-            try:
-                timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
-            except (dateutil.parser.ParserError, IndexError) as e:
-                msg = f"{self.component}:{self.template}: Failed to parse build timestamp format."
-                raise SignError(msg) from e
-
-            rpm = (
-                build_artifacts_dir
-                / "rpm"
-                / f"qubes-template-{self.template.name}-{self.component.version}-{timestamp}.noarch.rpm"
-            )
-            if not rpm.exists():
-                msg = f"{self.component}:{self.template}: Cannot find template RPM '{rpm}'."
-                raise SignError(msg)
-
-            try:
-                log.info(f"{self.component}:{self.template}: Signing '{rpm.name}'.")
-                cmd = [
-                    f"{self.plugins_dir}/sign_rpm/scripts/sign-rpm "
-                    f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm}"
-                ]
-                self.executor.run(cmd)
-            except ExecutorError as e:
-                msg = f"{self.component}:{self.template}: Failed to sign template RPM '{rpm}'."
-                raise SignError(msg) from e

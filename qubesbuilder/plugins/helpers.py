@@ -13,7 +13,9 @@ from qubesbuilder.plugins.sign_deb import DEBSignPlugin
 from qubesbuilder.plugins.sign_rpm import RPMSignPlugin
 from qubesbuilder.plugins.source_deb import DEBSourcePlugin
 from qubesbuilder.plugins.source_rpm import RPMSourcePlugin
+
 from qubesbuilder.plugins.template import TemplatePlugin
+from qubesbuilder.plugins.template_rpm import RPMTemplatePlugin
 
 
 def getSourcePlugin(
@@ -66,11 +68,11 @@ def getSignPlugin(
     artifacts_dir: Path,
     **kwargs,
 ):
-    if dist.is_deb() and not component.is_template():
+    if dist.is_deb():
         sign_plugin = DEBSignPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
-    elif dist.is_rpm() or component.is_template():
+    elif dist.is_rpm():
         sign_plugin = RPMSignPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
@@ -87,11 +89,11 @@ def getPublishPlugin(
     artifacts_dir: Path,
     **kwargs,
 ):
-    if dist.is_deb() and not component.is_template():
+    if dist.is_deb():
         publish_plugin = DEBPublishPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
-    elif dist.is_rpm() or component.is_template():
+    elif dist.is_rpm():
         publish_plugin = RPMPublishPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
@@ -101,14 +103,17 @@ def getPublishPlugin(
 
 
 def getTemplatePlugin(
-    component: QubesComponent,
     template: QubesTemplate,
     plugins_dir: Path,
     executor: Executor,
     artifacts_dir: Path,
     **kwargs,
 ):
-    template_plugin = TemplatePlugin(
-        component, template, executor, plugins_dir, artifacts_dir, **kwargs
-    )
+
+    if template.distribution.is_rpm():
+        template_plugin = RPMTemplatePlugin(
+            template, executor, plugins_dir, artifacts_dir, **kwargs
+        )
+    else:
+        raise PluginError(f"{template.distribution}: unsupported dist.")
     return template_plugin
