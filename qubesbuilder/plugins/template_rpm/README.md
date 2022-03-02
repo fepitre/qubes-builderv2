@@ -1,0 +1,2 @@
+Qubes OS RPM Template
+===

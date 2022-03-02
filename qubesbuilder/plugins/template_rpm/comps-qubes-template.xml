@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE comps PUBLIC "-//Red Hat, Inc.//DTD Comps info//EN" "comps.dtd">
+<comps>
+  <group>
+    <id>qubes-vm</id>
+    <name>Qubes Environment</name>
+    <default>true</default>
+    <packagelist>
+      <packagereq type="mandatory">qubes-vm-dependencies</packagereq>
+      <packagereq type="optional">qubes-vm-recommended</packagereq>
+    </packagelist>
+  </group>
+</comps>

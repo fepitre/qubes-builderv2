@@ -1,0 +1,5 @@
+[template-builder-repo]
+name = Qubes Template Builder Repository
+baseurl = file:///tmp/template-builder-repo
+gpgcheck = 0
+cost=10
