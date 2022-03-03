@@ -1,0 +1,16 @@
+ncurses-term
+aptitude
+tasksel
+sudo
+dmsetup
+psmisc
+gnupg
+xterm
+libfile-mimeinfo-perl
+libglib2.0-bin
+ltrace
+strace
+haveged
+wireless-tools
+wpasupplicant
+dbus-x11

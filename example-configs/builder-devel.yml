@@ -26,11 +26,11 @@ distributions:
   - vm-fc35
 
 templates:
-  - fedora-35-xfce:
-      dist: fc35
-      flavor: xfce
-#  - debian-11:
-#      dist: bullseye
+#  - fedora-35-xfce:
+#      dist: fc35
+#      flavor: xfce
+  - debian-11:
+      dist: bullseye
 #  - whonix-gw-16:
 #      dist: bullseye
 #      flavor: whonix-gateway
