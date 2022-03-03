@@ -118,7 +118,7 @@ class DEBPublishPlugin(PublishPlugin):
             # Publish artifacts
             publish_artifacts_dir = self.get_component_dir(stage="publish")
             # repository-publish directory
-            artifacts_dir = self.get_repository_publish_dir() / self.dist.family
+            artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
             if not sign_artifacts_dir.exists():
                 raise PublishError("Cannot find keyring from sign stage.")

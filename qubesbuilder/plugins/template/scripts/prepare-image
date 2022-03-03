@@ -44,7 +44,7 @@ export INSTALL_DIR LC_ALL IMG
 # ------------------------------------------------------------------------------
 # Prepare for mount
 # ------------------------------------------------------------------------------
-DIST_TO_STR="${DIST_WITHOUT_FLAVOR}+${TEMPLATE_FLAVOR}"
+DIST_TO_STR="${DIST_CODENAME}+${TEMPLATE_FLAVOR}"
 if [ ${#TEMPLATE_OPTIONS} -gt 0 ]; then
     DIST_TO_STR="${DIST_TO_STR} (options: ${TEMPLATE_OPTIONS[*]})"
 fi

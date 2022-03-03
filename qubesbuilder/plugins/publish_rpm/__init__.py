@@ -124,7 +124,7 @@ class RPMPublishPlugin(PublishPlugin):
             # Publish artifacts
             publish_artifacts_dir = self.get_component_dir(stage="publish")
             # repository-publish directory
-            artifacts_dir = self.get_repository_publish_dir() / self.dist.family
+            artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
             # Ensure dbpath from sign stage (still) exists
             db_path = sign_artifacts_dir / "rpmdb"
@@ -264,7 +264,7 @@ class RPMPublishPlugin(PublishPlugin):
                 log.info(
                     f"{self.component}:{self.dist}:{spec}: Publishing RPMs to '{publish_repository}'."
                 )
-                artifacts_dir = self.get_repository_publish_dir() / self.dist.family
+                artifacts_dir = self.get_repository_publish_dir() / self.dist.type
                 target_dir = (
                     artifacts_dir
                     / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}/{self.dist.name}"

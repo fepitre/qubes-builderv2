@@ -54,12 +54,12 @@ class QubesDistribution:
             self.fullname = "fedora"
             self.version = is_fedora.group(1)
             self.tag = self.name
-            self.family = "rpm"
+            self.type = "rpm"
         elif is_centos_stream:
             self.fullname = "centos-stream"
             self.version = is_centos_stream.group(1)
             self.tag = f"el{self.version}"
-            self.family = "rpm"
+            self.type = "rpm"
         elif is_debian:
             self.fullname = "debian"
             self.version = DEBIAN[self.name]
@@ -67,7 +67,7 @@ class QubesDistribution:
                 self.architecture, self.architecture
             )
             self.tag = f"deb{self.version}"
-            self.family = "deb"
+            self.type = "deb"
         else:
             raise DistributionError(f"Unsupported distribution '{self.distribution}'")
 

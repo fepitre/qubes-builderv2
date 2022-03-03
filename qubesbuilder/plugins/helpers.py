@@ -14,8 +14,8 @@ from qubesbuilder.plugins.sign_rpm import RPMSignPlugin
 from qubesbuilder.plugins.source_deb import DEBSourcePlugin
 from qubesbuilder.plugins.source_rpm import RPMSourcePlugin
 
-from qubesbuilder.plugins.template import TemplatePlugin
 from qubesbuilder.plugins.template_rpm import RPMTemplatePlugin
+from qubesbuilder.plugins.template_debian import DEBTemplatePlugin
 
 
 def getSourcePlugin(
@@ -110,7 +110,11 @@ def getTemplatePlugin(
     **kwargs,
 ):
 
-    if template.distribution.is_rpm():
+    if template.distribution.is_deb():
+        template_plugin = DEBTemplatePlugin(
+            template, executor, plugins_dir, artifacts_dir, **kwargs
+        )
+    elif template.distribution.is_rpm():
         template_plugin = RPMTemplatePlugin(
             template, executor, plugins_dir, artifacts_dir, **kwargs
         )

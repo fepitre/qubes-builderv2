@@ -15,7 +15,7 @@ trap cleanup EXIT
 #### '----------------------------------------------------------------------
 info ' Distribution specific steps (install systemd, add sources, etc)'
 #### '----------------------------------------------------------------------
-buildStep "$0" "${DIST_WITHOUT_FLAVOR}"
+buildStep "$0" "${DIST_CODENAME}"
 
 #### '----------------------------------------------------------------------
 info " Installing extra packages from packages.list file"

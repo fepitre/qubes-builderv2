@@ -96,7 +96,7 @@ if ! containsFlavor "minimal" && [ "0$TEMPLATE_ROOT_WITH_PARTITIONS" -eq 1 ]; th
 fi
 
 # Distribution specific steps
-buildStep "${0}" "${DIST_WITHOUT_FLAVOR}"
+buildStep "${0}" "${DIST_CODENAME}"
 
 rm -f "${INSTALL_DIR}/etc/yum.repos.d/template-builder-repo-${DIST_NAME}.repo"
 rm -f "${INSTALL_DIR}/etc/yum.repos.d/template-qubes-vm.repo"

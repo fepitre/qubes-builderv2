@@ -78,7 +78,7 @@ umount_kill() {
     local mount_point
     mount_point="$(mountPoint "${1}")"
     local kill_only="${2}"
-    declare -A cache
+#    declare -A cache
 
     # Sync the disk before un-mounting to be sure everything is written
     sync
@@ -89,8 +89,8 @@ umount_kill() {
         # Escape filename (convert spaces to '\ ', etc
         dir="$(printf "%s" "${dir}")"
 
-        # Skip if already in cache
-        [[ ${cache["${dir}"]+_} ]] && continue || cache["${dir}"]=1
+#        # Skip if already in cache
+#        [[ ${cache["${dir}"]+_} ]] && continue || cache["${dir}"]=1
 
         # Kill of any processes within mountpoint
         sudo lsof "${dir}" 2>/dev/null | grep "${dir}" | tail -n +2 | awk '{print $2}' | xargs --no-run-if-empty sudo kill -9

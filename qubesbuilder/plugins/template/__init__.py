@@ -92,8 +92,8 @@ class TemplatePlugin(BasePlugin):
 
         self.environment.update(
             {
-                "DIST_WITHOUT_FLAVOR": self.dist.name,
-                "DIST_NAME": self.dist.fullname,
+                "DIST_CODENAME": self.dist.name,  # DIST
+                "DIST_NAME": self.dist.fullname,  # DISTRIBUTION
                 "DIST_VER": self.dist.version,
                 "TEMPLATE_NAME": self.template.name,
                 "TEMPLATE_VERSION": TEMPLATE_VERSION,
@@ -253,7 +253,7 @@ class TemplatePlugin(BasePlugin):
             # Build artifacts
             build_artifacts_dir = self.get_templates_dir()
             # repository-publish directory
-            artifacts_dir = self.get_repository_publish_dir() / self.dist.family
+            artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
             # Check if publish repository is valid
             if not publish_repository:

@@ -43,7 +43,7 @@ class QubesTemplate:
         except DistributionError as e:
             raise TemplateError(str(e)) from e
 
-        self.flavor = template_desc.get("flavor", None)
+        self.flavor = template_desc.get("flavor", "")
         self.options = template_desc.get("options", [])
 
     def to_str(self) -> str:
