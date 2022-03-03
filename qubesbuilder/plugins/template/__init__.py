@@ -99,7 +99,7 @@ class TemplatePlugin(BasePlugin):
                 "TEMPLATE_VERSION": TEMPLATE_VERSION,
                 "TEMPLATE_FLAVOR": self.template.flavor,
                 "TEMPLATE_OPTIONS": " ".join(self.template.options),
-                "INSTALL_DIR": "/mnt",
+                "INSTALL_DIR": "/builder/mnt",
                 "ARTIFACTS_DIR": BUILD_DIR,
                 "PLUGINS_DIR": PLUGINS_DIR,
                 "PACKAGES_DIR": REPOSITORY_DIR,

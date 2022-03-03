@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 # The Qubes OS Project, http://www.qubes-os.org
 #
 # Copyright (C) 2015 Jason Mehring <nrgaway@gmail.com>
@@ -60,7 +60,8 @@ mountPoint() {
 mountPoints() {
     local mount_point
     mount_point="$(mountPoint "${1}")"
-    sudo grep "${mount_point}" /proc/mounts | cut -f2 -d" " | sort -r | grep "^${mount_point}"
+    # shellcheck disable=SC2005
+    echo "$(sudo grep "${mount_point}" /proc/mounts | cut -f2 -d" " | sort -r | grep "^${mount_point}" | uniq)"
 }
 
 # ${1} = full path to mountpoint;
@@ -76,21 +77,22 @@ umount_kill() {
     fi
 
     local mount_point
-    mount_point="$(mountPoint "${1}")"
     local kill_only="${2}"
-#    declare -A cache
+
+    mount_point="$(mountPoint "${1}")"
+    declare -A cache
 
     # Sync the disk before un-mounting to be sure everything is written
     sync
 
     echo "INFO: Attempting to kill any processes still running in '${mount_point}' before un-mounting"
-    mounts="$(mountPoints "${mount_point}")"
+    read -r -a mounts <<<"$(mountPoints "${mount_point}")"
     for dir in "${mounts[@]}"; do
         # Escape filename (convert spaces to '\ ', etc
         dir="$(printf "%s" "${dir}")"
 
-#        # Skip if already in cache
-#        [[ ${cache["${dir}"]+_} ]] && continue || cache["${dir}"]=1
+        # Skip if already in cache
+        [[ ${cache["${dir}"]+_} ]] && continue || cache["${dir}"]=1
 
         # Kill of any processes within mountpoint
         sudo lsof "${dir}" 2>/dev/null | grep "${dir}" | tail -n +2 | awk '{print $2}' | xargs --no-run-if-empty sudo kill -9
@@ -103,7 +105,6 @@ umount_kill() {
                 echo "INFO: umount ${dir}"
                 sudo umount -n "${dir}" 2>/dev/null || sudo umount -n -l "${dir}" 2>/dev/null ||
                     echo "ERROR: umount ${dir} unsuccessful!"
-
             # Umount entries not found within 'mountpoint'
             else
                 # Look for (deleted) mountpoints
@@ -129,6 +130,6 @@ kill_processes_in_mount() {
     umount_kill "${1}" "false" || :
 }
 
-if [ "$(basename "${0}")" == "umount_kill.sh" ] && "${1}"; then
+if [ "$(basename "${0}")" == "umount-kill" ] && [ -n "${1}" ]; then
     umount_kill "${1}"
 fi
