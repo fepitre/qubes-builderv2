@@ -51,12 +51,12 @@ templates:
   - fedora-35-xfce:
       dist: fc35
       flavor: xfce
-  - bullseye:
+  - debian-11:
       dist: bullseye
       options:
        - standard
        - firmware
-  - whonix-gw-16:
+  - whonix-gateway-16:
       dist: bullseye
       flavor: whonix-gateway
       options:

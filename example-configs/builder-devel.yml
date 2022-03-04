@@ -29,14 +29,17 @@ templates:
 #  - fedora-35-xfce:
 #      dist: fc35
 #      flavor: xfce
-  - debian-11:
-      dist: bullseye
-#  - whonix-gw-16:
+#  - debian-11:
 #      dist: bullseye
-#      flavor: whonix-gateway
 #      options:
-#       - minimal
-#       - no-recommends
+#       - standard
+#       - firmware
+  - whonix-gateway-16:
+      dist: bullseye
+      flavor: whonix-gateway
+      options:
+       - minimal
+       - no-recommends
 
 artifacts-dir: /home/user/qubes-builderv2/artifacts
 
