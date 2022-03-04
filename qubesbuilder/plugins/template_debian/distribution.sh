@@ -123,14 +123,12 @@ function removeDivertPolicy() {
 # Create system mount points
 # ==============================================================================
 function prepareChroot() {
-    # Make sure nothing is mounted within $INSTALL_DIR
-    umount_kill "${INSTALL_DIR}/"
+#    # Make sure nothing is mounted within $INSTALL_DIR
+#    umount_kill "${INSTALL_DIR}" || true
 
     mount -t tmpfs none "${INSTALL_DIR}/run"
-    if [ "${SYSTEMD_NSPAWN_ENABLE}"  != "1" ]; then
-        mount -t proc proc "${INSTALL_DIR}/proc"
-        mount -t sysfs sys "${INSTALL_DIR}/sys"
-    fi
+    mount -t proc proc "${INSTALL_DIR}/proc"
+    mount -t sysfs sys "${INSTALL_DIR}/sys"
     createDbusUuid
     addDivertPolicy
 }
