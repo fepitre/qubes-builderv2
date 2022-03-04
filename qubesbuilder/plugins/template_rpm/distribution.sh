@@ -230,7 +230,7 @@ function installPackages() {
         fi
         if [ -z "${packages_list}" ]; then
             error "Can not locate a package.list file!"
-            umount_all || true
+            umount_kill "${INSTALL_DIR}" || true
             exit 1
         fi
     fi
