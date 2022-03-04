@@ -6,8 +6,8 @@ if [ "$DEBUG" == "1" ]; then
 fi
 
 # Source external scripts
-source "${TEMPLATE_CONTENT_DIR}/vars.sh"
-source "${TEMPLATE_CONTENT_DIR}/distribution.sh"
+source "${PLUGINS_DIR}/template_debian/vars.sh"
+source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ##### '-------------------------------------------------------------------------
 debug ' Installing base system using debootstrap'

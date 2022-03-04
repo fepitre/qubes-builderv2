@@ -6,6 +6,24 @@ set -e
 VERBOSE=${VERBOSE:-1}
 DEBUG=${DEBUG:-0}
 
+# Ensure variables used as array are declared as such
+if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+    TEMPLATE_OPTIONS=( ${TEMPLATE_OPTIONS} )
+fi
+
+if ! [[ "$(declare -p TEMPLATE_FLAVOR_DIR 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+    TEMPLATE_FLAVOR_DIR=( ${TEMPLATE_FLAVOR_DIR} )
+fi
+
+if ! [[ "$(declare -p TEMPLATE_FLAVOR_PREFIX 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+    TEMPLATE_FLAVOR_PREFIX=( ${TEMPLATE_FLAVOR_PREFIX} )
+fi
+
+if ! [[ "$(declare -p TEMPLATE_LABEL 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+    TEMPLATE_LABEL=( ${TEMPLATE_LABEL} )
+fi
+
+
 # ------------------------------------------------------------------------------
 # Run a command inside chroot
 # ------------------------------------------------------------------------------
@@ -101,6 +119,10 @@ get_file_or_directory_for_current_flavor() {
     # shellcheck disable=SC2153
     if [ -n "${suffix}" ] && [ -e "${resource_dir}/${resource_without_ext}_${suffix}${ext}" ]; then
         file_or_directory="${resource_dir}/${resource_without_ext}_${suffix}${ext}"
+    elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_CODENAME}_${TEMPLATE_FLAVOR}${ext}" ]; then
+        file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_CODENAME}_${TEMPLATE_FLAVOR}${ext}"
+    elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_CODENAME}${ext}" ]; then
+        file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_CODENAME}${ext}"
     elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}_${TEMPLATE_FLAVOR}${ext}" ]; then
         file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}_${TEMPLATE_FLAVOR}${ext}"
     elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${TEMPLATE_FLAVOR}${ext}" ]; then
@@ -134,14 +156,10 @@ containsFlavor() {
 templateFlavorPrefix() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
 
-    if [ -z "${TEMPLATE_FLAVOR_PREFIX}" ]; then
-        TEMPLATE_FLAVOR_PREFIX=()
-    fi
-
     for element in "${TEMPLATE_FLAVOR_PREFIX[@]}"
     do
         if [ "${element%:*}" == "${DIST}+${template_flavor}" ]; then
-            echo "${element#*:}"
+            echo ${element#*:}
             return
         fi
     done
@@ -156,15 +174,13 @@ templateFlavorPrefix() {
 
 templateNameFixLength() {
     local template_name="${1}"
-    local temp_name
+    local temp_name=(${template_name//+/ })
     local index=$(( ${#temp_name[@]}-1 ))
 
-    read -r -a temp_name <<< "${template_name//+/ }"
-
     while [ ${#template_name} -ge 32 ]; do
-        template_name=$(printf '%s' "${temp_name[0]}")
+        template_name=$(printf '%s' ${temp_name[0]})
         if [ $index -gt 0 ]; then
-            template_name+=$(printf '+%s' "${temp_name[@]:1:index}")
+            template_name+=$(printf '+%s' ${temp_name[@]:1:index})
         fi
         (( index-- ))
         if [ $index -lt 1 ]; then
@@ -194,17 +210,13 @@ templateName() {
     retval=1 # Default is 1; mean no replace happened
 
     # Only apply options if $1 was not passed
-    if [ -n "${1}" ] || [ "X${TEMPLATE_OPTIONS}" == "X" ]; then
+    if [ -n "${1}" ] || [ -z "${TEMPLATE_OPTIONS}" ]; then
         template_options=
     else
         template_options=$(printf '+%s' "${TEMPLATE_OPTIONS[@]}")
     fi
 
     template_name="$(templateFlavorPrefix "${template_flavor}")${template_flavor}${template_options}"
-
-    if [ -z "${TEMPLATE_LABEL}" ]; then
-        TEMPLATE_LABEL=()
-    fi
 
     for element in "${TEMPLATE_LABEL[@]}"; do
         if [ "${element%:*}" == "${template_name}" ]; then
@@ -291,10 +303,6 @@ templateDirs() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
     local template_flavor_prefix
     local match=0
-
-    if [ -z "${TEMPLATE_FLAVOR_DIR}" ]; then
-        TEMPLATE_FLAVOR_DIR=()
-    fi
 
     for element in "${TEMPLATE_FLAVOR_DIR[@]}"
     do

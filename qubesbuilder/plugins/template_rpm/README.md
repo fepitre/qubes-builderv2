@@ -1,2 +1,2 @@
-Qubes OS RPM Template
+Qubes OS RPM distribution template
 ===

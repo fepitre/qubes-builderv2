@@ -4,7 +4,7 @@
 source "${PLUGINS_DIR}/template/scripts/functions.sh" >/dev/null
 source "${PLUGINS_DIR}/template/scripts/umount-kill" >/dev/null
 
-output "INFO: ${TEMPLATE_CONTENT_DIR}/distribution.sh imported by: ${0}"
+output "INFO: ${PLUGINS_DIR}/template_debian/distribution.sh imported by: ${0}"
 
 # ==============================================================================
 # Cleanup function

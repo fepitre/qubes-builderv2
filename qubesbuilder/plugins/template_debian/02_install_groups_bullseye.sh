@@ -5,8 +5,8 @@ if [ "$DEBUG" == "1" ]; then
     set -x
 fi
 
-source "${TEMPLATE_CONTENT_DIR}/vars.sh"
-source "${TEMPLATE_CONTENT_DIR}/distribution.sh"
+source "${PLUGINS_DIR}/template_debian/vars.sh"
+source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ##### "=========================================================================
 debug " Installing custom packages and customizing ${DIST_CODENAME}"

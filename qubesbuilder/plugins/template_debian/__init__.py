@@ -61,12 +61,13 @@ class DEBTemplatePlugin(TemplatePlugin):
             debug=debug,
         )
 
-        # The parent class will automatically copy-in all its plugin dependencies. When calling
-        # parent class method (for generic steps), we need to have access to "template_debian"
-        # content where TEMPLATE_CONTENT_DIR locates the scripts to be used.
+        # The parent class will automatically copy-in all its plugin dependencies. Calling parent
+        # class method (for generic steps), we need to have access to this plugin dependencies.
         self.plugin_dependencies += ["template_debian", "build_deb"]
 
-        self.environment.update({"TEMPLATE_CONTENT_DIR": PLUGINS_DIR / "template_debian"})
+        self.environment.update(
+            {"TEMPLATE_CONTENT_DIR": PLUGINS_DIR / "template_debian"}
+        )
 
     def run(
         self, stage: str, publish_repository: str = None, ignore_min_age: bool = False
