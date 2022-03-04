@@ -6,24 +6,6 @@ set -e
 VERBOSE=${VERBOSE:-1}
 DEBUG=${DEBUG:-0}
 
-# Ensure variables used as array are declared as such
-if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-    TEMPLATE_OPTIONS=( ${TEMPLATE_OPTIONS} )
-fi
-
-if ! [[ "$(declare -p TEMPLATE_FLAVOR_DIR 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-    TEMPLATE_FLAVOR_DIR=( ${TEMPLATE_FLAVOR_DIR} )
-fi
-
-if ! [[ "$(declare -p TEMPLATE_FLAVOR_PREFIX 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-    TEMPLATE_FLAVOR_PREFIX=( ${TEMPLATE_FLAVOR_PREFIX} )
-fi
-
-if ! [[ "$(declare -p TEMPLATE_LABEL 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-    TEMPLATE_LABEL=( ${TEMPLATE_LABEL} )
-fi
-
-
 # ------------------------------------------------------------------------------
 # Run a command inside chroot
 # ------------------------------------------------------------------------------
@@ -139,6 +121,10 @@ containsFlavor() {
     flavor="${1}"
     retval=1
 
+    if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+        TEMPLATE_OPTIONS=( ${TEMPLATE_OPTIONS} )
+    fi
+
     # Check the template flavor first
     if [ "${flavor}" == "${TEMPLATE_FLAVOR}" ]; then
         retval=0
@@ -155,6 +141,10 @@ containsFlavor() {
 
 templateFlavorPrefix() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
+
+    if ! [[ "$(declare -p TEMPLATE_FLAVOR_PREFIX 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+        TEMPLATE_FLAVOR_PREFIX=( ${TEMPLATE_FLAVOR_PREFIX} )
+    fi
 
     for element in "${TEMPLATE_FLAVOR_PREFIX[@]}"
     do
@@ -209,6 +199,10 @@ templateName() {
     local template_options
     retval=1 # Default is 1; mean no replace happened
 
+    if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+        TEMPLATE_OPTIONS=( ${TEMPLATE_OPTIONS} )
+    fi
+
     # Only apply options if $1 was not passed
     if [ -n "${1}" ] || [ -z "${TEMPLATE_OPTIONS}" ]; then
         template_options=
@@ -217,6 +211,10 @@ templateName() {
     fi
 
     template_name="$(templateFlavorPrefix "${template_flavor}")${template_flavor}${template_options}"
+
+    if ! [[ "$(declare -p TEMPLATE_LABEL 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+        TEMPLATE_LABEL=( ${TEMPLATE_LABEL} )
+    fi
 
     for element in "${TEMPLATE_LABEL[@]}"; do
         if [ "${element%:*}" == "${template_name}" ]; then
@@ -303,6 +301,10 @@ templateDirs() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
     local template_flavor_prefix
     local match=0
+
+    if ! [[ "$(declare -p TEMPLATE_FLAVOR_DIR 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+        export TEMPLATE_FLAVOR_DIR=( ${TEMPLATE_FLAVOR_DIR} )
+    fi
 
     for element in "${TEMPLATE_FLAVOR_DIR[@]}"
     do
@@ -464,6 +466,10 @@ callTemplateFunction() {
     ${functionExec} "${calling_script}" \
                     "${calling_arg}" \
                     "+"
+
+    if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
+        TEMPLATE_OPTIONS=( ${TEMPLATE_OPTIONS} )
+    fi
 
     for option in "${TEMPLATE_OPTIONS[@]}"
     do
