@@ -13,7 +13,6 @@ variables:
 # test
 #
 
-
 lint:
   stage: test
   image: fedora:latest
@@ -81,7 +80,7 @@ pytest:
     - chmod 700 ~/.gnupg
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
-#    - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
+  #    - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
   script:
     - cp tests/builder-ci.yml builder.yml
     - ./qb -d "${CI_JOB_NAME#docker-}" package all
@@ -99,12 +98,11 @@ pytest:
     - systemctl --user start podman
     - podman pull docker.io/fepitre/qubes-builder-fedora:latest
     - podman tag docker.io/fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
-#    - podman build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
+  #    - podman build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/podman/' builder.yml
     - ./qb -d "${CI_JOB_NAME#podman-}" package all
-
 
 .component_qubes_job:
   stage: test
@@ -119,7 +117,7 @@ pytest:
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/qubes/' builder.yml
-    - "sed -i 's|image:.*|dispvm: \"qubes-builder-dvm\"|' builder.yml"
+    - 'sed -i ''s|image:.*|dispvm: "qubes-builder-dvm"|'' builder.yml'
     - ./qb -d "${CI_JOB_NAME#qubes-}" package all
 
 .template_qubes_job:
@@ -132,12 +130,14 @@ pytest:
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/qubes/' builder.yml
-    - "sed -i 's|image:.*|dispvm: \"qubes-builder-dvm\"|' builder.yml"
+    - 'sed -i ''s|image:.*|dispvm: "qubes-builder-dvm"|'' builder.yml'
     - ./qb -t "${CI_JOB_NAME#qubes-template-}" template all
 
 #
-# Podman executor
+# Components
 #
+
+# Podman executor
 
 podman-host-fc32:
   extends: .component_podman_job
@@ -148,9 +148,7 @@ podman-vm-fc35:
 #podman-vm-bullseye:
 #  extends: .component_podman_job
 
-#
 # Docker executor
-#
 
 docker-host-fc32:
   extends: .component_docker_job
@@ -161,9 +159,7 @@ docker-vm-fc35:
 docker-vm-bullseye:
   extends: .component_docker_job
 
-#
 # Qubes executor
-#
 
 qubes-host-fc32:
   extends: .component_qubes_job
@@ -174,5 +170,18 @@ qubes-vm-fc35:
 qubes-vm-bullseye:
   extends: .component_qubes_job
 
+#
+# Templates
+#
+
 qubes-template-fedora-35-xfce:
+  extends: .template_qubes_job
+
+qubes-template-debian-11:
+  extends: .template_qubes_job
+
+qubes-template-whonix-gateway-16:
+  extends: .template_qubes_job
+
+qubes-template-whonix-workstation-16:
   extends: .template_qubes_job

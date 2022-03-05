@@ -26,21 +26,26 @@ distributions:
   - vm-fc35
 
 templates:
-#  - fedora-35-xfce:
-#      dist: fc35
-#      flavor: xfce
-#  - debian-11:
-#      dist: bullseye
-#      options:
-#       - standard
-#       - firmware
+  - fedora-35-xfce:
+      dist: fc35
+      flavor: xfce
+  - debian-11:
+      dist: bullseye
+      options:
+        - standard
+        - firmware
   - whonix-gateway-16:
       dist: bullseye
       flavor: whonix-gateway
       options:
-       - minimal
-       - no-recommends
-
+        - minimal
+        - no-recommends
+  - whonix-workstation-16:
+      dist: bullseye
+      flavor: whonix-workstation
+      options:
+        - minimal
+        - no-recommends
 artifacts-dir: /home/user/qubes-builderv2/artifacts
 
 components:
