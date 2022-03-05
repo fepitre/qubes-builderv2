@@ -151,7 +151,7 @@ class TemplatePlugin(BasePlugin):
                 }
             )
 
-            rpm = f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
+            rpm_fn = f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
 
             copy_in = [
                 (self.plugins_dir / "template", PLUGINS_DIR),
@@ -179,7 +179,7 @@ class TemplatePlugin(BasePlugin):
                     BUILD_DIR / "qubeized_images" / self.template.name / "root.img",
                     qubeized_image,
                 ),
-                (BUILD_DIR / f"rpmbuild/RPMS/noarch/{rpm}", artifacts_dir / "rpm"),
+                (BUILD_DIR / f"rpmbuild/RPMS/noarch/{rpm_fn}", artifacts_dir / "rpm"),
             ]
             cmd = [f"make -C {PLUGINS_DIR}/template prepare build"]
             try:
@@ -223,7 +223,7 @@ class TemplatePlugin(BasePlugin):
                 data = f.read().splitlines()
 
             try:
-                timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+                template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
             except (dateutil.parser.ParserError, IndexError) as e:
                 msg = f"{self.template}: Failed to parse build timestamp format."
                 raise TemplateError(msg) from e
@@ -231,7 +231,7 @@ class TemplatePlugin(BasePlugin):
             rpm = (
                 build_artifacts_dir
                 / "rpm"
-                / f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{timestamp}.noarch.rpm"
+                / f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
             )
             if not rpm.exists():
                 msg = f"{self.template}: Cannot find template RPM '{rpm}'."
