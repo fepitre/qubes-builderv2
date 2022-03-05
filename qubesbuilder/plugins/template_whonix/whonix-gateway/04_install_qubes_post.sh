@@ -28,7 +28,9 @@ if [ "$DEBUG" == "1" ]; then
 fi
 
 # Source external scripts
+# shellcheck source=qubesbuilder/plugins/template_debian/vars.sh
 source "${PLUGINS_DIR}/template_debian/vars.sh"
+# shellcheck source=qubesbuilder/plugins/template_debian/distribution.sh
 source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ## If .prepared_debootstrap has not been completed, don't continue.
@@ -106,8 +108,7 @@ aptUpdate
 
 if [ -n "$WHONIX_TBB_VERSION" ]; then
     mkdir -p "${INSTALL_DIR}/etc/torbrowser.d"
-    echo "tbb_version=\"$WHONIX_TBB_VERSION\"" > \
-        "${INSTALL_DIR}/etc/torbrowser.d/80_template_builder_override.conf"
+    echo "tbb_version=\"$WHONIX_TBB_VERSION\"" > "${INSTALL_DIR}/etc/torbrowser.d/80_template_builder_override.conf"
 fi
 
 aptInstall "$whonix_meta_package_to_install"
@@ -117,8 +118,7 @@ uninstallQubesRepo
 rm -f "${INSTALL_DIR}/$whonix_repository_temporary_apt_sources_list"
 
 if [ -e "${INSTALL_DIR}/etc/apt/sources.list.d/debian.list" ]; then
-    info 'Remove original sources.list (Whonix package anon-apt-sources-list \
-ships /etc/apt/sources.list.d/debian.list)'
+    info 'Remove original sources.list (Whonix package anon-apt-sources-list ships /etc/apt/sources.list.d/debian.list)'
     rm -f "${INSTALL_DIR}/etc/apt/sources.list"
 fi
 
@@ -142,8 +142,9 @@ updateLocale
 ## https://github.com/QubesOS/qubes-issues/issues/1102
 UWT_DEV_PASSTHROUGH="1" aptRemove ntpdate || true
 
+# shellcheck disable=SC2086,SC2154
 UWT_DEV_PASSTHROUGH="1" DEBIAN_FRONTEND="noninteractive" DEBIAN_PRIORITY="critical" DEBCONF_NOWARNINGS="yes" \
-    chroot_cmd $eatmydata_maybe apt-get ${APT_GET_OPTIONS} autoremove
+    chroot_cmd $eatmydata_maybe apt-get "${APT_GET_OPTIONS[@]}" autoremove
 
 ## Cleanup.
 umount_all "${INSTALL_DIR}/" || true

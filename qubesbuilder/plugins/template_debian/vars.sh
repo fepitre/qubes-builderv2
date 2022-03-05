@@ -1,6 +1,9 @@
 #!/bin/bash -e
 # vim: set ts=4 sw=4 sts=4 et :
 
+# shellcheck disable=SC2034
+
+# shellcheck source=qubesbuilder/plugins/template/scripts/functions.sh
 source "${PLUGINS_DIR}/template/scripts/functions.sh" >/dev/null
 
 # ==============================================================================
@@ -33,7 +36,7 @@ DEFAULT_DEBIAN_MIRRORS=(
 
 # DEBIAN_MIRRORS can be set in configuration file to override the defaults
 if [ -z "${DEBIAN_MIRRORS}" ]; then
-    DEBIAN_MIRRORS="${DEFAULT_DEBIAN_MIRRORS}"
+    read -r -a DEBIAN_MIRRORS<<<"${DEFAULT_DEBIAN_MIRRORS[@]}"
 fi
 
 # ------------------------------------------------------------------------------
@@ -44,20 +47,20 @@ KERNEL_PACKAGE_NAME="linux-image-amd64"
 # ------------------------------------------------------------------------------
 # apt-get configuration options
 # ------------------------------------------------------------------------------
-APT_GET_OPTIONS="-o Dpkg::Options::=--force-confnew --yes"
-APT_GET_OPTIONS+=" -o Acquire::Retries=3"
+APT_GET_OPTIONS=("-o" "Dpkg::Options::=--force-confnew" "--yes")
+APT_GET_OPTIONS+=("-o" "Acquire::Retries=3")
 
 if [ "0${BUILDER_TURBO_MODE}" -gt 0 ]; then
-    APT_GET_OPTIONS+=" -o Dpkg::Options::=--force-unsafe-io"
+    APT_GET_OPTIONS+=("-o" "Dpkg::Options::=--force-unsafe-io")
     eatmydata_maybe=eatmydata
 fi
 
 if [ -n "$REPO_PROXY" ]; then
-    APT_GET_OPTIONS+=" -o Acquire::http::Proxy=${REPO_PROXY}"
-    DEBOOTSTRAP_PREFIX+=" env http_proxy=${REPO_PROXY}"
-    DEBOOTSTRAP_PREFIX+=" env https_proxy=${REPO_PROXY}"
+    APT_GET_OPTIONS+=("-o Acquire::http::Proxy=${REPO_PROXY}")
+    DEBOOTSTRAP_PREFIX+=("env" "http_proxy=${REPO_PROXY}")
+    DEBOOTSTRAP_PREFIX+=("env" "https_proxy=${REPO_PROXY}")
 fi
 
-containsFlavor 'no-recommends' && {
-    APT_GET_OPTIONS+=" -o APT::Install-Recommends=0  -o APT::Install-Suggests=0"
-} || true
+if containsFlavor 'no-recommends'; then
+    APT_GET_OPTIONS+=("-o" "APT::Install-Recommends=0" "-o" "APT::Install-Suggests=0")
+fi

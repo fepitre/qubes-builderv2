@@ -122,7 +122,7 @@ containsFlavor() {
     retval=1
 
     if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        TEMPLATE_OPTIONS=( ${TEMPLATE_OPTIONS} )
+        read -r -a TEMPLATE_OPTIONS <<<"${TEMPLATE_OPTIONS}"
     fi
 
     # Check the template flavor first
@@ -143,13 +143,13 @@ templateFlavorPrefix() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
 
     if ! [[ "$(declare -p TEMPLATE_FLAVOR_PREFIX 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        TEMPLATE_FLAVOR_PREFIX=( ${TEMPLATE_FLAVOR_PREFIX} )
+        read -r -a TEMPLATE_FLAVOR_PREFIX <<<"${TEMPLATE_FLAVOR_PREFIX}"
     fi
 
     for element in "${TEMPLATE_FLAVOR_PREFIX[@]}"
     do
         if [ "${element%:*}" == "${DIST}+${template_flavor}" ]; then
-            echo ${element#*:}
+            echo "${element#*:}"
             return
         fi
     done
@@ -164,13 +164,14 @@ templateFlavorPrefix() {
 
 templateNameFixLength() {
     local template_name="${1}"
-    local temp_name=(${template_name//+/ })
+    local temp_name
+    read -r -a temp_name <<<"${template_name//+/ }"
     local index=$(( ${#temp_name[@]}-1 ))
 
     while [ ${#template_name} -ge 32 ]; do
-        template_name=$(printf '%s' ${temp_name[0]})
+        template_name=$(printf '%s' "${temp_name[0]}")
         if [ $index -gt 0 ]; then
-            template_name+=$(printf '+%s' ${temp_name[@]:1:index})
+            template_name+=$(printf '+%s' "${temp_name[@]:1:index}")
         fi
         (( index-- ))
         if [ $index -lt 1 ]; then
@@ -200,11 +201,13 @@ templateName() {
     retval=1 # Default is 1; mean no replace happened
 
     if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        TEMPLATE_OPTIONS=( ${TEMPLATE_OPTIONS} )
+        # shellcheck disable=SC2128
+        # ShellCheck is misleaded here?
+        read -r -a TEMPLATE_OPTIONS <<< "${TEMPLATE_OPTIONS}"
     fi
 
     # Only apply options if $1 was not passed
-    if [ -n "${1}" ] || [ -z "${TEMPLATE_OPTIONS}" ]; then
+    if [ -n "${1}" ] || [ -z "${TEMPLATE_OPTIONS[*]}" ]; then
         template_options=
     else
         template_options=$(printf '+%s' "${TEMPLATE_OPTIONS[@]}")
@@ -213,7 +216,7 @@ templateName() {
     template_name="$(templateFlavorPrefix "${template_flavor}")${template_flavor}${template_options}"
 
     if ! [[ "$(declare -p TEMPLATE_LABEL 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        TEMPLATE_LABEL=( ${TEMPLATE_LABEL} )
+        read -r -a TEMPLATE_LABEL <<<"${TEMPLATE_LABEL}"
     fi
 
     for element in "${TEMPLATE_LABEL[@]}"; do
@@ -303,7 +306,7 @@ templateDirs() {
     local match=0
 
     if ! [[ "$(declare -p TEMPLATE_FLAVOR_DIR 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        export TEMPLATE_FLAVOR_DIR=( ${TEMPLATE_FLAVOR_DIR} )
+        read -r -a TEMPLATE_FLAVOR_DIR <<<"${TEMPLATE_FLAVOR_DIR}"
     fi
 
     for element in "${TEMPLATE_FLAVOR_DIR[@]}"
@@ -468,7 +471,7 @@ callTemplateFunction() {
                     "+"
 
     if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        TEMPLATE_OPTIONS=( ${TEMPLATE_OPTIONS} )
+        read -r -a TEMPLATE_OPTIONS <<<"${TEMPLATE_OPTIONS}"
     fi
 
     for option in "${TEMPLATE_OPTIONS[@]}"

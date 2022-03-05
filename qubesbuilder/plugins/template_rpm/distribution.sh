@@ -1,7 +1,9 @@
 #!/bin/bash -e
 # vim: set ts=4 sw=4 sts=4 et :
 
+# shellcheck source=qubesbuilder/plugins/template/scripts/functions.sh
 source "${PLUGINS_DIR}/template/scripts/functions.sh" >/dev/null
+# shellcheck source=qubesbuilder/plugins/template/scripts/umount-kill
 source "${PLUGINS_DIR}/template/scripts/umount-kill" >/dev/null
 
 # shellcheck disable=SC2154
@@ -97,7 +99,7 @@ function yumInstall() {
     mkdir -p "${INSTALL_DIR}/tmp/template-builder-repo"
     mount --bind "${PACKAGES_DIR}" "${INSTALL_DIR}/tmp/template-builder-repo"
     if [ -e "${INSTALL_DIR}/usr/bin/$DNF" ]; then
-        cp "${TEMPLATE_CONTENT_DIR}"/template-builder-repo-${DIST_NAME}.repo "${INSTALL_DIR}/etc/yum.repos.d/"
+        cp "${TEMPLATE_CONTENT_DIR}/template-builder-repo-${DIST_NAME}.repo" "${INSTALL_DIR}/etc/yum.repos.d/"
         chroot_cmd $DNF --downloadonly \
             install "${DNF_OPTS[@]}" "${files[@]}" || exit 1
         find "${INSTALL_DIR}/var/cache/dnf" -name '*.rpm' -print0 | xargs -r0 sha256sum
@@ -164,7 +166,7 @@ function yumUpdate() {
     mkdir -p "${INSTALL_DIR}"/tmp/template-builder-repo
     mount --bind "${PACKAGES_DIR}" "${INSTALL_DIR}"/tmp/template-builder-repo
     if [ -e "${INSTALL_DIR}/usr/bin/$DNF" ]; then
-        cp "${TEMPLATE_CONTENT_DIR}"/template-builder-repo-${DIST_NAME}.repo "${INSTALL_DIR}"/etc/yum.repos.d/
+        cp "${TEMPLATE_CONTENT_DIR}/template-builder-repo-${DIST_NAME}.repo" "${INSTALL_DIR}"/etc/yum.repos.d/
         chroot_cmd $DNF --downloadonly update "${DNF_OPTS[@]}" "${files[@]}" || exit 1
         find "${INSTALL_DIR}"/var/cache/dnf -name '*.rpm' -print0 | xargs -r0 sha256sum
         find "${INSTALL_DIR}"/var/cache/yum -name '*.rpm' -print0 | xargs -r0 sha256sum
@@ -172,7 +174,7 @@ function yumUpdate() {
         # --cacheonly being buggy: better fail the build than install something
         # else than the logged one
         chroot_cmd $DNF update "${DNF_OPTS[@]}" --cacheonly --setopt=proxy=http://127.0.0.1:1/ "${files[@]}" || exit 1
-        rm -f "${INSTALL_DIR}"/etc/yum.repos.d/template-builder-repo-${DIST_NAME}.repo
+        rm -f "${INSTALL_DIR}/etc/yum.repos.d/template-builder-repo-${DIST_NAME}.repo"
     else
         echo "$DNF not installed in $INSTALL_DIR, exiting!"
         exit 1
@@ -235,7 +237,7 @@ function installPackages() {
         fi
     fi
 
-    for package_list in ${packages_list[*]}; do
+    for package_list in "${packages_list[@]}"; do
         debug "Installing extra packages from: ${package_list}"
         declare -a packages
         readarray -t packages < "${package_list}"

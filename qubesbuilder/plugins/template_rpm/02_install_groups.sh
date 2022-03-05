@@ -21,6 +21,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+# shellcheck source=qubesbuilder/plugins/template_rpm/distribution.sh
 source "${TEMPLATE_CONTENT_DIR}/distribution.sh"
 
 # Prepare system mount points
@@ -41,7 +42,9 @@ buildStep "$0" "${DIST_CODENAME}"
 info " Installing extra packages from packages.list file"
 #### '----------------------------------------------------------------------
 chroot_cmd "${DNF}" clean all
+# shellcheck disable=SC2119
 installPackages
+# shellcheck disable=SC2119
 yumUpdate
 
 #### '----------------------------------------------------------------------

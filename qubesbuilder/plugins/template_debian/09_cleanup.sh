@@ -5,7 +5,9 @@ if [ "$DEBUG" == "1" ]; then
     set -x
 fi
 
+# shellcheck source=qubesbuilder/plugins/template_debian/vars.sh
 source "${PLUGINS_DIR}/template_debian/vars.sh"
+# shellcheck source=qubesbuilder/plugins/template_debian/distribution.sh
 source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ##### '=========================================================================
@@ -24,7 +26,7 @@ rm -rf "${INSTALL_DIR}/var/cache/apt/archives"
 rm -rf "${INSTALL_DIR}/var/cache/apt/pkgcache.bin"
 rm -rf "${INSTALL_DIR}/var/cache/apt/srcpkgcache.bin"
 rm -f "${INSTALL_DIR}/etc/apt/sources.list.d/qubes-builder.list"
-rm -rf "${INSTALL_DIR}/${TMPDIR}"
+rm -rf "${INSTALL_DIR}/${TMPDIR:?}"
 rm -f "${INSTALL_DIR}/var/lib/systemd/random-seed"
 sed -i "s/$(hostname)/${DIST_NAME}/"  "${INSTALL_DIR}/etc/hosts" || true
 

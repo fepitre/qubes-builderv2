@@ -24,12 +24,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 
-if [ "$VERBOSE" -ge 2 -o "$DEBUG" == "1" ]; then
+if [ "$DEBUG" == "1" ]; then
     set -x
 fi
 
-source "${SCRIPTSDIR}/vars.sh"
-source "${SCRIPTSDIR}/distribution.sh"
+# shellcheck source=qubesbuilder/plugins/template_debian/vars.sh
+source "${PLUGINS_DIR}/template_debian/vars.sh"
+# shellcheck source=qubesbuilder/plugins/template_debian/distribution.sh
+source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ##### '-------------------------------------------------------------------------
 debug ' Whonix post installation cleanup'

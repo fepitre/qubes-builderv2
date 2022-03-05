@@ -2,7 +2,9 @@
 # vim: set ts=4 sw=4 sts=4 et :
 
 # Source external scripts
+# shellcheck source=qubesbuilder/plugins/template_debian/vars.sh
 source "${PLUGINS_DIR}/template_debian/vars.sh"
+# shellcheck source=qubesbuilder/plugins/template_debian/distribution.sh
 source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ## Make sure ${INSTALL_DIR} is not mounted
@@ -38,7 +40,7 @@ manage_snapshot() {
 
 
 # generate metadata in PACKAGES_DIR even if the repository is empty
-"${PLUGINS_DIR}"/build_deb/scripts/create-local-repo ${PACKAGES_DIR} ${DIST_NAME} ${DIST_CODENAME}
+"${PLUGINS_DIR}"/build_deb/scripts/create-local-repo "${PACKAGES_DIR}" "${DIST_NAME}" "${DIST_CODENAME}"
 
 # ==============================================================================
 # Determine if a snapshot should be used, reuse an existing image or
@@ -47,6 +49,7 @@ manage_snapshot() {
 # SNAPSHOT=1 - Use snapshots; Will remove after successful build
 # If debootstrap did not complete, the existing image will be deleted
 # ==============================================================================
+path_parts=
 splitPath "${IMG}" path_parts
 packages_snapshot="${path_parts[dir]}${path_parts[base]}-packages${path_parts[dotext]}"
 debootstrap_snapshot="${path_parts[dir]}${path_parts[base]}-debootstrap${path_parts[dotext]}"

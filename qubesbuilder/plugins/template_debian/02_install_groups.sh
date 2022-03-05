@@ -5,7 +5,9 @@ if [ "$DEBUG" == "1" ]; then
     set -x
 fi
 
+# shellcheck source=qubesbuilder/plugins/template_debian/vars.sh
 source "${PLUGINS_DIR}/template_debian/vars.sh"
+# shellcheck source=qubesbuilder/plugins/template_debian/distribution.sh
 source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ##### "=========================================================================
@@ -40,13 +42,14 @@ trap cleanup EXIT
 info ' Install standard Debian packages'
 #### '----------------------------------------------------------------------
 containsFlavor "minimal" || {
-    packages="$(chroot_cmd tasksel --new-install --task-packages standard)"
+    read -r -a packages <<<"$(chroot_cmd tasksel --new-install --task-packages standard)"
     # media-types : Breaks: mime-support (<= 3.64) but 3.64 is to be installed
-    packages="${packages//media-types/}"
+    read -r -a packages <<<"${packages[@]//media-types/}"
     if [ -n "$eatmydata_maybe" ]; then
-        eatmydata_maybe= aptInstall $eatmydata_maybe
+        # shellcheck disable=SC2097,2098
+        eatmydata_maybe="" aptInstall "$eatmydata_maybe"
     fi
-    aptInstall ${packages}
+    aptInstall "${packages[@]}"
 }
 
 #### '----------------------------------------------------------------------
@@ -57,6 +60,7 @@ buildStep "$0" "${DIST_CODENAME}"
 #### '----------------------------------------------------------------------
 info " Installing extra packages in script_${DIST_CODENAME}/packages.list file"
 #### '----------------------------------------------------------------------
+# shellcheck disable=SC2119
 installPackages
 createSnapshot "packages"
 touch "${INSTALL_DIR}/${TMPDIR}/.prepared_packages"

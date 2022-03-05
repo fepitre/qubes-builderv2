@@ -5,7 +5,9 @@ if [ "$DEBUG" == "1" ]; then
     set -x
 fi
 
+# shellcheck source=qubesbuilder/plugins/template_debian/vars.sh
 source "${PLUGINS_DIR}/template_debian/vars.sh"
+# shellcheck source=qubesbuilder/plugins/template_debian/distribution.sh
 source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ##### '-------------------------------------------------------------------------
@@ -54,7 +56,7 @@ if ! [ -f "${INSTALL_DIR}/${TMPDIR}/.prepared_qubes" ]; then
         aptInstall "${KERNEL_PACKAGE_NAME}"
         aptInstall grub-pc
         # find the right loop device, _not_ its partition
-        dev=$(df --output=source $INSTALL_DIR | tail -n 1)
+        dev=$(df --output=source "${INSTALL_DIR}" | tail -n 1)
         dev=${dev%p?}
         chroot_cmd mount -t devtmpfs none /dev
         chroot_cmd grub-install --target=i386-pc --modules=part_gpt "$dev"

@@ -20,7 +20,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-late
 
-
+# shellcheck source=qubesbuilder/plugins/template_rpm/distribution.sh
 source "${TEMPLATE_CONTENT_DIR}/distribution.sh"
 
 #### '----------------------------------------------------------------------

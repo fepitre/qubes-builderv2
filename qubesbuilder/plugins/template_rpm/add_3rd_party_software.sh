@@ -1,6 +1,7 @@
 #!/bin/bash -e
 # vim: set ts=4 sw=4 sts=4 et :
 
+# shellcheck source=qubesbuilder/plugins/template_rpm/distribution.sh
 source "${TEMPLATE_CONTENT_DIR}/distribution.sh"
 
 #### '----------------------------------------------------------------------

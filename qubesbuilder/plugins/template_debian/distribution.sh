@@ -1,7 +1,9 @@
 #!/bin/bash -e
 # vim: set ts=4 sw=4 sts=4 et :
 
+# shellcheck source=qubesbuilder/plugins/template/scripts/functions.sh
 source "${PLUGINS_DIR}/template/scripts/functions.sh" >/dev/null
+# shellcheck source=qubesbuilder/plugins/template/scripts/umount-kill
 source "${PLUGINS_DIR}/template/scripts/umount-kill" >/dev/null
 
 output "INFO: ${PLUGINS_DIR}/template_debian/distribution.sh imported by: ${0}"
@@ -14,7 +16,7 @@ function cleanup() {
     trap - ERR EXIT
     trap
     error "${1:-"${0}: Error.  Cleaning up and un-mounting any existing mounts"}"
-    umount_all || true
+    umount_all "${INSTALL_DIR}" || true
 
     exit $errval
 }
@@ -28,7 +30,7 @@ function exitOnNoFile() {
 
     if ! [ -f "${file}" ]; then
         error "${message}"
-        umount_all || true
+        umount_all "${INSTALL_DIR}" || true
         exit 1
     fi
 }
@@ -40,7 +42,7 @@ function umount_all() {
     directory="${1:-"${INSTALL_DIR}"}"
 
     # Only remove dirvert policies, etc if base INSTALL_DIR mount is being umounted
-    if [ "${directory}" == "${INSTALL_DIR}" -o "${directory}" == "${INSTALL_DIR}/" ]; then
+    if [ "${directory}" == "${INSTALL_DIR}" ] || [ "${directory}" == "${INSTALL_DIR}/" ]; then
         if [ -n "$(mountPoints)" ]; then
             removeDbusUuid
             removeDivertPolicy
@@ -57,6 +59,7 @@ function createSnapshot() {
     snapshot_name="${1}"
 
     if [ "${SNAPSHOT}" == "1" ]; then
+        local path_parts
         splitPath "${IMG}" path_parts
         snapshot_path="${path_parts[dir]}${path_parts[base]}-${snapshot_name}${path_parts[dotext]}"
 
@@ -138,13 +141,14 @@ function prepareChroot() {
 # ==============================================================================
 function aptUpgrade() {
     aptUpdate
-    chroot_cmd apt-get ${APT_GET_OPTIONS} --download-only upgrade -u -y
+    chroot_cmd apt-get "${APT_GET_OPTIONS[@]}" --download-only upgrade -u -y
     find "${INSTALL_DIR}/var/cache/apt/archives" -name '*.deb' -print0 |\
         xargs -0r sha256sum
+    # shellcheck disable=2086,2154
     DEBIAN_FRONTEND="noninteractive" DEBIAN_PRIORITY="critical" DEBCONF_NOWARNINGS="yes" \
         chroot_cmd env APT_LISTCHANGES_FRONTEND=none $eatmydata_maybe \
-            apt-get ${APT_GET_OPTIONS} upgrade -u -y
-    chroot_cmd apt-get ${APT_GET_OPTIONS} clean
+            apt-get "${APT_GET_OPTIONS[@]}" upgrade -u -y
+    chroot_cmd apt-get "${APT_GET_OPTIONS[@]}" clean
 }
 
 # ==============================================================================
@@ -152,13 +156,14 @@ function aptUpgrade() {
 # ==============================================================================
 function aptDistUpgrade() {
     aptUpdate
-    chroot_cmd apt-get ${APT_GET_OPTIONS} --download-only dist-upgrade -u -y
+    chroot_cmd apt-get "${APT_GET_OPTIONS[@]}" --download-only dist-upgrade -u -y
     find "${INSTALL_DIR}/var/cache/apt/archives" -name '*.deb' -print0 |\
         xargs -0r sha256sum
+    # shellcheck disable=SC2086
     DEBIAN_FRONTEND="noninteractive" DEBIAN_PRIORITY="critical" DEBCONF_NOWARNINGS="yes" \
         chroot_cmd env APT_LISTCHANGES_FRONTEND=none $eatmydata_maybe \
-            apt-get ${APT_GET_OPTIONS} dist-upgrade -u -y
-    chroot_cmd apt-get ${APT_GET_OPTIONS} clean
+            apt-get "${APT_GET_OPTIONS[@]}" dist-upgrade -u -y
+    chroot_cmd apt-get "${APT_GET_OPTIONS[@]}" clean
 }
 
 # ==============================================================================
@@ -167,7 +172,7 @@ function aptDistUpgrade() {
 function aptUpdate() {
     debug "Updating system"
     DEBIAN_FRONTEND="noninteractive" DEBIAN_PRIORITY="critical" DEBCONF_NOWARNINGS="yes" \
-        chroot_cmd apt-get ${APT_GET_OPTIONS} update
+        chroot_cmd apt-get "${APT_GET_OPTIONS[@]}" update
     # check for CVE-2016-1252 - directly after debootstrap, still vulnerable
     # apt is installed
     wc -L "${INSTALL_DIR}/var/lib/apt/lists/"*InRelease | awk '$1 > 1024 {print; exit 1}'
@@ -177,23 +182,25 @@ function aptUpdate() {
 # apt-get remove
 # ==============================================================================
 function aptRemove() {
-    files="$@"
+    read -r -a files <<<"$@"
+    # shellcheck disable=SC2086
     DEBIAN_FRONTEND="noninteractive" DEBIAN_PRIORITY="critical" DEBCONF_NOWARNINGS="yes" \
-        chroot_cmd $eatmydata_maybe apt-get ${APT_GET_OPTIONS} --force-yes remove ${files[@]}
+        chroot_cmd $eatmydata_maybe apt-get "${APT_GET_OPTIONS[@]}" --force-yes remove "${files[@]}"
 }
 
 # ==============================================================================
 # apt-get install
 # ==============================================================================
 function aptInstall() {
-    files="$@"
-    chroot_cmd apt-get ${APT_GET_OPTIONS} --download-only install ${files[@]}
+    read -r -a files <<<"$@"
+    chroot_cmd apt-get "${APT_GET_OPTIONS[@]}" --download-only install "${files[@]}"
     find "${INSTALL_DIR}/var/cache/apt/archives" -name '*.deb' -print0 |\
         xargs -0r sha256sum
+    # shellcheck disable=SC2086
     DEBIAN_FRONTEND="noninteractive" DEBIAN_PRIORITY="critical" DEBCONF_NOWARNINGS="yes" \
-        chroot_cmd $eatmydata_maybe apt-get ${APT_GET_OPTIONS} install ${files[@]}
+        chroot_cmd $eatmydata_maybe apt-get "${APT_GET_OPTIONS[@]}" install "${files[@]}"
     retcode=$?
-    chroot_cmd apt-get ${APT_GET_OPTIONS} clean
+    chroot_cmd apt-get "${APT_GET_OPTIONS[@]}" clean
     return $retcode
 }
 
@@ -211,7 +218,7 @@ function installPackages() {
 
         # Example: installPackages somefile1.list somefile2.list
         else
-            packages_list="$@"
+            packages_list="$*"
         fi
 
     # Install distribution related packages
@@ -220,17 +227,17 @@ function installPackages() {
         getFileLocations packages_list "packages.list" "${DIST_CODENAME}"
         if [ -z "${packages_list}" ]; then
             error "Can not locate a package.list file!"
-            umount_all || true
+            umount_all "${INSTALL_DIR}" || true
             exit 1
         fi
     fi
 
-    for package_list in ${packages_list[@]}; do
+    for package_list in "${packages_list[@]}"; do
         debug "Installing extra packages from: ${package_list}"
         declare -a packages
         readarray -t packages < "${package_list}"
 
-        info "Packages: "${packages[@]}""
+        info "Packages: ${packages[*]}"
         aptInstall "${packages[@]}"
     done
 }
@@ -268,7 +275,8 @@ function installSystemd() {
 # ==============================================================================
 function updateDebianSourceList() {
     local list="${INSTALL_DIR}/etc/apt/sources.list"
-    local mirror="$(cat ${INSTALL_DIR}/${TMPDIR}/.mirror)"
+    local mirror
+    mirror="$(cat "${INSTALL_DIR}/${TMPDIR}/.mirror")"
     touch "${list}"
 
     # Add contrib and non-free component to repository
@@ -377,10 +385,8 @@ function setDefaultApplications() {
                 text_plain_apps="$text_plain_apps$(basename "$app");"
             fi
         done
-        for app in $(grep -rl '^MimeType=.*text/plain;' \
-                "${INSTALL_DIR}/usr/share/applications" \
-                | fgrep -v gedit \
-                | LC_ALL=C sort); do
+        # shellcheck disable=SC2013
+        for app in $(grep -rl '^MimeType=.*text/plain;' "${INSTALL_DIR}/usr/share/applications" | grep -F -v gedit | LC_ALL=C sort); do
             if ! grep -q '^Terminal=[tT]' "$app"; then
                 text_plain_apps="$text_plain_apps$(basename "$app");"
             fi
@@ -445,7 +451,7 @@ EOF
 deb [arch=amd64] https://deb.qubes-os.org/r${USE_QUBES_REPO_VERSION}/vm ${DIST_CODENAME}-testing main
 EOF
             fi
-        chroot_cmd apt-key add - < ${PLUGINS_DIR}/source_deb/keys/qubes-debian-r${USE_QUBES_REPO_VERSION}.asc
+        chroot_cmd apt-key add - < "${PLUGINS_DIR}/source_deb/keys/qubes-debian-r${USE_QUBES_REPO_VERSION}.asc"
     elif [[ -n "$USE_QUBES_REPO_VERSION" &&  ${DIST_NAME} == "qubuntu" ]] ; then
         echo "Cannot use Pre-built packages from Qubes when building Ubuntu template"
     fi

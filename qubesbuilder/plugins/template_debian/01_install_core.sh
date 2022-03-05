@@ -6,7 +6,9 @@ if [ "$DEBUG" == "1" ]; then
 fi
 
 # Source external scripts
+# shellcheck source=qubesbuilder/plugins/template_debian/vars.sh
 source "${PLUGINS_DIR}/template_debian/vars.sh"
+# shellcheck source=qubesbuilder/plugins/template_debian/distribution.sh
 source "${PLUGINS_DIR}/template_debian/distribution.sh"
 
 ##### '-------------------------------------------------------------------------
@@ -20,14 +22,15 @@ buildStep "${0}" "pre"
 
 
 bootstrap() {
-    for mirror in ${DEBIAN_MIRRORS[@]}; do
+    for mirror in "${DEBIAN_MIRRORS[@]}"; do
         if [ ! -d "${INSTALL_DIR}/${TMPDIR}" ]; then
+            # shellcheck disable=SC2174
             mkdir -m 1777 -p "${INSTALL_DIR}/${TMPDIR}"
         fi
         rm -rf "${INSTALL_DIR}/${TMPDIR}/dummy-repo"
         mkdir -p "${INSTALL_DIR}/${TMPDIR}/dummy-repo/dists/${DIST_CODENAME}"
         mkdir -p "${INSTALL_DIR}/${TMPDIR}/dummy-repo/dists/${DIST_CODENAME}/main/binary-amd64"
-        echo ${mirror} > "${INSTALL_DIR}/${TMPDIR}/.mirror"
+        echo "${mirror}" > "${INSTALL_DIR}/${TMPDIR}/.mirror"
 
         mirror_no_proto=${mirror#*://}
         # depending on debootstrap version, Release files can be stored under
@@ -43,7 +46,8 @@ bootstrap() {
         # them. Needs to copy Release{,.gpg} to a dummy _local_ repo, because
         # debootstrap insists on downloading it each time but we want to be sure to use
         # packages downloaded earlier (and logged)
-        COMPONENTS="" $DEBOOTSTRAP_PREFIX debootstrap \
+        # shellcheck disable=SC2154
+        COMPONENTS="" "${DEBOOTSTRAP_PREFIX[@]}" debootstrap \
             --arch=amd64 \
             --include="ncurses-term,locales,tasksel,$apt_https_pkgs,$eatmydata_maybe" \
             --components=main \
@@ -69,13 +73,13 @@ bootstrap() {
                 break
             fi
         done && \
-        COMPONENTS="" $DEBOOTSTRAP_PREFIX debootstrap \
+        COMPONENTS="" "${DEBOOTSTRAP_PREFIX[@]}" debootstrap \
             --arch=amd64 \
             --include="ncurses-term,locales,tasksel,$apt_https_pkgs,$eatmydata_maybe" \
             --components=main \
             --keyring="${PLUGINS_DIR}/source_deb/keys/${DIST_CODENAME}-${DIST_NAME}-archive-keyring.gpg" \
             "${DIST_CODENAME}" "${INSTALL_DIR}" "file://${INSTALL_DIR}/${TMPDIR}/dummy-repo" && \
-        echo "deb ${mirror} ${DIST_CODENAME} main" > ${INSTALL_DIR}/etc/apt/sources.list && \
+        echo "deb ${mirror} ${DIST_CODENAME} main" > "${INSTALL_DIR}"/etc/apt/sources.list && \
         return 0
     done
     return 1
@@ -122,6 +126,7 @@ if ! [ -f "${INSTALL_DIR}/${TMPDIR}/.prepared_debootstrap" ]; then
 
     # TMPDIR is set in vars.  /tmp should not be used since it will be cleared
     # if building template with LXC contaniners on a reboot
+    # shellcheck disable=SC2174
     mkdir -m 1777 -p "${INSTALL_DIR}/${TMPDIR}"
 
     # Mark section as complete
