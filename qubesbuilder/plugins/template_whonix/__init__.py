@@ -72,7 +72,7 @@ class WhonixTemplatePlugin(DEBTemplatePlugin):
                 "APPMENUS_DIR": PLUGINS_DIR / "template_whonix",
                 # FIXME: pass values with the help of plugin options
                 "DERIVATIVE_APT_REPOSITORY_OPTS": "stable",
-                "WHONIX_ENABLE_TOR": "0"
+                "WHONIX_ENABLE_TOR": "0",
             }
         )
 

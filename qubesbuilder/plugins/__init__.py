@@ -73,10 +73,7 @@ class BasePlugin:
         }
 
         # Legacy values
-        self.environment = {
-            "DIST": self.dist.name,
-            "DISTRIBUTION": self.dist.fullname
-        }
+        self.environment = {"DIST": self.dist.name, "DISTRIBUTION": self.dist.fullname}
         if self.verbose:
             self.environment["VERBOSE"] = 1
         if self.debug:

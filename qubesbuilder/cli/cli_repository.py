@@ -1,10 +1,7 @@
 import click
 
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
-from qubesbuilder.plugins.helpers import (
-    getPublishPlugin,
-    getTemplatePlugin
-)
+from qubesbuilder.plugins.helpers import getPublishPlugin, getTemplatePlugin
 
 
 @aliased_group("repository", chain=True)
