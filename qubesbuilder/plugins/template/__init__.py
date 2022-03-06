@@ -126,32 +126,43 @@ class TemplatePlugin(BasePlugin):
 
         return sign_key
 
+    def get_template_timestamp(self):
+        # Read information from build stage
+        if not (
+            self.get_templates_dir() / f"build_timestamp_{self.template.name}"
+        ).exists():
+            raise TemplateError(f"{self.template}: Cannot find build timestamp.")
+        with open(
+            self.get_templates_dir() / f"build_timestamp_{self.template.name}"
+        ) as f:
+            data = f.read().splitlines()
+
+        try:
+            template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+        except (dateutil.parser.ParserError, IndexError) as e:
+            msg = f"{self.template}: Failed to parse build timestamp format."
+            raise TemplateError(msg) from e
+        return template_timestamp
+
     def run(
         self, stage: str, publish_repository: str = None, ignore_min_age: bool = False
     ):
         # Update parameters
         self.update_parameters()
 
-        if stage == "build":
-            repository_dir = self.get_repository_dir() / self.dist.distribution
-            artifacts_dir = self.get_templates_dir()
+        repository_dir = self.get_repository_dir() / self.dist.distribution
+        template_artifacts_dir = self.get_templates_dir()
 
-            prepared_images = artifacts_dir / "prepared_images"
-            qubeized_image = artifacts_dir / "qubeized_images" / self.template.name
+        prepared_images = template_artifacts_dir / "prepared_images"
+        qubeized_image = template_artifacts_dir / "qubeized_images" / self.template.name
 
-            repository_dir.mkdir(parents=True, exist_ok=True)
-            prepared_images.mkdir(parents=True, exist_ok=True)
-            qubeized_image.mkdir(parents=True, exist_ok=True)
+        repository_dir.mkdir(parents=True, exist_ok=True)
+        prepared_images.mkdir(parents=True, exist_ok=True)
+        qubeized_image.mkdir(parents=True, exist_ok=True)
 
+        if stage == "prep":
             template_timestamp = datetime.datetime.utcnow().strftime("%Y%m%d%H%MZ")
-
-            self.environment.update(
-                {
-                    "TEMPLATE_TIMESTAMP": template_timestamp,
-                }
-            )
-
-            rpm_fn = f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
+            self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
             copy_in = [
                 (self.plugins_dir / "template", PLUGINS_DIR),
@@ -161,27 +172,13 @@ class TemplatePlugin(BasePlugin):
                 for plugin in self.plugin_dependencies
             ]
 
-            # Copy-in previously prepared base root img
-            if (prepared_images / f"{self.template.name}.img").exists():
-                copy_in += [
-                    (
-                        prepared_images / f"{self.template.name}.img",
-                        BUILD_DIR / "prepared_images",
-                    ),
-                ]
-
             copy_out = [
                 (
                     BUILD_DIR / "prepared_images" / f"{self.template.name}.img",
                     prepared_images,
                 ),
-                (
-                    BUILD_DIR / "qubeized_images" / self.template.name / "root.img",
-                    qubeized_image,
-                ),
-                (BUILD_DIR / f"rpmbuild/RPMS/noarch/{rpm_fn}", artifacts_dir / "rpm"),
             ]
-            cmd = [f"make -C {PLUGINS_DIR}/template prepare build"]
+            cmd = [f"make -C {PLUGINS_DIR}/template prepare build-rootimg-prepare"]
             try:
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
@@ -189,22 +186,60 @@ class TemplatePlugin(BasePlugin):
                 raise TemplateError(msg) from e
 
             with open(
-                artifacts_dir / f"build_timestamp_{self.template.name}", "w"
+                template_artifacts_dir / f"build_timestamp_{self.template.name}", "w"
+            ) as f:
+                f.write(template_timestamp)
+
+        if stage == "build":
+            template_timestamp = self.get_template_timestamp()
+            self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
+
+            rpm_fn = f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
+
+            copy_in = [
+                (self.plugins_dir / "template", PLUGINS_DIR),
+                (repository_dir, REPOSITORY_DIR),
+                (
+                    prepared_images / f"{self.template.name}.img",
+                    BUILD_DIR / "prepared_images",
+                ),
+            ] + [
+                (self.plugins_dir / plugin, PLUGINS_DIR)
+                for plugin in self.plugin_dependencies
+            ]
+
+            # Copy-in previously prepared base root img
+            copy_out = [
+                (
+                    BUILD_DIR / "qubeized_images" / self.template.name / "root.img",
+                    qubeized_image,
+                ),
+                (
+                    BUILD_DIR / f"rpmbuild/RPMS/noarch/{rpm_fn}",
+                    template_artifacts_dir / "rpm",
+                ),
+            ]
+            cmd = [f"make -C {PLUGINS_DIR}/template prepare prepare build"]
+            try:
+                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            except ExecutorError as e:
+                msg = f"{self.template}: Failed to build template."
+                raise TemplateError(msg) from e
+
+            with open(
+                template_artifacts_dir / f"build_timestamp_{self.template.name}", "w"
             ) as f:
                 f.write(template_timestamp)
 
         # Sign stage for templates
         if stage == "sign":
-            # Build artifacts
-            build_artifacts_dir = self.get_templates_dir()
-
-            db_path = build_artifacts_dir / "rpmdb"
+            db_path = template_artifacts_dir / "rpmdb"
             # We ensure to create a clean keyring for RPM
             if db_path.exists():
                 shutil.rmtree(db_path)
 
             sign_key = self.get_sign_key()
-            sign_key_asc = build_artifacts_dir / f"{sign_key}.asc"
+            sign_key_asc = template_artifacts_dir / f"{sign_key}.asc"
             cmd = [
                 f"mkdir -p {db_path}",
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
@@ -216,20 +251,10 @@ class TemplatePlugin(BasePlugin):
                 msg = f"{self.template}: Failed to create RPM dbpath."
                 raise TemplateError(msg) from e
 
-            # Read information from build stage
-            with open(
-                build_artifacts_dir / f"build_timestamp_{self.template.name}"
-            ) as f:
-                data = f.read().splitlines()
-
-            try:
-                template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
-            except (dateutil.parser.ParserError, IndexError) as e:
-                msg = f"{self.template}: Failed to parse build timestamp format."
-                raise TemplateError(msg) from e
+            template_timestamp = self.get_template_timestamp()
 
             rpm = (
-                build_artifacts_dir
+                template_artifacts_dir
                 / "rpm"
                 / f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
             )
@@ -250,8 +275,6 @@ class TemplatePlugin(BasePlugin):
 
         # Publish stage for template components
         if stage == "publish":
-            # Build artifacts
-            build_artifacts_dir = self.get_templates_dir()
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
@@ -274,13 +297,14 @@ class TemplatePlugin(BasePlugin):
                 )
                 # Check template is published in testing
                 if not (
-                    build_artifacts_dir / f"{self.template.name}_publish_info.yml"
+                    template_artifacts_dir / f"{self.template.name}_publish_info.yml"
                 ).exists():
                     raise TemplateError(failure_msg)
                 else:
                     # Get existing publish info
                     with open(
-                        build_artifacts_dir / f"{self.template.name}_publish_info.yml"
+                        template_artifacts_dir
+                        / f"{self.template.name}_publish_info.yml"
                     ) as f:
                         publish_info = yaml.safe_load(f.read())
                     # Check for valid repositories under which packages are published
@@ -298,7 +322,7 @@ class TemplatePlugin(BasePlugin):
                     # Check minimum day that packages are available for testing
                     publish_date = datetime.datetime.utcfromtimestamp(
                         os.stat(
-                            build_artifacts_dir
+                            template_artifacts_dir
                             / f"{self.template.name}_publish_info.yml"
                         ).st_mtime
                     )
@@ -310,7 +334,7 @@ class TemplatePlugin(BasePlugin):
                         raise TemplateError(failure_msg)
 
             # Ensure dbpath from sign stage (still) exists
-            db_path = build_artifacts_dir / "rpmdb"
+            db_path = template_artifacts_dir / "rpmdb"
             if not db_path.exists():
                 msg = f"{self.template}: Failed to find RPM DB path."
                 raise TemplateError(msg)
@@ -338,7 +362,7 @@ class TemplatePlugin(BasePlugin):
 
             # Read information from build stage
             with open(
-                build_artifacts_dir / f"build_timestamp_{self.template.name}"
+                template_artifacts_dir / f"build_timestamp_{self.template.name}"
             ) as f:
                 data = f.read().splitlines()
 
@@ -349,7 +373,7 @@ class TemplatePlugin(BasePlugin):
                 raise TemplateError(msg) from e
 
             rpm = (
-                build_artifacts_dir
+                template_artifacts_dir
                 / "rpm"
                 / f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{timestamp}.noarch.rpm"
             )
@@ -405,10 +429,10 @@ class TemplatePlugin(BasePlugin):
                 raise TemplateError(msg) from e
 
             # Save package information we published for committing into current
-            build_artifacts_dir.mkdir(parents=True, exist_ok=True)
+            template_artifacts_dir.mkdir(parents=True, exist_ok=True)
             try:
                 with open(
-                    build_artifacts_dir / f"{self.template.name}_publish_info.yml",
+                    template_artifacts_dir / f"{self.template.name}_publish_info.yml",
                     "w",
                 ) as f:
                     info = {
