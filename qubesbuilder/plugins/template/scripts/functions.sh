@@ -120,10 +120,10 @@ get_file_or_directory_for_current_flavor() {
 containsFlavor() {
     flavor="${1}"
     retval=1
+    local template_options
 
-    if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        read -r -a TEMPLATE_OPTIONS <<<"${TEMPLATE_OPTIONS}"
-    fi
+    # shellcheck disable=SC2153
+    read -r -a template_options <<<"${TEMPLATE_OPTIONS[@]}"
 
     # Check the template flavor first
     if [ "${flavor}" == "${TEMPLATE_FLAVOR}" ]; then
@@ -131,8 +131,7 @@ containsFlavor() {
     fi
 
     # Check the template flavors next
-    # shellcheck disable=SC2153
-    elementIn "${flavor}" "${TEMPLATE_OPTIONS[@]}" && {
+    elementIn "${flavor}" "${template_options[@]}" && {
         retval=0
     }
 
@@ -141,12 +140,11 @@ containsFlavor() {
 
 templateFlavorPrefix() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
+    local template_flavor_prefix
+    # shellcheck disable=SC2153
+    read -r -a template_flavor_prefix <<<"${TEMPLATE_FLAVOR_PREFIX[@]}"
 
-    if ! [[ "$(declare -p TEMPLATE_FLAVOR_PREFIX 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        read -r -a TEMPLATE_FLAVOR_PREFIX <<<"${TEMPLATE_FLAVOR_PREFIX}"
-    fi
-
-    for element in "${TEMPLATE_FLAVOR_PREFIX[@]}"
+    for element in "${template_flavor_prefix[@]}"
     do
         if [ "${element%:*}" == "${DIST}+${template_flavor}" ]; then
             echo "${element#*:}"
@@ -198,28 +196,25 @@ templateName() {
     local template_flavor=${1:-${TEMPLATE_FLAVOR}}
     local template_name
     local template_options
+    local template_label
+    local template_options_concatenated
     retval=1 # Default is 1; mean no replace happened
 
-    if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        # shellcheck disable=SC2128
-        # ShellCheck is misleaded here?
-        read -r -a TEMPLATE_OPTIONS <<< "${TEMPLATE_OPTIONS}"
-    fi
+    read -r -a template_options <<< "${TEMPLATE_OPTIONS[@]}"
 
     # Only apply options if $1 was not passed
     if [ -n "${1}" ] || [ -z "${TEMPLATE_OPTIONS[*]}" ]; then
-        template_options=
+        template_options_concatenated=
     else
-        template_options=$(printf '+%s' "${TEMPLATE_OPTIONS[@]}")
+        template_options_concatenated=$(printf '+%s' "${template_options[@]}")
     fi
 
-    template_name="$(templateFlavorPrefix "${template_flavor}")${template_flavor}${template_options}"
+    template_name="$(templateFlavorPrefix "${template_flavor}")${template_flavor}${template_options_concatenated}"
 
-    if ! [[ "$(declare -p TEMPLATE_LABEL 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        read -r -a TEMPLATE_LABEL <<<"${TEMPLATE_LABEL}"
-    fi
+    # shellcheck disable=SC2153
+    read -r -a template_label <<<"${TEMPLATE_LABEL[@]}"
 
-    for element in "${TEMPLATE_LABEL[@]}"; do
+    for element in "${template_label[@]}"; do
         if [ "${element%:*}" == "${template_name}" ]; then
             template_name="${element#*:}"
             retval=0
@@ -303,13 +298,13 @@ splitPath() {
 templateDirs() {
     local template_flavor=${1-${TEMPLATE_FLAVOR}}
     local template_flavor_prefix
+    local template_flavor_dir
     local match=0
 
-    if ! [[ "$(declare -p TEMPLATE_FLAVOR_DIR 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        read -r -a TEMPLATE_FLAVOR_DIR <<<"${TEMPLATE_FLAVOR_DIR}"
-    fi
+    # shellcheck disable=SC2153
+    read -r -a template_flavor_dir <<<"${TEMPLATE_FLAVOR_DIR[@]}"
 
-    for element in "${TEMPLATE_FLAVOR_DIR[@]}"
+    for element in "${template_flavor_dir[@]}"
     do
         # (wheezy+whonix-gateway / wheezy+whonix-gateway+gnome[+++] / wheezy+gnome )
         if [ "${element%:*}" == "$(templateName "${template_flavor}")" ]; then
@@ -460,6 +455,7 @@ callTemplateFunction() {
     local calling_arg="$2"
     local functionExec="$3"
     local template_flavor="${TEMPLATE_FLAVOR}"
+    local template_options
 
     ${functionExec} "${calling_script}" \
                     "${calling_arg}" \
@@ -470,11 +466,9 @@ callTemplateFunction() {
                     "${calling_arg}" \
                     "+"
 
-    if ! [[ "$(declare -p TEMPLATE_OPTIONS 2>/dev/null)" =~ ^declare\ -a.* ]] ; then
-        read -r -a TEMPLATE_OPTIONS <<<"${TEMPLATE_OPTIONS}"
-    fi
+    read -r -a template_options <<<"${TEMPLATE_OPTIONS[@]}"
 
-    for option in "${TEMPLATE_OPTIONS[@]}"
+    for option in "${template_options[@]}"
     do
         # Long name (wheezy+whonix-gateway+proxy)
         ${functionExec} "${calling_script}" \
