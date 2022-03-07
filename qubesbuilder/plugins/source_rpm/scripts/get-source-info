@@ -47,12 +47,10 @@ SPEC_BN="$(basename "$SPEC_FILE")"
 SPEC_BN="${SPEC_BN%.spec}"
 
 "${SCRIPTS_DIR}"/query-spec \
-    "$SOURCE_DIR" "$SPEC_FILE" '%{name}-%{version}-%{release}\n' "${DIST_TAG}" 2>$ERR_OUTPUT | head -1 \
-    > "${SOURCE_DIR}/${SPEC_BN}_package_release_name"
+    "$SOURCE_DIR" "$SPEC_FILE" '%{name}-%{version}-%{release}\n' "${DIST_TAG}" 2>$ERR_OUTPUT | { head -1 && cat >/dev/null; } > "${SOURCE_DIR}/${SPEC_BN}_package_release_name"
 
 "${SCRIPTS_DIR}"/query-spec \
-    "$SOURCE_DIR" "$SPEC_FILE" '%{SOURCE0}' "${DIST_TAG}" 2>$ERR_OUTPUT | awk '{print $2}' \
-    >> "${SOURCE_DIR}/${SPEC_BN}_package_release_name"
+    "$SOURCE_DIR" "$SPEC_FILE" '%{SOURCE0}' "${DIST_TAG}" 2>$ERR_OUTPUT | awk '{print $2}' >> "${SOURCE_DIR}/${SPEC_BN}_package_release_name"
 
 "${SCRIPTS_DIR}"/query-spec \
     "$SOURCE_DIR" "$SPEC_FILE" PACKAGES_LIST "${DIST_TAG}" 2>$ERR_OUTPUT \
