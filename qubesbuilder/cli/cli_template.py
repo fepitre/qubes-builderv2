@@ -33,7 +33,7 @@ def _template_stage(obj: ContextObj, stage_name: str):
             gpg_client=obj.config.get("gpg-client"),
             sign_key=obj.config.get("sign-key"),
             qubes_release=obj.config.get("qubes-release"),
-            publish_repository=obj.config.get("publish-repository"),
+            repository_publish=obj.config.get("repository-publish"),
         )
         template_plugin.run(stage=stage_name)
 

@@ -42,7 +42,7 @@ class WhonixTemplatePlugin(DEBTemplatePlugin):
         qubes_release: str,
         gpg_client: str,
         sign_key: dict,
-        publish_repository: dict,
+        repository_publish: dict,
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
@@ -55,7 +55,7 @@ class WhonixTemplatePlugin(DEBTemplatePlugin):
             qubes_release=qubes_release,
             gpg_client=gpg_client,
             sign_key=sign_key,
-            publish_repository=publish_repository,
+            repository_publish=repository_publish,
             use_qubes_repo=use_qubes_repo,
             verbose=verbose,
             debug=debug,
@@ -77,10 +77,10 @@ class WhonixTemplatePlugin(DEBTemplatePlugin):
         )
 
     def run(
-        self, stage: str, publish_repository: str = None, ignore_min_age: bool = False
+        self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
     ):
         super().run(
             stage=stage,
-            publish_repository=publish_repository,
+            repository_publish=repository_publish,
             ignore_min_age=ignore_min_age,
         )

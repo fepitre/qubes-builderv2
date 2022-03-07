@@ -49,7 +49,7 @@ class RPMPublishPlugin(PublishPlugin):
         qubes_release: str,
         gpg_client: str,
         sign_key: dict,
-        publish_repository: dict,
+        repository_publish: dict,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -62,7 +62,7 @@ class RPMPublishPlugin(PublishPlugin):
             qubes_release=qubes_release,
             gpg_client=gpg_client,
             sign_key=sign_key,
-            publish_repository=publish_repository,
+            repository_publish=repository_publish,
             verbose=verbose,
             debug=debug,
         )
@@ -81,7 +81,7 @@ class RPMPublishPlugin(PublishPlugin):
         )
 
     def run(
-        self, stage: str, publish_repository: str = None, ignore_min_age: bool = False
+        self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
     ):
         """
         Run plugging for given stage.
@@ -153,11 +153,11 @@ class RPMPublishPlugin(PublishPlugin):
                 raise PublishError(msg) from e
 
             # Check if publish repository is valid
-            if not publish_repository:
-                publish_repository = self.publish_repository.get(
+            if not repository_publish:
+                repository_publish = self.repository_publish.get(
                     "components", "current-testing"
                 )
-            if publish_repository not in (
+            if repository_publish not in (
                 "current",
                 "current-testing",
                 "security-testing",
@@ -165,11 +165,11 @@ class RPMPublishPlugin(PublishPlugin):
             ):
                 msg = (
                     f"{self.component}:{self.dist}: "
-                    f"Refusing to publish components into '{publish_repository}'."
+                    f"Refusing to publish components into '{repository_publish}'."
                 )
                 raise PublishError(msg)
 
-            if publish_repository == "current":
+            if repository_publish == "current":
                 nothing_to_publish = False
                 # If publish repository is 'current' we check that all packages provided by all
                 # spec files are published in testing repositories first.
@@ -194,14 +194,14 @@ class RPMPublishPlugin(PublishPlugin):
                         ) as f:
                             publish_info = yaml.safe_load(f.read())
                         # Check for valid repositories under which packages are published
-                        if publish_info.get("publish-repository", None) not in (
+                        if publish_info.get("repository-publish", None) not in (
                             "security-testing",
                             "current-testing",
                             "current",
                         ):
                             raise PublishError(failure_msg)
                         # If publish repository is 'current' we check the next spec file
-                        if publish_info["publish-repository"] == "current":
+                        if publish_info["repository-publish"] == "current":
                             log.info(
                                 f"{self.component}:{self.dist}:{spec}: "
                                 f"Already published to 'current'."
@@ -224,7 +224,7 @@ class RPMPublishPlugin(PublishPlugin):
 
                 if nothing_to_publish:
                     log.info(
-                        f"{self.component}:{self.dist}: Already published to '{publish_repository}'."
+                        f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
                     )
                     return
 
@@ -262,12 +262,12 @@ class RPMPublishPlugin(PublishPlugin):
 
                 # Publish packages with hardlinks to built RPMs
                 log.info(
-                    f"{self.component}:{self.dist}:{spec}: Publishing RPMs to '{publish_repository}'."
+                    f"{self.component}:{self.dist}:{spec}: Publishing RPMs to '{repository_publish}'."
                 )
                 artifacts_dir = self.get_repository_publish_dir() / self.dist.type
                 target_dir = (
                     artifacts_dir
-                    / f"{self.qubes_release}/{publish_repository}/{self.dist.package_set}/{self.dist.name}"
+                    / f"{self.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
                 )
                 try:
                     for rpm in packages_list:
@@ -312,7 +312,7 @@ class RPMPublishPlugin(PublishPlugin):
                         publish_artifacts_dir / f"{spec_bn}_publish_info.yml", "w"
                     ) as f:
                         info = build_info
-                        info["publish-repository"] = publish_repository
+                        info["repository-publish"] = repository_publish
                         f.write(yaml.safe_dump(info))
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to write publish info."

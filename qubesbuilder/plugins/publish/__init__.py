@@ -51,7 +51,7 @@ class PublishPlugin(Plugin):
         qubes_release: str,
         gpg_client: str,
         sign_key: dict,
-        publish_repository: dict,
+        repository_publish: dict,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -68,7 +68,7 @@ class PublishPlugin(Plugin):
         self.verbose = verbose
         self.debug = debug
         self.qubes_release = qubes_release
-        self.publish_repository = publish_repository
+        self.repository_publish = repository_publish
         self.gpg_client = gpg_client
         self.sign_key = sign_key
 

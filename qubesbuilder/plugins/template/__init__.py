@@ -70,7 +70,7 @@ class TemplatePlugin(BasePlugin):
         qubes_release: str,
         gpg_client: str,
         sign_key: dict,
-        publish_repository: dict,
+        repository_publish: dict,
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
@@ -87,7 +87,7 @@ class TemplatePlugin(BasePlugin):
         self.qubes_release = qubes_release
         self.gpg_client = gpg_client
         self.sign_key = sign_key
-        self.publish_repository = publish_repository
+        self.repository_publish = repository_publish
         self.use_qubes_repo = use_qubes_repo or {}
 
         self.environment.update(
@@ -145,7 +145,7 @@ class TemplatePlugin(BasePlugin):
         return template_timestamp
 
     def run(
-        self, stage: str, publish_repository: str = None, ignore_min_age: bool = False
+        self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
     ):
         # Update parameters
         self.update_parameters()
@@ -279,21 +279,21 @@ class TemplatePlugin(BasePlugin):
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
             # Check if publish repository is valid
-            if not publish_repository:
-                publish_repository = self.publish_repository.get(
+            if not repository_publish:
+                repository_publish = self.repository_publish.get(
                     "templates", "current-testing"
                 )
 
-            if publish_repository not in TEMPLATE_REPOSITORIES:
+            if repository_publish not in TEMPLATE_REPOSITORIES:
                 raise TemplateError(
-                    f"Invalid repository for template: '{publish_repository}'"
+                    f"Invalid repository for template: '{repository_publish}'"
                 )
 
-            if publish_repository in ("templates-itl", "templates-community"):
+            if repository_publish in ("templates-itl", "templates-community"):
                 failure_msg = (
                     f"{self.template}: "
-                    f"Refusing to publish to '{publish_repository}' as template is not uploaded "
-                    f"to '{publish_repository}-testing' for at least {MIN_AGE_DAYS} days."
+                    f"Refusing to publish to '{repository_publish}' as template is not uploaded "
+                    f"to '{repository_publish}-testing' for at least {MIN_AGE_DAYS} days."
                 )
                 # Check template is published in testing
                 if not (
@@ -309,13 +309,13 @@ class TemplatePlugin(BasePlugin):
                         publish_info = yaml.safe_load(f.read())
                     # Check for valid repositories under which packages are published
                     if (
-                        publish_info.get("publish-repository", None)
+                        publish_info.get("repository-publish", None)
                         not in TEMPLATE_REPOSITORIES
                     ):
                         raise TemplateError(failure_msg)
-                    if publish_info["publish-repository"] == publish_repository:
+                    if publish_info["repository-publish"] == repository_publish:
                         log.info(
-                            f"{self.template}: Already published to '{publish_repository}'."
+                            f"{self.template}: Already published to '{repository_publish}'."
                         )
                         return
 
@@ -396,7 +396,7 @@ class TemplatePlugin(BasePlugin):
 
             # Publish packages with hardlinks to built RPMs
             log.info(f"{self.template}: Publishing RPMs.")
-            target_dir = artifacts_dir / f"{self.qubes_release}/{publish_repository}"
+            target_dir = artifacts_dir / f"{self.qubes_release}/{repository_publish}"
             try:
                 target_path = target_dir / "rpm" / rpm.name
                 target_path.unlink(missing_ok=True)
@@ -436,7 +436,7 @@ class TemplatePlugin(BasePlugin):
                     "w",
                 ) as f:
                     info = {
-                        "publish-repository": publish_repository,
+                        "repository-publish": repository_publish,
                         "timestamp": timestamp,
                     }
                     f.write(yaml.safe_dump(info))

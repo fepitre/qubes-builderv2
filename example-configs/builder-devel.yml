@@ -76,9 +76,13 @@ less-secure-signed-commits-sufficient:
   - core-qrexec
   - desktop-linux-xfce4-xfwm4
 
-publish-repository:
+repository-publish:
   components: current-testing
   templates: templates-itl-testing
+
+repository-upload-remote-host:
+  rpm: user@qubes.notset.fr/repo/notset/rpm/
+  deb: user@qubes.notset.fr/repo/notset/deb/
 
 #executor:
 #  type: docker
