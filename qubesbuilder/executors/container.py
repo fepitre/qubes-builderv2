@@ -112,7 +112,8 @@ class ContainerExecutor(Executor):
                 # prepare container for given image and command
                 image = client.images.get(self.attrs["Id"])
                 cmd = ["bash", "-c", "&&".join(cmd)]
-                # FIXME: https://github.com/containers/podman/issues/11984
+                # FIXME: Ensure podman client can parse non str value
+                #  https://github.com/containers/podman/issues/11984
                 if self._container_client == "podman":
                     for k, v in environment.copy().items():
                         environment[k] = str(v)
