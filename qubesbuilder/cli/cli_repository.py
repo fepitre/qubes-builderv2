@@ -65,7 +65,6 @@ def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = Fal
         for tmpl in obj.templates:
             publish_plugin = getTemplatePlugin(
                 template=tmpl,
-                dist=tmpl.distribution,
                 plugins_dir=obj.config.get_plugins_dir(),
                 executor=executor,
                 artifacts_dir=obj.config.get_artifacts_dir(),
