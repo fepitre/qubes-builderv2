@@ -111,7 +111,6 @@ class ContainerExecutor(Executor):
             with self.get_client() as client:
                 # prepare container for given image and command
                 image = client.images.get(self.attrs["Id"])
-                # FIXME: create a disposable container that will be removed after execution
                 cmd = ["bash", "-c", "&&".join(cmd)]
                 # FIXME: https://github.com/containers/podman/issues/11984
                 if self._container_client == "podman":
