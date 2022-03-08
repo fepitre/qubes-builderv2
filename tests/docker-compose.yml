@@ -20,10 +20,9 @@ services:
     volumes:
       - ..:/qubesbuilder
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./gnupg:/root/.gnupg
     environment:
       - PYTHONPATH=/qubesbuilder
-    command: ./qb --verbose --debug --builder-conf tests/builder-ci.yml -d host-fc32 -c python-qasync -c core-vchan-xen -c core-qrexec all
+    command: ./qb --builder-conf tests/builder-ci.yml -d host-fc32 package all
 
   vm-fc35:
     privileged: true
@@ -33,10 +32,9 @@ services:
     volumes:
       - ..:/qubesbuilder
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./gnupg:/root/.gnupg
     environment:
       - PYTHONPATH=/qubesbuilder
-    command: ./qb --verbose --debug --builder-conf tests/builder-ci.yml -d vm-fc35 -c python-qasync -c core-vchan-xen -c core-qrexec all
+    command: ./qb --builder-conf tests/builder-ci.yml -d vm-fc35 package all
 
   vm-bullseye:
     privileged: true
@@ -46,7 +44,6 @@ services:
     volumes:
       - ..:/qubesbuilder
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./gnupg:/root/.gnupg
     environment:
       - PYTHONPATH=/qubesbuilder
-    command: ./qb --verbose --debug --builder-conf tests/builder-ci.yml -d vm-bullseye -c python-qasync -c core-vchan-xen -c core-qrexec all
+    command: ./qb --builder-conf tests/builder-ci.yml -d vm-bullseye package all

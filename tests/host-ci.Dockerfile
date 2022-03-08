@@ -8,3 +8,6 @@ RUN dnf -y update && \
 
 RUN mkdir /qubesbuilder
 WORKDIR /qubesbuilder
+
+COPY tests/gnupg /root/.gnupg
+RUN chmod 700 /root/.gnupg
