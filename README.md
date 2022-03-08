@@ -121,8 +121,9 @@ Options:
   --help                    Show this message and exit.
 
 Commands:
-  package   Package CLI
-  template  Template CLI
+  package     Package CLI
+  template    Template CLI
+  repository  Repository CLI
 
 Stages:
     fetch prep build post verify sign publish
@@ -135,6 +136,19 @@ Remark:
 
 You may use the provided development `builder-devel.yml` configuration file under `example-configs` located as
 `builder.yml` in the root of `qubes-builderv2` (like the legacy `qubes-builder`).
+
+Artifacts can be found under `artifacts` directory:
+```
+artifacts/
+├── components          <- Stage artifacts for each component version and distribution.
+├── distfiles           <- Extra source files.
+├── repository          <- Qubes local builder repository (metadata are generated each time inside cages).
+├── repository-publish  <- Qubes OS repositories that are synced to {yum,deb,...}.qubes-os.org.
+├── sources             <- Qubes components source.
+└── templates           <- Template artifacts.
+```
+
+#### Package
 
 You can start building the components defined in this devel configuration as:
 ```bash
@@ -153,21 +167,49 @@ $ ./qb package all
 ```
 for triggering the whole build process.
 
+#### Template
+
 Similarly, you can start building the templates defined in this devel configuration as:
 ```bash
 $ ./qb template all
 ```
 
-Artifacts can be found under `artifacts` directory:
+#### Repository
+
+In order to publish to a specific repository or if you ignored publish stage, you can use repository command to create
+a local repository tha is usable by distributions. For example, to publish only the `whonix-gateway-16` template:
+
+```bash
+./qb -t whonix-gateway-16 repository publish templates-community-testing
 ```
-artifacts/
-├── components          <- Stage artifacts for each component version and distribution.
-├── distfiles           <- Extra source files.
-├── repository          <- Qubes local builder repository (metadata are generated each time inside cages).
-├── repository-publish  <- Qubes OS repositories that are synced to {yum,deb,...}.qubes-os.org.
-├── sources             <- Qubes components source.
-└── templates           <- Template artifacts.
+
+or simply, all templates provided in `builder.yml` into `templates-itl-testing`:
+
+```bash
+./qb repository publish templates-itl-testing
 ```
+
+Similar commands are available for packages, for example
+```bash
+./qb -d host-fc32 -c core-qrexec repository publish current-testing
+```
+
+or
+
+```bash
+./qb repository publish unstable
+```
+
+It's not possible to publish packages into template repositories `templates-itl`, `templates-itl-testing`, 
+`templates-community`, and `templates-community-testing`. The same stands for templates not being publishable into 
+`current`, `current-testing`, `security-testing` and `unstable`. A built-in filter is made to enforce this behavior.
+
+If you try to publish into a stable repository like `current`, `templates-itl` or `templates-community`, packages or
+templates should have been pushed to a testing repository first for a minimum of five days. You can ignore this rule
+by providing `--ignore-min-age` to `publish` command.
+
+Please note that `publish` plugin will not allow publishing into a stable repository. This is only possible with
+the `repository` command.
 
 ### Signing with Split GPG
 
