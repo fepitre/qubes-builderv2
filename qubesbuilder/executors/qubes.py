@@ -36,7 +36,7 @@ class QubesExecutor(Executor):
     def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):
         src = source_path.expanduser().resolve()
         dst = destination_dir
-        # FIXME: we can factor the commandlines.
+        # FIXME: Refactor the qvm-run and qrexec commandlines.
         prepare_incoming_and_destination = [
             "/usr/bin/qvm-run-vm",
             vm,

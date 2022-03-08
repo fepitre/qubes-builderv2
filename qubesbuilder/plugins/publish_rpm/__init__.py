@@ -105,8 +105,8 @@ class RPMPublishPlugin(PublishPlugin):
             log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
-        # FIXME: Refactor the code handling both standard and template components. It applies
-        #  for other plugins.
+        # FIXME: Refactor the code handling both standard and template components.
+        #  It applies for other plugins.
 
         # Publish stage for standard (not template) components
         if stage == "publish":

@@ -105,7 +105,6 @@ class RPMBuildPlugin(BuildPlugin):
         )
 
         # Add some environment variables needed to render mock root configuration
-        # FIXME: host is aliased as "dom0" for legacy
         self.environment.update(
             {
                 "DIST": self.dist.name,

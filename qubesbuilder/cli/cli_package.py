@@ -18,6 +18,7 @@ def package():
 
 
 # FIXME: Find a better design to register necessary plugins for each stage.
+#  It applies for other CLIs.
 def _component_stage(obj: ContextObj, stage_name: str):
     """
     Generic function to trigger stage for a standard component

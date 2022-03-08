@@ -138,7 +138,7 @@ class Config:
                 executor = getExecutor(executor_type, executor_options)
                 break
         if not executor:
-            # FIXME: default executor?
+            # FIXME: Review and enhance default executor definition
             executor = getExecutor(executor_type, executor_options)
         stage = {"executor": executor}
         return stage

@@ -227,8 +227,8 @@ class DEBBuildPlugin(BuildPlugin):
                         extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name}-testing main"
 
                 # fmt: off
-                # FIXME: We disable black here because it removes escaped quotes. This
-                #  is until we use shlex.quote.
+                # FIXME: We disable black here because it removes escaped quotes.
+                #  This is until we use shlex.quote.
 
                 # FIXME: Allow to pass a prebuilt pbuilder base.tgz.
                 cmd += [

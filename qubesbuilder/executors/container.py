@@ -126,8 +126,8 @@ class ContainerExecutor(Executor):
                 for src_in, dst_in in copy_in or []:
                     self.copy_in(container, source_path=src_in, destination_dir=dst_in)
 
-                # FIXME: use attach method when podman-py will implement it
-                # start and attach for streaming output
+                # FIXME: Use attach method when podman-py will implement.
+                #  It is for starting and streaming output directly with python.
                 process = subprocess.Popen(
                     [self._container_client, "start", "--attach", container.id],
                     stdout=subprocess.PIPE,
