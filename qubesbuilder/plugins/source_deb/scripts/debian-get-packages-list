@@ -56,6 +56,10 @@ def main(dsc, debian_release):
         if not arch:
             print(f"Cannot find arch.")
             return
+        # Take the first architecture found
+        arch = arch.split(",")[0]
+        if arch not in ("all", "amd64"):
+            continue
         print(f"{package}_{version}_{arch}.{package_type}")
         print(f"{package}-dbgsym_{version}_{arch}.{package_type}")
 
