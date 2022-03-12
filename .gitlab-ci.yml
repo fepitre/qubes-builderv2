@@ -146,6 +146,9 @@ podman-host-fc32:
 podman-vm-fc35:
   extends: .component_podman_job
 
+podman-vm-centos-stream8:
+  extends: .component_podman_job
+
 #podman-vm-bullseye:
 #  extends: .component_podman_job
 
@@ -157,6 +160,9 @@ docker-host-fc32:
 docker-vm-fc35:
   extends: .component_docker_job
 
+docker-vm-centos-stream8:
+  extends: .component_docker_job
+
 docker-vm-bullseye:
   extends: .component_docker_job
 
@@ -166,6 +172,9 @@ qubes-host-fc32:
   extends: .component_qubes_job
 
 qubes-vm-fc35:
+  extends: .component_qubes_job
+
+qubes-vm-centos-stream8:
   extends: .component_qubes_job
 
 qubes-vm-bullseye:
