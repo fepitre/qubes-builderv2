@@ -80,8 +80,8 @@ class Config:
         self.verbose = self._conf.get("verbose", False)
         self.debug = self._conf.get("debug", False)
 
-    def get(self, key):
-        return self._conf.get(key, None)
+    def get(self, key, default=None):
+        return self._conf.get(key, default)
 
     def get_distributions(self, distributions=None):
         if distributions is None:

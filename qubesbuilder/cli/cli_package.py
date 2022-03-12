@@ -37,7 +37,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     artifacts_dir=obj.config.get_artifacts_dir(),
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
-                    skip_if_exists=obj.config.get("reuse-fetched-source"),
+                    skip_if_exists=obj.config.get("reuse-fetched-source", False),
                 ),
                 getBuildPlugin(
                     component=component,
@@ -47,7 +47,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     artifacts_dir=obj.config.get_artifacts_dir(),
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
-                    use_qubes_repo=obj.config.get("use-qubes-repo"),
+                    use_qubes_repo=obj.config.get("use-qubes-repo", {}),
                 ),
                 getSignPlugin(
                     component=component,
@@ -58,7 +58,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
                     gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key"),
+                    sign_key=obj.config.get("sign-key", {}),
                 ),
                 getPublishPlugin(
                     component=component,
@@ -69,9 +69,9 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
                     gpg_client=obj.config.get("gpg-client"),
-                    sign_key=obj.config.get("sign-key"),
-                    qubes_release=obj.config.get("qubes-release"),
-                    repository_publish=obj.config.get("repository-publish"),
+                    sign_key=obj.config.get("sign-key", {}),
+                    qubes_release=obj.config.get("qubes-release", {}),
+                    repository_publish=obj.config.get("repository-publish", {}),
                 ),
             ]
             for plugin in plugins:
