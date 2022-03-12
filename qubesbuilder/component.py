@@ -106,5 +106,8 @@ class QubesComponent:
     def __repr__(self):
         return f"<QubesComponent {self.to_str()}>"
 
+    def __eq__(self, other):
+        return repr(self) == repr(other)
+
     def __str__(self):
         return self.to_str()

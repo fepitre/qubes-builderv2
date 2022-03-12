@@ -83,11 +83,11 @@ class Config:
     def get(self, key, default=None):
         return self._conf.get(key, default)
 
-    def get_distributions(self, distributions=None):
-        if distributions is None:
-            distributions = []
+    def get_distributions(self, filtered_distributions=None):
         if not self._dists:
-            if not distributions:
+            if filtered_distributions:
+                distributions = filtered_distributions
+            else:
                 distributions = self._conf.get("distributions", [])
             self._dists = [QubesDistribution(dist) for dist in distributions]
         return self._dists
@@ -105,14 +105,32 @@ class Config:
                 self._stages[stage_name] = self.parse_stage_from_config(stage_name)
         return self._stages
 
-    def get_components(self, components=None):
-        if components is None:
-            components = []
+    def get_components(self, filtered_components=None):
         if not self._components:
-            if not components:
-                components = self._conf.get("components", [])
-            for c in components:
-                self._components.append(self.parse_component_from_config(c))
+            # Load available component information from config
+            components_from_config = []
+            for c in self._conf.get("components", []):
+                components_from_config.append(
+                    self.parse_component_from_dict_or_string(c)
+                )
+
+            # Find if components requested would have been found from config file with
+            # non default values for url, maintainer, etc.
+            if filtered_components:
+                for fc in filtered_components:
+                    filtered_component = None
+                    for c in components_from_config:
+                        if c.name == fc:
+                            filtered_component = c
+                            break
+                    if not filtered_component:
+                        filtered_component = self.parse_component_from_dict_or_string(
+                            fc
+                        )
+                    self._components.append(filtered_component)
+            else:
+                self._components = components_from_config
+
         return self._components
 
     def get_artifacts_dir(self):
@@ -149,7 +167,7 @@ class Config:
         stage = {"executor": executor}
         return stage
 
-    def parse_component_from_config(
+    def parse_component_from_dict_or_string(
         self, component_name: Union[str, Dict]
     ) -> QubesComponent:
         component_default_url = f"https://github.com/QubesOS/qubes-{component_name}"
