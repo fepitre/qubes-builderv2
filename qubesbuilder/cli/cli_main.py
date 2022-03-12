@@ -103,37 +103,20 @@ def main(
     else:
         init_logging(level="WARNING")
 
-    ctx.obj.components = ctx.obj.config.get_components()
-    ctx.obj.distributions = ctx.obj.config.get_distributions()
+    ctx.obj.components = ctx.obj.config.get_components(component)
+    ctx.obj.distributions = ctx.obj.config.get_distributions(distribution)
     ctx.obj.templates = ctx.obj.config.get_templates()
 
-    if component:
-        components = []
-        for component_name in component:
-            for comp in ctx.obj.components:
-                if comp.name == component_name:
-                    components.append(comp)
-        ctx.obj.components = components
-
+    # FIXME: Find a syntax that would allow CLI template filtering without having it
+    #  declared inside the builder.yml.
     if template:
         templates = []
         for template_name in template:
             for tmpl in ctx.obj.templates:
                 if tmpl.name == template_name:
                     templates.append(tmpl)
+                    break
         ctx.obj.templates = templates
-
-    # We ensure that requested distribution for template is in
-    # actual distributions for components.
-    for tmpl in ctx.obj.templates:
-        if tmpl.distribution not in ctx.obj.distributions:
-            ctx.obj.distributions.append(tmpl.distribution)
-
-    if distribution:
-        distributions = []
-        for distribution_name in distribution:
-            distributions.append(QubesDistribution(distribution_name))
-        ctx.obj.distributions = distributions
 
 
 main.epilog = f"""Stages:

@@ -83,11 +83,13 @@ class Config:
     def get(self, key):
         return self._conf.get(key, None)
 
-    def get_distributions(self):
+    def get_distributions(self, distributions=None):
+        if distributions is None:
+            distributions = []
         if not self._dists:
-            self._dists = [
-                QubesDistribution(dist) for dist in self._conf.get("distributions", [])
-            ]
+            if not distributions:
+                distributions = self._conf.get("distributions", [])
+            self._dists = [QubesDistribution(dist) for dist in distributions]
         return self._dists
 
     def get_templates(self):
@@ -103,9 +105,13 @@ class Config:
                 self._stages[stage_name] = self.parse_stage_from_config(stage_name)
         return self._stages
 
-    def get_components(self):
+    def get_components(self, components=None):
+        if components is None:
+            components = []
         if not self._components:
-            for c in self._conf.get("components", []):
+            if not components:
+                components = self._conf.get("components", [])
+            for c in components:
                 self._components.append(self.parse_component_from_config(c))
         return self._components
 
