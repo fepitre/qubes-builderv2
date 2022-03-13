@@ -52,13 +52,17 @@ def main(dsc, debian_release):
                 optional_keys["profile"] = val.split("=")[1]
             if val.startswith("essential="):
                 optional_keys["essential"] = val.split("=")[1]
-        arch = optional_keys.get("arch", None).replace("any", "amd64")
-        if not arch:
+        architectures = optional_keys.get("arch", None)
+        if not architectures:
             print(f"Cannot find arch.")
             return
         # Take the first architecture found
-        arch = arch.split(",")[0]
-        if arch not in ("all", "amd64"):
+        architectures = architectures.replace("any", "amd64").split(",")
+        if "amd64" in architectures:
+            arch = "amd64"
+        elif "all" in architectures:
+            arch = "all"
+        else:
             continue
         print(f"{package}_{version}_{arch}.{package_type}")
         print(f"{package}-dbgsym_{version}_{arch}.{package_type}")
