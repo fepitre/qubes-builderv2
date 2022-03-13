@@ -54,13 +54,7 @@ class ConsoleFormatter(logging.Formatter):
 
     def __init__(self, fmt, *args, **kwargs):
         if fmt is None:
-            fmt = (
-                "{grey}%(asctime)s "
-                "{green}[%(process)d/%(threadName)s] "
-                "{cyan}[%(name)s] "
-                "$COLOR%(message)s"
-                "{reset}"
-            )
+            fmt = "{grey}%(asctime)s " "{cyan}[%(name)s] " "$COLOR%(message)s" "{reset}"
             fmt = fmt.format(**self.colors)
         super().__init__(fmt, *args, **kwargs)
 
@@ -118,7 +112,7 @@ def init_logging(console=True, file_path=None, level="DEBUG"):
         "formatters": {
             "default": {
                 "class": "logging.Formatter",
-                "format": "%(asctime)s [%(process)d/%(threadName)s] [%(name)s] %(message)s",
+                "format": "%(asctime)s [%(name)s] %(message)s",
             },
             "console": {
                 "class": "qubesbuilder.log.ConsoleFormatter",
