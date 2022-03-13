@@ -4,7 +4,8 @@
 
 stages:
   - test
-  - build
+  - package
+  - template
 
 variables:
   DEBUG: "1"
@@ -69,7 +70,7 @@ pytest:
 #
 
 .component_docker_job:
-  stage: test
+  stage: package
   tags:
     - vm
   artifacts:
@@ -86,7 +87,7 @@ pytest:
     - ./qb -d "${CI_JOB_NAME#docker-}" package all
 
 .component_podman_job:
-  stage: test
+  stage: package
   tags:
     - vm
   artifacts:
@@ -105,7 +106,7 @@ pytest:
     - ./qb -d "${CI_JOB_NAME#podman-}" package all
 
 .component_qubes_job:
-  stage: test
+  stage: package
   tags:
     - qubes
   artifacts:
@@ -121,7 +122,7 @@ pytest:
     - ./qb -d "${CI_JOB_NAME#qubes-}" package all
 
 .template_qubes_job:
-  stage: test
+  stage: template
   tags:
     - qubes
   before_script:
@@ -132,7 +133,6 @@ pytest:
     - sed -i 's/docker/qubes/' builder.yml
     - 'sed -i ''s|image:.*|dispvm: "qubes-builder-dvm"|'' builder.yml'
     - ./qb -t "${CI_JOB_NAME#qubes-template-}" template all
-  when: manual
 
 #
 # Components
