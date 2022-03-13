@@ -1,4 +1,4 @@
-qubesbuilder/plugins/source_deb/scripts/debian-quilt#!/bin/bash
+#!/bin/bash
 #
 # The Qubes OS Project, http://www.qubes-os.org
 #
