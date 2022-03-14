@@ -187,6 +187,9 @@ qubes-vm-bullseye:
 qubes-template-fedora-35-xfce:
   extends: .template_qubes_job
 
+qubes-template-centos-stream-8:
+  extends: .template_qubes_job
+
 qubes-template-debian-11:
   extends: .template_qubes_job
 

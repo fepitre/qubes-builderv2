@@ -51,6 +51,8 @@ templates:
   - fedora-35-xfce:
       dist: fc35
       flavor: xfce
+  - centos-stream-8:
+      dist: centos-stream8
   - debian-11:
       dist: bullseye
       options:
