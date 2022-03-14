@@ -170,9 +170,9 @@ class QubesExecutor(Executor):
                         continue
                     raise e
         finally:
-            # Shutdown the DispVM (automatically deleted)
+            # Kill the DispVM to prevent hanging for while
             if dispvm:
                 subprocess.run(
-                    ["qrexec-client-vm", dispvm, "admin.vm.Shutdown"],
+                    ["qrexec-client-vm", dispvm, "admin.vm.Kill"],
                     stdin=subprocess.DEVNULL,
                 )
