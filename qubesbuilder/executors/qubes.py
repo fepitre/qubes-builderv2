@@ -19,6 +19,7 @@
 import shutil
 import subprocess
 import os
+import re
 
 from pathlib import Path, PurePath
 from typing import List, Tuple
@@ -111,6 +112,8 @@ class QubesExecutor(Executor):
                 stdin=subprocess.DEVNULL,
             )
             dispvm = result.decode("utf8").replace("0\x00", "")
+            if not re.match(r"disp[0-9]{1,4}", dispvm):
+                raise ExecutorError("Failed to create disposable qube.")
 
             # Start the DispVM by running creation of builder directory
             start_cmd = [
