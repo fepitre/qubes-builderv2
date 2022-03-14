@@ -16,16 +16,18 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-import shutil
-import subprocess
 import os
 import re
-
+import shutil
+import subprocess
 from pathlib import Path, PurePath
 from typing import List, Tuple
 
 from qubesbuilder.common import sanitize_line
-from qubesbuilder.executors import Executor, ExecutorError, log
+from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.log import get_logger
+
+log = get_logger("executor:qubes")
 
 
 class QubesExecutor(Executor):
@@ -105,7 +107,6 @@ class QubesExecutor(Executor):
     ):
 
         dispvm = None
-
         try:
             result = subprocess.check_output(
                 ["qrexec-client-vm", "dom0", "admin.vm.CreateDisposable"],
@@ -114,6 +115,9 @@ class QubesExecutor(Executor):
             dispvm = result.decode("utf8").replace("0\x00", "")
             if not re.match(r"disp[0-9]{1,4}", dispvm):
                 raise ExecutorError("Failed to create disposable qube.")
+
+            # Adjust log namespace
+            log.name += f":{dispvm}"
 
             # Start the DispVM by running creation of builder directory
             start_cmd = [
@@ -138,7 +142,7 @@ class QubesExecutor(Executor):
                 f'env {" ".join(bash_env)} bash -c \'{" && ".join(cmd)}\'',
             ]
 
-            log.info(f"{dispvm}: Executing '{' '.join(qvm_run_cmd)}'.")
+            log.info(f"Executing '{' '.join(qvm_run_cmd)}'.")
 
             # stream output for command
             process = subprocess.Popen(
@@ -146,17 +150,17 @@ class QubesExecutor(Executor):
             )
             while True:
                 if not process.stdout:
-                    log.error(f"{dispvm}: No output!")
+                    log.error(f"No output!")
                     break
                 if process.poll() is not None:
                     break
                 for line in process.stdout:
                     line = sanitize_line(line.rstrip(b"\n")).rstrip()
-                    log.info(f"{dispvm}: output: {str(line)}")
+                    log.info(f"output: {str(line)}")
             rc = process.poll()
             if rc != 0:
                 raise ExecutorError(
-                    f"{dispvm}: Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
+                    f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
                 )
 
             # copy-out hook

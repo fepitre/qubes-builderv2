@@ -16,14 +16,16 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-import json
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path, PurePath
 from typing import List, Tuple
 
 from qubesbuilder.common import sanitize_line
-from qubesbuilder.executors import Executor, log, ExecutorError
+from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.log import get_logger
+
+log = get_logger("executor:container")
 
 try:
     from docker import DockerClient
@@ -120,7 +122,10 @@ class ContainerExecutor(Executor):
                 container = client.containers.create(
                     image, cmd, privileged=True, environment=environment
                 )
-                log.info(f"{container.short_id}: Executing '{' '.join(cmd)}'.")
+
+                # Adjust log namespace
+                log.name = f"executor:{self._container_client}:{container.short_id}"
+                log.info(f"Executing '{' '.join(cmd)}'.")
 
                 # copy-in hook
                 for src_in, dst_in in copy_in or []:
@@ -135,18 +140,16 @@ class ContainerExecutor(Executor):
                 )
                 while True:
                     if not process.stdout:
-                        log.error(f"{container.short_id}: No output!")
+                        log.error(f"No output!")
                         break
                     if process.poll() is not None:
                         break
                     for line in process.stdout:
                         line = sanitize_line(line.rstrip(b"\n")).rstrip()
-                        log.info(f"{container.short_id}: output: {str(line)}")
+                        log.info(f"output: {str(line)}")
                 rc = process.poll()
                 if rc != 0:
-                    raise ExecutorError(
-                        f"{container.short_id}: Failed to run '{cmd}' (status={rc})."
-                    )
+                    raise ExecutorError(f"Failed to run '{cmd}' (status={rc}).")
 
                 # copy-out hook
                 for src_out, dst_out in copy_out or []:

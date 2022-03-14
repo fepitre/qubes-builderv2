@@ -22,7 +22,10 @@ from pathlib import Path
 from typing import List, Tuple
 
 from qubesbuilder.common import sanitize_line
-from qubesbuilder.executors import Executor, log, ExecutorError
+from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.log import get_logger
+
+log = get_logger("executor:local")
 
 
 class LocalExecutor(Executor):
@@ -58,7 +61,7 @@ class LocalExecutor(Executor):
 
         cmd = ["bash", "-c", "&&".join(cmd)]
 
-        log.info(f"localhost: Executing '{' '.join(cmd)}'.")
+        log.info(f"Executing '{' '.join(cmd)}'.")
 
         # copy-in hook
         for src, dst in copy_in or []:
@@ -70,16 +73,16 @@ class LocalExecutor(Executor):
         )
         while True:
             if not process.stdout:
-                log.error(f"localhost: No output!")
+                log.error(f"No output!")
                 break
             if process.poll() is not None:
                 break
             for line in process.stdout:
                 line = sanitize_line(line.rstrip(b"\n")).rstrip()
-                log.info(f"localhost: output: {str(line)}")
+                log.info(f"output: {str(line)}")
         rc = process.poll()
         if rc != 0:
-            raise ExecutorError(f"localhost: Failed to run '{cmd}' (status={rc}).")
+            raise ExecutorError(f"Failed to run '{cmd}' (status={rc}).")
 
         # copy-out hook
         for src, dst in copy_out or []:
