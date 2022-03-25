@@ -117,7 +117,7 @@ class QubesExecutor(Executor):
                 raise ExecutorError("Failed to create disposable qube.")
 
             # Adjust log namespace
-            log.name += f":{dispvm}"
+            log.name = f"executor:qubes:{dispvm}"
 
             # Start the DispVM by running creation of builder directory
             start_cmd = [
