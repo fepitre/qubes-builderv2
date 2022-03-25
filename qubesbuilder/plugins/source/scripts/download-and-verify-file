@@ -43,6 +43,8 @@ fi
 
 eval set -- "$OPTS"
 
+PUBKEY_FILE=()
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h | --help) usage ;;
@@ -50,7 +52,7 @@ while [[ $# -gt 0 ]]; do
         -c | --checksum-file ) FILE_CHECKSUM="$2"; shift ;;
         -m | --checksum-cmd ) CHECKSUM_CMD="$2"; shift ;;
         -s | --signature-url ) SIGNATURE_URL="$2"; shift ;;
-        -p | --pubkey-file ) PUBKEY_FILE="$2"; shift ;;
+        -p | --pubkey-file ) PUBKEY_FILE+=("$2"); shift ;;
         -o | --output-dir ) OUTPUT_DIR="$2"; shift ;;
     esac
     shift
@@ -63,7 +65,7 @@ fi
 FETCH_CMD=(curl --proto '=https' --proto-redir '=https' --tlsv1.2 --http1.1 -sSfL -o)
 FILE_NAME="$(basename "$FILE_URL")"
 
-if [ -z "${FILE_CHECKSUM}" ] && [ -z "${SIGNATURE_URL}" ] && [ -z "${PUBKEY_FILE}" ]; then
+if [ -z "${FILE_CHECKSUM}" ] && [ -z "${SIGNATURE_URL}" ] && [ -z "${PUBKEY_FILE[*]}" ]; then
     echo "ERROR: Please provide either CHECKSUM or SIGNATURE_URL and PUBKEY_FILE."
     exit 1
 fi
@@ -107,7 +109,9 @@ elif [ -n "${SIGNATURE_URL}" ] && [ -n "${PUBKEY_FILE}" ]; then
 
     # Import pubkey
     keyring="$(mktemp -u)"
-    gpg --no-auto-check-trustdb --no-default-keyring --keyring "$keyring" -q --import "${PUBKEY_FILE}"
+    for pubkey_file in "${PUBKEY_FILE[@]}"; do
+        gpg --no-auto-check-trustdb --no-default-keyring --keyring "$keyring" -q --import "${pubkey_file}"
+    done
 
     # Verify file
     gpgv --keyring "$keyring" "${SIGNATURE_FILE_NAME}" "${FILE_NAME}.untrusted" 2>/dev/null

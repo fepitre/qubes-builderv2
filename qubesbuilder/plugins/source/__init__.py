@@ -177,8 +177,9 @@ class SourcePlugin(Plugin):
                     ]
                 if file.get("signature", None):
                     download_verify_cmd += ["--signature-url", file["signature"]]
-                if file.get("pubkey", None):
-                    download_verify_cmd += ["--pubkey-file", file["pubkey"]]
+                if file.get("pubkeys", None):
+                    for pubkey in file["pubkeys"]:
+                        download_verify_cmd += ["--pubkey-file", pubkey]
                 cmd = [
                     f"cd {str(BUILDER_DIR / self.component.name)}",
                     " ".join(download_verify_cmd),
