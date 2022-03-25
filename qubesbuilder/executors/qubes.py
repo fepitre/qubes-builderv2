@@ -108,11 +108,12 @@ class QubesExecutor(Executor):
 
         dispvm = None
         try:
-            result = subprocess.check_output(
+            result = subprocess.run(
                 ["qrexec-client-vm", "dom0", "admin.vm.CreateDisposable"],
+                capture_output=True,
                 stdin=subprocess.DEVNULL,
             )
-            dispvm = result.decode("utf8").replace("0\x00", "")
+            dispvm = result.stdout.decode("utf8").replace("0\x00", "")
             if not re.match(r"disp[0-9]{1,4}", dispvm):
                 raise ExecutorError("Failed to create disposable qube.")
 
@@ -179,4 +180,5 @@ class QubesExecutor(Executor):
                 subprocess.run(
                     ["qrexec-client-vm", dispvm, "admin.vm.Kill"],
                     stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
                 )
