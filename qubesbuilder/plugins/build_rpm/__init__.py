@@ -146,7 +146,7 @@ class RPMBuildPlugin(BuildPlugin):
                 return
 
             distfiles_dir = self.get_distfiles_dir()
-            artifacts_dir = self.get_component_dir(stage)
+            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
             rpms_dir = artifacts_dir / "rpm"
 
             # Clean previous build artifacts
@@ -155,7 +155,7 @@ class RPMBuildPlugin(BuildPlugin):
             rpms_dir.mkdir(parents=True)
 
             # Source artifacts
-            prep_artifacts_dir = self.get_component_dir(stage="prep")
+            prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
 
             # Local build repository
             repository_dir = self.get_repository_dir() / self.dist.distribution

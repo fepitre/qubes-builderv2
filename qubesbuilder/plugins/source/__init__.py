@@ -25,7 +25,13 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import Plugin, PluginError, BUILDER_DIR, PLUGINS_DIR
+from qubesbuilder.plugins import (
+    ComponentPlugin,
+    DistributionPlugin,
+    PluginError,
+    BUILDER_DIR,
+    PLUGINS_DIR,
+)
 
 log = get_logger("source")
 
@@ -34,9 +40,9 @@ class SourceError(PluginError):
     pass
 
 
-class SourcePlugin(Plugin):
+class FetchPlugin(ComponentPlugin):
     """
-    Manage generic distribution source
+    Manage generic fetch source
 
     Stages:
         - fetch: Downloads and verify external files
@@ -45,7 +51,6 @@ class SourcePlugin(Plugin):
     def __init__(
         self,
         component: QubesComponent,
-        dist: QubesDistribution,
         executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
@@ -55,7 +60,6 @@ class SourcePlugin(Plugin):
     ):
         super().__init__(
             component=component,
-            dist=dist,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,
@@ -68,16 +72,9 @@ class SourcePlugin(Plugin):
         """
         Update plugin parameters based on component .qubesbuilder.
         """
-        # Set and update parameters based on top-level "source",
-        # per package set and per distribution.
+        # Set and update parameters based on top-level "source"
         parameters = self.component.get_parameters(self._placeholders)
         self.parameters.update(parameters.get("source", {}))
-        self.parameters.update(
-            parameters.get(self.dist.package_set, {}).get("source", {})
-        )
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("source", {})
-        )
 
     def run(self, stage: str):
         """
@@ -185,3 +182,46 @@ class SourcePlugin(Plugin):
                     " ".join(download_verify_cmd),
                 ]
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+
+
+class SourcePlugin(DistributionPlugin):
+    """
+    Manage generic distribution source
+    """
+
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        executor: Executor,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+        skip_if_exists: bool = False,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
+        self.executor = executor
+        self.skip_if_exists = skip_if_exists
+
+    def update_parameters(self):
+        """
+        Update plugin parameters based on component .qubesbuilder.
+        """
+        # Set and update parameters based on top-level "source",
+        # per package set and per distribution.
+        parameters = self.component.get_parameters(self._placeholders)
+        self.parameters.update(parameters.get("source", {}))
+        self.parameters.update(
+            parameters.get(self.dist.package_set, {}).get("source", {})
+        )
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("source", {})
+        )

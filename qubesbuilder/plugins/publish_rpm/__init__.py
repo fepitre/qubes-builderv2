@@ -116,13 +116,15 @@ class RPMPublishPlugin(PublishPlugin):
                 return
 
             # Source artifacts
-            prep_artifacts_dir = self.get_component_dir(stage="prep")
+            prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
             # Build artifacts
-            build_artifacts_dir = self.get_component_dir(stage="build")
+            build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
             # Sign artifacts
-            sign_artifacts_dir = self.get_component_dir(stage="sign")
+            sign_artifacts_dir = self.get_dist_component_artifacts_dir(stage="sign")
             # Publish artifacts
-            publish_artifacts_dir = self.get_component_dir(stage="publish")
+            publish_artifacts_dir = self.get_dist_component_artifacts_dir(
+                stage="publish"
+            )
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 

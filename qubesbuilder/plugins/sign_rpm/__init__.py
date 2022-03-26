@@ -109,11 +109,11 @@ class RPMSignPlugin(SignPlugin):
                 return
 
             # Source artifacts
-            prep_artifacts_dir = self.get_component_dir(stage="prep")
+            prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
             # Build artifacts
-            build_artifacts_dir = self.get_component_dir(stage="build")
+            build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
             # Sign artifacts
-            artifacts_dir = self.get_component_dir(stage)
+            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
             # We ensure to create a clean keyring for RPM
             if artifacts_dir.exists():

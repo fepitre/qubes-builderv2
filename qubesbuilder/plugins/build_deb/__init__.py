@@ -137,7 +137,7 @@ class DEBBuildPlugin(BuildPlugin):
                 log.info(f"{self.component}: nothing to be done for {self.dist}")
                 return
 
-            artifacts_dir = self.get_component_dir(stage)
+            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
             # Clean previous build artifacts
             if artifacts_dir.exists():
@@ -145,7 +145,7 @@ class DEBBuildPlugin(BuildPlugin):
             artifacts_dir.mkdir(parents=True)
 
             # Source artifacts
-            prep_artifacts_dir = self.get_component_dir(stage="prep")
+            prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
 
             repository_dir = self.get_repository_dir() / self.dist.distribution
             repository_dir.mkdir(parents=True, exist_ok=True)

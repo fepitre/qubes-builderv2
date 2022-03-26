@@ -105,7 +105,7 @@ class RPMSourcePlugin(SourcePlugin):
                 return
 
             distfiles_dir = self.get_distfiles_dir()
-            artifacts_dir = self.get_component_dir(stage)
+            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
             artifacts_dir.mkdir(parents=True, exist_ok=True)
 
             for spec in self.parameters["spec"]:

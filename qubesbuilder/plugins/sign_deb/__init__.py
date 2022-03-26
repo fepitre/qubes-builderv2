@@ -107,9 +107,9 @@ class DEBSignPlugin(SignPlugin):
                 return
 
             # Build artifacts (source included)
-            build_artifacts_dir = self.get_component_dir(stage="build")
+            build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
             # Sign artifacts
-            artifacts_dir = self.get_component_dir(stage)
+            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
             if artifacts_dir.exists():
                 shutil.rmtree(artifacts_dir)

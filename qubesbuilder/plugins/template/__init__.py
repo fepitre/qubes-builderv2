@@ -29,7 +29,7 @@ from dateutil.parser import parse as parsedate
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
-    BasePlugin,
+    Plugin,
     PluginError,
     BUILD_DIR,
     CACHE_DIR,
@@ -54,7 +54,7 @@ class TemplateError(PluginError):
     pass
 
 
-class TemplatePlugin(BasePlugin):
+class TemplatePlugin(Plugin):
     """
     TemplatePlugin manages distribution build.
     """
@@ -76,12 +76,12 @@ class TemplatePlugin(BasePlugin):
         use_qubes_repo: dict = None,
     ):
         super().__init__(
-            dist=template.distribution,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
         )
+        self.dist = template.distribution
         self.template = template
         self.executor = executor
         self.qubes_release = qubes_release
@@ -92,6 +92,8 @@ class TemplatePlugin(BasePlugin):
 
         self.environment.update(
             {
+                "DIST": self.dist.name,  # legacy value
+                "DISTRIBUTION": self.dist.fullname,  # legacy value
                 "DIST_CODENAME": self.dist.name,  # DIST
                 "DIST_NAME": self.dist.fullname,  # DISTRIBUTION
                 "DIST_VER": self.dist.version,

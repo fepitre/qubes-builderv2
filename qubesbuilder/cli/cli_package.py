@@ -2,6 +2,7 @@ import click
 
 from qubesbuilder.config import STAGES, STAGES_ALIAS
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
+from qubesbuilder.plugins.source import FetchPlugin
 from qubesbuilder.plugins.helpers import (
     getSourcePlugin,
     getBuildPlugin,
@@ -27,6 +28,19 @@ def _component_stage(obj: ContextObj, stage_name: str):
     executor = obj.config.get_stages()[stage_name]["executor"]
 
     for component in obj.components:
+        # Component plugins
+        fetch_plugin = FetchPlugin(
+            component=component,
+            plugins_dir=obj.config.get_plugins_dir(),
+            executor=executor,
+            artifacts_dir=obj.config.get_artifacts_dir(),
+            verbose=obj.config.verbose,
+            debug=obj.config.debug,
+            skip_if_exists=obj.config.get("reuse-fetched-source", False),
+        )
+        fetch_plugin.run(stage=stage_name)
+
+        # Distribution plugins
         for dist in obj.distributions:
             plugins = [
                 getSourcePlugin(

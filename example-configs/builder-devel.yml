@@ -96,15 +96,15 @@ repository-upload-remote-host:
   rpm: user@qubes.notset.fr/repo/notset/rpm/
   deb: user@qubes.notset.fr/repo/notset/deb/
 
-#executor:
-#  type: docker
-#  options:
-#    image: "qubes-builder-fedora:latest"
-
 executor:
-  type: qubes
+  type: docker
   options:
-    dispvm: "qubes-builder-dvm"
+    image: "qubes-builder-fedora:latest"
+
+#executor:
+#  type: qubes
+#  options:
+#    dispvm: "qubes-builder-dvm"
 
 stages:
   - fetch:

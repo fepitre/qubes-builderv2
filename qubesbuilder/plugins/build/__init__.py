@@ -23,7 +23,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import Plugin, PluginError
+from qubesbuilder.plugins import DistributionPlugin, PluginError
 
 log = get_logger("build")
 
@@ -32,7 +32,7 @@ class BuildError(PluginError):
     pass
 
 
-class BuildPlugin(Plugin):
+class BuildPlugin(DistributionPlugin):
     """
     BuildPlugin manages generic distribution build.
     """

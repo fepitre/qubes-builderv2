@@ -40,22 +40,20 @@ class PluginError(Exception):
     pass
 
 
-class BasePlugin:
+class Plugin:
     """
-    Base plugin
+    Generic plugin
     """
 
     plugin_dependencies: List[str] = []
 
     def __init__(
         self,
-        dist: QubesDistribution,
         plugins_dir: Path,
         artifacts_dir: Path,
         verbose: bool,
         debug: bool,
     ):
-        self.dist = dist
         self.plugins_dir = plugins_dir
         self.artifacts_dir = artifacts_dir
         self.verbose = verbose
@@ -72,8 +70,7 @@ class BasePlugin:
             "@DISTFILES_DIR@": str(DISTFILES_DIR),
         }
 
-        # Legacy values
-        self.environment = {"DIST": self.dist.name, "DISTRIBUTION": self.dist.fullname}
+        self.environment = {}
         if self.verbose:
             self.environment["VERBOSE"] = 1
         if self.debug:
@@ -106,9 +103,40 @@ class BasePlugin:
         return path.resolve()
 
 
-class Plugin(BasePlugin):
+class ComponentPlugin(Plugin):
     """
-    Plugin for components
+    Component plugin
+    """
+
+    plugin_dependencies: List[str] = []
+
+    def __init__(
+        self,
+        component: QubesComponent,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool,
+        debug: bool,
+    ):
+        super().__init__(
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
+        self.component = component
+        self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
+
+    def get_component_dir(self, stage: str):
+        path = self.artifacts_dir / "components" / self.component.name
+        path = path / f"{self.component.version}-{self.component.release}"
+        path = path / stage
+        return path.resolve()
+
+
+class DistributionPlugin(ComponentPlugin):
+    """
+    Distribution Component plugin
     """
 
     plugin_dependencies: List[str] = []
@@ -123,17 +151,16 @@ class Plugin(BasePlugin):
         debug: bool,
     ):
         super().__init__(
-            dist=dist,
+            component=component,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
         )
-        self.component = component
-
+        self.dist = dist
         self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
 
-    def get_component_dir(self, stage: str):
+    def get_dist_component_artifacts_dir(self, stage: str):
         path = self.artifacts_dir / "components" / self.component.name
         path = (
             path
