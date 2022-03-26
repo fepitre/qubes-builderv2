@@ -149,6 +149,25 @@ class RPMBuildPlugin(BuildPlugin):
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
             rpms_dir = artifacts_dir / "rpm"
 
+            # Compare previous artifacts hash with current source hash
+            if all(
+                self.get_source_hash()
+                == self.get_artifacts_source_hash(
+                    stage,
+                    f"{os.path.basename(spec).replace('.spec', '')}_build_info.yml",
+                )
+                for spec in self.parameters["spec"]
+            ):
+                log.info(
+                    f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
+                )
+                return
+
+            # Clean previous build artifacts
+            if artifacts_dir.exists():
+                shutil.rmtree(artifacts_dir.as_posix())
+            artifacts_dir.mkdir(parents=True)
+
             # Clean previous build artifacts
             if artifacts_dir.exists():
                 shutil.rmtree(artifacts_dir.as_posix())
@@ -261,7 +280,11 @@ class RPMBuildPlugin(BuildPlugin):
                 # Save package information we parsed for next stages
                 try:
                     with open(artifacts_dir / f"{spec_bn}_build_info.yml", "w") as f:
-                        info = {"srpm": source_info["srpm"], "rpms": packages_list}
+                        info = {
+                            "srpm": source_info["srpm"],
+                            "rpms": packages_list,
+                            "source-hash": self.get_source_hash(),
+                        }
                         f.write(yaml.safe_dump(info))
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to write build info."

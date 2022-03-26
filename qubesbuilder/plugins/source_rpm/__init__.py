@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 
 import yaml
+import shutil
 
 from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
@@ -106,7 +107,25 @@ class RPMSourcePlugin(SourcePlugin):
 
             distfiles_dir = self.get_distfiles_dir()
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
-            artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+            # Compare previous artifacts hash with current source hash
+            if all(
+                self.get_source_hash()
+                == self.get_artifacts_source_hash(
+                    stage,
+                    f"{os.path.basename(spec).replace('.spec', '')}_source_info.yml",
+                )
+                for spec in self.parameters["spec"]
+            ):
+                log.info(
+                    f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
+                )
+                return
+
+            # Clean previous build artifacts
+            if artifacts_dir.exists():
+                shutil.rmtree(artifacts_dir.as_posix())
+            artifacts_dir.mkdir(parents=True)
 
             for spec in self.parameters["spec"]:
                 # Source component directory inside executors
@@ -230,7 +249,11 @@ class RPMSourcePlugin(SourcePlugin):
                 # Save package information we parsed for next stages
                 try:
                     with open(artifacts_dir / f"{spec_bn}_source_info.yml", "w") as f:
-                        info = {"srpm": source_rpm, "rpms": packages_list}
+                        info = {
+                            "srpm": source_rpm,
+                            "rpms": packages_list,
+                            "source-hash": self.get_source_hash(),
+                        }
                         f.write(yaml.safe_dump(info))
 
                     # Clean previous text files as all info are stored inside source_info

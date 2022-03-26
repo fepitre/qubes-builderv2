@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 
 import yaml
+import shutil
 
 from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
@@ -105,7 +106,25 @@ class DEBSourcePlugin(SourcePlugin):
 
             distfiles_dir = self.get_distfiles_dir()
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
-            artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+            # Compare previous artifacts hash with current source hash
+            if all(
+                self.get_source_hash()
+                == self.get_artifacts_source_hash(
+                    stage,
+                    f"{directory}_source_info.yml",
+                )
+                for directory in self.parameters["build"]
+            ):
+                log.info(
+                    f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
+                )
+                return
+
+            # Clean previous build artifacts
+            if artifacts_dir.exists():
+                shutil.rmtree(artifacts_dir.as_posix())
+            artifacts_dir.mkdir(parents=True)
 
             for directory in self.parameters["build"]:
                 # Source component directory inside executors
@@ -256,6 +275,7 @@ class DEBSourcePlugin(SourcePlugin):
                             "dsc": source_dsc,
                             "debian": source_debian,
                             "packages": packages_list,
+                            "source-hash": self.get_source_hash(),
                         }
                         f.write(yaml.safe_dump(info))
 

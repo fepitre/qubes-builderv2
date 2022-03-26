@@ -139,6 +139,20 @@ class DEBBuildPlugin(BuildPlugin):
 
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
+            # Compare previous artifacts hash with current source hash
+            if all(
+                self.get_source_hash()
+                == self.get_artifacts_source_hash(
+                    stage,
+                    f"{directory}_build_info.yml",
+                )
+                for directory in self.parameters["build"]
+            ):
+                log.info(
+                    f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
+                )
+                return
+
             # Clean previous build artifacts
             if artifacts_dir.exists():
                 shutil.rmtree(artifacts_dir.as_posix())
@@ -290,6 +304,7 @@ class DEBBuildPlugin(BuildPlugin):
                     with open(artifacts_dir / f"{directory}_build_info.yml", "w") as f:
                         info = source_info
                         info["packages"] = packages_list
+                        info["source-hash"] = self.get_source_hash()
                         f.write(yaml.safe_dump(info))
                 except (PermissionError, yaml.YAMLError) as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to write build info."
