@@ -171,59 +171,16 @@ class RPMPublishPlugin(PublishPlugin):
                 )
                 raise PublishError(msg)
 
-            if repository_publish == "current":
-                nothing_to_publish = False
-                # If publish repository is 'current' we check that all packages provided by all
-                # spec files are published in testing repositories first.
-                for spec in self.parameters["spec"]:
-                    # spec file basename will be used as prefix for some artifacts
-                    spec_bn = os.path.basename(spec).replace(".spec", "")
-                    failure_msg = (
-                        f"{self.component}:{self.dist}:{spec}: "
-                        f"Refusing to publish to 'current' as packages are not "
-                        f"uploaded to 'current-testing' or 'security-testing' "
-                        f"for at least {MIN_AGE_DAYS} days."
-                    )
-                    # Check packages are published in a testing repository
-                    publish_info = self.get_artifacts_info(
-                        stage="publish", basename=spec_bn
-                    )
-                    if not publish_info:
-                        raise PublishError(failure_msg)
-
-                    # Check for valid repositories under which packages are published
-                    if publish_info.get("repository-publish", None) not in (
-                        "security-testing",
-                        "current-testing",
-                        "current",
-                    ):
-                        raise PublishError(failure_msg)
-                    # If publish repository is 'current' we check the next spec file
-                    if publish_info["repository-publish"] == "current":
-                        log.info(
-                            f"{self.component}:{self.dist}:{spec}: "
-                            f"Already published to 'current'."
-                        )
-                        nothing_to_publish = True
-                        continue
-                    # Check minimum day that packages are available for testing
-                    publish_date = datetime.datetime.utcfromtimestamp(
-                        os.stat(
-                            publish_artifacts_dir / f"{spec_bn}.publish.yml"
-                        ).st_mtime
-                    )
-                    # Check that packages have been published before threshold_date
-                    threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
-                        days=MIN_AGE_DAYS
-                    )
-                    if not ignore_min_age and publish_date > threshold_date:
-                        raise PublishError(failure_msg)
-
-                if nothing_to_publish:
-                    log.info(
-                        f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
-                    )
-                    return
+            if repository_publish == "current" and all(
+                self.is_published_in_stable(
+                    basename=spec, ignore_min_age=ignore_min_age
+                )
+                for spec in self.parameters["spec"]
+            ):
+                log.info(
+                    f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
+                )
+                return
 
             for spec in self.parameters["spec"]:
                 # spec file basename will be used as prefix for some artifacts

@@ -17,6 +17,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import datetime
+import os
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
@@ -75,3 +77,45 @@ class PublishPlugin(DistributionPlugin):
     def run(self, stage: str):
         if stage == "publish" and not isinstance(self.executor, LocalExecutor):
             raise PublishError("This plugin only supports local executor.")
+
+    def is_published_in_stable(self, basename, ignore_min_age):
+        failure_msg = (
+            f"{self.component}:{self.dist}:{basename}: "
+            f"Refusing to publish to 'current' as packages are not "
+            f"uploaded to 'current-testing' or 'security-testing' "
+            f"for at least {MIN_AGE_DAYS} days."
+        )
+        # Check packages are published
+        publish_info = self.get_artifacts_info(stage="publish", basename=basename)
+        if not publish_info:
+            raise PublishError(failure_msg)
+
+        # Check for valid repositories under which packages are published
+        if publish_info.get("repository-publish", None) not in (
+            "security-testing",
+            "current-testing",
+            "current",
+        ):
+            raise PublishError(failure_msg)
+        # If publish repository is 'current' we check the next spec file
+        if publish_info["repository-publish"] == "current":
+            log.info(
+                f"{self.component}:{self.dist}:{basename}: "
+                f"Already published to 'current'."
+            )
+            return True
+
+        # Check minimum day that packages are available for testing
+        publish_date = datetime.datetime.utcfromtimestamp(
+            os.stat(
+                self.get_dist_component_artifacts_dir("publish")
+                / f"{basename}.publish.yml"
+            ).st_mtime
+        )
+        # Check that packages have been published before threshold_date
+        threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
+            days=MIN_AGE_DAYS
+        )
+        if not ignore_min_age and publish_date > threshold_date:
+            raise PublishError(failure_msg)
+        return False

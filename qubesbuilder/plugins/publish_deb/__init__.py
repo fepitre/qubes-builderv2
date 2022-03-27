@@ -16,15 +16,13 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-import datetime
-import os
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.publish import PublishPlugin, PublishError, MIN_AGE_DAYS
+from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_deb")
 
@@ -112,11 +110,8 @@ class DEBPublishPlugin(PublishPlugin):
             build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
             # Sign artifacts
             sign_artifacts_dir = self.get_dist_component_artifacts_dir(stage="sign")
+            # Keyring used for signing
             keyring_dir = sign_artifacts_dir / "keyring"
-            # Publish artifacts
-            publish_artifacts_dir = self.get_dist_component_artifacts_dir(
-                stage="publish"
-            )
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
@@ -153,57 +148,16 @@ class DEBPublishPlugin(PublishPlugin):
                 )
                 raise PublishError(msg)
 
-            if repository_publish == "current":
-                nothing_to_publish = False
-                # If publish repository is 'current' we check that all packages provided by all
-                # build directories are published in testing repositories first.
-                for directory in self.parameters["build"]:
-                    failure_msg = (
-                        f"{self.component}:{self.dist}:{directory}: "
-                        f"Refusing to publish to 'current' as packages are not "
-                        f"uploaded to 'current-testing' or 'security-testing' "
-                        f"for at least {MIN_AGE_DAYS} days."
-                    )
-                    # Check packages are published
-                    publish_info = self.get_artifacts_info(
-                        stage=stage, basename=directory
-                    )
-                    if not publish_info:
-                        raise PublishError(failure_msg)
-
-                    # Check for valid repositories under which packages are published
-                    if publish_info.get("repository-publish", None) not in (
-                        "security-testing",
-                        "current-testing",
-                        "current",
-                    ):
-                        raise PublishError(failure_msg)
-                    # If publish repository is 'current' we check the next spec file
-                    if publish_info["repository-publish"] == "current":
-                        log.info(
-                            f"{self.component}:{self.dist}:{directory}: "
-                            f"Already published to 'current'."
-                        )
-                        nothing_to_publish = True
-                        continue
-                    # Check minimum day that packages are available for testing
-                    publish_date = datetime.datetime.utcfromtimestamp(
-                        os.stat(
-                            publish_artifacts_dir / f"{directory}.publish.yml"
-                        ).st_mtime
-                    )
-                    # Check that packages have been published before threshold_date
-                    threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
-                        days=MIN_AGE_DAYS
-                    )
-                    if not ignore_min_age and publish_date > threshold_date:
-                        raise PublishError(failure_msg)
-
-                if nothing_to_publish:
-                    log.info(
-                        f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
-                    )
-                    return
+            if repository_publish == "current" and all(
+                self.is_published_in_stable(
+                    basename=directory, ignore_min_age=ignore_min_age
+                )
+                for directory in self.parameters["build"]
+            ):
+                log.info(
+                    f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
+                )
+                return
 
             for directory in self.parameters["build"]:
                 # Read information from build stage
