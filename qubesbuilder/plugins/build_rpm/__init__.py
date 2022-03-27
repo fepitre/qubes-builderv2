@@ -152,10 +152,9 @@ class RPMBuildPlugin(BuildPlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.get_source_hash()
-                == self.get_artifacts_source_hash(
-                    stage,
-                    f"{os.path.basename(spec).replace('.spec', '')}_build_info.yml",
-                )
+                == self.get_artifacts_info(
+                    stage, os.path.basename(spec).replace(".spec", "")
+                ).get("source-hash", None)
                 for spec in self.parameters["spec"]
             ):
                 log.info(
@@ -189,12 +188,7 @@ class RPMBuildPlugin(BuildPlugin):
                 spec_bn = os.path.basename(spec).replace(".spec", "")
 
                 # Read information from source stage
-                try:
-                    with open(prep_artifacts_dir / f"{spec_bn}_source_info.yml") as f:
-                        source_info = yaml.safe_load(f.read())
-                except (FileNotFoundError, PermissionError) as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to read source info."
-                    raise BuildError(msg) from e
+                source_info = self.get_artifacts_info(stage="prep", basename=spec_bn)
 
                 #
                 # Build from SRPM
@@ -278,14 +272,9 @@ class RPMBuildPlugin(BuildPlugin):
                 )
 
                 # Save package information we parsed for next stages
-                try:
-                    with open(artifacts_dir / f"{spec_bn}_build_info.yml", "w") as f:
-                        info = {
-                            "srpm": source_info["srpm"],
-                            "rpms": packages_list,
-                            "source-hash": self.get_source_hash(),
-                        }
-                        f.write(yaml.safe_dump(info))
-                except (PermissionError, yaml.YAMLError) as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to write build info."
-                    raise BuildError(msg) from e
+                info = {
+                    "srpm": source_info["srpm"],
+                    "rpms": packages_list,
+                    "source-hash": self.get_source_hash(),
+                }
+                self.save_artifacts_info(stage=stage, basename=spec_bn, info=info)

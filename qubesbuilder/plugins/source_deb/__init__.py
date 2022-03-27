@@ -110,10 +110,7 @@ class DEBSourcePlugin(SourcePlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.get_source_hash()
-                == self.get_artifacts_source_hash(
-                    stage,
-                    f"{directory}_source_info.yml",
-                )
+                == self.get_artifacts_info(stage, directory).get("source-hash", None)
                 for directory in self.parameters["build"]
             ):
                 log.info(
@@ -267,24 +264,20 @@ class DEBSourcePlugin(SourcePlugin):
 
                 # Save package information we parsed for next stages
                 try:
-                    with open(artifacts_dir / f"{directory}_source_info.yml", "w") as f:
-                        info = {
-                            "package-release-name": package_release_name,
-                            "package-release-name-full": package_release_name_full,
-                            "orig": source_orig,
-                            "dsc": source_dsc,
-                            "debian": source_debian,
-                            "packages": packages_list,
-                            "source-hash": self.get_source_hash(),
-                        }
-                        f.write(yaml.safe_dump(info))
+                    info = {
+                        "package-release-name": package_release_name,
+                        "package-release-name-full": package_release_name_full,
+                        "orig": source_orig,
+                        "dsc": source_dsc,
+                        "debian": source_debian,
+                        "packages": packages_list,
+                        "source-hash": self.get_source_hash(),
+                    }
+                    self.save_artifacts_info(stage=stage, basename=directory, info=info)
 
                     # Clean previous text files as all info are stored inside source_info
                     os.remove(artifacts_dir / f"{directory}_package_release_name")
                     os.remove(artifacts_dir / f"{directory}_packages.list")
-                except (PermissionError, yaml.YAMLError) as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: Failed to write source info: {str(e)}."
-                    raise SourceError(msg) from e
                 except OSError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to clean artifacts: {str(e)}."
                     raise SourceError(msg) from e

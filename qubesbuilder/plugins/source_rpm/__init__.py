@@ -111,10 +111,9 @@ class RPMSourcePlugin(SourcePlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.get_source_hash()
-                == self.get_artifacts_source_hash(
-                    stage,
-                    f"{os.path.basename(spec).replace('.spec', '')}_source_info.yml",
-                )
+                == self.get_artifacts_info(
+                    stage, os.path.basename(spec).replace(".spec", "")
+                ).get("source-hash", None)
                 for spec in self.parameters["spec"]
             ):
                 log.info(
@@ -248,20 +247,16 @@ class RPMSourcePlugin(SourcePlugin):
 
                 # Save package information we parsed for next stages
                 try:
-                    with open(artifacts_dir / f"{spec_bn}_source_info.yml", "w") as f:
-                        info = {
-                            "srpm": source_rpm,
-                            "rpms": packages_list,
-                            "source-hash": self.get_source_hash(),
-                        }
-                        f.write(yaml.safe_dump(info))
+                    info = {
+                        "srpm": source_rpm,
+                        "rpms": packages_list,
+                        "source-hash": self.get_source_hash(),
+                    }
+                    self.save_artifacts_info(stage=stage, basename=spec_bn, info=info)
 
                     # Clean previous text files as all info are stored inside source_info
                     os.remove(artifacts_dir / f"{spec_bn}_package_release_name")
                     os.remove(artifacts_dir / f"{spec_bn}_packages.list")
-                except (PermissionError, yaml.YAMLError) as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to write source info: {str(e)}."
-                    raise SourceError(msg) from e
                 except OSError as e:
                     msg = f"{self.component}:{self.dist}:{spec}: Failed to clean artifacts: {str(e)}."
                     raise SourceError(msg) from e

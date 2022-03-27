@@ -20,8 +20,6 @@
 import shutil
 from pathlib import Path
 
-import yaml
-
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
@@ -132,8 +130,7 @@ class DEBSignPlugin(SignPlugin):
 
             for directory in self.parameters["build"]:
                 # Read information from build stage
-                with open(build_artifacts_dir / f"{directory}_build_info.yml") as f:
-                    build_info = yaml.safe_load(f.read())
+                build_info = self.get_artifacts_info(stage="build", basename=directory)
 
                 if not build_info.get("changes", None):
                     log.info(

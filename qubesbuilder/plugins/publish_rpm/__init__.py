@@ -185,44 +185,39 @@ class RPMPublishPlugin(PublishPlugin):
                         f"for at least {MIN_AGE_DAYS} days."
                     )
                     # Check packages are published in a testing repository
-                    if not (
-                        publish_artifacts_dir / f"{spec_bn}_publish_info.yml"
-                    ).exists():
+                    publish_info = self.get_artifacts_info(
+                        stage="publish", basename=spec_bn
+                    )
+                    if not publish_info:
                         raise PublishError(failure_msg)
-                    else:
-                        # Get existing publish info
-                        with open(
-                            publish_artifacts_dir / f"{spec_bn}_publish_info.yml"
-                        ) as f:
-                            publish_info = yaml.safe_load(f.read())
-                        # Check for valid repositories under which packages are published
-                        if publish_info.get("repository-publish", None) not in (
-                            "security-testing",
-                            "current-testing",
-                            "current",
-                        ):
-                            raise PublishError(failure_msg)
-                        # If publish repository is 'current' we check the next spec file
-                        if publish_info["repository-publish"] == "current":
-                            log.info(
-                                f"{self.component}:{self.dist}:{spec}: "
-                                f"Already published to 'current'."
-                            )
-                            nothing_to_publish = True
-                            continue
-                        # Check minimum day that packages are available for testing
-                        publish_date = datetime.datetime.utcfromtimestamp(
-                            os.stat(
-                                publish_artifacts_dir / f"{spec_bn}_publish_info.yml"
-                            ).st_mtime
+
+                    # Check for valid repositories under which packages are published
+                    if publish_info.get("repository-publish", None) not in (
+                        "security-testing",
+                        "current-testing",
+                        "current",
+                    ):
+                        raise PublishError(failure_msg)
+                    # If publish repository is 'current' we check the next spec file
+                    if publish_info["repository-publish"] == "current":
+                        log.info(
+                            f"{self.component}:{self.dist}:{spec}: "
+                            f"Already published to 'current'."
                         )
-                        # Check that packages have been published before threshold_date
-                        threshold_date = (
-                            datetime.datetime.utcnow()
-                            - datetime.timedelta(days=MIN_AGE_DAYS)
-                        )
-                        if not ignore_min_age and publish_date > threshold_date:
-                            raise PublishError(failure_msg)
+                        nothing_to_publish = True
+                        continue
+                    # Check minimum day that packages are available for testing
+                    publish_date = datetime.datetime.utcfromtimestamp(
+                        os.stat(
+                            publish_artifacts_dir / f"{spec_bn}.publish.yml"
+                        ).st_mtime
+                    )
+                    # Check that packages have been published before threshold_date
+                    threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
+                        days=MIN_AGE_DAYS
+                    )
+                    if not ignore_min_age and publish_date > threshold_date:
+                        raise PublishError(failure_msg)
 
                 if nothing_to_publish:
                     log.info(
@@ -235,8 +230,7 @@ class RPMPublishPlugin(PublishPlugin):
                 spec_bn = os.path.basename(spec).replace(".spec", "")
 
                 # Read information from build stage
-                with open(build_artifacts_dir / f"{spec_bn}_build_info.yml") as f:
-                    build_info = yaml.safe_load(f.read())
+                build_info = self.get_artifacts_info(stage="build", basename=spec_bn)
 
                 if not build_info.get("rpms", []) and not build_info.get("srpm", None):
                     log.info(
@@ -308,14 +302,6 @@ class RPMPublishPlugin(PublishPlugin):
                     raise PublishError(msg) from e
 
                 # Save package information we published for committing into current
-                publish_artifacts_dir.mkdir(parents=True, exist_ok=True)
-                try:
-                    with open(
-                        publish_artifacts_dir / f"{spec_bn}_publish_info.yml", "w"
-                    ) as f:
-                        info = build_info
-                        info["repository-publish"] = repository_publish
-                        f.write(yaml.safe_dump(info))
-                except (PermissionError, yaml.YAMLError) as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to write publish info."
-                    raise PublishError(msg) from e
+                info = build_info
+                info["repository-publish"] = repository_publish
+                self.save_artifacts_info(stage="publish", basename=spec_bn, info=info)

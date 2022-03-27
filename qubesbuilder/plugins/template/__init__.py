@@ -299,41 +299,39 @@ class TemplatePlugin(Plugin):
                 )
                 # Check template is published in testing
                 if not (
-                    template_artifacts_dir / f"{self.template.name}_publish_info.yml"
+                    template_artifacts_dir / f"{self.template.name}.publish.yml"
                 ).exists():
                     raise TemplateError(failure_msg)
-                else:
-                    # Get existing publish info
-                    with open(
-                        template_artifacts_dir
-                        / f"{self.template.name}_publish_info.yml"
-                    ) as f:
-                        publish_info = yaml.safe_load(f.read())
-                    # Check for valid repositories under which packages are published
-                    if (
-                        publish_info.get("repository-publish", None)
-                        not in TEMPLATE_REPOSITORIES
-                    ):
-                        raise TemplateError(failure_msg)
-                    if publish_info["repository-publish"] == repository_publish:
-                        log.info(
-                            f"{self.template}: Already published to '{repository_publish}'."
-                        )
-                        return
 
-                    # Check minimum day that packages are available for testing
-                    publish_date = datetime.datetime.utcfromtimestamp(
-                        os.stat(
-                            template_artifacts_dir
-                            / f"{self.template.name}_publish_info.yml"
-                        ).st_mtime
+                # Get existing publish info
+                with open(
+                    template_artifacts_dir / f"{self.template.name}.publish.yml"
+                ) as f:
+                    publish_info = yaml.safe_load(f.read())
+                # Check for valid repositories under which packages are published
+                if (
+                    publish_info.get("repository-publish", None)
+                    not in TEMPLATE_REPOSITORIES
+                ):
+                    raise TemplateError(failure_msg)
+                if publish_info["repository-publish"] == repository_publish:
+                    log.info(
+                        f"{self.template}: Already published to '{repository_publish}'."
                     )
-                    # Check that packages have been published before threshold_date
-                    threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
-                        days=MIN_AGE_DAYS
-                    )
-                    if not ignore_min_age and publish_date > threshold_date:
-                        raise TemplateError(failure_msg)
+                    return
+
+                # Check minimum day that packages are available for testing
+                publish_date = datetime.datetime.utcfromtimestamp(
+                    os.stat(
+                        template_artifacts_dir / f"{self.template.name}.publish.yml"
+                    ).st_mtime
+                )
+                # Check that packages have been published before threshold_date
+                threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
+                    days=MIN_AGE_DAYS
+                )
+                if not ignore_min_age and publish_date > threshold_date:
+                    raise TemplateError(failure_msg)
 
             # Ensure dbpath from sign stage (still) exists
             db_path = template_artifacts_dir / "rpmdb"
@@ -434,7 +432,7 @@ class TemplatePlugin(Plugin):
             template_artifacts_dir.mkdir(parents=True, exist_ok=True)
             try:
                 with open(
-                    template_artifacts_dir / f"{self.template.name}_publish_info.yml",
+                    template_artifacts_dir / f"{self.template.name}.publish.yml",
                     "w",
                 ) as f:
                     info = {

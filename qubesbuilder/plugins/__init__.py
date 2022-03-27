@@ -22,7 +22,7 @@ import hashlib
 from _sha1 import sha1
 from pathlib import Path
 from pathlib import PurePath
-from typing import List
+from typing import List, Dict
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
@@ -202,14 +202,25 @@ class DistributionPlugin(ComponentPlugin):
         path = path / stage
         return path.resolve()
 
-    def get_artifacts_source_hash(self, stage: str, file_info: str):
+    def get_artifacts_info(self, stage: str, basename: str) -> Dict:
         artifacts_dir = self.get_dist_component_artifacts_dir(stage)
-        if (artifacts_dir / file_info).exists():
+        fileinfo = artifacts_dir / f"{basename}.{stage}.yml"
+        if fileinfo.exists():
             try:
-                with open(artifacts_dir / file_info, "r") as f:
+                with open(fileinfo, "r") as f:
                     artifacts_info = yaml.safe_load(f.read())
-                return artifacts_info.get("source-hash", None)
+                return artifacts_info or {}
             except (PermissionError, yaml.YAMLError) as e:
-                msg = f"{self.component}:{self.dist}: Failed to read info from previous builds."
+                msg = f"{self.component}:{self.dist}:{basename}: Failed to read info from {stage} stage."
                 raise PluginError(msg) from e
-        return None
+        return {}
+
+    def save_artifacts_info(self, stage: str, basename: str, info: dict):
+        artifacts_dir = self.get_dist_component_artifacts_dir(stage=stage)
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(artifacts_dir / f"{basename}.{stage}.yml", "w") as f:
+                f.write(yaml.safe_dump(info))
+        except (PermissionError, yaml.YAMLError) as e:
+            msg = f"{self.component}:{self.dist}:{basename}: Failed to write info for {stage} stage."
+            raise PluginError(msg) from e

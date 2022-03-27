@@ -21,8 +21,6 @@ import os
 import shutil
 from pathlib import Path
 
-import yaml
-
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
@@ -136,8 +134,7 @@ class RPMSignPlugin(SignPlugin):
                 spec_bn = os.path.basename(spec).replace(".spec", "")
 
                 # Read information from build stage
-                with open(build_artifacts_dir / f"{spec_bn}_build_info.yml") as f:
-                    build_info = yaml.safe_load(f.read())
+                build_info = self.get_artifacts_info(stage="build", basename=spec_bn)
 
                 if not build_info.get("rpms", []) and not build_info.get("srpm", None):
                     log.info(f"{self.component}:{self.dist}:{spec}: Nothing to sign.")
