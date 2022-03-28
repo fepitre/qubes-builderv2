@@ -11,24 +11,12 @@ def repository():
     """
 
 
-#
-# Publish
-#
-
-
-@click.command(
-    name="publish",
-    short_help="Publish packages or templates to provided repository.",
-)
-@click.argument("repository_publish", nargs=1)
-@click.option(
-    "--ignore-min-age",
-    default=False,
-    is_flag=True,
-    help="Override minimum age for authorizing publication into 'current'.",
-)
-@click.pass_obj
-def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = False):
+def _publish(
+    obj: ContextObj,
+    repository_publish: str,
+    ignore_min_age: bool = False,
+    unpublish: bool = False,
+):
     executor = obj.config.get_stages()["publish"]["executor"]
     if repository_publish in (
         "current",
@@ -55,6 +43,7 @@ def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = Fal
                     stage="publish",
                     repository_publish=repository_publish,
                     ignore_min_age=ignore_min_age,
+                    unpublish=unpublish,
                 )
     elif repository_publish in (
         "templates-itl",
@@ -79,7 +68,47 @@ def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = Fal
                 stage="publish",
                 repository_publish=repository_publish,
                 ignore_min_age=ignore_min_age,
+                unpublish=unpublish,
             )
 
 
+#
+# Publish
+#
+
+
+@click.command(
+    name="publish",
+    short_help="Publish packages or templates to provided repository.",
+)
+@click.argument("repository_publish", nargs=1)
+@click.option(
+    "--ignore-min-age",
+    default=False,
+    is_flag=True,
+    help="Override minimum age for authorizing publication into 'current'.",
+)
+@click.pass_obj
+def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = False):
+    _publish(
+        obj=obj, repository_publish=repository_publish, ignore_min_age=ignore_min_age
+    )
+
+
+#
+# Unpublish
+#
+
+
+@click.command(
+    name="unpublish",
+    short_help="Unpublish packages or templates from provided repository.",
+)
+@click.argument("repository_publish", nargs=1)
+@click.pass_obj
+def unpublish(obj: ContextObj, repository_publish: str):
+    _publish(obj=obj, repository_publish=repository_publish, unpublish=True)
+
+
 repository.add_command(publish)
+repository.add_command(unpublish)

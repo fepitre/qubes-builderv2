@@ -78,44 +78,55 @@ class PublishPlugin(DistributionPlugin):
         if stage == "publish" and not isinstance(self.executor, LocalExecutor):
             raise PublishError("This plugin only supports local executor.")
 
-    def is_published_in_stable(self, basename, ignore_min_age):
-        failure_msg = (
-            f"{self.component}:{self.dist}:{basename}: "
-            f"Refusing to publish to 'current' as packages are not "
-            f"uploaded to 'current-testing' or 'security-testing' "
-            f"for at least {MIN_AGE_DAYS} days."
-        )
+    def validate_repository_publish(self, repository_publish):
+        if repository_publish not in (
+            "current",
+            "current-testing",
+            "security-testing",
+            "unstable",
+        ):
+            msg = (
+                f"{self.component}:{self.dist}: "
+                f"Refusing to publish components into '{repository_publish}'."
+            )
+            raise PublishError(msg)
+
+    def is_published(self, basename, repository):
+        publish_info = self.get_artifacts_info(stage="publish", basename=basename)
+        if not publish_info:
+            return False
+        return repository in [
+            r["name"] for r in publish_info.get("repository-publish", [])
+        ]
+
+    def can_be_published_in_stable(self, basename, ignore_min_age):
         # Check packages are published
         publish_info = self.get_artifacts_info(stage="publish", basename=basename)
         if not publish_info:
-            raise PublishError(failure_msg)
+            return False
 
         # Check for valid repositories under which packages are published
-        if publish_info.get("repository-publish", None) not in (
-            "security-testing",
-            "current-testing",
-            "current",
-        ):
-            raise PublishError(failure_msg)
-        # If publish repository is 'current' we check the next spec file
-        if publish_info["repository-publish"] == "current":
-            log.info(
-                f"{self.component}:{self.dist}:{basename}: "
-                f"Already published to 'current'."
-            )
-            return True
+        if "current-testing" not in [
+            r["name"] for r in publish_info.get("repository-publish", [])
+        ]:
+            return False
 
         # Check minimum day that packages are available for testing
-        publish_date = datetime.datetime.utcfromtimestamp(
-            os.stat(
-                self.get_dist_component_artifacts_dir("publish")
-                / f"{basename}.publish.yml"
-            ).st_mtime
-        )
+        publish_date = None
+        for r in publish_info["repository-publish"]:
+            if r["name"] == "current-testing":
+                publish_date = datetime.datetime.strptime(r["timestamp"], "%Y%m%d%H%MZ")
+                break
+
+        if not publish_date:
+            log.error("Something wrong detected in repositories. Missing timestamp?")
+            return False
+
         # Check that packages have been published before threshold_date
         threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
             days=MIN_AGE_DAYS
         )
         if not ignore_min_age and publish_date > threshold_date:
-            raise PublishError(failure_msg)
-        return False
+            return False
+
+        return True

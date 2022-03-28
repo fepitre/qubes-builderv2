@@ -194,16 +194,23 @@ class DistributionPlugin(ComponentPlugin):
         self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
 
     def get_dist_component_artifacts_dir(self, stage: str):
-        path = self.artifacts_dir / "components" / self.component.name
         path = (
-            path
+            self.artifacts_dir
+            / "components"
+            / self.component.name
             / f"{self.component.version}-{self.component.release}/{self.dist.distribution}"
+            / stage
         )
-        path = path / stage
-        return path.resolve()
+        return path
 
-    def get_artifacts_info(self, stage: str, basename: str) -> Dict:
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+    def get_dist_component_artifacts_dir_history(self, stage: str):
+        path = (self.artifacts_dir / "components" / self.component.name).resolve()
+        return list(path.glob(f"*/{self.dist.distribution}/{stage}"))
+
+    def get_artifacts_info(
+        self, stage: str, basename: str, artifacts_dir: Path = None
+    ) -> Dict:
+        artifacts_dir = artifacts_dir or self.get_dist_component_artifacts_dir(stage)
         fileinfo = artifacts_dir / f"{basename}.{stage}.yml"
         if fileinfo.exists():
             try:
@@ -215,8 +222,10 @@ class DistributionPlugin(ComponentPlugin):
                 raise PluginError(msg) from e
         return {}
 
-    def save_artifacts_info(self, stage: str, basename: str, info: dict):
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage=stage)
+    def save_artifacts_info(
+        self, stage: str, basename: str, info: dict, artifacts_dir: Path = None
+    ):
+        artifacts_dir = artifacts_dir or self.get_dist_component_artifacts_dir(stage)
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         try:
             with open(artifacts_dir / f"{basename}.{stage}.yml", "w") as f:
@@ -224,6 +233,14 @@ class DistributionPlugin(ComponentPlugin):
         except (PermissionError, yaml.YAMLError) as e:
             msg = f"{self.component}:{self.dist}:{basename}: Failed to write info for {stage} stage."
             raise PluginError(msg) from e
+
+    def delete_artifacts_info(
+        self, stage: str, basename: str, artifacts_dir: Path = None
+    ):
+        artifacts_dir = artifacts_dir or self.get_dist_component_artifacts_dir(stage)
+        info_path = artifacts_dir / f"{basename}.{stage}.yml"
+        if info_path.exists():
+            info_path.unlink()
 
 
 class RPMDistributionPlugin(DistributionPlugin):

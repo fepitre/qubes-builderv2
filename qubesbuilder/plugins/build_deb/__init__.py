@@ -161,6 +161,10 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                 # Build Debian packages
                 #
 
+                for src in ["dsc", "orig", "debian"]:
+                    if not source_info.get(src, None):
+                        raise BuildError(f"Cannot find sources for '{directory}'")
+
                 # Copy-in plugin, repository and sources
                 copy_in = [
                     (self.plugins_dir / "build_deb", PLUGINS_DIR),

@@ -147,7 +147,11 @@ class TemplatePlugin(Plugin):
         return template_timestamp
 
     def run(
-        self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
+        self,
+        stage: str,
+        repository_publish: str = None,
+        ignore_min_age: bool = False,
+        unpublish: bool = False,
     ):
 
         repository_dir = self.get_repository_dir() / self.dist.distribution
