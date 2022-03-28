@@ -22,12 +22,13 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_deb")
 
 
-class DEBPublishPlugin(PublishPlugin):
+class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
     """
     DEGBPublishPlugin manages DEB distribution publication.
     """
@@ -62,19 +63,6 @@ class DEBPublishPlugin(PublishPlugin):
             debug=debug,
         )
 
-    def update_parameters(self):
-        """
-        Update plugin parameters based on component .qubesbuilder.
-        """
-        super().update_parameters()
-
-        # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
-        parameters = self.component.get_parameters(self._placeholders)
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("deb", {})
-        )
-
     def run(
         self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
     ):
@@ -83,9 +71,6 @@ class DEBPublishPlugin(PublishPlugin):
         """
         # Run stage defined by parent class
         super().run(stage=stage)
-
-        # Update parameters
-        self.update_parameters()
 
         # Check if we have Debian related content defined
         if not self.parameters.get("build", []):

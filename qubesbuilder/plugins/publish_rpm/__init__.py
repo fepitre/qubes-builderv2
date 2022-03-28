@@ -16,23 +16,21 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-import datetime
 import os
 import shutil
 from pathlib import Path
-
-import yaml
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.publish import PublishPlugin, PublishError, MIN_AGE_DAYS
+from qubesbuilder.plugins import RPMDistributionPlugin
+from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_rpm")
 
 
-class RPMPublishPlugin(PublishPlugin):
+class RPMPublishPlugin(PublishPlugin, RPMDistributionPlugin):
     """
     RPMPublishPlugin manages RPM distribution publication.
     """
@@ -67,19 +65,6 @@ class RPMPublishPlugin(PublishPlugin):
             debug=debug,
         )
 
-    def update_parameters(self):
-        """
-        Update plugin parameters based on component .qubesbuilder.
-        """
-        super().update_parameters()
-
-        # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
-        parameters = self.component.get_parameters(self._placeholders)
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("rpm", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("rpm", {})
-        )
-
     def run(
         self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
     ):
@@ -88,9 +73,6 @@ class RPMPublishPlugin(PublishPlugin):
         """
         # Run stage defined by parent class
         super().run(stage=stage)
-
-        # Update parameters
-        self.update_parameters()
 
         # Check if we have a signing key provided
         sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
@@ -184,7 +166,7 @@ class RPMPublishPlugin(PublishPlugin):
 
             for spec in self.parameters["spec"]:
                 # spec file basename will be used as prefix for some artifacts
-                spec_bn = os.path.basename(spec).replace(".spec", "")
+                spec_bn = spec.with_suffix("").name
 
                 # Read information from build stage
                 build_info = self.get_artifacts_info(stage="build", basename=spec_bn)

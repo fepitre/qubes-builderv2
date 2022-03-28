@@ -24,6 +24,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_deb import provision_local_repository
 from qubesbuilder.plugins.sign import SignPlugin, SignError
@@ -31,7 +32,7 @@ from qubesbuilder.plugins.sign import SignPlugin, SignError
 log = get_logger("sign_deb")
 
 
-class DEBSignPlugin(SignPlugin):
+class DEBSignPlugin(SignPlugin, DEBDistributionPlugin):
     """
     DEBSignPlugin manages DEB distribution sign.
     """
@@ -62,19 +63,6 @@ class DEBSignPlugin(SignPlugin):
             debug=debug,
         )
 
-    def update_parameters(self):
-        """
-        Update plugin parameters based on component .qubesbuilder.
-        """
-        super().update_parameters()
-
-        # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
-        parameters = self.component.get_parameters(self._placeholders)
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("deb", {})
-        )
-
     def run(self, stage: str):
         """
         Run plugging for given stage.
@@ -83,9 +71,6 @@ class DEBSignPlugin(SignPlugin):
         super().run(stage=stage)
 
         if stage == "sign":
-            # Update parameters
-            self.update_parameters()
-
             # Check if we have Debian related content defined
             if not self.parameters.get("build", []):
                 log.info(f"{self.component}:{self.dist}: Nothing to be done.")

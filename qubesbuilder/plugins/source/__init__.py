@@ -211,13 +211,10 @@ class SourcePlugin(DistributionPlugin):
         self.executor = executor
         self.skip_if_exists = skip_if_exists
 
-    def update_parameters(self):
-        """
-        Update plugin parameters based on component .qubesbuilder.
-        """
         # Set and update parameters based on top-level "source",
         # per package set and per distribution.
         parameters = self.component.get_parameters(self._placeholders)
+
         self.parameters.update(parameters.get("source", {}))
         self.parameters.update(
             parameters.get(self.dist.package_set, {}).get("source", {})

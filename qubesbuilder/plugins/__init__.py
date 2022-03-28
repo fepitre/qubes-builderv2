@@ -224,3 +224,73 @@ class DistributionPlugin(ComponentPlugin):
         except (PermissionError, yaml.YAMLError) as e:
             msg = f"{self.component}:{self.dist}:{basename}: Failed to write info for {stage} stage."
             raise PluginError(msg) from e
+
+
+class RPMDistributionPlugin(DistributionPlugin):
+
+    """
+    RPM distribution component plugin
+    """
+
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool,
+        debug: bool,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
+
+        # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
+        parameters = self.component.get_parameters(self._placeholders)
+
+        self.parameters.update(parameters.get(self.dist.package_set, {}).get("rpm", {}))
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("rpm", {})
+        )
+
+        self.parameters["spec"] = [
+            PurePath(spec) for spec in self.parameters.get("spec", [])
+        ]
+
+
+class DEBDistributionPlugin(DistributionPlugin):
+
+    """
+    RPM distribution component plugin
+    """
+
+    def __init__(
+        self,
+        component: QubesComponent,
+        dist: QubesDistribution,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool,
+        debug: bool,
+    ):
+        super().__init__(
+            component=component,
+            dist=dist,
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
+
+        # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
+        parameters = self.component.get_parameters(self._placeholders)
+
+        self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get("deb", {})
+        )

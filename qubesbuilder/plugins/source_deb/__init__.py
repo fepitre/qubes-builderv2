@@ -28,13 +28,19 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import BUILDER_DIR, PLUGINS_DIR, BUILD_DIR, DISTFILES_DIR
+from qubesbuilder.plugins import (
+    BUILDER_DIR,
+    PLUGINS_DIR,
+    BUILD_DIR,
+    DISTFILES_DIR,
+    DEBDistributionPlugin,
+)
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 log = get_logger("source_deb")
 
 
-class DEBSourcePlugin(SourcePlugin):
+class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
     """
     Manage Debian distribution source.
 
@@ -75,19 +81,6 @@ class DEBSourcePlugin(SourcePlugin):
             }
         )
 
-    def update_parameters(self):
-        """
-        Update plugin parameters based on component .qubesbuilder.
-        """
-        super().update_parameters()
-
-        # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
-        parameters = self.component.get_parameters(self._placeholders)
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("deb", {})
-        )
-
     def run(self, stage: str):
         """
         Run plugging for given stage.
@@ -96,9 +89,6 @@ class DEBSourcePlugin(SourcePlugin):
         super().run(stage=stage)
 
         if stage == "prep":
-            # Update parameters
-            self.update_parameters()
-
             # Check if we have Debian related content defined
             if not self.parameters.get("build", None):
                 log.info(f"{self.component}: nothing to be done for {self.dist}")

@@ -25,6 +25,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import RPMDistributionPlugin
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_rpm import provision_local_repository
 from qubesbuilder.plugins.sign import SignPlugin, SignError
@@ -32,7 +33,7 @@ from qubesbuilder.plugins.sign import SignPlugin, SignError
 log = get_logger("sign_rpm")
 
 
-class RPMSignPlugin(SignPlugin):
+class RPMSignPlugin(SignPlugin, RPMDistributionPlugin):
     """
     RPMSignPlugin manages RPM distribution sign.
     """
@@ -63,28 +64,12 @@ class RPMSignPlugin(SignPlugin):
             debug=debug,
         )
 
-    def update_parameters(self):
-        """
-        Update plugin parameters based on component .qubesbuilder.
-        """
-        super().update_parameters()
-
-        # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
-        parameters = self.component.get_parameters(self._placeholders)
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("rpm", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("rpm", {})
-        )
-
     def run(self, stage: str):
         """
         Run plugging for given stage.
         """
         # Run stage defined by parent class
         super().run(stage=stage)
-
-        # Update parameters
-        self.update_parameters()
 
         # Check if we have a signing key provided
         sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
@@ -131,7 +116,7 @@ class RPMSignPlugin(SignPlugin):
 
             for spec in self.parameters["spec"]:
                 # spec file basename will be used as prefix for some artifacts
-                spec_bn = os.path.basename(spec).replace(".spec", "")
+                spec_bn = spec.with_suffix("").name
 
                 # Read information from build stage
                 build_info = self.get_artifacts_info(stage="build", basename=spec_bn)

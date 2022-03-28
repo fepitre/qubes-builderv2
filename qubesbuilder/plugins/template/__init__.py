@@ -36,7 +36,7 @@ from qubesbuilder.plugins import (
     REPOSITORY_DIR,
     PLUGINS_DIR,
 )
-from qubesbuilder.plugins.publish_rpm import MIN_AGE_DAYS
+from qubesbuilder.plugins.publish import MIN_AGE_DAYS
 from qubesbuilder.template import QubesTemplate
 
 log = get_logger("template")
@@ -149,8 +149,6 @@ class TemplatePlugin(Plugin):
     def run(
         self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
     ):
-        # Update parameters
-        self.update_parameters()
 
         repository_dir = self.get_repository_dir() / self.dist.distribution
         template_artifacts_dir = self.get_templates_dir()

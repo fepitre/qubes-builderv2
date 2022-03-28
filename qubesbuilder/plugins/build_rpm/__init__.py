@@ -28,7 +28,13 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import BUILDER_DIR, BUILD_DIR, PLUGINS_DIR, REPOSITORY_DIR
+from qubesbuilder.plugins import (
+    BUILDER_DIR,
+    BUILD_DIR,
+    PLUGINS_DIR,
+    REPOSITORY_DIR,
+    RPMDistributionPlugin,
+)
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
 log = get_logger("build_rpm")
@@ -75,7 +81,7 @@ def provision_local_repository(
         raise BuildError(msg) from e
 
 
-class RPMBuildPlugin(BuildPlugin):
+class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
     """
     Manage RPM distribution build.
     """
@@ -116,19 +122,6 @@ class RPMBuildPlugin(BuildPlugin):
             }
         )
 
-    def update_parameters(self):
-        """
-        Update plugin parameters based on component .qubesbuilder.
-        """
-        super().update_parameters()
-
-        # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
-        parameters = self.component.get_parameters(self._placeholders)
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("rpm", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("rpm", {})
-        )
-
     def run(self, stage: str):
         """
         Run plugging for given stage.
@@ -137,9 +130,6 @@ class RPMBuildPlugin(BuildPlugin):
         super().run(stage=stage)
 
         if stage == "build":
-            # Update parameters
-            self.update_parameters()
-
             # Check if we have RPM related content defined
             if not self.parameters.get("spec", []):
                 log.info(f"{self.component}:{self.dist}: Nothing to be done.")
@@ -152,9 +142,9 @@ class RPMBuildPlugin(BuildPlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.get_source_hash()
-                == self.get_artifacts_info(
-                    stage, os.path.basename(spec).replace(".spec", "")
-                ).get("source-hash", None)
+                == self.get_artifacts_info(stage, spec.with_suffix("").name).get(
+                    "source-hash", None
+                )
                 for spec in self.parameters["spec"]
             ):
                 log.info(
@@ -185,7 +175,7 @@ class RPMBuildPlugin(BuildPlugin):
 
             for spec in self.parameters["spec"]:
                 # spec file basename will be used as prefix for some artifacts
-                spec_bn = os.path.basename(spec).replace(".spec", "")
+                spec_bn = spec.with_suffix("").name
 
                 # Read information from source stage
                 source_info = self.get_artifacts_info(stage="prep", basename=spec_bn)

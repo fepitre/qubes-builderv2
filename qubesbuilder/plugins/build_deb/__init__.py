@@ -22,13 +22,17 @@ import shutil
 from pathlib import Path
 from typing import List
 
-import yaml
-
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import BUILDER_DIR, BUILD_DIR, PLUGINS_DIR, REPOSITORY_DIR
+from qubesbuilder.plugins import (
+    BUILDER_DIR,
+    BUILD_DIR,
+    PLUGINS_DIR,
+    REPOSITORY_DIR,
+    DEBDistributionPlugin,
+)
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
 log = get_logger("build_deb")
@@ -79,7 +83,7 @@ def provision_local_repository(
         raise BuildError(msg) from e
 
 
-class DEBBuildPlugin(BuildPlugin):
+class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
     """
     Manage Debian distribution build.
     """
@@ -108,19 +112,6 @@ class DEBBuildPlugin(BuildPlugin):
             use_qubes_repo=use_qubes_repo,
         )
 
-    def update_parameters(self):
-        """
-        Update plugin parameters based on component .qubesbuilder.
-        """
-        super().update_parameters()
-
-        # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
-        parameters = self.component.get_parameters(self._placeholders)
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("deb", {})
-        )
-
     def run(self, stage: str):
         """
         Run plugging for given stage.
@@ -129,9 +120,6 @@ class DEBBuildPlugin(BuildPlugin):
         super().run(stage=stage)
 
         if stage == "build":
-            # Update parameters
-            self.update_parameters()
-
             # Check if we have Debian related content defined
             if not self.parameters.get("build", None):
                 log.info(f"{self.component}: nothing to be done for {self.dist}")
