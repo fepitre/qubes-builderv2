@@ -129,7 +129,7 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
 
             # Compare previous artifacts hash with current source hash
             if all(
-                self.get_source_hash()
+                self.component.get_source_hash()
                 == self.get_artifacts_info(stage, directory).get("source-hash", None)
                 for directory in self.parameters["build"]
             ):
@@ -286,5 +286,5 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                 # Save package information we parsed for next stages
                 info = source_info
                 info["packages"] = packages_list
-                info["source-hash"] = self.get_source_hash()
+                info["source-hash"] = self.component.get_source_hash()
                 self.save_artifacts_info(stage=stage, basename=directory, info=info)

@@ -99,7 +99,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
 
             # Compare previous artifacts hash with current source hash
             if all(
-                self.get_source_hash()
+                self.component.get_source_hash()
                 == self.get_artifacts_info(stage, spec.with_suffix("").name).get(
                     "source-hash", None
                 )
@@ -239,7 +239,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                     info = {
                         "srpm": source_rpm,
                         "rpms": packages_list,
-                        "source-hash": self.get_source_hash(),
+                        "source-hash": self.component.get_source_hash(),
                     }
                     self.save_artifacts_info(stage=stage, basename=spec_bn, info=info)
 

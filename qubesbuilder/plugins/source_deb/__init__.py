@@ -99,7 +99,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
 
             # Compare previous artifacts hash with current source hash
             if all(
-                self.get_source_hash()
+                self.component.get_source_hash()
                 == self.get_artifacts_info(stage, directory).get("source-hash", None)
                 for directory in self.parameters["build"]
             ):
@@ -261,7 +261,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                         "dsc": source_dsc,
                         "debian": source_debian,
                         "packages": packages_list,
-                        "source-hash": self.get_source_hash(),
+                        "source-hash": self.component.get_source_hash(),
                     }
                     self.save_artifacts_info(stage=stage, basename=directory, info=info)
 

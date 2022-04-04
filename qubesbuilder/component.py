@@ -17,6 +17,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import hashlib
+import pathspec
+from _sha1 import sha1
 from pathlib import Path
 from typing import Union, List
 
@@ -50,6 +53,7 @@ class QubesComponent:
         self.less_secure_signed_commits_sufficient = (
             less_secure_signed_commits_sufficient
         )
+        self._source_hash = ""
 
     def get_parameters(self, placeholders: dict = None):
         if not self.source_dir.exists():
@@ -99,6 +103,42 @@ class QubesComponent:
             raise ComponentError(f"Cannot render '.qubesbuilder'.") from e
 
         return rendered_data or {}
+
+    @staticmethod
+    def _update_hash_from_file(filename: Path, hash: sha1):
+        with open(str(filename), "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash.update(chunk)
+        return hash
+
+    def _update_hash_from_dir(self, directory: Path, hash: sha1):
+        if not directory.exists() or not directory.is_dir():
+            raise ComponentError(f"Cannot find '{directory}'.")
+        paths = [name for name in Path(directory).iterdir()]
+        excluded_paths = [directory / ".git"]
+        # We ignore .git and content defined by .gitignore
+        if (directory / ".gitignore").exists():
+            lines = (directory / ".gitignore").read_text().splitlines()
+            spec = pathspec.PathSpec.from_lines("gitwildmatch", lines)
+            excluded_paths += [name for name in paths if spec.match_file(str(name))]
+        sorted_paths = [path for path in paths if path not in excluded_paths]
+        # We ensure to compute hash always in a sorted order
+        sorted_paths = sorted(sorted_paths, key=lambda p: str(p).lower())
+        for path in sorted_paths:
+            hash.update(path.name.encode())
+            if path.is_file():
+                hash = self._update_hash_from_file(path, hash)
+            elif path.is_dir():
+                hash = self._update_hash_from_dir(path, hash)
+        return hash
+
+    def get_source_hash(self):
+        if not self._source_hash:
+            source_dir_hash = self._update_hash_from_dir(
+                self.source_dir, hashlib.sha1()
+            ).hexdigest()
+            self._source_hash = str(source_dir_hash)
+        return self._source_hash
 
     def to_str(self) -> str:
         return self.source_dir.name

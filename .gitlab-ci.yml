@@ -61,6 +61,8 @@ pytest:
   coverage: '/TOTAL.*\s(\d+)%/'
   variables:
     PYTHONPATH: .
+  before_script:
+    - sudo dnf install -y python3-pathspec
   script:
     - docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
     - pytest-3 -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml tests/

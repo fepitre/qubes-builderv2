@@ -51,7 +51,7 @@ class AliasedGroup(click.Group):
         super().__init__(*args, **kwargs)
         self.aliases = {}
         self.debug = False
-        self.list_commands = self.list_commands_for_help
+        self.list_commands = self.list_commands_for_help  # type: ignore
 
     def __call__(self, *args, **kwargs):
         try:

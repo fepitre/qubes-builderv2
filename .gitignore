@@ -5,3 +5,4 @@ artifacts
 mypy.xml
 pylint.xml
 builder.yml
+test.py

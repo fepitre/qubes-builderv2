@@ -18,8 +18,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import yaml
-import hashlib
-from _sha1 import sha1
 from pathlib import Path
 from pathlib import PurePath
 from typing import List, Dict
@@ -137,34 +135,6 @@ class ComponentPlugin(Plugin):
         path = path / f"{self.component.version}-{self.component.release}"
         path = path / stage
         return path.resolve()
-
-    @staticmethod
-    def _update_hash_from_file(filename: Path, hash: sha1):
-        with open(str(filename), "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash.update(chunk)
-        return hash
-
-    def _update_hash_from_dir(self, directory: Path, hash: sha1):
-        if not directory.exists() or not directory.is_dir():
-            raise PluginError(f"Cannot find '{directory}'.")
-        # We ensure to compute hash always in a sorted order
-        sorted_paths = sorted(Path(directory).iterdir(), key=lambda p: str(p).lower())
-        for path in sorted_paths:
-            hash.update(path.name.encode())
-            if path.is_file():
-                hash = self._update_hash_from_file(path, hash)
-            elif path.is_dir():
-                hash = self._update_hash_from_dir(path, hash)
-        return hash
-
-    def get_source_hash(self):
-        if not self._source_hash:
-            source_dir_hash = self._update_hash_from_dir(
-                self.get_sources_dir() / self.component.name, hashlib.sha1()
-            ).hexdigest()
-            self._source_hash = str(source_dir_hash)
-        return self._source_hash
 
 
 class DistributionPlugin(ComponentPlugin):
