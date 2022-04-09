@@ -119,8 +119,13 @@ class ContainerExecutor(Executor):
                 if self._container_client == "podman":
                     for k, v in environment.copy().items():
                         environment[k] = str(v)
+                volumes = ["/dev/loop-control"]
                 container = client.containers.create(
-                    image, cmd, privileged=True, environment=environment
+                    image,
+                    cmd,
+                    privileged=True,
+                    environment=environment,
+                    volumes=volumes,
                 )
 
                 # Adjust log namespace
