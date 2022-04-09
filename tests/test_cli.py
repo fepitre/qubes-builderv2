@@ -997,14 +997,34 @@ def test_unpublish_vm_bullseye():
 
 
 def test_prep_template_fedora_35_xfce():
-    qb_call(DEFAULT_BUILDER_CONF, "-t", "fedora-35-xfce", "template", "prep")
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        "-e",
+        "qubes",
+        "--executor-option",
+        "dispvm=qubes-builder-dvm",
+        "-t",
+        "fedora-35-xfce",
+        "template",
+        "prep",
+    )
 
     assert (ARTIFACTS_DIR / "templates/prepared_images/fedora-35-xfce.img").exists()
     assert (ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce").exists()
 
 
 def test_build_template_fedora_35_xfce():
-    qb_call(DEFAULT_BUILDER_CONF, "-t", "fedora-35-xfce", "template", "build")
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        "-e",
+        "qubes",
+        "--executor-option",
+        "dispvm=qubes-builder-dvm",
+        "-t",
+        "fedora-35-xfce",
+        "template",
+        "build",
+    )
     assert (ARTIFACTS_DIR / "templates/prepared_images/fedora-35-xfce.img").exists()
     assert (
         ARTIFACTS_DIR / "templates/qubeized_images/fedora-35-xfce/root.img"
@@ -1127,7 +1147,7 @@ def test_publish_template_fedora_35_xfce():
         assert info.get("timestamp", []) == template_timestamp
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "templates-itl-testing",
-            "templates-itl"
+            "templates-itl",
         }
 
     # Check that packages are in the published repository

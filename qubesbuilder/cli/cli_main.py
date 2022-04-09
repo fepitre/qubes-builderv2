@@ -29,6 +29,7 @@ from qubesbuilder.cli.cli_base import ContextObj, aliased_group
 from qubesbuilder.cli.cli_package import package
 from qubesbuilder.cli.cli_repository import repository
 from qubesbuilder.cli.cli_template import template
+from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.config import Config, STAGES
 from qubesbuilder.log import get_logger, init_logging
 
@@ -69,6 +70,19 @@ log = get_logger("cli")
     multiple=True,
     help="Override template in configuration file (can be repeated).",
 )
+@click.option(
+    "--executor",
+    "-e",
+    default=None,
+    help="Override executor type in configuration file.",
+)
+@click.option(
+    "--executor-option",
+    default=None,
+    multiple=True,
+    help='Override executor options in configuration file provided as "option=value" (can be repeated). '
+    'For example, --executor-option image="qubes-builder-fedora:latest"',
+)
 @click.pass_context
 def main(
     ctx: click.Context,
@@ -78,12 +92,24 @@ def main(
     component: List = None,
     distribution: List = None,
     template: List = None,
+    executor: str = None,
+    executor_option: List = None,
 ):
     """
     Main CLI
 
     """
     config = Config(builder_conf)
+    if executor:
+        executor_config = {"type": executor, "options": {}}
+        for raw_option in executor_option or []:
+            parsed_option = raw_option.split("=", 1)
+            if len(parsed_option) != 2:
+                raise CliError("Invalid executor option.")
+            option, value = parsed_option
+            executor_config["options"][option] = str(value)  # type: ignore
+        config.set("executor", executor_config)
+
     ctx.obj = ContextObj(config)
 
     # debug mode is also provided by builder configuration

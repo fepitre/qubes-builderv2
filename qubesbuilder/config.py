@@ -83,6 +83,9 @@ class Config:
     def get(self, key, default=None):
         return self._conf.get(key, default)
 
+    def set(self, key, value):
+        self._conf[key] = value
+
     def get_distributions(self, filtered_distributions=None):
         if not self._dists:
             if filtered_distributions:
