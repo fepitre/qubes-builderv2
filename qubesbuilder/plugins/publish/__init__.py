@@ -101,17 +101,11 @@ class PublishPlugin(DistributionPlugin):
 
     def can_be_published_in_stable(self, basename, ignore_min_age):
         # Check packages are published
-        publish_info = self.get_artifacts_info(stage="publish", basename=basename)
-        if not publish_info:
-            return False
-
-        # Check for valid repositories under which packages are published
-        if "current-testing" not in [
-            r["name"] for r in publish_info.get("repository-publish", [])
-        ]:
+        if not self.is_published(basename, "current-testing"):
             return False
 
         # Check minimum day that packages are available for testing
+        publish_info = self.get_artifacts_info(stage="publish", basename=basename)
         publish_date = None
         for r in publish_info["repository-publish"]:
             if r["name"] == "current-testing":

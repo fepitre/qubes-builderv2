@@ -27,10 +27,9 @@ import click
 
 from qubesbuilder.cli.cli_base import ContextObj, aliased_group
 from qubesbuilder.cli.cli_package import package
-from qubesbuilder.cli.cli_template import template
 from qubesbuilder.cli.cli_repository import repository
+from qubesbuilder.cli.cli_template import template
 from qubesbuilder.config import Config, STAGES
-from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.log import get_logger, init_logging
 
 log = get_logger("cli")

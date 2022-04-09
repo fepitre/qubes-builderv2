@@ -68,10 +68,16 @@ class RPMTemplatePlugin(TemplatePlugin):
         self.environment.update({"TEMPLATE_CONTENT_DIR": PLUGINS_DIR / "template_rpm"})
 
     def run(
-        self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
+        self,
+        stage: str,
+        repository_publish: str = None,
+        ignore_min_age: bool = False,
+        unpublish: bool = False,
+        **kwargs,
     ):
         super().run(
             stage=stage,
             repository_publish=repository_publish,
             ignore_min_age=ignore_min_age,
+            unpublish=unpublish,
         )

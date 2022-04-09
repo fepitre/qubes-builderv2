@@ -77,10 +77,16 @@ class WhonixTemplatePlugin(DEBTemplatePlugin):
         )
 
     def run(
-        self, stage: str, repository_publish: str = None, ignore_min_age: bool = False
+        self,
+        stage: str,
+        repository_publish: str = None,
+        ignore_min_age: bool = False,
+        unpublish: bool = False,
+        **kwargs,
     ):
         super().run(
             stage=stage,
             repository_publish=repository_publish,
             ignore_min_age=ignore_min_age,
+            unpublish=unpublish,
         )

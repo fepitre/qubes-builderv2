@@ -73,6 +73,6 @@ if [ "$(rpmkeys --dbpath="$DB_PATH" --checksig -- "$RPM")" != "$RPM: digests sig
     setsid -w rpmsign ${RPMSIGN_OPTS} --addsign -- "$RPM" </dev/null || exit 1
 else
     if [ "$CHECK_ONLY" != "1" ]; then
-        echo "INFO: RPM has already a valid signature. Skipping..."
+        echo "INFO: $(basename "$RPM") has already a valid signature. Skipping..."
     fi
 fi
