@@ -215,6 +215,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                 mock_cmd = [
                     f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                     f"/usr/libexec/mock/mock",
+                    "--isolation=simple",
                     "--buildsrpm",
                     f"--spec {source_dir / spec}",
                     f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
