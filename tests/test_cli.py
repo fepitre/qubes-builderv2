@@ -1158,3 +1158,50 @@ def test_publish_template_fedora_35_xfce():
         )
         packages = rpm_packages_list(repository_dir)
         assert {rpm} == set(packages)
+
+
+def test_unpublish_template_fedora_35_xfce():
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        gnupghome = f"{tmpdir}/.gnupg"
+        shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+        os.chmod(gnupghome, 0o700)
+
+        env["GNUPGHOME"] = gnupghome
+        env["HOME"] = tmpdir
+
+        with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
+            data = f.read().splitlines()
+        template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+
+        # unpublish from templates-itl
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            "-t",
+            "fedora-35-xfce",
+            "repository",
+            "unpublish",
+            "templates-itl",
+            env=env,
+        )
+
+        publish_file = ARTIFACTS_DIR / "templates/fedora-35-xfce.publish.yml"
+        with open(publish_file) as f:
+            info = yaml.safe_load(f.read())
+
+        assert info.get("timestamp", []) == template_timestamp
+        assert set([r["name"] for r in info.get("repository-publish", [])]) == {
+            "templates-itl-testing"
+        }
+
+    # Check that packages are in the published repository
+    for repository in ["templates-itl-testing", "templates-itl"]:
+        rpm = f"qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        repository_dir = (
+            f"file://{ARTIFACTS_DIR}/repository-publish/rpm/r4.2/{repository}"
+        )
+        packages = rpm_packages_list(repository_dir)
+        if repository == "templates-itl":
+            assert packages == []
+        else:
+            assert {rpm} == set(packages)
