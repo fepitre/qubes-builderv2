@@ -31,9 +31,10 @@ log = get_logger("executor:qubes")
 
 
 class QubesExecutor(Executor):
-    def __init__(self, dispvm, **kwargs):
+    def __init__(self, dispvm, clean=True, **kwargs):
         # dispvm is the template used for creating a disposable qube.
         self.dispvm = dispvm
+        self._clean = clean
         self._kwargs = kwargs
 
     def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):
@@ -176,7 +177,7 @@ class QubesExecutor(Executor):
                     raise e
         finally:
             # Kill the DispVM to prevent hanging for while
-            if dispvm:
+            if dispvm and self._clean:
                 subprocess.run(
                     ["qrexec-client-vm", dispvm, "admin.vm.Kill"],
                     stdin=subprocess.DEVNULL,

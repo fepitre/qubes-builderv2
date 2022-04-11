@@ -43,8 +43,9 @@ except ImportError:
 
 
 class ContainerExecutor(Executor):
-    def __init__(self, container_client, image_name, **kwargs):
+    def __init__(self, container_client, image, clean=True, **kwargs):
         self._container_client = container_client
+        self._clean = clean
         self._kwargs = kwargs
         if self._container_client == "podman":
             if PodmanClient is None:
@@ -60,12 +61,12 @@ class ContainerExecutor(Executor):
         with self.get_client() as client:
             try:
                 # Check if we have the image locally
-                image = client.images.get(image_name)
+                image = client.images.get(image)
                 if not image:
                     # Try to pull the image
-                    image = client.images.pull(image_name)
+                    image = client.images.pull(image)
             except (PodmanError, DockerException) as e:
-                raise ExecutorError(f"Cannot find {image_name}.") from e
+                raise ExecutorError(f"Cannot find {image}.") from e
 
         self.attrs = image.attrs
 
@@ -174,6 +175,6 @@ class ContainerExecutor(Executor):
                             continue
                         raise e
         finally:
-            if container:
+            if container and self._clean:
                 container.wait()
                 container.remove()
