@@ -18,14 +18,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-from pathlib import Path
-
 import shutil
+from pathlib import Path
 
 from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors.qubes import QubesExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     BUILDER_DIR,
@@ -215,7 +215,6 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                 mock_cmd = [
                     f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                     f"/usr/libexec/mock/mock",
-                    "--isolation=simple",
                     "--buildsrpm",
                     f"--spec {source_dir / spec}",
                     f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
@@ -223,6 +222,10 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                     f"--resultdir={BUILD_DIR}",
                     "--disablerepo=builder-local",
                 ]
+                if isinstance(self.executor, QubesExecutor):
+                    mock_cmd.append("--isolation=nspawn")
+                else:
+                    mock_cmd.append("--isolation=simple")
                 if self.verbose:
                     mock_cmd.append("--verbose")
 

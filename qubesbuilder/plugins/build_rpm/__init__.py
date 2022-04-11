@@ -22,11 +22,10 @@ import shutil
 from pathlib import Path
 from typing import List
 
-import yaml
-
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors.qubes import QubesExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     BUILDER_DIR,
@@ -214,11 +213,14 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
                 mock_cmd = [
                     f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                     f"/usr/libexec/mock/mock",
-                    "--isolation=simple",
                     f"--rebuild {BUILD_DIR / source_info['srpm']}",
                     f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
                     f"--resultdir={BUILD_DIR}",
                 ]
+                if isinstance(self.executor, QubesExecutor):
+                    mock_cmd.append("--isolation=nspawn")
+                else:
+                    mock_cmd.append("--isolation=simple")
                 if self.verbose:
                     mock_cmd.append("--verbose")
                 if self.use_qubes_repo and self.use_qubes_repo.get("version"):
