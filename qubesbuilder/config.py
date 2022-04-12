@@ -173,8 +173,11 @@ class Config:
     def parse_component_from_dict_or_string(
         self, component_name: Union[str, Dict]
     ) -> QubesComponent:
-        component_default_url = f"https://github.com/QubesOS/qubes-{component_name}"
-        component_default_branch = "master"
+        baseurl = self.get("git", {}).get("baseurl", "https://github.com")
+        prefix = self.get("git", {}).get("prefix", "QubesOS/qubes-")
+        branch = self.get("git", {}).get("branch", "master")
+        maintainers = self.get("git", {}).get("maintainers", [])
+        url = f"{baseurl}/{prefix}{component_name}"
         if isinstance(component_name, str):
             component_name = {component_name: {}}
         name, options = next(iter(component_name.items()))
@@ -184,9 +187,9 @@ class Config:
         )
         component = QubesComponent(
             source_dir=self._artifacts_dir / "sources" / name,
-            url=options.get("url", component_default_url),
-            branch=options.get("branch", component_default_branch),
-            maintainers=options.get("maintainers", []),
+            url=options.get("url", url),
+            branch=options.get("branch", branch),
+            maintainers=options.get("maintainers", maintainers),
             insecure_skip_checking=insecure_skip_checking,
             less_secure_signed_commits_sufficient=less_secure_signed_commits_sufficient,
         )
