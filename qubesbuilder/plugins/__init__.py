@@ -74,9 +74,9 @@ class Plugin:
 
         self.environment = {}
         if self.verbose:
-            self.environment["VERBOSE"] = 1
+            self.environment["VERBOSE"] = "1"
         if self.debug:
-            self.environment["DEBUG"] = 1
+            self.environment["DEBUG"] = "1"
 
     def run(self, stage: str):
         pass
