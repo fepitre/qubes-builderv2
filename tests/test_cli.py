@@ -104,7 +104,7 @@ def test_prep_host_fc32():
     ) as f:
         info = yaml.safe_load(f.read())
 
-    rpms = [
+    rpms = {
         "qubes-core-qrexec-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-debuginfo-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-debugsource-4.1.16-1.fc32.x86_64.rpm",
@@ -112,12 +112,12 @@ def test_prep_host_fc32():
         "qubes-core-qrexec-libs-debuginfo-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-libs-debugsource-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-devel-4.1.16-1.fc32.x86_64.rpm",
-    ]
+    }
     srpm = "qubes-core-qrexec-4.1.16-1.fc32.src.rpm"
 
-    assert info.get("rpms", []) == rpms
+    assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
-    assert info.get("srpm", []) == srpm
+    assert info.get("srpm", None) == srpm
 
     with open(
         ARTIFACTS_DIR
@@ -125,16 +125,16 @@ def test_prep_host_fc32():
     ) as f:
         info = yaml.safe_load(f.read())
 
-    rpms = [
+    rpms = {
         "qubes-core-qrexec-dom0-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-dom0-debuginfo-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-dom0-debugsource-4.1.16-1.fc32.x86_64.rpm",
-    ]
+    }
     srpm = "qubes-core-qrexec-dom0-4.1.16-1.fc32.src.rpm"
 
-    assert info.get("rpms", []) == rpms
+    assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
-    assert info.get("srpm", []) == srpm
+    assert info.get("srpm", None) == srpm
 
 
 def test_build_host_fc32():
@@ -148,18 +148,18 @@ def test_build_host_fc32():
     ) as f:
         info = yaml.safe_load(f.read())
 
-    rpms = [
+    rpms = {
         "qubes-core-qrexec-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-debugsource-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-libs-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-libs-debuginfo-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-devel-4.1.16-1.fc32.x86_64.rpm",
-    ]
+    }
     srpm = "qubes-core-qrexec-4.1.16-1.fc32.src.rpm"
 
-    assert info.get("rpms", []) == rpms
+    assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
-    assert info.get("srpm", []) == srpm
+    assert info.get("srpm", None) == srpm
 
     with open(
         ARTIFACTS_DIR
@@ -167,16 +167,16 @@ def test_build_host_fc32():
     ) as f:
         info = yaml.safe_load(f.read())
 
-    rpms = [
+    rpms = {
         "qubes-core-qrexec-dom0-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-dom0-debuginfo-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-dom0-debugsource-4.1.16-1.fc32.x86_64.rpm",
-    ]
+    }
     srpm = "qubes-core-qrexec-dom0-4.1.16-1.fc32.src.rpm"
 
-    assert info.get("rpms", []) == rpms
+    assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
-    assert info.get("srpm", []) == srpm
+    assert info.get("srpm", None) == srpm
 
 
 def test_sign_host_fc32():
@@ -261,20 +261,20 @@ def test_publish_host_fc32():
             env=env,
         )
 
-        rpms = [
+        rpms = {
             "qubes-core-qrexec-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-debugsource-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-libs-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-libs-debuginfo-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-devel-4.1.16-1.fc32.x86_64.rpm",
-        ]
+        }
         srpm = "qubes-core-qrexec-4.1.16-1.fc32.src.rpm"
 
-        rpms_dom0 = [
+        rpms_dom0 = {
             "qubes-core-qrexec-dom0-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-dom0-debuginfo-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-dom0-debugsource-4.1.16-1.fc32.x86_64.rpm",
-        ]
+        }
         srpm_dom0 = "qubes-core-qrexec-dom0-4.1.16-1.fc32.src.rpm"
 
         with open(
@@ -289,13 +289,13 @@ def test_publish_host_fc32():
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
-        assert info.get("rpms", []) == rpms
-        assert info.get("srpm", []) == srpm
+        assert set(info.get("rpms", [])) == rpms
+        assert info.get("srpm", None) == srpm
         assert HASH_RE.match(info.get("source-hash", None))
         assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
 
-        assert info_dom0.get("rpms", []) == rpms_dom0
-        assert info_dom0.get("srpm", []) == srpm_dom0
+        assert set(info_dom0.get("rpms", [])) == rpms_dom0
+        assert info_dom0.get("srpm", None) == srpm_dom0
         assert HASH_RE.match(info_dom0.get("source-hash", None))
         assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
 
@@ -323,16 +323,16 @@ def test_publish_host_fc32():
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
-        assert info.get("rpms", []) == rpms
-        assert info.get("srpm", []) == srpm
+        assert set(info.get("rpms", [])) == rpms
+        assert info.get("srpm", None) == srpm
         assert HASH_RE.match(info.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
         }
 
-        assert info_dom0.get("rpms", []) == rpms_dom0
-        assert info_dom0.get("srpm", []) == srpm_dom0
+        assert set(info_dom0.get("rpms", [])) == rpms_dom0
+        assert info_dom0.get("srpm", None) == srpm_dom0
         assert HASH_RE.match(info_dom0.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
@@ -383,8 +383,8 @@ def test_publish_host_fc32():
         with open(publish_dom0_file) as f:
             info_dom0 = yaml.safe_load(f.read())
 
-        assert info.get("rpms", []) == rpms
-        assert info.get("srpm", []) == srpm
+        assert set(info.get("rpms", [])) == rpms
+        assert info.get("srpm", None) == srpm
         assert HASH_RE.match(info.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
@@ -392,8 +392,8 @@ def test_publish_host_fc32():
             "current",
         }
 
-        assert info_dom0.get("rpms", []) == rpms_dom0
-        assert info_dom0.get("srpm", []) == srpm_dom0
+        assert set(info_dom0.get("rpms", [])) == rpms_dom0
+        assert info_dom0.get("srpm", None) == srpm_dom0
         assert HASH_RE.match(info_dom0.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
@@ -554,16 +554,16 @@ def test_unpublish_host_fc32():
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
-        assert info.get("rpms", []) == rpms
-        assert info.get("srpm", []) == srpm
+        assert set(info.get("rpms", [])) == rpms
+        assert info.get("srpm", None) == srpm
         assert HASH_RE.match(info.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
         }
 
-        assert info_dom0.get("rpms", []) == rpms_dom0
-        assert info_dom0.get("srpm", []) == srpm_dom0
+        assert set(info_dom0.get("rpms", [])) == rpms_dom0
+        assert info_dom0.get("srpm", None) == srpm_dom0
         assert HASH_RE.match(info_dom0.get("source-hash", None))
         assert set([r["name"] for r in info_dom0.get("repository-publish", [])]) == {
             "unstable",
