@@ -530,20 +530,20 @@ def test_unpublish_host_fc32():
             env=env,
         )
 
-        rpms = [
+        rpms = {
             "qubes-core-qrexec-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-debugsource-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-libs-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-libs-debuginfo-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-devel-4.1.16-1.fc32.x86_64.rpm",
-        ]
+        }
         srpm = "qubes-core-qrexec-4.1.16-1.fc32.src.rpm"
 
-        rpms_dom0 = [
+        rpms_dom0 = {
             "qubes-core-qrexec-dom0-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-dom0-debuginfo-4.1.16-1.fc32.x86_64.rpm",
             "qubes-core-qrexec-dom0-debugsource-4.1.16-1.fc32.x86_64.rpm",
-        ]
+        }
         srpm_dom0 = "qubes-core-qrexec-dom0-4.1.16-1.fc32.src.rpm"
 
         with open(

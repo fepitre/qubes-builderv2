@@ -47,6 +47,7 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
         gpg_client: str,
         sign_key: dict,
         repository_publish: dict,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -62,6 +63,7 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
             repository_publish=repository_publish,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
 
     def publish(self, directory, keyring_dir, repository_publish):

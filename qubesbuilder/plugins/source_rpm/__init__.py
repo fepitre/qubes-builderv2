@@ -56,6 +56,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
         executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
         skip_if_exists: bool = False,
@@ -69,6 +70,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
             verbose=verbose,
             debug=debug,
             skip_if_exists=skip_if_exists,
+            backend_vmm=backend_vmm,
         )
 
         # Add some environment variables needed to render mock root configuration

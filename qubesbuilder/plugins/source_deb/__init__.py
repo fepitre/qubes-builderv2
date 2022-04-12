@@ -57,6 +57,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
         executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
         skip_if_exists: bool = False,
@@ -70,6 +71,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
             verbose=verbose,
             debug=debug,
             skip_if_exists=skip_if_exists,
+            backend_vmm=backend_vmm,
         )
 
         self.environment.update(

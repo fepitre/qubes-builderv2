@@ -44,6 +44,7 @@ class BuildPlugin(DistributionPlugin):
         executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
@@ -55,6 +56,7 @@ class BuildPlugin(DistributionPlugin):
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm
         )
         self.executor = executor
         self.use_qubes_repo = use_qubes_repo

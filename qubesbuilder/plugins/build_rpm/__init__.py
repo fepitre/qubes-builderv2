@@ -94,6 +94,7 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
         executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
@@ -107,6 +108,7 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
             verbose=verbose,
             debug=debug,
             use_qubes_repo=use_qubes_repo,
+            backend_vmm=backend_vmm,
         )
 
         # Add some environment variables needed to render mock root configuration

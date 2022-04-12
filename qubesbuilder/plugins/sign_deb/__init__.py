@@ -48,6 +48,7 @@ class DEBSignPlugin(SignPlugin, DEBDistributionPlugin):
         artifacts_dir: Path,
         gpg_client: str,
         sign_key: dict,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -61,6 +62,7 @@ class DEBSignPlugin(SignPlugin, DEBDistributionPlugin):
             sign_key=sign_key,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
 
     def run(self, stage: str):

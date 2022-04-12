@@ -52,6 +52,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
                     skip_if_exists=obj.config.get("reuse-fetched-source", False),
+                    backend_vmm=obj.config.get("backend-vmm", "xen"),
                 ),
                 getBuildPlugin(
                     component=component,
@@ -62,6 +63,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     verbose=obj.config.verbose,
                     debug=obj.config.debug,
                     use_qubes_repo=obj.config.get("use-qubes-repo", {}),
+                    backend_vmm=obj.config.get("backend-vmm", "xen"),
                 ),
                 getSignPlugin(
                     component=component,
@@ -73,6 +75,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     debug=obj.config.debug,
                     gpg_client=obj.config.get("gpg-client"),
                     sign_key=obj.config.get("sign-key", {}),
+                    backend_vmm=obj.config.get("backend-vmm", "xen"),
                 ),
                 getPublishPlugin(
                     component=component,
@@ -86,6 +89,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     sign_key=obj.config.get("sign-key", {}),
                     qubes_release=obj.config.get("qubes-release", {}),
                     repository_publish=obj.config.get("repository-publish", {}),
+                    backend_vmm=obj.config.get("backend-vmm", "xen"),
                 ),
             ]
             for plugin in plugins:

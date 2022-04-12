@@ -38,6 +38,7 @@ def _publish(
                     sign_key=obj.config.get("sign-key"),
                     qubes_release=obj.config.get("qubes-release"),
                     repository_publish=obj.config.get("repository-publish"),
+                    backend_vmm=obj.config.get("backend-vmm", "xen"),
                 )
                 publish_plugin.run(
                     stage="publish",

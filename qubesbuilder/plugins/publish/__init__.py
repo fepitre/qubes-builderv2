@@ -54,6 +54,7 @@ class PublishPlugin(DistributionPlugin):
         gpg_client: str,
         sign_key: dict,
         repository_publish: dict,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -64,6 +65,7 @@ class PublishPlugin(DistributionPlugin):
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
 
         self.executor = executor

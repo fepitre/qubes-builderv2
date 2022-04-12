@@ -196,6 +196,7 @@ class SourcePlugin(DistributionPlugin):
         executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
         skip_if_exists: bool = False,
@@ -207,6 +208,7 @@ class SourcePlugin(DistributionPlugin):
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
         self.executor = executor
         self.skip_if_exists = skip_if_exists

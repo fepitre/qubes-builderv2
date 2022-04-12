@@ -47,6 +47,7 @@ class SignPlugin(DistributionPlugin):
         artifacts_dir: Path,
         gpg_client: str,
         sign_key: dict,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -57,6 +58,7 @@ class SignPlugin(DistributionPlugin):
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
 
         self.executor = executor

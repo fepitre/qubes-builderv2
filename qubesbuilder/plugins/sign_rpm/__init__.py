@@ -49,6 +49,7 @@ class RPMSignPlugin(SignPlugin, RPMDistributionPlugin):
         artifacts_dir: Path,
         gpg_client: str,
         sign_key: dict,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -62,6 +63,7 @@ class RPMSignPlugin(SignPlugin, RPMDistributionPlugin):
             sign_key=sign_key,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
 
     def run(self, stage: str):

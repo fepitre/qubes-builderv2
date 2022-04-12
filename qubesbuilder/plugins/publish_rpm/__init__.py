@@ -49,6 +49,7 @@ class RPMPublishPlugin(PublishPlugin, RPMDistributionPlugin):
         gpg_client: str,
         sign_key: dict,
         repository_publish: dict,
+        backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -64,6 +65,7 @@ class RPMPublishPlugin(PublishPlugin, RPMDistributionPlugin):
             repository_publish=repository_publish,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
 
     def createrepo(self, spec, target_dir):

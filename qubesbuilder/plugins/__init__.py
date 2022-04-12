@@ -152,6 +152,7 @@ class DistributionPlugin(ComponentPlugin):
         artifacts_dir: Path,
         verbose: bool,
         debug: bool,
+        backend_vmm: str,
     ):
         super().__init__(
             component=component,
@@ -161,7 +162,12 @@ class DistributionPlugin(ComponentPlugin):
             debug=debug,
         )
         self.dist = dist
+        self.backend_vmm = backend_vmm
+
         self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
+        self._placeholders.update({"@BACKEND_VMM@": backend_vmm})
+
+        self.environment["BACKEND_VMM"] = backend_vmm
 
     def get_dist_component_artifacts_dir(self, stage: str):
         path = (
@@ -225,6 +231,7 @@ class RPMDistributionPlugin(DistributionPlugin):
         dist: QubesDistribution,
         plugins_dir: Path,
         artifacts_dir: Path,
+        backend_vmm: str,
         verbose: bool,
         debug: bool,
     ):
@@ -235,6 +242,7 @@ class RPMDistributionPlugin(DistributionPlugin):
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
 
         # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
@@ -262,6 +270,7 @@ class DEBDistributionPlugin(DistributionPlugin):
         dist: QubesDistribution,
         plugins_dir: Path,
         artifacts_dir: Path,
+        backend_vmm: str,
         verbose: bool,
         debug: bool,
     ):
@@ -272,6 +281,7 @@ class DEBDistributionPlugin(DistributionPlugin):
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
+            backend_vmm=backend_vmm,
         )
 
         # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
