@@ -225,3 +225,16 @@ If you plan to sign packages with Split GPG, don't forget to add to your `~/.rpm
         %{?_gpg_digest_algo:--digest-algo %{_gpg_digest_algo}} \\\
         -u "%{_gpg_name}" -sb %{__plaintext_filename} >%{__signature_filename}'
 ```
+
+### .qubesbuilder
+
+Top level keys:
+
+  PACKAGE_SET
+  PACKAGE_SET-DISTRIBUTION_NAME (= Qubes OS distribution)
+
+Inside each top level, it defines what "plugins" will take as input. For example, RPM_SPEC_FILES or DEBIAN_BUILD_DIRS
+concerns package builders. Having both PACKAGE_SET and PACKAGE_SET-DISTRIBUTION_NAME with common keys is up to the
+plugin to know in which order to use or consider them. It allows defining general or per distro options. In the case
+of SOURCE_COPY_IN, being the key defining what "source" plugin needs to do. All processing steps like reading a spec,
+generating sources (with additional commands defined here) will be run thanks to an executor like Podman, DispVM, etc.
