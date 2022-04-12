@@ -34,19 +34,8 @@ fi
 SPEC_FILE="$1"
 DIST_TAG="$2"
 
-version_release_arch="$(rpmspec --srpm --define "dist .${DIST_TAG}" -q --qf '%{version}-%{release}.%{arch}\n' "${SPEC_FILE}")"
-
 # Get builtrpms from rpmspec without debuginfo
 # see https://github.com/rpm-software-management/rpm/issues/1878
-readarray -t packages < <(rpmspec --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}\n' --builtrpms "${SPEC_FILE}")
-
-builtrpms=()
-for pkg in "${packages[@]}"
-do
-    builtrpms+=("${pkg}-${version_release_arch}.rpm")
-    if [ "${pkg%%-devel}" == "${pkg}" ]; then
-        builtrpms+=("${pkg}-debuginfo-${version_release_arch}.rpm" "${pkg}-debugsource-${version_release_arch}.rpm")
-    fi
-done
-
-printf '%s\n' "${builtrpms[@]}"
+rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}"
+rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-debuginfo-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel'
+rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-debugsource-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel'
