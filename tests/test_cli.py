@@ -1,4 +1,5 @@
 import os.path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -11,6 +12,7 @@ from qubesbuilder.common import PROJECT_PATH
 
 DEFAULT_BUILDER_CONF = PROJECT_PATH / "tests/builder-ci.yml"
 ARTIFACTS_DIR = PROJECT_PATH / "artifacts"
+HASH_RE = re.compile("[a-f0-9]{40}")
 
 
 def qb_call(builder_conf, *args, **kwargs):
@@ -111,11 +113,10 @@ def test_prep_host_fc32():
         "qubes-core-qrexec-libs-debugsource-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-devel-4.1.16-1.fc32.x86_64.rpm",
     ]
-    source_hash = "c9b621ee1529dd47fa648f9e555eef1b4d9ce41f"
     srpm = "qubes-core-qrexec-4.1.16-1.fc32.src.rpm"
 
     assert info.get("rpms", []) == rpms
-    assert info.get("source-hash", None) == source_hash
+    assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("srpm", []) == srpm
 
     with open(
@@ -132,7 +133,7 @@ def test_prep_host_fc32():
     srpm = "qubes-core-qrexec-dom0-4.1.16-1.fc32.src.rpm"
 
     assert info.get("rpms", []) == rpms
-    assert info.get("source-hash", None) == source_hash
+    assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("srpm", []) == srpm
 
 
@@ -154,11 +155,10 @@ def test_build_host_fc32():
         "qubes-core-qrexec-libs-debuginfo-4.1.16-1.fc32.x86_64.rpm",
         "qubes-core-qrexec-devel-4.1.16-1.fc32.x86_64.rpm",
     ]
-    source_hash = "c9b621ee1529dd47fa648f9e555eef1b4d9ce41f"
     srpm = "qubes-core-qrexec-4.1.16-1.fc32.src.rpm"
 
     assert info.get("rpms", []) == rpms
-    assert info.get("source-hash", None) == source_hash
+    assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("srpm", []) == srpm
 
     with open(
@@ -175,7 +175,7 @@ def test_build_host_fc32():
     srpm = "qubes-core-qrexec-dom0-4.1.16-1.fc32.src.rpm"
 
     assert info.get("rpms", []) == rpms
-    assert info.get("source-hash", None) == source_hash
+    assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("srpm", []) == srpm
 
 
@@ -239,8 +239,6 @@ def test_sign_host_fc32():
 
 
 def test_publish_host_fc32():
-    source_hash = "c9b621ee1529dd47fa648f9e555eef1b4d9ce41f"
-
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -293,12 +291,12 @@ def test_publish_host_fc32():
 
         assert info.get("rpms", []) == rpms
         assert info.get("srpm", []) == srpm
-        assert info.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info.get("source-hash", None))
         assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
 
         assert info_dom0.get("rpms", []) == rpms_dom0
         assert info_dom0.get("srpm", []) == srpm_dom0
-        assert info_dom0.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info_dom0.get("source-hash", None))
         assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
 
         # publish into current-testing
@@ -327,7 +325,7 @@ def test_publish_host_fc32():
 
         assert info.get("rpms", []) == rpms
         assert info.get("srpm", []) == srpm
-        assert info.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
@@ -335,7 +333,7 @@ def test_publish_host_fc32():
 
         assert info_dom0.get("rpms", []) == rpms_dom0
         assert info_dom0.get("srpm", []) == srpm_dom0
-        assert info_dom0.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info_dom0.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
@@ -387,7 +385,7 @@ def test_publish_host_fc32():
 
         assert info.get("rpms", []) == rpms
         assert info.get("srpm", []) == srpm
-        assert info.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
@@ -396,7 +394,7 @@ def test_publish_host_fc32():
 
         assert info_dom0.get("rpms", []) == rpms_dom0
         assert info_dom0.get("srpm", []) == srpm_dom0
-        assert info_dom0.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info_dom0.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
@@ -506,8 +504,6 @@ def test_sign_host_fc32_skip():
 
 
 def test_unpublish_host_fc32():
-    source_hash = "c9b621ee1529dd47fa648f9e555eef1b4d9ce41f"
-
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -560,7 +556,7 @@ def test_unpublish_host_fc32():
 
         assert info.get("rpms", []) == rpms
         assert info.get("srpm", []) == srpm
-        assert info.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info.get("source-hash", None))
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
@@ -568,7 +564,7 @@ def test_unpublish_host_fc32():
 
         assert info_dom0.get("rpms", []) == rpms_dom0
         assert info_dom0.get("srpm", []) == srpm_dom0
-        assert info_dom0.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info_dom0.get("source-hash", None))
         assert set([r["name"] for r in info_dom0.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
@@ -620,7 +616,6 @@ def test_prep_vm_bullseye():
     ) as f:
         info = yaml.safe_load(f.read())
 
-    source_hash = "0f90aeea99f2a1309078846b0c3fd83dc73fa0a9"
     packages = [
         "python3-qasync_0.9.4-2+deb11u1_all.deb",
         "python3-qasync-dbgsym_0.9.4-2+deb11u1_all.deb",
@@ -632,7 +627,7 @@ def test_prep_vm_bullseye():
     package_release_name_full = "python-qasync_0.9.4-2+deb11u1"
 
     assert info.get("packages", []) == packages
-    assert info.get("source-hash", None) == source_hash
+    assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("debian", None) == debian
     assert info.get("dsc", None) == dsc
     assert info.get("orig", None) == orig
@@ -657,7 +652,6 @@ def test_build_vm_bullseye():
     ) as f:
         info = yaml.safe_load(f.read())
 
-    source_hash = "0f90aeea99f2a1309078846b0c3fd83dc73fa0a9"
     packages = ["python3-qasync_0.9.4-2+deb11u1_all.deb"]
     debian = "python-qasync_0.9.4-2+deb11u1.debian.tar.xz"
     dsc = "python-qasync_0.9.4-2+deb11u1.dsc"
@@ -666,7 +660,7 @@ def test_build_vm_bullseye():
     package_release_name_full = "python-qasync_0.9.4-2+deb11u1"
 
     assert info.get("packages", []) == packages
-    assert info.get("source-hash", None) == source_hash
+    assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("debian", None) == debian
     assert info.get("dsc", None) == dsc
     assert info.get("orig", None) == orig
@@ -751,7 +745,6 @@ def test_publish_vm_bullseye():
         ) as f:
             info = yaml.safe_load(f.read())
 
-        source_hash = "0f90aeea99f2a1309078846b0c3fd83dc73fa0a9"
         packages = ["python3-qasync_0.9.4-2+deb11u1_all.deb"]
         debian = "python-qasync_0.9.4-2+deb11u1.debian.tar.xz"
         dsc = "python-qasync_0.9.4-2+deb11u1.dsc"
@@ -760,7 +753,7 @@ def test_publish_vm_bullseye():
         package_release_name_full = "python-qasync_0.9.4-2+deb11u1"
 
         assert info.get("packages", []) == packages
-        assert info.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info.get("source-hash", None))
         assert info.get("debian", None) == debian
         assert info.get("dsc", None) == dsc
         assert info.get("orig", None) == orig
@@ -787,7 +780,7 @@ def test_publish_vm_bullseye():
             info = yaml.safe_load(f.read())
 
         assert info.get("packages", []) == packages
-        assert info.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info.get("source-hash", None))
         assert info.get("debian", None) == debian
         assert info.get("dsc", None) == dsc
         assert info.get("orig", None) == orig
@@ -828,7 +821,7 @@ def test_publish_vm_bullseye():
             info = yaml.safe_load(f.read())
 
         assert info.get("packages", []) == packages
-        assert info.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info.get("source-hash", None))
         assert info.get("debian", None) == debian
         assert info.get("dsc", None) == dsc
         assert info.get("orig", None) == orig
@@ -951,7 +944,6 @@ def test_unpublish_vm_bullseye():
             env=env,
         )
 
-        source_hash = "0f90aeea99f2a1309078846b0c3fd83dc73fa0a9"
         packages = ["python3-qasync_0.9.4-2+deb11u1_all.deb"]
         debian = "python-qasync_0.9.4-2+deb11u1.debian.tar.xz"
         dsc = "python-qasync_0.9.4-2+deb11u1.dsc"
@@ -966,7 +958,7 @@ def test_unpublish_vm_bullseye():
             info = yaml.safe_load(f.read())
 
         assert info.get("packages", []) == packages
-        assert info.get("source-hash", None) == source_hash
+        assert HASH_RE.match(info.get("source-hash", None))
         assert info.get("debian", None) == debian
         assert info.get("dsc", None) == dsc
         assert info.get("orig", None) == orig
