@@ -41,3 +41,12 @@ def sanitize_line(untrusted_line):
         else:
             line[i] = 0x2E
     return bytearray(line).decode("ascii")
+
+
+def str_to_bool(input_str: str) -> bool:
+    input_str = input_str.lower()
+    if input_str in ("true", "1"):
+        return True
+    else:
+        return False
+

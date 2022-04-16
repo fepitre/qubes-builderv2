@@ -19,9 +19,9 @@
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path, PurePath
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
-from qubesbuilder.common import sanitize_line
+from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 
@@ -43,9 +43,9 @@ except ImportError:
 
 
 class ContainerExecutor(Executor):
-    def __init__(self, container_client, image, clean=True, **kwargs):
+    def __init__(self, container_client, image, clean: Union[str, bool] = True, **kwargs):
         self._container_client = container_client
-        self._clean = clean
+        self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
         if self._container_client == "podman":
             if PodmanClient is None:
