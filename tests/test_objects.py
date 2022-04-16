@@ -6,7 +6,7 @@ import pytest
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.template import QubesTemplate
-from qubesbuilder.exc import ComponentError, DistributionError, TemplateError
+from qubesbuilder.exc import ComponentError, DistributionError
 
 
 #
@@ -42,7 +42,7 @@ def test_component_no_qubesbuilder():
             f.write("4")
         with pytest.raises(ComponentError) as e:
             QubesComponent(source_dir).get_parameters()
-        msg = f"Cannot find '.qubesbuilder' in {source_dir}"
+        msg = f"Cannot find '.qubesbuilder' in {source_dir}."
         assert str(e.value) == msg
 
 
@@ -50,7 +50,7 @@ def test_component_no_source():
     with tempfile.TemporaryDirectory():
         with pytest.raises(ComponentError) as e:
             QubesComponent("/does/not/exist").get_parameters()
-        msg = f"Cannot find source directory /does/not/exist"
+        msg = f"Cannot find source directory /does/not/exist."
         assert str(e.value) == msg
 
 
@@ -58,7 +58,7 @@ def test_component_no_version():
     with tempfile.TemporaryDirectory() as source_dir:
         with pytest.raises(ComponentError) as e:
             QubesComponent(source_dir).get_parameters()
-        msg = f"Cannot find version file in {source_dir}"
+        msg = f"Cannot determine version for {source_dir}."
         assert str(e.value) == msg
 
 
@@ -68,7 +68,7 @@ def test_component_invalid_version():
             f.write("wrongversion")
         with pytest.raises(ComponentError) as e:
             QubesComponent(source_dir).get_parameters()
-        msg = f"Invalid version for {source_dir}"
+        msg = f"Invalid version for {source_dir}."
         assert str(e.value) == msg
 
 
@@ -92,7 +92,7 @@ def test_component_invalid_release():
             f.write("wrongrelease")
         with pytest.raises(ComponentError) as e:
             QubesComponent(source_dir).get_parameters()
-        msg = f"Invalid release for {source_dir}"
+        msg = f"Invalid release for {source_dir}."
         assert str(e.value) == msg
 
 

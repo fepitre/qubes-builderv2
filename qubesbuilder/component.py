@@ -18,7 +18,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import hashlib
+import re
+
 import pathspec
+import subprocess
 from _sha1 import sha1
 from pathlib import Path
 from typing import Union, List
@@ -26,6 +29,7 @@ from typing import Union, List
 import yaml
 from packaging.version import Version, InvalidVersion
 
+from qubesbuilder.common import sanitize_line
 from qubesbuilder.exc import ComponentError
 
 
@@ -57,35 +61,53 @@ class QubesComponent:
 
     def get_parameters(self, placeholders: dict = None):
         if not self.source_dir.exists():
-            raise ComponentError(f"Cannot find source directory {self.source_dir}")
+            raise ComponentError(f"Cannot find source directory {self.source_dir}.")
+
+        version = ""
+        release = ""
 
         version_file = self.source_dir / "version"
-        if not version_file.exists():
-            raise ComponentError(f"Cannot find version file in {self.source_dir}")
+        if version_file.exists():
+            try:
+                with open(version_file) as fd:
+                    version = Version(fd.read().split("\n")[0]).base_version
+            except InvalidVersion as e:
+                raise ComponentError(f"Invalid version for {self.source_dir}.") from e
+        else:
+            result = subprocess.run(
+                "git describe --match='v*' --abbrev=0",
+                capture_output=True,
+                shell=True,
+                cwd=self.source_dir,
+            )
+            if result.stdout:
+                version = sanitize_line(result.stdout.rstrip(b"\n")).rstrip()
+                version_re = re.compile("v?([0-9]+(?:\.[0-9]+)*)-([0-9]+.*)")
+                if len(version) > 255 or not version_re.match(version):
+                    raise ComponentError(f"Invalid version for {self.source_dir}.")
+                version, release = version_re.match(version).groups()  # type: ignore
 
-        try:
-            with open(version_file) as fd:
-                version = Version(fd.read().split("\n")[0]).base_version
-        except InvalidVersion as e:
-            raise ComponentError(f"Invalid version for {self.source_dir}") from e
+        if not version:
+            raise ComponentError(f"Cannot determine version for {self.source_dir}.")
 
         release_file = self.source_dir / "rel"
-        if not release_file.exists():
-            release = "1"
-        else:
-            try:
-                with open(release_file) as fd:
-                    release = fd.read().split("\n")[0]
-                Version(f"{version}-{release}")
-            except (InvalidVersion, AssertionError) as e:
-                raise ComponentError(f"Invalid release for {self.source_dir}") from e
+        if not release:
+            if not release_file.exists():
+                release = "1"
+            else:
+                try:
+                    with open(release_file) as fd:
+                        release = fd.read().split("\n")[0]
+                    Version(f"{version}-{release}")
+                except (InvalidVersion, AssertionError) as e:
+                    raise ComponentError(f"Invalid release for {self.source_dir}.") from e
 
         self.version = version
         self.release = release
 
         build_file = self.source_dir / ".qubesbuilder"
         if not build_file.exists():
-            raise ComponentError(f"Cannot find '.qubesbuilder' in {self.source_dir}")
+            raise ComponentError(f"Cannot find '.qubesbuilder' in {self.source_dir}.")
 
         with open(build_file) as f:
             data = f.read()
