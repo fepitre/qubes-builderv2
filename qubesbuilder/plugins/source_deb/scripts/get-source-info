@@ -46,3 +46,6 @@ SCRIPTS_DIR="$(dirname "$0")"
 "${SCRIPTS_DIR}"/debian-parser changelog --package-release-name-full \
     "${SOURCE_DIR}/${DEBIAN_DIRECTORY}/changelog" \
     >> "${SOURCE_DIR}/${DEBIAN_DIRECTORY}_package_release_name"
+
+cat "${SOURCE_DIR}/${DEBIAN_DIRECTORY}/source/format" | grep -Po "(?<=^3.0 \()\w+" \
+    >> "${SOURCE_DIR}/${DEBIAN_DIRECTORY}_package_release_name"

@@ -61,11 +61,13 @@ def provision_local_repository(
     target_dir.mkdir(parents=True)
 
     try:
+        debian_source_files = ["dsc", "debian"]
+        if source_info["package-type"] == "quilt":
+            debian_source_files.append("orig")
+
         # deb
         files = [build_artifacts_dir / deb for deb in packages_list]
-        files += [
-            build_artifacts_dir / source_info[f] for f in ("orig", "dsc", "debian")
-        ]
+        files += [build_artifacts_dir / source_info[f] for f in debian_source_files]
 
         # changes and buildinfo
         files += [
@@ -163,7 +165,10 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                 # Build Debian packages
                 #
 
-                for src in ["dsc", "orig", "debian"]:
+                debian_source_files = ["dsc", "debian"]
+                if source_info["package-type"] == "quilt":
+                    debian_source_files.append("orig")
+                for src in debian_source_files:
                     if not source_info.get(src, None):
                         raise BuildError(f"Cannot find sources for '{directory}'")
 
@@ -172,9 +177,10 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                     (self.plugins_dir / "build_deb", PLUGINS_DIR),
                     (self.plugins_dir / "source_deb" / "pbuilder", BUILDER_DIR),
                     (repository_dir, REPOSITORY_DIR),
-                    (prep_artifacts_dir / source_info["dsc"], BUILD_DIR),
-                    (prep_artifacts_dir / source_info["orig"], BUILD_DIR),
-                    (prep_artifacts_dir / source_info["debian"], BUILD_DIR),
+                ]
+                copy_in += [
+                    (prep_artifacts_dir / source_info[f], BUILD_DIR)
+                    for f in debian_source_files
                 ]
                 # Copy-in plugin dependencies
                 copy_in += [
@@ -201,6 +207,11 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                         artifacts_dir,
                     ),
                 ]
+                # We prefer to keep originally copied in source to cross-check
+                # what's inside the resulting .changes file.
+                # copy_out += [
+                #     (results_dir / source_info[f], artifacts_dir) for f in debian_source_files
+                # ]
                 copy_out += [
                     (results_dir / deb, artifacts_dir)
                     for deb in source_info["packages"]
@@ -264,11 +275,10 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                     if os.path.exists(artifacts_dir / deb):
                         packages_list.append(deb)
 
-                # We prefer to keep originally copied in source to cross check
+                # We prefer to keep originally copied in source to cross-check
                 # what's inside the resulting .changes file.
                 files = [
-                    prep_artifacts_dir / source_info[f]
-                    for f in ("orig", "dsc", "debian")
+                    prep_artifacts_dir / source_info[f] for f in debian_source_files
                 ]
                 for file in files:
                     target_path = artifacts_dir / file.name

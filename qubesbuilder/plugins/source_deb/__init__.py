@@ -154,20 +154,28 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                 # Read package release name
                 with open(artifacts_dir / f"{directory}_package_release_name") as f:
                     data = f.read().splitlines()
-                if len(data) != 2:
+                if len(data) != 3:
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid data."
                     raise SourceError(msg)
 
                 package_release_name = data[0]
                 package_release_name_full = data[1]
+                package_type = data[2]
                 if not is_filename_valid(
                     package_release_name
                 ) and not is_filename_valid(package_release_name_full):
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid source names."
                     raise SourceError(msg)
 
+                if package_type not in ("native", "quilt"):
+                    msg = f"{self.component}:{self.dist}:{directory}: Invalid source type."
+                    raise SourceError(msg)
+
                 source_dsc = f"{package_release_name_full}.dsc"
-                source_debian = f"{package_release_name_full}.debian.tar.xz"
+                if package_type == "native":
+                    source_debian = f"{package_release_name_full}.tar.xz"
+                else:
+                    source_debian = f"{package_release_name_full}.debian.tar.xz"
                 if self.parameters.get("files", []):
                     # FIXME: The first file is the source archive. Is it valid for all the cases?
                     ext = self.parameters["files"][0]["url"].split(".")[-1]
@@ -193,11 +201,12 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
 
                 # Copy-out Debian source package (.orig.tar.*, .dsc and .debian.tar.xz)
                 copy_out = [
-                    (BUILDER_DIR / source_orig, artifacts_dir),
-                    (BUILDER_DIR / source_debian, artifacts_dir),
                     (BUILDER_DIR / source_dsc, artifacts_dir),
+                    (BUILDER_DIR / source_debian, artifacts_dir),
                     (BUILDER_DIR / f"{directory}_packages.list", artifacts_dir),
                 ]
+                if package_type == "quilt":
+                    copy_out += [(BUILDER_DIR / source_orig, artifacts_dir)]
 
                 # Init command with .qubesbuilder command entries
                 cmd = self.parameters.get("source", {}).get("commands", [])
@@ -208,18 +217,19 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                     f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
                 ]
 
-                # Create archive if no external file is provided.
-                if not self.parameters.get("files", []):
-                    cmd += [
-                        f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
-                        f"mv {source_dir}/{source_orig} {BUILDER_DIR}",
-                    ]
-                else:
-                    for file in self.parameters["files"]:
-                        fn = os.path.basename(file["url"])
-                        cmd.append(
-                            f"mv {DISTFILES_DIR}/{fn} {BUILDER_DIR}/{source_orig}"
-                        )
+                if package_type == "quilt":
+                    # Create archive if no external file is provided.
+                    if not self.parameters.get("files", []):
+                        cmd += [
+                            f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
+                            f"mv {source_dir}/{source_orig} {BUILDER_DIR}",
+                        ]
+                    else:
+                        for file in self.parameters["files"]:
+                            fn = os.path.basename(file["url"])
+                            cmd.append(
+                                f"mv {DISTFILES_DIR}/{fn} {BUILDER_DIR}/{source_orig}"
+                            )
 
                 gen_packages_list_cmd = [
                     f"{PLUGINS_DIR}/source_deb/scripts/debian-get-packages-list",
@@ -229,10 +239,23 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                 ]
 
                 # Run 'dpkg-source' inside build directory
+                if package_type == "quilt":
+                    cmd += [
+                        f"mkdir -p {BUILD_DIR}",
+                        f"cd {BUILD_DIR}",
+                        f"cp -r {source_dir / directory} .",
+                    ]
+                else:
+                    # For native package, we need to match archive prefix in order
+                    # to not have a different one at build stage. For example,
+                    # 'build/' vs 'qubes-utils_4.1.16+deb11u1/'
+                    build_dir = str(BUILDER_DIR / package_release_name_full).replace("_", "-")
+                    cmd += [
+                        f"mkdir -p {build_dir}",
+                        f"cd {build_dir}",
+                        f"cp -r {source_dir}/* .",
+                    ]
                 cmd += [
-                    f"mkdir -p {BUILD_DIR}",
-                    f"cd {BUILD_DIR}",
-                    f"cp -r {source_dir / directory} .",
                     "dpkg-source -b .",
                     " ".join(gen_packages_list_cmd),
                 ]
@@ -259,12 +282,15 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                     info = {
                         "package-release-name": package_release_name,
                         "package-release-name-full": package_release_name_full,
-                        "orig": source_orig,
+                        "package-type": package_type,
                         "dsc": source_dsc,
                         "debian": source_debian,
                         "packages": packages_list,
                         "source-hash": self.component.get_source_hash(),
                     }
+                    if package_type == "quilt":
+                        info["orig"] = source_orig
+
                     self.save_artifacts_info(stage=stage, basename=directory, info=info)
 
                     # Clean previous text files as all info are stored inside source_info
