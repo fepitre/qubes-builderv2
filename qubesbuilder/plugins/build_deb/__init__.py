@@ -158,8 +158,13 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                 shutil.rmtree(build.as_posix())
 
             for directory in self.parameters["build"]:
+                # directory basename will be used as prefix for some artifacts
+                directory_bn = directory.with_suffix("").name
+
                 # Read information from source stage
-                source_info = self.get_artifacts_info(stage="prep", basename=directory)
+                source_info = self.get_artifacts_info(
+                    stage="prep", basename=directory_bn
+                )
 
                 #
                 # Build Debian packages
@@ -299,4 +304,4 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                 info = source_info
                 info["packages"] = packages_list
                 info["source-hash"] = self.component.get_source_hash()
-                self.save_artifacts_info(stage=stage, basename=directory, info=info)
+                self.save_artifacts_info(stage=stage, basename=directory_bn, info=info)

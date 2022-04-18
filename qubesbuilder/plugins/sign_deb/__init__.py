@@ -116,8 +116,11 @@ class DEBSignPlugin(SignPlugin, DEBDistributionPlugin):
                 raise SignError(msg) from e
 
             for directory in self.parameters["build"]:
+                # directory basename will be used as prefix for some artifacts
+                directory_bn = directory.with_suffix("").name
+
                 # Read information from build stage
-                build_info = self.get_artifacts_info(stage="build", basename=directory)
+                build_info = self.get_artifacts_info(stage="build", basename=directory_bn)
 
                 if not build_info.get("changes", None):
                     log.info(

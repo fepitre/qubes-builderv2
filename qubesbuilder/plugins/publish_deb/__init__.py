@@ -67,6 +67,9 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
         )
 
     def publish(self, directory, keyring_dir, repository_publish):
+        # directory basename will be used as prefix for some artifacts
+        directory_bn = directory.with_suffix("").name
+
         # Build artifacts (source included)
         build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
 
@@ -74,7 +77,7 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
         # Read information from build stage
-        build_info = self.get_artifacts_info(stage="build", basename=directory)
+        build_info = self.get_artifacts_info(stage="build", basename=directory_bn)
 
         if not build_info.get("changes", None):
             log.info(f"{self.component}:{self.dist}:{directory}: Nothing to publish.")
@@ -130,8 +133,11 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
         # Publish repository
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
+        # directory basename will be used as prefix for some artifacts
+        directory_bn = directory.with_suffix("").name
+
         # Read information from build stage
-        build_info = self.get_artifacts_info(stage="build", basename=directory)
+        build_info = self.get_artifacts_info(stage="build", basename=directory_bn)
 
         if not build_info.get("changes", None):
             log.info(f"{self.component}:{self.dist}:{directory}: Nothing to publish.")
@@ -258,8 +264,15 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
                 raise PublishError(failure_msg)
 
             for directory in self.parameters["build"]:
-                build_info = self.get_artifacts_info(stage="build", basename=directory)
-                publish_info = self.get_artifacts_info(stage=stage, basename=directory)
+                # directory basename will be used as prefix for some artifacts
+                directory_bn = directory.with_suffix("").name
+
+                build_info = self.get_artifacts_info(
+                    stage="build", basename=directory_bn
+                )
+                publish_info = self.get_artifacts_info(
+                    stage=stage, basename=directory_bn
+                )
 
                 # If previous publication to a repo has been done and does not correspond to current
                 # build artifacts, we delete previous publications. It happens if we modify local
@@ -291,7 +304,9 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
                         "timestamp": datetime.utcnow().strftime("%Y%m%d%H%MZ"),
                     }
                 )
-                self.save_artifacts_info(stage="publish", basename=directory, info=info)
+                self.save_artifacts_info(
+                    stage="publish", basename=directory_bn, info=info
+                )
 
         if stage == "publish" and unpublish:
             if not all(
@@ -304,7 +319,12 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
                 return
 
             for directory in self.parameters["build"]:
-                publish_info = self.get_artifacts_info(stage=stage, basename=directory)
+                # directory basename will be used as prefix for some artifacts
+                directory_bn = directory.with_suffix("").name
+
+                publish_info = self.get_artifacts_info(
+                    stage=stage, basename=directory_bn
+                )
 
                 self.unpublish(
                     directory=directory,
@@ -320,13 +340,13 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
                 ]
                 if publish_info.get("repository-publish", []):
                     self.save_artifacts_info(
-                        stage="publish", basename=directory, info=publish_info
+                        stage="publish", basename=directory_bn, info=publish_info
                     )
                 else:
                     log.info(
                         f"{self.component}:{self.dist}:{directory}: Not published anywhere else, deleting publish info."
                     )
-                    self.delete_artifacts_info(stage="publish", basename=directory)
+                    self.delete_artifacts_info(stage="publish", basename=directory_bn)
 
                 # We republish previous package version that has been published previously in the
                 # same repository. This is because reprepro does not manage multiversions officially.
@@ -334,7 +354,7 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
                     stage=stage
                 ):
                     publish_info = self.get_artifacts_info(
-                        stage=stage, basename=directory, artifacts_dir=artifacts_dir
+                        stage=stage, basename=directory_bn, artifacts_dir=artifacts_dir
                     )
                     if repository_publish in publish_info.get("repository-publish", []):
                         log.info(

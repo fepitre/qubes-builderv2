@@ -119,6 +119,9 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                 # Source component directory inside executors
                 source_dir = BUILDER_DIR / self.component.name
 
+                # directory basename will be used as prefix for some artifacts
+                directory_bn = directory.with_suffix("").name
+
                 # Generate package release name
                 copy_in = [
                     (self.component.source_dir, BUILDER_DIR),
@@ -128,7 +131,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                     copy_in += [(self.plugins_dir / dependency, PLUGINS_DIR)]
 
                 copy_out = [
-                    (source_dir / f"{directory}_package_release_name", artifacts_dir)
+                    (source_dir / f"{directory_bn}_package_release_name", artifacts_dir)
                 ]
 
                 # Update changelog
@@ -152,7 +155,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                     raise SourceError(msg) from e
 
                 # Read package release name
-                with open(artifacts_dir / f"{directory}_package_release_name") as f:
+                with open(artifacts_dir / f"{directory_bn}_package_release_name") as f:
                     data = f.read().splitlines()
                 if len(data) != 3:
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid data."
@@ -203,7 +206,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                 copy_out = [
                     (BUILDER_DIR / source_dsc, artifacts_dir),
                     (BUILDER_DIR / source_debian, artifacts_dir),
-                    (BUILDER_DIR / f"{directory}_packages.list", artifacts_dir),
+                    (BUILDER_DIR / f"{directory_bn}_packages.list", artifacts_dir),
                 ]
                 if package_type == "quilt":
                     copy_out += [(BUILDER_DIR / source_orig, artifacts_dir)]
@@ -235,7 +238,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                     f"{PLUGINS_DIR}/source_deb/scripts/debian-get-packages-list",
                     str(BUILDER_DIR / source_dsc),
                     self.dist.version,
-                    f">{BUILDER_DIR}/{directory}_packages.list",
+                    f">{BUILDER_DIR}/{directory_bn}_packages.list",
                 ]
 
                 # Run 'dpkg-source' inside build directory
@@ -271,7 +274,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
 
                 # Read packages list
                 packages_list = []
-                with open(artifacts_dir / f"{directory}_packages.list") as f:
+                with open(artifacts_dir / f"{directory_bn}_packages.list") as f:
                     data = f.read().splitlines()
                 for line in data:
                     if not is_filename_valid(line):
@@ -293,11 +296,13 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                     if package_type == "quilt":
                         info["orig"] = source_orig
 
-                    self.save_artifacts_info(stage=stage, basename=directory, info=info)
+                    self.save_artifacts_info(
+                        stage=stage, basename=directory_bn, info=info
+                    )
 
                     # Clean previous text files as all info are stored inside source_info
-                    os.remove(artifacts_dir / f"{directory}_package_release_name")
-                    os.remove(artifacts_dir / f"{directory}_packages.list")
+                    os.remove(artifacts_dir / f"{directory_bn}_package_release_name")
+                    os.remove(artifacts_dir / f"{directory_bn}_packages.list")
                 except OSError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to clean artifacts: {str(e)}."
                     raise SourceError(msg) from e

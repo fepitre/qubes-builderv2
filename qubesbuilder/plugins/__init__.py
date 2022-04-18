@@ -291,3 +291,7 @@ class DEBDistributionPlugin(DistributionPlugin):
         self.parameters.update(
             parameters.get(self.dist.distribution, {}).get("deb", {})
         )
+
+        self.parameters["build"] = [
+            PurePath(spec) for spec in self.parameters.get("build", [])
+        ]
