@@ -100,7 +100,9 @@ class QubesComponent:
                         release = fd.read().split("\n")[0]
                     Version(f"{version}-{release}")
                 except (InvalidVersion, AssertionError) as e:
-                    raise ComponentError(f"Invalid release for {self.source_dir}.") from e
+                    raise ComponentError(
+                        f"Invalid release for {self.source_dir}."
+                    ) from e
 
         self.version = version
         self.release = release

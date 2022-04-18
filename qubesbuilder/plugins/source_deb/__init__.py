@@ -249,7 +249,9 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                     # For native package, we need to match archive prefix in order
                     # to not have a different one at build stage. For example,
                     # 'build/' vs 'qubes-utils_4.1.16+deb11u1/'
-                    build_dir = str(BUILDER_DIR / package_release_name_full).replace("_", "-")
+                    build_dir = str(BUILDER_DIR / package_release_name_full).replace(
+                        "_", "-"
+                    )
                     cmd += [
                         f"mkdir -p {build_dir}",
                         f"cd {build_dir}",

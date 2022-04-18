@@ -49,4 +49,3 @@ def str_to_bool(input_str: str) -> bool:
         return True
     else:
         return False
-

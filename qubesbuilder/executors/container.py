@@ -43,7 +43,9 @@ except ImportError:
 
 
 class ContainerExecutor(Executor):
-    def __init__(self, container_client, image, clean: Union[str, bool] = True, **kwargs):
+    def __init__(
+        self, container_client, image, clean: Union[str, bool] = True, **kwargs
+    ):
         self._container_client = container_client
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
