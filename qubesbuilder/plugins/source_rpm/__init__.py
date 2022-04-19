@@ -157,7 +157,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                     raise SourceError(msg)
 
                 source_rpm = f"{data[0]}.src.rpm"
-                # Source0 may contain a URL
+                # Source0 may contain a URL.
                 source_orig = os.path.basename(data[1])
                 if not is_filename_valid(source_rpm) and not is_filename_valid(
                     source_orig
@@ -197,9 +197,11 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                 cmd = []
                 # Create archive if no external file is provided.
                 if not self.parameters.get("files", []):
-                    cmd += [
-                        f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
-                    ]
+                    # If no Source0 is provided, we expect 'source' from query-spec.
+                    if source_orig != "source":
+                        cmd += [
+                            f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
+                        ]
                 else:
                     for file in self.parameters["files"]:
                         fn = os.path.basename(file["url"])
