@@ -134,7 +134,9 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_artifacts_info(stage, directory).get("source-hash", None)
+                == self.get_artifacts_info(
+                    stage=stage, basename=directory.with_suffix("").name
+                ).get("source-hash", None)
                 for directory in self.parameters["build"]
             ):
                 log.info(

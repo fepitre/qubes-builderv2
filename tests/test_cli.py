@@ -623,7 +623,7 @@ def test_prep_vm_bullseye():
     debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
     dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
     orig = "python-qasync_0.23.0.orig.tar.gz"
-    package_release_name = "python-qasync_0.9.4"
+    package_release_name = "python-qasync_0.23.0"
     package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
     assert info.get("packages", []) == packages
@@ -656,7 +656,7 @@ def test_build_vm_bullseye():
     debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
     dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
     orig = "python-qasync_0.23.0.orig.tar.gz"
-    package_release_name = "python-qasync_0.9.4"
+    package_release_name = "python-qasync_0.23.0"
     package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
     assert info.get("packages", []) == packages
@@ -749,7 +749,7 @@ def test_publish_vm_bullseye():
         debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
         dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
         orig = "python-qasync_0.23.0.orig.tar.gz"
-        package_release_name = "python-qasync_0.9.4"
+        package_release_name = "python-qasync_0.23.0"
         package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
         assert info.get("packages", []) == packages
@@ -948,7 +948,7 @@ def test_unpublish_vm_bullseye():
         debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
         dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
         orig = "python-qasync_0.23.0.orig.tar.gz"
-        package_release_name = "python-qasync_0.9.4"
+        package_release_name = "python-qasync_0.23.0"
         package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
         with open(
