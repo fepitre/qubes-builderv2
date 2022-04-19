@@ -34,6 +34,13 @@ source_dir="$1"
 input="$2"
 output="$3"
 
+# Handle the case where .spec.in (input) does not exist
+# and .spec does (output).
+if [ ! -e "${input}" ] && [ -e "${output}" ]; then
+    echo "Spec file '${output}' already exists. Skipping."
+    exit
+fi
+
 cp "$input" "$input.tmp"
 
 # Handle sources with multiples package/version/release:
