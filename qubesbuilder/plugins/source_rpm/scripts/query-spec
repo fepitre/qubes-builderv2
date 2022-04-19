@@ -58,7 +58,7 @@ else
     if [ "${query_field}" = "%{SOURCE0}" ]; then
         spectool --list-files --source 0 "${spec_file}" 2>$ERR_OUTPUT
     elif [ "${query_field}" = "PACKAGES_LIST" ]; then
-        "$(dirname "$0")"/query-builtrpms "${tmp_spec}" "$dist" 2>$ERR_OUTPUT
+        "$(dirname "$0")"/query-builtrpms "${spec_file}" "$dist" 2>$ERR_OUTPUT
     else
         rpm -q --define "dist .$dist" --qf "${query_field}" --specfile "${spec_file}" 2>$ERR_OUTPUT
     fi
