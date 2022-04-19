@@ -61,7 +61,7 @@ def rpm_packages_list(repository_dir):
 def test_fetch():
     qb_call(DEFAULT_BUILDER_CONF, "package", "fetch")
 
-    assert (ARTIFACTS_DIR / "distfiles/qasync-0.9.4.tar.gz").exists()
+    assert (ARTIFACTS_DIR / "distfiles/qasync-0.23.0.tar.gz").exists()
     assert (ARTIFACTS_DIR / "distfiles/xfwm4-4.14.2.tar.bz2").exists()
 
     for component in [
@@ -82,7 +82,7 @@ def test_fetch_skip():
         "core-vchan-xen: source already fetched. Skipping.",
         "core-qrexec: source already fetched. Skipping.",
         "desktop-linux-xfce4-xfwm4: source already fetched. Skipping.",
-        "python-qasync: file qasync-0.9.4.tar.gz already downloaded. Skipping.",
+        "python-qasync: file qasync-0.23.0.tar.gz already downloaded. Skipping.",
         "desktop-linux-xfce4-xfwm4: file xfwm4-4.14.2.tar.bz2 already downloaded. Skipping.",
     ]:
         assert sentence in result
@@ -612,19 +612,19 @@ def test_prep_vm_bullseye():
 
     with open(
         ARTIFACTS_DIR
-        / "components/python-qasync/0.9.4-2/vm-bullseye/prep/debian.prep.yml"
+        / "components/python-qasync/0.23.0-1/vm-bullseye/prep/debian.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
     packages = [
-        "python3-qasync_0.9.4-2+deb11u1_all.deb",
-        "python3-qasync-dbgsym_0.9.4-2+deb11u1_all.deb",
+        "python3-qasync_0.23.0-1+deb11u1_all.deb",
+        "python3-qasync-dbgsym_0.23.0-1+deb11u1_all.deb",
     ]
-    debian = "python-qasync_0.9.4-2+deb11u1.debian.tar.xz"
-    dsc = "python-qasync_0.9.4-2+deb11u1.dsc"
-    orig = "python-qasync_0.9.4.orig.tar.gz"
+    debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
+    dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
+    orig = "python-qasync_0.23.0.orig.tar.gz"
     package_release_name = "python-qasync_0.9.4"
-    package_release_name_full = "python-qasync_0.9.4-2+deb11u1"
+    package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
     assert info.get("packages", []) == packages
     assert HASH_RE.match(info.get("source-hash", None))
@@ -648,16 +648,16 @@ def test_build_vm_bullseye():
 
     with open(
         ARTIFACTS_DIR
-        / "components/python-qasync/0.9.4-2/vm-bullseye/build/debian.build.yml"
+        / "components/python-qasync/0.23.0-1/vm-bullseye/build/debian.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
-    packages = ["python3-qasync_0.9.4-2+deb11u1_all.deb"]
-    debian = "python-qasync_0.9.4-2+deb11u1.debian.tar.xz"
-    dsc = "python-qasync_0.9.4-2+deb11u1.dsc"
-    orig = "python-qasync_0.9.4.orig.tar.gz"
+    packages = ["python3-qasync_0.23.0-1+deb11u1_all.deb"]
+    debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
+    dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
+    orig = "python-qasync_0.23.0.orig.tar.gz"
     package_release_name = "python-qasync_0.9.4"
-    package_release_name_full = "python-qasync_0.9.4-2+deb11u1"
+    package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
     assert info.get("packages", []) == packages
     assert HASH_RE.match(info.get("source-hash", None))
@@ -691,22 +691,22 @@ def test_sign_vm_bullseye():
 
     assert (
         ARTIFACTS_DIR
-        / "components/python-qasync/0.9.4-2/vm-bullseye/sign/632F8C69E01B25C9E0C3ADF2F360C0D259FB650C.asc"
+        / "components/python-qasync/0.23.0-1/vm-bullseye/sign/632F8C69E01B25C9E0C3ADF2F360C0D259FB650C.asc"
     ).exists()
 
     keyring_dir = (
-        ARTIFACTS_DIR / "components/python-qasync/0.9.4-2/vm-bullseye/sign/keyring"
+        ARTIFACTS_DIR / "components/python-qasync/0.23.0-1/vm-bullseye/sign/keyring"
     )
     assert keyring_dir.exists()
 
     files = [
-        "python-qasync_0.9.4-2+deb11u1.dsc",
-        "python-qasync_0.9.4-2+deb11u1_amd64.changes",
-        "python-qasync_0.9.4-2+deb11u1_amd64.buildinfo",
+        "python-qasync_0.23.0-1+deb11u1.dsc",
+        "python-qasync_0.23.0-1+deb11u1_amd64.changes",
+        "python-qasync_0.23.0-1+deb11u1_amd64.buildinfo",
     ]
     for f in files:
         file_path = (
-            ARTIFACTS_DIR / f"components/python-qasync/0.9.4-2/vm-bullseye/build/{f}"
+            ARTIFACTS_DIR / f"components/python-qasync/0.23.0-1/vm-bullseye/build/{f}"
         )
         assert file_path.exists()
         result = subprocess.run(
@@ -741,16 +741,16 @@ def test_publish_vm_bullseye():
 
         with open(
             ARTIFACTS_DIR
-            / "components/python-qasync/0.9.4-2/vm-bullseye/publish/debian.publish.yml"
+            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
-        packages = ["python3-qasync_0.9.4-2+deb11u1_all.deb"]
-        debian = "python-qasync_0.9.4-2+deb11u1.debian.tar.xz"
-        dsc = "python-qasync_0.9.4-2+deb11u1.dsc"
-        orig = "python-qasync_0.9.4.orig.tar.gz"
+        packages = ["python3-qasync_0.23.0-1+deb11u1_all.deb"]
+        debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
+        dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
+        orig = "python-qasync_0.23.0.orig.tar.gz"
         package_release_name = "python-qasync_0.9.4"
-        package_release_name_full = "python-qasync_0.9.4-2+deb11u1"
+        package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
         assert info.get("packages", []) == packages
         assert HASH_RE.match(info.get("source-hash", None))
@@ -775,7 +775,7 @@ def test_publish_vm_bullseye():
         )
         with open(
             ARTIFACTS_DIR
-            / "components/python-qasync/0.9.4-2/vm-bullseye/publish/debian.publish.yml"
+            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
@@ -795,7 +795,7 @@ def test_publish_vm_bullseye():
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%MZ")
         publish_file = (
             ARTIFACTS_DIR
-            / "components/python-qasync/0.9.4-2/vm-bullseye/publish/debian.publish.yml"
+            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
         )
 
         for r in info["repository-publish"]:
@@ -838,8 +838,8 @@ def test_publish_vm_bullseye():
     for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
         packages = deb_packages_list(repository_dir, codename)
         expected_packages = [
-            f"{codename}|main|amd64: python3-qasync 0.9.4-2+deb11u1",
-            f"{codename}|main|source: python-qasync 0.9.4-2+deb11u1",
+            f"{codename}|main|amd64: python3-qasync 0.23.0-1+deb11u1",
+            f"{codename}|main|source: python-qasync 0.23.0-1+deb11u1",
         ]
         assert set(packages) == set(expected_packages)
 
@@ -917,8 +917,8 @@ def test_unpublish_vm_bullseye():
     for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
         packages = deb_packages_list(repository_dir, codename)
         expected_packages = [
-            f"{codename}|main|amd64: python3-qasync 0.9.4-2+deb11u1",
-            f"{codename}|main|source: python-qasync 0.9.4-2+deb11u1",
+            f"{codename}|main|amd64: python3-qasync 0.23.0-1+deb11u1",
+            f"{codename}|main|source: python-qasync 0.23.0-1+deb11u1",
         ]
         assert set(packages) == set(expected_packages)
 
@@ -944,16 +944,16 @@ def test_unpublish_vm_bullseye():
             env=env,
         )
 
-        packages = ["python3-qasync_0.9.4-2+deb11u1_all.deb"]
-        debian = "python-qasync_0.9.4-2+deb11u1.debian.tar.xz"
-        dsc = "python-qasync_0.9.4-2+deb11u1.dsc"
-        orig = "python-qasync_0.9.4.orig.tar.gz"
+        packages = ["python3-qasync_0.23.0-1+deb11u1_all.deb"]
+        debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
+        dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
+        orig = "python-qasync_0.23.0.orig.tar.gz"
         package_release_name = "python-qasync_0.9.4"
-        package_release_name_full = "python-qasync_0.9.4-2+deb11u1"
+        package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
         with open(
             ARTIFACTS_DIR
-            / "components/python-qasync/0.9.4-2/vm-bullseye/publish/debian.publish.yml"
+            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
@@ -977,8 +977,8 @@ def test_unpublish_vm_bullseye():
             expected_packages = []
         else:
             expected_packages = [
-                f"{codename}|main|amd64: python3-qasync 0.9.4-2+deb11u1",
-                f"{codename}|main|source: python-qasync 0.9.4-2+deb11u1",
+                f"{codename}|main|amd64: python3-qasync 0.23.0-1+deb11u1",
+                f"{codename}|main|source: python-qasync 0.23.0-1+deb11u1",
             ]
         assert set(packages) == set(expected_packages)
 
