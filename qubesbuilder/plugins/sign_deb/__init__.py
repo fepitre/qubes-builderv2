@@ -120,7 +120,9 @@ class DEBSignPlugin(SignPlugin, DEBDistributionPlugin):
                 directory_bn = directory.with_suffix("").name
 
                 # Read information from build stage
-                build_info = self.get_artifacts_info(stage="build", basename=directory_bn)
+                build_info = self.get_artifacts_info(
+                    stage="build", basename=directory_bn
+                )
 
                 if not build_info.get("changes", None):
                     log.info(

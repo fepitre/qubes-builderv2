@@ -49,5 +49,5 @@ SCRIPTS_DIR="$(dirname "$0")"
     "${SOURCE_DIR}/${DIRECTORY_BN}/changelog" \
     >> "${SOURCE_DIR}/${DIRECTORY_BN}_package_release_name"
 
-cat "${SOURCE_DIR}/${DIRECTORY_BN}/source/format" | grep -Po "(?<=^3.0 \()\w+" \
+grep -Po "(?<=^3.0 \()\w+" < "${SOURCE_DIR}/${DIRECTORY_BN}/source/format" \
     >> "${SOURCE_DIR}/${DIRECTORY_BN}_package_release_name"
