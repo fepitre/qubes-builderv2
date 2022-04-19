@@ -37,5 +37,5 @@ DIST_TAG="$2"
 # Get builtrpms from rpmspec without debuginfo
 # see https://github.com/rpm-software-management/rpm/issues/1878
 rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}"
-rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-debuginfo-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel'
-rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-debugsource-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel'
+rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-debuginfo-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel' 2>/dev/null || true
+rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-debugsource-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel' 2>/dev/null || true
