@@ -173,6 +173,8 @@ class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
                 #
 
                 debian_source_files = ["dsc", "debian"]
+                if not source_info.get("package-type", None):
+                    raise BuildError(f"Cannot determine source type. Missing 'prep' stage call?")
                 if source_info["package-type"] == "quilt":
                     debian_source_files.append("orig")
                 for src in debian_source_files:
