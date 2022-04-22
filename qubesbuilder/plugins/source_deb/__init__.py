@@ -18,10 +18,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-from pathlib import Path
-
-import yaml
 import shutil
+import urllib.parse
+from pathlib import Path
 
 from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
@@ -231,10 +230,8 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                         ]
                     else:
                         for file in self.parameters["files"]:
-                            fn = os.path.basename(file["url"])
-                            cmd.append(
-                                f"mv {DISTFILES_DIR}/{fn} {BUILDER_DIR}/{source_orig}"
-                            )
+                            _, distfile_fn = self.get_distfile_fname(file)
+                            cmd.append(f"mv {DISTFILES_DIR}/{distfile_fn} {source_dir}")
 
                 gen_packages_list_cmd = [
                     f"{PLUGINS_DIR}/source_deb/scripts/debian-get-packages-list",

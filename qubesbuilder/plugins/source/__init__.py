@@ -19,6 +19,7 @@
 
 import os.path
 import shutil
+import urllib.parse
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
@@ -34,6 +35,27 @@ from qubesbuilder.plugins import (
 )
 
 log = get_logger("source")
+
+
+def _get_distfile_fname(file: dict):
+    """
+    Return downloaded file nd expected distfile filenames. If 'uncompress'
+     is not requested, both filenames are the same.
+    """
+    if file.get("name"):
+        fn = file["name"]
+    else:
+        # Fallback method for determining downloaded file name. This is fragile if
+        # the url does not provide it (e.g. downloading archive from github commit)
+        parsed_url = urllib.parse.urlparse(file["url"])
+        fn = os.path.basename(parsed_url.geturl())
+
+    # If we request to uncompress the file we drop the archive suffix
+    if file.get("uncompress", False):
+        final_fn = Path(fn).with_suffix("").name
+    else:
+        final_fn = fn
+    return fn, final_fn
 
 
 class SourceError(PluginError):
@@ -135,26 +157,29 @@ class FetchPlugin(ComponentPlugin):
 
             # Download and verify files given in .qubesbuilder
             for file in self.parameters.get("files", []):
-                fn = os.path.basename(file["url"])
-                if (distfiles_dir / fn).exists():
+                fn, distfile_fn = _get_distfile_fname(file)
+
+                if (distfiles_dir / distfile_fn).exists():
                     if not self.skip_if_exists:
-                        os.remove(distfiles_dir / fn)
+                        os.remove(distfiles_dir / distfile_fn)
                     else:
                         log.info(
-                            f"{self.component}: file {fn} already downloaded. Skipping."
+                            f"{self.component}: file {distfile_fn} already downloaded. Skipping."
                         )
                         continue
                 copy_in = [
                     (self.plugins_dir / "source", PLUGINS_DIR),
                     (self.component.source_dir, BUILDER_DIR),
                 ]
-                copy_out = [(source_dir / fn, distfiles_dir)]
+                copy_out = [(source_dir / distfile_fn, distfiles_dir)]
                 # Build command for "download-and-verify-file". We let the script checking
                 # necessary options.
                 download_verify_cmd = [
                     str(PLUGINS_DIR / "source/scripts/download-and-verify-file"),
                     "--output-dir",
                     str(BUILDER_DIR / self.component.name),
+                    "--file-name",
+                    fn,
                     "--file-url",
                     file["url"],
                 ]
@@ -177,6 +202,8 @@ class FetchPlugin(ComponentPlugin):
                 if file.get("pubkeys", None):
                     for pubkey in file["pubkeys"]:
                         download_verify_cmd += ["--pubkey-file", pubkey]
+                if file.get("uncompress", False):
+                    download_verify_cmd += ["--uncompress"]
                 cmd = [
                     f"cd {str(BUILDER_DIR / self.component.name)}",
                     " ".join(download_verify_cmd),
@@ -224,3 +251,7 @@ class SourcePlugin(DistributionPlugin):
         self.parameters.update(
             parameters.get(self.dist.distribution, {}).get("source", {})
         )
+
+    @staticmethod
+    def get_distfile_fname(file: dict):
+        return _get_distfile_fname(file)

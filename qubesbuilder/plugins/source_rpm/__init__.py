@@ -19,6 +19,7 @@
 
 import os
 import shutil
+import urllib.parse
 from pathlib import Path
 
 from qubesbuilder.common import is_filename_valid
@@ -204,8 +205,8 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                         ]
                 else:
                     for file in self.parameters["files"]:
-                        fn = os.path.basename(file["url"])
-                        cmd.append(f"mv {DISTFILES_DIR}/{fn} {source_dir}")
+                        _, distfile_fn = self.get_distfile_fname(file)
+                        cmd.append(f"mv {DISTFILES_DIR}/{distfile_fn} {source_dir}")
 
                 # Generate the spec that Mock will use for creating source RPM ensure 'mock'
                 # group can access build directory

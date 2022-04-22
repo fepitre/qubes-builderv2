@@ -27,16 +27,18 @@ echo "Usage: $(basename "$0") [OPTIONS]...
 This script downloads and verifies a file.
 
 Options:
+    --file-name        File name to be downloaded
     --file-url         File URL
     --checksum-file    Checksum for file to be downloaded
     --checksum-method  Checksum method (default: sha256sum)
     --signature-url    Signature file URL
     --pubkey-file      GPG public key file to be used for verification
     --output-dir       Output directory
+    --uncompress       Decompress downloaded file (xz or bzip)
 "
 }
 
-if ! OPTS=$(getopt -o hf:c:m:s:p:o: --long help,file-url:,checksum-file:,checksum-cmd:,signature-url:,pubkey-file:,output-dir: -n "$0" -- "$@"); then
+if ! OPTS=$(getopt -o hu:f:c:m:s:p:o:x --long help,file-name:,file-url:,checksum-file:,checksum-cmd:,signature-url:,pubkey-file:,output-dir:,uncompress -n "$0" -- "$@"); then
     echo "ERROR: Failed while parsing options."
     exit 1
 fi
@@ -48,12 +50,14 @@ PUBKEY_FILE=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h | --help) usage ;;
-        -f | --file-url ) FILE_URL="$2"; shift ;;
+        -f | --file-name ) FILE_NAME="$2"; shift ;;
+        -u | --file-url ) FILE_URL="$2"; shift ;;
         -c | --checksum-file ) FILE_CHECKSUM="$2"; shift ;;
         -m | --checksum-cmd ) CHECKSUM_CMD="$2"; shift ;;
         -s | --signature-url ) SIGNATURE_URL="$2"; shift ;;
         -p | --pubkey-file ) PUBKEY_FILE+=("$2"); shift ;;
         -o | --output-dir ) OUTPUT_DIR="$2"; shift ;;
+        -x | --uncompress ) UNCOMPRESS="1"; shift ;;
     esac
     shift
 done
@@ -63,7 +67,11 @@ if [ -z "${FILE_URL}" ]; then
     exit 1
 fi
 FETCH_CMD=(curl --proto '=https' --proto-redir '=https' --tlsv1.2 --http1.1 -sSfL -o)
-FILE_NAME="$(basename "$FILE_URL")"
+
+if [ -z "${FILE_NAME}" ]; then
+    echo "ERROR: Please provide FILE_NAME."
+    exit 1
+fi
 
 if [ -z "${FILE_CHECKSUM}" ] && [ -z "${SIGNATURE_URL}" ] && [ -z "${PUBKEY_FILE[*]}" ]; then
     echo "ERROR: Please provide either CHECKSUM or SIGNATURE_URL and PUBKEY_FILE."
@@ -90,16 +98,32 @@ if [ -n "${SIGNATURE_URL}" ] && [ ! -e "${PUBKEY_FILE}" ]; then
     exit 1
 fi
 
+UNTRUSTED_FILE_NAME="untrusted_${FILE_NAME}"
+
 # Download file with untrusted suffix
-"${FETCH_CMD[@]}" "${FILE_NAME}.untrusted" "$FILE_URL"
+"${FETCH_CMD[@]}" "${UNTRUSTED_FILE_NAME}" "$FILE_URL"
 
 if [ -n "${FILE_CHECKSUM}" ]; then
     if [ -z "${CHECKSUM_CMD}" ]; then
         CHECKSUM_CMD=sha256sum
     fi
+
+    # Uncompress downloaded file if signature is on the TAR archive only (e.g. linux)
+    if [ "$UNCOMPRESS" == 1 ]; then
+        if [ "${FILE_NAME%.tar.gz}" != "${FILE_NAME}" ]; then
+            gunzip "${UNTRUSTED_FILE_NAME}"
+            UNTRUSTED_FILE_NAME="untrusted_${FILE_NAME%.gz}"
+            FILE_NAME="${FILE_NAME%.gz}"
+        elif [ "${FILE_NAME%.xz}" != "${FILE_NAME}" ]; then
+            unxz "${UNTRUSTED_FILE_NAME}"
+            UNTRUSTED_FILE_NAME="untrusted_${FILE_NAME%.xz}"
+            FILE_NAME="${FILE_NAME%.xz}"
+        fi
+    fi
+
     # Check downloaded file with respect to provided checksum file
     "${CHECKSUM_CMD}" --status -c <(printf "%s  -\n" "$(cat "${FILE_CHECKSUM}")") \
-      < "${FILE_NAME}.untrusted" || { echo "${CHECKSUM_CMD}: wrong checksum on '${FILE_NAME}.untrusted'."; exit 1; }
+      < "${UNTRUSTED_FILE_NAME}" || { echo "${CHECKSUM_CMD}: wrong checksum on '${FILE_NAME}'."; exit 1; }
 
 elif [ -n "${SIGNATURE_URL}" ] && [ -n "${PUBKEY_FILE}" ]; then
     SIGNATURE_FILE_NAME="$(basename "${SIGNATURE_URL}")"
@@ -113,8 +137,21 @@ elif [ -n "${SIGNATURE_URL}" ] && [ -n "${PUBKEY_FILE}" ]; then
         gpg --no-auto-check-trustdb --no-default-keyring --keyring "$keyring" -q --import "${pubkey_file}"
     done
 
+    # Uncompress downloaded file if signature is on the TAR archive only (e.g. linux)
+    if [ "$UNCOMPRESS" == 1 ]; then
+        if [ "${FILE_NAME%.tar.gz}" != "${FILE_NAME}" ]; then
+            gunzip "${UNTRUSTED_FILE_NAME}"
+            UNTRUSTED_FILE_NAME="untrusted_${FILE_NAME%.gz}"
+            FILE_NAME="${FILE_NAME%.gz}"
+        elif [ "${FILE_NAME%.xz}" != "${FILE_NAME}" ]; then
+            unxz "${UNTRUSTED_FILE_NAME}"
+            UNTRUSTED_FILE_NAME="untrusted_${FILE_NAME%.xz}"
+            FILE_NAME="${FILE_NAME%.xz}"
+        fi
+    fi
+
     # Verify file
-    gpgv --keyring "$keyring" "${SIGNATURE_FILE_NAME}" "${FILE_NAME}.untrusted" 2>/dev/null
+    gpgv --keyring "$keyring" "${SIGNATURE_FILE_NAME}" "${UNTRUSTED_FILE_NAME}" 2>/dev/null
 else
     exit 1
 fi
@@ -126,4 +163,4 @@ else
     OUTPUT_DIR='.'
 fi
 
-mv "${FILE_NAME}.untrusted" "${OUTPUT_DIR}/${FILE_NAME}"
+mv "${UNTRUSTED_FILE_NAME}" "${OUTPUT_DIR}/${FILE_NAME}"
