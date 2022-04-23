@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os.path
+import re
 import shutil
 from pathlib import Path
 from typing import List
@@ -234,10 +235,17 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
                     mock_cmd.append("--enablerepo=qubes-current-testing")
                 cmd += [" ".join(mock_cmd)]
 
-                # Move RPMs into a separate dir and generate packages list
+                # Move RPMs into a separate dir and generate packages list based on given
+                # distribution tag. For example, 'fc32', 'fc32.qubes', etc.
+                dist_tag_regex = re.compile(f".*\.({self.dist.tag}.*)\.src\.rpm")
+                parsed_dist_tag = dist_tag_regex.match(source_info["srpm"])
+                if parsed_dist_tag and parsed_dist_tag.group(1) != self.dist.tag:
+                    dist_tag = parsed_dist_tag.group(1)
+                else:
+                    dist_tag = self.dist.tag
                 cmd += [
                     f"{PLUGINS_DIR}/build_rpm/scripts/filter-packages-by-dist-arch "
-                    f"{BUILD_DIR} {BUILD_DIR}/rpm {self.dist.tag} {self.dist.architecture}"
+                    f"{BUILD_DIR} {BUILD_DIR}/rpm {dist_tag} {self.dist.architecture}"
                 ]
                 try:
                     self.executor.run(
