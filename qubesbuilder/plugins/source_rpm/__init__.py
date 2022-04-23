@@ -97,9 +97,6 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                 log.info(f"{self.component}:{self.dist}: Nothing to be done.")
                 return
 
-            distfiles_dir = self.get_distfiles_dir()
-            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
-
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
@@ -112,6 +109,10 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                     f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
                 )
                 return
+
+            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+            distfiles_dir = self.get_distfiles_dir()
+            modules = self.get_artifacts_info("fetch", "modules").get("modules", [])
 
             # Clean previous build artifacts
             if artifacts_dir.exists():
@@ -207,6 +208,12 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                     for file in self.parameters["files"]:
                         _, distfile_fn = self.get_distfile_fname(file)
                         cmd.append(f"mv {DISTFILES_DIR}/{distfile_fn} {source_dir}")
+
+                for module in modules:
+                    cmd.append(f"mv {DISTFILES_DIR}/{module['archive']} {source_dir}")
+                    cmd.append(
+                        f"sed -i 's/@{module['name']}@/{module['archive']}/g' {source_dir / spec}.in"
+                    )
 
                 # Generate the spec that Mock will use for creating source RPM ensure 'mock'
                 # group can access build directory

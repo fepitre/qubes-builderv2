@@ -18,13 +18,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os.path
+import re
 import shutil
 import urllib.parse
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     ComponentPlugin,
@@ -255,3 +256,102 @@ class SourcePlugin(DistributionPlugin):
     @staticmethod
     def get_distfile_fname(file: dict):
         return _get_distfile_fname(file)
+
+    def run(self, stage: str):
+        if stage == "fetch":
+            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+            distfiles_dir = self.get_distfiles_dir()
+
+            # Compare previous artifacts hash with current source hash
+            if self.component.get_source_hash() == self.get_artifacts_info(
+                stage, "modules"
+            ).get("source-hash", None):
+                log.info(
+                    f"{self.component}:{self.dist}: Source hash is the same than already prepared source modules. Skipping."
+                )
+                return
+
+            # Modules (formerly known as INCLUDED_SOURCES in Makefile.builder)
+            modules = self.parameters.get("modules", [])
+
+            # Source component directory inside executors
+            source_dir = BUILDER_DIR / self.component.name
+
+            if modules:
+                # Clean previous build artifacts
+                if artifacts_dir.exists():
+                    shutil.rmtree(artifacts_dir.as_posix())
+                artifacts_dir.mkdir(parents=True)
+
+                # Get git hash
+                copy_in = [
+                    (self.component.source_dir, BUILDER_DIR),
+                ]
+                copy_out = [(source_dir / "modules", artifacts_dir)]
+                cmd = [f"rm -f {source_dir}/modules", f"cd {BUILDER_DIR}"]
+                for module in modules:
+                    cmd += [
+                        f"git -C {source_dir}/{module} rev-parse --short HEAD >> {source_dir}/modules"
+                    ]
+                try:
+                    self.executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
+                except ExecutorError as e:
+                    msg = f"{self.component}:{self.dist}: Failed to get source module information: {str(e)}."
+                    raise SourceError(msg) from e
+
+                # Read package release name
+                with open(artifacts_dir / "modules") as f:
+                    data = f.read().splitlines()
+                if len(data) != len(modules):
+                    msg = f"{self.component}:{self.dist}: Invalid modules data."
+                    raise SourceError(msg)
+
+                for commit_hash in data:
+                    if not re.match("[0-9a-f]{7}", commit_hash):
+                        msg = f"{self.component}:{self.dist}: Invalid module hash detected."
+                        raise SourceError(msg)
+
+                info = {
+                    "source-hash": self.component.get_source_hash(),
+                    "modules": [
+                        {"name": name, "hash": str(data[idx])}
+                        for idx, name in enumerate(modules)
+                    ],
+                }
+
+                copy_in = [
+                    (distfiles_dir, BUILDER_DIR),
+                    (self.component.source_dir, BUILDER_DIR),
+                    (self.plugins_dir / "source", PLUGINS_DIR),
+                ]
+                copy_out = []
+                cmd = []
+                for module in info["modules"]:
+                    module["archive"] = f"{module['name']}-{module['hash']}.tar.gz"
+                    copy_out += [
+                        (
+                            source_dir / module["name"] / module["archive"],
+                            distfiles_dir,
+                        ),
+                    ]
+                    cmd += [
+                        f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
+                    ]
+
+                try:
+                    self.executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
+                except ExecutorError as e:
+                    msg = f"{self.component}:{self.dist}: Failed to generate module archives: {str(e)}."
+                    raise SourceError(msg) from e
+
+                try:
+                    self.save_artifacts_info(stage=stage, basename="modules", info=info)
+                    # Clean previous text files as all info are stored inside source_info
+                    os.remove(artifacts_dir / f"modules")
+                except OSError as e:
+                    msg = f"{self.component}:{self.dist}: Failed to clean artifacts: {str(e)}."
+                    raise SourceError(msg) from e

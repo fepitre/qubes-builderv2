@@ -183,7 +183,9 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
                 source_info = self.get_artifacts_info(stage="prep", basename=spec_bn)
 
                 if not source_info.get("srpm", None):
-                    raise BuildError(f"Cannot find SRPM for '{spec}'. Missing 'prep' stage call?")
+                    raise BuildError(
+                        f"Cannot find SRPM for '{spec}'. Missing 'prep' stage call?"
+                    )
 
                 #
                 # Build from SRPM
