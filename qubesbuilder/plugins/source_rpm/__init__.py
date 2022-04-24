@@ -208,6 +208,10 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                     for file in self.parameters["files"]:
                         _, distfile_fn = self.get_distfile_fname(file)
                         cmd.append(f"mv {DISTFILES_DIR}/{distfile_fn} {source_dir}")
+                        if file.get("signature", None):
+                            cmd.append(
+                                f"mv {DISTFILES_DIR}/{os.path.basename(file['signature'])} {source_dir}"
+                            )
 
                 for module in modules:
                     cmd.append(f"mv {DISTFILES_DIR}/{module['archive']} {source_dir}")
