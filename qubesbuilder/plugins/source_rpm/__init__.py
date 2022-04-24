@@ -206,8 +206,10 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                         ]
                 else:
                     for file in self.parameters["files"]:
-                        _, distfile_fn = self.get_distfile_fname(file)
-                        cmd.append(f"mv {DISTFILES_DIR}/{distfile_fn} {source_dir}")
+                        fn = os.path.basename(file["url"])
+                        if file.get("uncompress", False):
+                            fn = Path(fn).with_suffix("").name
+                        cmd.append(f"mv {DISTFILES_DIR}/{fn} {source_dir}")
                         if file.get("signature", None):
                             cmd.append(
                                 f"mv {DISTFILES_DIR}/{os.path.basename(file['signature'])} {source_dir}"
