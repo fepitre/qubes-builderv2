@@ -278,6 +278,11 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
                     stage=stage, basename=directory_bn
                 )
 
+                if not build_info:
+                    raise PublishError(
+                        f"{self.component}:{self.dist}:{directory}: Cannot find build info."
+                    )
+
                 # If previous publication to a repo has been done and does not correspond to current
                 # build artifacts, we delete previous publications. It happens if we modify local
                 # sources and then publish into repository with the same version and release.
