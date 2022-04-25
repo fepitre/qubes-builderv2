@@ -240,7 +240,10 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
 
             # Check if we already published packages into the provided repository
             if all(
-                self.is_published(basename=directory, repository=repository_publish)
+                self.is_published(
+                    basename=directory.with_suffix("").name,
+                    repository=repository_publish,
+                )
                 for directory in self.parameters["build"]
             ):
                 log.info(
@@ -251,7 +254,8 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
             # Check if we can publish into current
             if repository_publish == "current" and not all(
                 self.can_be_published_in_stable(
-                    basename=directory, ignore_min_age=ignore_min_age
+                    basename=directory.with_suffix("").name,
+                    ignore_min_age=ignore_min_age,
                 )
                 for directory in self.parameters["build"]
             ):
@@ -310,7 +314,10 @@ class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
 
         if stage == "publish" and unpublish:
             if not all(
-                self.is_published(basename=directory, repository=repository_publish)
+                self.is_published(
+                    basename=directory.with_suffix("").name,
+                    repository=repository_publish,
+                )
                 for directory in self.parameters["build"]
             ):
                 log.info(
