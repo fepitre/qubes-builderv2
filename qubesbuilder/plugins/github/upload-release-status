@@ -1,0 +1,38 @@
+#!/bin/sh
+
+# Upload HTML version of `make check-release-status` to updates server
+
+scripts_dir="/usr/local/lib/qubes-builder-github"
+
+# shellcheck source=lib/functions.sh
+. "$scripts_dir/functions.sh"
+
+status_templates_dir=$(realpath "$scripts_dir")/../templates
+
+if [ -z "$HOST" ]; then
+    if grep -q yum.qubes-os.org ~/.ssh/config; then
+        HOST=yum.qubes-os.org
+    elif grep -q deb.qubes-os.org ~/.ssh/config; then
+        HOST=deb.qubes-os.org
+    elif grep -q archlinux.qubes-os.org ~/.ssh/config; then
+        HOST=archlinux.qubes-os.org
+    else
+        echo "Failed to detect target host, set $HOST explicitly" >&2
+        exit 1
+    fi
+fi
+
+ssh "$HOST" mkdir -p status
+
+check_release_status() {
+    tmp_output="/tmp/${2##*/}-$(hostname)-status.html"
+    make --no-print-directory -C "$2" HTML_FORMAT=1 check-release-status > "$tmp_output"
+    scp "$tmp_output" "$HOST:status/"
+}
+
+execute_in_each_builder check_release_status
+
+wait
+
+scp "$status_templates_dir"/status-*.html "$scripts_dir"/combine-status "$HOST:status/"
+ssh "$HOST" status/combine-status

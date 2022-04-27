@@ -1,0 +1,11 @@
+**Automated announcement from [builder-github]**
+
+The package `@COMPONENT@` has been pushed to the `@RELEASE_NAME@` testing repository for the CentOS `@DIST@` template.
+To test this update, please install it with the following command:
+```
+sudo yum update --enablerepo=qubes-vm-@RELEASE_NAME@-current-testing
+```
+[Changes included in this update][commits]
+
+[builder-github]: https://github.com/QubesOS/qubes-builder-github
+[commits]: @GIT_LOG_URL@

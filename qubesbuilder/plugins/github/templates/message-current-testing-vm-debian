@@ -1,0 +1,11 @@
+**Automated announcement from [builder-github]**
+
+The package `@PACKAGE_NAME@` has been pushed to the `@RELEASE_NAME@` testing repository for the Debian template.
+To test this update, first enable the testing repository in `/etc/apt/sources.list.d/qubes-*.list` by uncommenting the line containing `@DIST@-testing` (or appropriate equivalent for your template version), then use the standard update command:
+```
+sudo apt-get update && sudo apt-get dist-upgrade
+```
+[Changes included in this update][commits]
+
+[builder-github]: https://github.com/QubesOS/qubes-builder-github
+[commits]: @GIT_LOG_URL@

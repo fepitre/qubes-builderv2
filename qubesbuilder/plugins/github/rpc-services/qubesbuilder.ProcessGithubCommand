@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# Service called from network-exposed VM (probably sys-net) into actual build
+# VM to (potentially) trigger moving packages from current-testing to current
+# repository.
+#
+# Service input should consists of inline GPG-signed message with just one line:
+#
+#    "Upload" component_name commit_sha release_name "current" (dists) "repo"
+# or
+#
+#    "Build-template" dist timestamp
+#
+# (words in quotes are verbatim - without quotes, others are parameters)
+# Also, instead of "current", "security-testing" value is supported too.
+#
+# See README.md for detailed description.
+
+set -e
+
+keyring_path="$HOME/.config/qubes-builder-github/trusted-keys-for-commands.gpg"
+
+scripts_dir="/usr/local/lib/qubes-builder-github"
+
+# shellcheck source=lib/functions.sh
+. "$scripts_dir/functions.sh"
+
+command_signer=
+read_stdin_command_and_verify_signature "$keyring_path" "$tmpdir/command" command_signer
+
+# shellcheck disable=SC2034
+read -r action args < "$tmpdir/command"
+
+case "$action" in
+    Upload)
+        "$scripts_dir/github-command-upload" "$tmpdir/command" "$command_signer"
+        ;;
+    Build-template)
+        "$scripts_dir/github-command-build-template" "$tmpdir/command" "$command_signer"
+        ;;
+    *)
+        echo "Unknown command $action" >&2
+        exit 1
+        ;;
+esac
