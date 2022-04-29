@@ -1,0 +1,41 @@
+include:
+  - example-configs/qubes-os-r4.2.yml
+
+git:
+  baseurl: https://github.com
+  prefix: QubesOS/qubes-
+  branch: master
+
+backend-vmm: xen
+debug: true
+verbose: true
+qubes-release: r4.2
+reuse-fetched-source: false
+build_timeout: 21600
+
+distributions:
+  - host-fc32
+
++components:
+  - kernel-latest:
+      url: https://github.com/QubesOS/qubes-linux-kernel
+      branch: master
+  - release-configs
+
+executor:
+  type: qubes
+  options:
+    dispvm: "qubes-builder-dvm"
+
+stages:
+  - fetch
+  - prep
+  - build
+  - post
+  - verify
+  - sign:
+      executor:
+        type: local
+  - publish:
+      executor:
+        type: local

@@ -18,9 +18,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Any, IO
 
 import yaml
+import os
 
 from qubesbuilder.common import PROJECT_PATH
 from qubesbuilder.component import QubesComponent
@@ -45,17 +46,8 @@ log = get_logger("config")
 
 class Config:
     def __init__(self, conf_file: Union[Path, str]):
-        if isinstance(conf_file, str):
-            conf_file = Path(conf_file).resolve()
-
-        if not conf_file.exists():
-            raise ConfigError(f"Cannot find config '{conf_file}'.")
-
-        try:
-            with open(conf_file) as f:
-                self._conf = yaml.safe_load(f.read())
-        except yaml.YAMLError as e:
-            raise ConfigError(f"Failed to parse config '{conf_file}'.") from e
+        # Parse builder configuration file
+        self._conf = self.parse_configuration_file(conf_file)
 
         # Qubes OS distributions
         self._dists: List = []
@@ -79,6 +71,43 @@ class Config:
 
         self.verbose = self._conf.get("verbose", False)
         self.debug = self._conf.get("debug", False)
+
+    @staticmethod
+    def parse_configuration_file(conf_file: Union[Path, str]):
+        if isinstance(conf_file, str):
+            conf_file = Path(conf_file).resolve()
+
+        if not conf_file.exists():
+            raise ConfigError(f"Cannot find config '{conf_file}'.")
+
+        try:
+            with open(conf_file) as f:
+                conf = yaml.safe_load(f.read())
+                included_conf = conf.get("include", [])
+                conf.pop("include", None)
+                final_conf: Dict[str, Union[str, Any]] = {}
+            for inc in included_conf:
+                inc_path = Path(inc)
+                if not inc_path.exists():
+                    raise ConfigError(
+                        f"Cannot find included builder configuration '{inc_path}'."
+                    )
+                try:
+                    data = yaml.safe_load(inc_path.read_text())
+                    final_conf.update(data)
+                except yaml.YAMLError as e:
+                    raise ConfigError(
+                        f"Failed to parse included config '{inc_path}'."
+                    ) from e
+            final_conf.update(conf)
+
+            for key in ("distributions", "templates", "components", "stages"):
+                if f"+{key}" in final_conf.keys():
+                    final_conf.setdefault(key, [])
+                    final_conf[key] += final_conf[f"+{key}"]
+            return final_conf
+        except yaml.YAMLError as e:
+            raise ConfigError(f"Failed to parse config '{conf_file}'.") from e
 
     def get(self, key, default=None):
         return self._conf.get(key, default)

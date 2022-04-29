@@ -1,0 +1,142 @@
+git:
+  baseurl: https://github.com
+  prefix: QubesOS/qubes-
+  branch: master
+
+backend-vmm: xen
+debug: true
+verbose: true
+qubes-release: r4.2
+reuse-fetched-source: true
+
+distributions:
+  - host-fc32
+  - vm-bullseye
+  - vm-fc35
+
+templates:
+  - fedora-35:
+      dist: fc35
+  - debian-11:
+      dist: bullseye
+      options:
+        - standard
+        - firmware
+  - whonix-gateway-16:
+      dist: bullseye
+      flavor: whonix-gateway
+      options:
+        - minimal
+        - no-recommends
+  - whonix-workstation-16:
+      dist: bullseye
+      flavor: whonix-workstation
+      options:
+        - minimal
+        - no-recommends
+
+components:
+  - lvm2
+  - vmm-xen:
+      branch: xen-4.14
+  - core-libvirt
+  - core-vchan-xen
+  - core-qubesdb
+  - core-qrexec
+  - linux-utils
+  - python-cffi
+  - python-xcffib
+  - python-objgraph
+  - python-hid
+  - python-u2flib-host
+  - python-qasync
+  - python-panflute
+  - rpm-oxide:
+      branch: main
+  - core-admin
+  - core-admin-client
+  - core-admin-addon-whonix
+  - core-admin-linux
+  - core-agent-linux
+  - intel-microcode
+  - linux-firmware
+  - linux-kernel:
+      branch: stable-5.10
+  - artwork
+  - grub2
+  - grub2-theme
+  - gui-common
+  - gui-daemon
+  - gui-agent-linux
+  - gui-agent-xen-hvm-stubdom
+  - seabios
+  - vmm-xen-stubdom-legacy
+  - vmm-xen-stubdom-linux
+  - app-linux-split-gpg
+  - app-thunderbird
+  - app-linux-pdf-converter
+  - app-linux-img-converter
+  - app-linux-input-proxy
+  - app-linux-usb-proxy
+  - app-linux-snapd-helper
+  - app-shutdown-idle
+  - app-yubikey
+  - app-u2f
+  - screenshot-helper
+  - repo-templates
+  - meta-packages
+  - manager
+  - desktop-linux-common
+  - desktop-linux-kde
+  - desktop-linux-xfce4
+  - desktop-linux-xfce4-xfwm4
+  - desktop-linux-i3
+  - desktop-linux-i3-settings-qubes
+  - desktop-linux-awesome
+  - desktop-linux-manager
+  - grubby-dummy
+  - dummy-psu
+  - dummy-backlight
+  - xorg-x11-drv-intel
+  - linux-gbulb
+  - linux-scrypt
+  - qubes-release
+  - pykickstart
+  - blivet
+  - lorax
+  - lorax-templates
+  - anaconda
+  - anaconda-addon
+  - tpm-extra
+  - trousers-changer
+  - antievilmaid
+  - xscreensaver
+  - remote-support
+  - xdotool
+
+#executor:
+#  type: docker
+#  options:
+#    image: "qubes-builder-fedora:latest"
+
+executor:
+  type: qubes
+  options:
+    dispvm: "qubes-builder-dvm"
+
+stages:
+  - fetch:
+      executor:
+        type: docker
+        options:
+          image: "qubes-builder-fedora:latest"
+  - prep
+  - build
+  - post
+  - verify
+  - sign:
+      executor:
+        type: local
+  - publish:
+      executor:
+        type: local
