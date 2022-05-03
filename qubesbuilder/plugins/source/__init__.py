@@ -22,6 +22,7 @@ import re
 import shutil
 import urllib.parse
 from pathlib import Path
+from typing import Any
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
@@ -248,18 +249,29 @@ class SourcePlugin(DistributionPlugin):
         )
 
     def run(self, stage: str):
-        if stage == "fetch":
-            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
-            distfiles_dir = self.get_distfiles_dir()
+        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        distfiles_dir = self.get_distfiles_dir()
 
-            # Compare previous artifacts hash with current source hash
-            if self.component.get_source_hash() == self.get_artifacts_info(
-                stage, "modules"
-            ).get("source-hash", None):
+        # Compare previous artifacts hash with current source hash
+        fetch_info = self.get_artifacts_info("fetch", "source")
+
+        if stage == "fetch":
+            if self.component.get_source_hash() == fetch_info.get(
+                "orig-source-hash", None
+            ):
                 log.info(
-                    f"{self.component}:{self.dist}: Source hash is the same than already prepared source modules. Skipping."
+                    f"{self.component}:{self.dist}: Source hash is the same than already parsed source. Skipping."
                 )
                 return
+
+            if fetch_info:
+                if not self.skip_if_exists:
+                    self.delete_artifacts_info(stage, "source")
+                else:
+                    log.info(
+                        f"{self.component}:{self.dist}: Previous parse artifacts exist. Skipping."
+                    )
+                    return
 
             # Modules (formerly known as INCLUDED_SOURCES in Makefile.builder)
             modules = self.parameters.get("modules", [])
@@ -267,13 +279,63 @@ class SourcePlugin(DistributionPlugin):
             # Source component directory inside executors
             source_dir = BUILDER_DIR / self.component.name
 
-            if modules:
-                # Clean previous build artifacts
-                if artifacts_dir.exists():
-                    shutil.rmtree(artifacts_dir.as_posix())
-                artifacts_dir.mkdir(parents=True)
+            # Clean previous build artifacts
+            if artifacts_dir.exists():
+                shutil.rmtree(artifacts_dir.as_posix())
+            artifacts_dir.mkdir(parents=True)
 
-                # Get git hash
+            # We store the fetched source hash as original reference to be compared
+            # for any further modifications. Once the source is fetched, we may locally
+            # modify the source for development and at prep stage we would need to recompute
+            # source hash based on those modifications.
+            info: dict[str, Any] = {
+                "orig-source-hash": self.component.get_source_hash()
+            }
+
+            # Get git hash and tags
+            copy_in = [
+                (self.component.source_dir, BUILDER_DIR),
+            ]
+            copy_out = [
+                (source_dir / "hash", artifacts_dir),
+                (source_dir / "vtags", artifacts_dir),
+            ]
+            cmd = [
+                f"rm -f {source_dir}/hash {source_dir}/vtags",
+                f"cd {BUILDER_DIR}",
+            ]
+            cmd += [f"git -C {source_dir} rev-parse 'HEAD^{{}}' >> {source_dir}/hash"]
+            cmd += [
+                f"git -C {source_dir} tag --points-at HEAD --list 'v*' >> {source_dir}/vtags"
+            ]
+            try:
+                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            except ExecutorError as e:
+                msg = f"{self.component}:{self.dist}: Failed to get source hash information: {e}."
+                raise SourceError(msg) from e
+
+            # Read git hash and vtags
+            with open(artifacts_dir / "hash") as f:
+                data = f.read().splitlines()
+
+            if not re.match(r"[\da-f]{7}", data[0]):
+                msg = f"{self.component}:{self.dist}: Invalid git hash detected."
+                raise SourceError(msg)
+
+            info["git-commit-hash"] = data[0]
+            info["git-version-tags"] = []
+
+            with open(artifacts_dir / "vtags") as f:
+                data = f.read().splitlines()
+
+            for tag in data:
+                if not re.match("^v.*", tag):
+                    msg = f"{self.component}:{self.dist}: Invalid git version tag detected."
+                    raise SourceError(msg)
+                info["git-vtags"].append(tag)
+
+            if modules:
+                # Get git module hashes
                 copy_in = [
                     (self.component.source_dir, BUILDER_DIR),
                 ]
@@ -303,13 +365,14 @@ class SourcePlugin(DistributionPlugin):
                         msg = f"{self.component}:{self.dist}: Invalid module hash detected."
                         raise SourceError(msg)
 
-                info = {
-                    "source-hash": self.component.get_source_hash(),
-                    "modules": [
-                        {"name": name, "hash": str(data[idx])}
-                        for idx, name in enumerate(modules)
-                    ],
-                }
+                info.update(
+                    {
+                        "modules": [
+                            {"name": name, "hash": str(data[idx])}
+                            for idx, name in enumerate(modules)
+                        ],
+                    }
+                )
 
                 copy_in = [
                     (distfiles_dir, BUILDER_DIR),
@@ -338,10 +401,20 @@ class SourcePlugin(DistributionPlugin):
                     msg = f"{self.component}:{self.dist}: Failed to generate module archives: {str(e)}."
                     raise SourceError(msg) from e
 
-                try:
-                    self.save_artifacts_info(stage=stage, basename="modules", info=info)
-                    # Clean previous text files as all info are stored inside source_info
+            try:
+                self.save_artifacts_info(stage=stage, basename="source", info=info)
+                # Clean previous text files as all info are stored inside info
+                os.remove(artifacts_dir / f"hash")
+                os.remove(artifacts_dir / f"vtags")
+                if modules:
                     os.remove(artifacts_dir / f"modules")
-                except OSError as e:
-                    msg = f"{self.component}:{self.dist}: Failed to clean artifacts: {str(e)}."
-                    raise SourceError(msg) from e
+            except OSError as e:
+                msg = f"{self.component}:{self.dist}: Failed to clean artifacts: {str(e)}."
+                raise SourceError(msg) from e
+
+        if stage == "prep":
+            # Compare previous artifacts hash with current source hash
+            if not fetch_info.get("orig-source-hash"):
+                raise SourceError(
+                    f"{self.component}:{self.dist}: Cannot find orig source hash. Missing 'fetch' stage call?"
+                )

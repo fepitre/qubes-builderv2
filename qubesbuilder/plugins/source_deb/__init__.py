@@ -115,6 +115,9 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                 shutil.rmtree(artifacts_dir.as_posix())
             artifacts_dir.mkdir(parents=True)
 
+            # Get fetch info
+            fetch_info = self.get_artifacts_info("fetch", "source")
+
             for directory in self.parameters["build"]:
                 # Source component directory inside executors
                 source_dir = BUILDER_DIR / self.component.name
@@ -284,7 +287,8 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
 
                 # Save package information we parsed for next stages
                 try:
-                    info = {
+                    info = fetch_info
+                    info.update({
                         "package-release-name": package_release_name,
                         "package-release-name-full": package_release_name_full,
                         "package-type": package_type,
@@ -292,7 +296,7 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                         "debian": source_debian,
                         "packages": packages_list,
                         "source-hash": self.component.get_source_hash(),
-                    }
+                    })
                     if package_type == "quilt":
                         info["orig"] = source_orig
 

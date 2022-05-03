@@ -86,9 +86,10 @@ class ContainerExecutor(Executor):
         cmd = [self._container_client, "cp", str(src), f"{container.id}:{dst}"]
         try:
             log.debug(f"copy-in (cmd): {' '.join(cmd)}")
-            subprocess.run(cmd, check=True)
-        except subprocess.SubprocessError as e:
-            raise ExecutorError from e
+            subprocess.run(cmd, check=True, capture_output=True)
+        except subprocess.CalledProcessError as e:
+            msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip().replace("Error: ", "")
+            raise ExecutorError(msg) from e
 
     def copy_out(self, container, source_path: PurePath, destination_dir: Path):
         src = source_path.as_posix()
@@ -97,9 +98,10 @@ class ContainerExecutor(Executor):
         cmd = [self._container_client, "cp", f"{container.id}:{src}", str(dst)]
         try:
             log.debug(f"copy-out (cmd): {' '.join(cmd)}")
-            subprocess.run(cmd, check=True)
-        except subprocess.SubprocessError as e:
-            raise ExecutorError from e
+            subprocess.run(cmd, check=True, capture_output=True)
+        except subprocess.CalledProcessError as e:
+            msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip().replace("Error: ", "")
+            raise ExecutorError(msg) from e
 
     def run(
         self,

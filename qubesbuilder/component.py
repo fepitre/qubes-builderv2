@@ -22,7 +22,7 @@ import re
 
 import pathspec
 import subprocess
-from _sha1 import sha1
+from _sha512 import sha512
 from pathlib import Path
 from typing import Union, List
 
@@ -129,13 +129,13 @@ class QubesComponent:
         return rendered_data or {}
 
     @staticmethod
-    def _update_hash_from_file(filename: Path, hash: sha1):
+    def _update_hash_from_file(filename: Path, hash: sha512):
         with open(str(filename), "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash.update(chunk)
         return hash
 
-    def _update_hash_from_dir(self, directory: Path, hash: sha1):
+    def _update_hash_from_dir(self, directory: Path, hash: sha512):
         if not directory.exists() or not directory.is_dir():
             raise ComponentError(f"Cannot find '{directory}'.")
         paths = [name for name in Path(directory).iterdir()]
@@ -159,7 +159,7 @@ class QubesComponent:
     def get_source_hash(self):
         if not self._source_hash:
             source_dir_hash = self._update_hash_from_dir(
-                self.source_dir, hashlib.sha1()
+                self.source_dir, hashlib.sha512()
             ).hexdigest()
             self._source_hash = str(source_dir_hash)
         return self._source_hash

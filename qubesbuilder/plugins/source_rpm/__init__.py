@@ -112,7 +112,9 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
 
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
             distfiles_dir = self.get_distfiles_dir()
-            modules = self.get_artifacts_info("fetch", "modules").get("modules", [])
+
+            # Get fetch info
+            fetch_info = self.get_artifacts_info("fetch", "source")
 
             # Clean previous build artifacts
             if artifacts_dir.exists():
@@ -215,7 +217,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                                 f"mv {DISTFILES_DIR}/{os.path.basename(file['signature'])} {source_dir}"
                             )
 
-                for module in modules:
+                for module in fetch_info.get("modules", []):
                     cmd.append(f"mv {DISTFILES_DIR}/{module['archive']} {source_dir}")
                     cmd.append(
                         f"sed -i 's/@{module['name']}@/{module['archive']}/g' {source_dir / spec}.in"
@@ -258,11 +260,14 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
 
                 # Save package information we parsed for next stages
                 try:
-                    info = {
-                        "srpm": source_rpm,
-                        "rpms": packages_list,
-                        "source-hash": self.component.get_source_hash(),
-                    }
+                    info = fetch_info
+                    info.update(
+                        {
+                            "srpm": source_rpm,
+                            "rpms": packages_list,
+                            "source-hash": self.component.get_source_hash(),
+                        }
+                    )
                     self.save_artifacts_info(stage=stage, basename=spec_bn, info=info)
 
                     # Clean previous text files as all info are stored inside source_info
