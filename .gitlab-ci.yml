@@ -57,7 +57,9 @@ pytest:
       - artifacts/htmlcov/
     reports:
       junit: artifacts/qubesbuilder.xml
-      cobertura: artifacts/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: artifacts/coverage.xml
   coverage: '/TOTAL.*\s(\d+)%/'
   variables:
     PYTHONPATH: .
