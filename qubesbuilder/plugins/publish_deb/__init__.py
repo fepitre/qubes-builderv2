@@ -23,13 +23,12 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError, MIN_AGE_DAYS
 
 log = get_logger("publish_deb")
 
 
-class DEBPublishPlugin(PublishPlugin, DEBDistributionPlugin):
+class DEBPublishPlugin(PublishPlugin):
     """
     DEGBPublishPlugin manages DEB distribution publication.
     """

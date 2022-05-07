@@ -28,19 +28,13 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.qubes import QubesExecutor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import (
-    BUILDER_DIR,
-    PLUGINS_DIR,
-    BUILD_DIR,
-    DISTFILES_DIR,
-    RPMDistributionPlugin,
-)
+from qubesbuilder.plugins import BUILDER_DIR, PLUGINS_DIR, BUILD_DIR, DISTFILES_DIR
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 log = get_logger("source_rpm")
 
 
-class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
+class RPMSourcePlugin(SourcePlugin):
     """
     Manage RPM distribution source.
 
@@ -93,17 +87,17 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
 
         if stage == "prep":
             # Check if we have RPM related content defined
-            if not self.parameters.get("spec", []):
+            if not self.parameters.get("build", []):
                 log.info(f"{self.component}:{self.dist}: Nothing to be done.")
                 return
 
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_artifacts_info(stage, spec.with_suffix("").name).get(
+                == self.get_artifacts_info(stage, build.with_suffix("").name).get(
                     "source-hash", None
                 )
-                for spec in self.parameters["spec"]
+                for build in self.parameters["build"]
             ):
                 log.info(
                     f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
@@ -121,12 +115,12 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                 shutil.rmtree(artifacts_dir.as_posix())
             artifacts_dir.mkdir(parents=True)
 
-            for spec in self.parameters["spec"]:
+            for build in self.parameters["build"]:
                 # Source component directory inside executors
                 source_dir = BUILDER_DIR / self.component.name
 
                 # spec file basename will be used as prefix for some artifacts
-                spec_bn = spec.with_suffix("").name
+                build_bn = build.with_suffix("").name
 
                 # Generate %{name}-%{version}-%{release} and %Source0
                 copy_in = [
@@ -138,26 +132,26 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                 ]
 
                 copy_out = [
-                    (source_dir / f"{spec_bn}_package_release_name", artifacts_dir),
-                    (source_dir / f"{spec_bn}_packages.list", artifacts_dir),
+                    (source_dir / f"{build_bn}_package_release_name", artifacts_dir),
+                    (source_dir / f"{build_bn}_packages.list", artifacts_dir),
                 ]
                 cmd = [
                     f"{PLUGINS_DIR}/source_rpm/scripts/get-source-info "
-                    f"{source_dir} {source_dir / spec} {self.dist.tag}"
+                    f"{source_dir} {source_dir / build} {self.dist.tag}"
                 ]
                 try:
                     self.executor.run(
                         cmd, copy_in, copy_out, environment=self.environment
                     )
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to get source information: {str(e)}."
+                    msg = f"{self.component}:{self.dist}:{build}: Failed to get source information: {str(e)}."
                     raise SourceError(msg) from e
 
                 # Read package release name
-                with open(artifacts_dir / f"{spec_bn}_package_release_name") as f:
+                with open(artifacts_dir / f"{build_bn}_package_release_name") as f:
                     data = f.read().splitlines()
                 if len(data) < 2:
-                    msg = f"{self.component}:{self.dist}:{spec}: Invalid data."
+                    msg = f"{self.component}:{self.dist}:{build}: Invalid data."
                     raise SourceError(msg)
 
                 source_rpm = f"{data[0]}.src.rpm"
@@ -166,16 +160,16 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                 if not is_filename_valid(source_rpm) and not is_filename_valid(
                     source_orig
                 ):
-                    msg = f"{self.component}:{self.dist}:{spec}: Invalid source names."
+                    msg = f"{self.component}:{self.dist}:{build}: Invalid source names."
                     raise SourceError(msg)
 
                 # Read packages list
                 packages_list = []
-                with open(artifacts_dir / f"{spec_bn}_packages.list") as f:
+                with open(artifacts_dir / f"{build_bn}_packages.list") as f:
                     data = f.read().splitlines()
                 for line in data:
                     if not is_filename_valid(line):
-                        msg = f"{self.component}:{self.dist}:{spec}: Invalid package name."
+                        msg = f"{self.component}:{self.dist}:{build}: Invalid package name."
                         raise SourceError(msg)
                     packages_list.append(line)
 
@@ -220,13 +214,13 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                 for module in fetch_info.get("modules", []):
                     cmd.append(f"mv {DISTFILES_DIR}/{module['archive']} {source_dir}")
                     cmd.append(
-                        f"sed -i 's/@{module['name']}@/{module['archive']}/g' {source_dir / spec}.in"
+                        f"sed -i 's/@{module['name']}@/{module['archive']}/g' {source_dir / build}.in"
                     )
 
                 # Generate the spec that Mock will use for creating source RPM ensure 'mock'
                 # group can access build directory
                 cmd += [
-                    f"{PLUGINS_DIR}/source_rpm/scripts/generate-spec {source_dir} {source_dir / spec}.in {source_dir / spec}",
+                    f"{PLUGINS_DIR}/source_rpm/scripts/generate-spec {source_dir} {source_dir / build}.in {source_dir / build}",
                     f"mkdir -p {BUILD_DIR}",
                     f"sudo chown -R user:mock {BUILD_DIR}",
                 ]
@@ -236,7 +230,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                     f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                     f"/usr/libexec/mock/mock",
                     "--buildsrpm",
-                    f"--spec {source_dir / spec}",
+                    f"--spec {source_dir / build}",
                     f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
                     f"--sources={source_dir}",
                     f"--resultdir={BUILD_DIR}",
@@ -255,7 +249,7 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                         cmd, copy_in, copy_out, environment=self.environment
                     )
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to generate SRPM: {str(e)}."
+                    msg = f"{self.component}:{self.dist}:{build}: Failed to generate SRPM: {str(e)}."
                     raise SourceError(msg) from e
 
                 # Save package information we parsed for next stages
@@ -268,11 +262,11 @@ class RPMSourcePlugin(SourcePlugin, RPMDistributionPlugin):
                             "source-hash": self.component.get_source_hash(),
                         }
                     )
-                    self.save_artifacts_info(stage=stage, basename=spec_bn, info=info)
+                    self.save_artifacts_info(stage=stage, basename=build_bn, info=info)
 
                     # Clean previous text files as all info are stored inside source_info
-                    os.remove(artifacts_dir / f"{spec_bn}_package_release_name")
-                    os.remove(artifacts_dir / f"{spec_bn}_packages.list")
+                    os.remove(artifacts_dir / f"{build_bn}_package_release_name")
+                    os.remove(artifacts_dir / f"{build_bn}_packages.list")
                 except OSError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to clean artifacts: {str(e)}."
+                    msg = f"{self.component}:{self.dist}:{build}: Failed to clean artifacts: {str(e)}."
                     raise SourceError(msg) from e

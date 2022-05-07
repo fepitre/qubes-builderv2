@@ -33,7 +33,6 @@ from qubesbuilder.plugins import (
     BUILD_DIR,
     PLUGINS_DIR,
     REPOSITORY_DIR,
-    RPMDistributionPlugin,
 )
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
@@ -41,7 +40,7 @@ log = get_logger("build_rpm")
 
 
 def provision_local_repository(
-    spec: str,
+    build: str,
     repository_dir: Path,
     component: QubesComponent,
     dist: QubesDistribution,
@@ -54,7 +53,7 @@ def provision_local_repository(
     Provision local builder repository.
     """
     log.info(
-        f"{component}:{dist}:{spec}: Provisioning local repository '{repository_dir}'."
+        f"{component}:{dist}:{build}: Provisioning local repository '{repository_dir}'."
     )
 
     # Create target directory that will have hardlinks to SRPM and built RPMs
@@ -77,11 +76,11 @@ def provision_local_repository(
             # target_path.hardlink_to(rpm_path)
             os.link(rpm_path, target_path)
     except (ValueError, PermissionError, NotImplementedError) as e:
-        msg = f"{component}:{dist}:{spec}: Failed to provision local repository."
+        msg = f"{component}:{dist}:{build}: Failed to provision local repository."
         raise BuildError(msg) from e
 
 
-class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
+class RPMBuildPlugin(BuildPlugin):
     """
     Manage RPM distribution build.
     """
@@ -133,7 +132,7 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
 
         if stage == "build":
             # Check if we have RPM related content defined
-            if not self.parameters.get("spec", []):
+            if not self.parameters.get("build", []):
                 log.info(f"{self.component}:{self.dist}: Nothing to be done.")
                 return
 
@@ -144,10 +143,10 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_artifacts_info(stage, spec.with_suffix("").name).get(
+                == self.get_artifacts_info(stage, build.with_suffix("").name).get(
                     "source-hash", None
                 )
-                for spec in self.parameters["spec"]
+                for build in self.parameters["build"]
             ):
                 log.info(
                     f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
@@ -175,16 +174,16 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
             for build in repository_dir.glob(f"{self.component.name}-*"):
                 shutil.rmtree(build.as_posix())
 
-            for spec in self.parameters["spec"]:
+            for build in self.parameters["build"]:
                 # spec file basename will be used as prefix for some artifacts
-                spec_bn = spec.with_suffix("").name
+                build_bn = build.with_suffix("").name
 
                 # Read information from source stage
-                source_info = self.get_artifacts_info(stage="prep", basename=spec_bn)
+                source_info = self.get_artifacts_info(stage="prep", basename=build_bn)
 
                 if not source_info.get("srpm", None):
                     raise BuildError(
-                        f"Cannot find SRPM for '{spec}'. Missing 'prep' stage call?"
+                        f"Cannot find SRPM for '{build}'. Missing 'prep' stage call?"
                     )
 
                 #
@@ -258,7 +257,7 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
                         no_fail_copy_out=True,
                     )
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to build RPMs: {str(e)}."
+                    msg = f"{self.component}:{self.dist}:{build}: Failed to build RPMs: {str(e)}."
                     raise BuildError(msg) from e
 
                 # Get packages list that have been actually built from predicted ones
@@ -269,7 +268,7 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
 
                 # Provision builder local repository
                 provision_local_repository(
-                    spec=spec,
+                    build=build,
                     component=self.component,
                     dist=self.dist,
                     repository_dir=repository_dir,
@@ -285,4 +284,4 @@ class RPMBuildPlugin(BuildPlugin, RPMDistributionPlugin):
                     "rpms": packages_list,
                     "source-hash": self.component.get_source_hash(),
                 }
-                self.save_artifacts_info(stage=stage, basename=spec_bn, info=info)
+                self.save_artifacts_info(stage=stage, basename=build_bn, info=info)

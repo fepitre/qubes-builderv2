@@ -31,7 +31,6 @@ from qubesbuilder.plugins import (
     BUILD_DIR,
     PLUGINS_DIR,
     REPOSITORY_DIR,
-    DEBDistributionPlugin,
 )
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
@@ -85,7 +84,7 @@ def provision_local_repository(
         raise BuildError(msg) from e
 
 
-class DEBBuildPlugin(BuildPlugin, DEBDistributionPlugin):
+class DEBBuildPlugin(BuildPlugin):
     """
     Manage Debian distribution build.
     """

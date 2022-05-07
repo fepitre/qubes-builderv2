@@ -25,7 +25,6 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import RPMDistributionPlugin
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_rpm import provision_local_repository
 from qubesbuilder.plugins.sign import SignPlugin, SignError
@@ -33,7 +32,7 @@ from qubesbuilder.plugins.sign import SignPlugin, SignError
 log = get_logger("sign_rpm")
 
 
-class RPMSignPlugin(SignPlugin, RPMDistributionPlugin):
+class RPMSignPlugin(SignPlugin):
     """
     RPMSignPlugin manages RPM distribution sign.
     """
@@ -89,7 +88,7 @@ class RPMSignPlugin(SignPlugin, RPMDistributionPlugin):
         # Sign stage for standard components
         if stage == "sign":
             # Check if we have RPM related content defined
-            if not self.parameters.get("spec", []):
+            if not self.parameters.get("build", []):
                 log.info(f"{self.component}:{self.dist}: Nothing to be done.")
                 return
 
@@ -116,15 +115,15 @@ class RPMSignPlugin(SignPlugin, RPMDistributionPlugin):
                 msg = f"{self.component}:{self.dist}: Failed to create RPM dbpath."
                 raise SignError(msg) from e
 
-            for spec in self.parameters["spec"]:
+            for build in self.parameters["build"]:
                 # spec file basename will be used as prefix for some artifacts
-                spec_bn = spec.with_suffix("").name
+                build_bn = build.with_suffix("").name
 
                 # Read information from build stage
-                build_info = self.get_artifacts_info(stage="build", basename=spec_bn)
+                build_info = self.get_artifacts_info(stage="build", basename=build_bn)
 
                 if not build_info.get("rpms", []) and not build_info.get("srpm", None):
-                    log.info(f"{self.component}:{self.dist}:{spec}: Nothing to sign.")
+                    log.info(f"{self.component}:{self.dist}:{build}: Nothing to sign.")
                     continue
 
                 packages_list = [
@@ -135,7 +134,7 @@ class RPMSignPlugin(SignPlugin, RPMDistributionPlugin):
                 try:
                     for rpm in packages_list:
                         log.info(
-                            f"{self.component}:{self.dist}:{spec}: Signing '{rpm.name}'."
+                            f"{self.component}:{self.dist}:{build}: Signing '{rpm.name}'."
                         )
                         cmd = [
                             f"{self.plugins_dir}/sign_rpm/scripts/sign-rpm "
@@ -144,14 +143,14 @@ class RPMSignPlugin(SignPlugin, RPMDistributionPlugin):
 
                         self.executor.run(cmd)
                 except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{spec}: Failed to sign RPMs."
+                    msg = f"{self.component}:{self.dist}:{build}: Failed to sign RPMs."
                     raise SignError(msg) from e
 
                 # Re-provision builder local repository with signatures
                 repository_dir = self.get_repository_dir() / self.dist.distribution
                 try:
                     provision_local_repository(
-                        spec=spec,
+                        build=build,
                         component=self.component,
                         dist=self.dist,
                         repository_dir=repository_dir,

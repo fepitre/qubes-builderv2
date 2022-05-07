@@ -169,6 +169,25 @@ class DistributionPlugin(ComponentPlugin):
 
         self.environment["BACKEND_VMM"] = backend_vmm
 
+        # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
+        parameters = self.component.get_parameters(self._placeholders)
+
+        self.parameters.update(
+            parameters.get(self.dist.package_set, {}).get(self.dist.type, {})
+        )
+        self.parameters.update(
+            parameters.get(self.dist.distribution, {}).get(self.dist.type, {})
+        )
+
+        self.parameters["build"] = [
+            PurePath(build) for build in self.parameters.get("build", [])
+        ]
+        # For retro-compatibility
+        if self.dist.type == "rpm":
+            self.parameters["build"] += [
+                PurePath(spec) for spec in self.parameters.get("spec", [])
+            ]
+
     def get_dist_component_artifacts_dir(self, stage: str):
         path = (
             self.artifacts_dir
@@ -217,81 +236,3 @@ class DistributionPlugin(ComponentPlugin):
         info_path = artifacts_dir / f"{basename}.{stage}.yml"
         if info_path.exists():
             info_path.unlink()
-
-
-class RPMDistributionPlugin(DistributionPlugin):
-
-    """
-    RPM distribution component plugin
-    """
-
-    def __init__(
-        self,
-        component: QubesComponent,
-        dist: QubesDistribution,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        backend_vmm: str,
-        verbose: bool,
-        debug: bool,
-    ):
-        super().__init__(
-            component=component,
-            dist=dist,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-            backend_vmm=backend_vmm,
-        )
-
-        # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
-        parameters = self.component.get_parameters(self._placeholders)
-
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("rpm", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("rpm", {})
-        )
-
-        self.parameters["spec"] = [
-            PurePath(spec) for spec in self.parameters.get("spec", [])
-        ]
-
-
-class DEBDistributionPlugin(DistributionPlugin):
-
-    """
-    RPM distribution component plugin
-    """
-
-    def __init__(
-        self,
-        component: QubesComponent,
-        dist: QubesDistribution,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        backend_vmm: str,
-        verbose: bool,
-        debug: bool,
-    ):
-        super().__init__(
-            component=component,
-            dist=dist,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-            backend_vmm=backend_vmm,
-        )
-
-        # Per distribution (e.g. vm-bookworm) overrides per package set (e.g. vm)
-        parameters = self.component.get_parameters(self._placeholders)
-
-        self.parameters.update(parameters.get(self.dist.package_set, {}).get("deb", {}))
-        self.parameters.update(
-            parameters.get(self.dist.distribution, {}).get("deb", {})
-        )
-
-        self.parameters["build"] = [
-            PurePath(spec) for spec in self.parameters.get("build", [])
-        ]

@@ -31,14 +31,13 @@ from qubesbuilder.plugins import (
     PLUGINS_DIR,
     BUILD_DIR,
     DISTFILES_DIR,
-    DEBDistributionPlugin,
 )
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 log = get_logger("source_deb")
 
 
-class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
+class DEBSourcePlugin(SourcePlugin):
     """
     Manage Debian distribution source.
 
@@ -288,15 +287,17 @@ class DEBSourcePlugin(SourcePlugin, DEBDistributionPlugin):
                 # Save package information we parsed for next stages
                 try:
                     info = fetch_info
-                    info.update({
-                        "package-release-name": package_release_name,
-                        "package-release-name-full": package_release_name_full,
-                        "package-type": package_type,
-                        "dsc": source_dsc,
-                        "debian": source_debian,
-                        "packages": packages_list,
-                        "source-hash": self.component.get_source_hash(),
-                    })
+                    info.update(
+                        {
+                            "package-release-name": package_release_name,
+                            "package-release-name-full": package_release_name_full,
+                            "package-type": package_type,
+                            "dsc": source_dsc,
+                            "debian": source_debian,
+                            "packages": packages_list,
+                            "source-hash": self.component.get_source_hash(),
+                        }
+                    )
                     if package_type == "quilt":
                         info["orig"] = source_orig
 

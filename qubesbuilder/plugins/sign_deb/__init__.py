@@ -24,7 +24,6 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_deb import provision_local_repository
 from qubesbuilder.plugins.sign import SignPlugin, SignError
@@ -32,7 +31,7 @@ from qubesbuilder.plugins.sign import SignPlugin, SignError
 log = get_logger("sign_deb")
 
 
-class DEBSignPlugin(SignPlugin, DEBDistributionPlugin):
+class DEBSignPlugin(SignPlugin):
     """
     DEBSignPlugin manages DEB distribution sign.
     """
