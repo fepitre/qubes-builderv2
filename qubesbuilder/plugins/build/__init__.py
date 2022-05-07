@@ -56,7 +56,15 @@ class BuildPlugin(DistributionPlugin):
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
-            backend_vmm=backend_vmm
+            backend_vmm=backend_vmm,
         )
         self.executor = executor
         self.use_qubes_repo = use_qubes_repo
+
+    def run(self, stage: str):
+        if stage == "build":
+            # Ensure all build targets artifacts exist from previous required stage
+            try:
+                self.check_stage_artifacts(stage="prep")
+            except PluginError as e:
+                raise BuildError(str(e)) from e

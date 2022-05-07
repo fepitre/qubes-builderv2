@@ -66,5 +66,12 @@ class SignPlugin(DistributionPlugin):
         self.sign_key = sign_key
 
     def run(self, stage: str):
-        if stage == "publish" and not isinstance(self.executor, LocalExecutor):
-            raise SignError("This plugin only supports local executor.")
+        if stage == "sign":
+            if not isinstance(self.executor, LocalExecutor):
+                raise SignError("This plugin only supports local executor.")
+
+            # Ensure all build targets artifacts exist from previous required stage
+            try:
+                self.check_stage_artifacts(stage="build")
+            except PluginError as e:
+                raise SignError(str(e)) from e

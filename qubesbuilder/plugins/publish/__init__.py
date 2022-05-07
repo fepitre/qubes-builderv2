@@ -32,6 +32,7 @@ log = get_logger("publish")
 
 # Define the minimum age for which packages can be published to 'current'
 MIN_AGE_DAYS = 5
+COMPONENT_REPOSITORIES = ["current", "current-testing", "security-testing", "unstable"]
 
 
 class PublishError(PluginError):
@@ -77,8 +78,9 @@ class PublishPlugin(DistributionPlugin):
         self.sign_key = sign_key
 
     def run(self, stage: str):
-        if stage == "publish" and not isinstance(self.executor, LocalExecutor):
-            raise PublishError("This plugin only supports local executor.")
+        if stage == "publish":
+            if not isinstance(self.executor, LocalExecutor):
+                raise PublishError("This plugin only supports local executor.")
 
     def validate_repository_publish(self, repository_publish):
         if repository_publish not in (

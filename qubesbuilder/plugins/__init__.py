@@ -236,3 +236,12 @@ class DistributionPlugin(ComponentPlugin):
         info_path = artifacts_dir / f"{basename}.{stage}.yml"
         if info_path.exists():
             info_path.unlink()
+
+    def check_stage_artifacts(self, stage: str, artifacts_dir: Path = None):
+        for build in self.parameters["build"]:
+            build_bn = build.with_suffix("").name
+            if not self.get_artifacts_info(
+                stage=stage, basename=build_bn, artifacts_dir=artifacts_dir
+            ):
+                msg = f"Missing '{stage}' stage artifacts for {build_bn}!"
+                raise PluginError(msg)

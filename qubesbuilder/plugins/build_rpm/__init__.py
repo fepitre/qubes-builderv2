@@ -158,9 +158,7 @@ class RPMBuildPlugin(BuildPlugin):
                 shutil.rmtree(artifacts_dir.as_posix())
             artifacts_dir.mkdir(parents=True)
 
-            # Clean previous build artifacts
-            if artifacts_dir.exists():
-                shutil.rmtree(artifacts_dir.as_posix())
+            # Create RPM folder
             rpms_dir.mkdir(parents=True)
 
             # Source artifacts

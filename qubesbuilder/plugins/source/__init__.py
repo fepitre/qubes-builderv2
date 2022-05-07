@@ -256,9 +256,7 @@ class SourcePlugin(DistributionPlugin):
         fetch_info = self.get_artifacts_info("fetch", "source")
 
         if stage == "fetch":
-            if self.component.get_source_hash() == fetch_info.get(
-                "orig-source-hash", None
-            ):
+            if self.component.get_source_hash() == fetch_info.get("source-hash", None):
                 log.info(
                     f"{self.component}:{self.dist}: Source hash is the same than already parsed source. Skipping."
                 )
@@ -288,9 +286,7 @@ class SourcePlugin(DistributionPlugin):
             # for any further modifications. Once the source is fetched, we may locally
             # modify the source for development and at prep stage we would need to recompute
             # source hash based on those modifications.
-            info: dict[str, Any] = {
-                "orig-source-hash": self.component.get_source_hash()
-            }
+            info: dict[str, Any] = {"source-hash": self.component.get_source_hash()}
 
             # Get git hash and tags
             copy_in = [
@@ -414,7 +410,7 @@ class SourcePlugin(DistributionPlugin):
 
         if stage == "prep":
             # Compare previous artifacts hash with current source hash
-            if not fetch_info.get("orig-source-hash"):
+            if not fetch_info.get("source-hash"):
                 raise SourceError(
-                    f"{self.component}:{self.dist}: Cannot find orig source hash. Missing 'fetch' stage call?"
+                    f"{self.component}:{self.dist}: Missing 'fetch' stage artifacts!"
                 )
