@@ -56,7 +56,7 @@ def get_var(obj: ContextObj, var: str, print_json: bool, print_yaml: bool):
         click.secho(result)
 
 
-@config.command(name="get-component")
+@config.command(name="get-components")
 @click.option(
     "--attribute",
     "-a",
@@ -64,7 +64,7 @@ def get_var(obj: ContextObj, var: str, print_json: bool, print_yaml: bool):
     help="Print component attribute (if exists).",
 )
 @click.pass_obj
-def get_component(obj: ContextObj, attribute: str):
+def get_components(obj: ContextObj, attribute: str):
     for c in obj.components:
         result = c
         if attribute:
@@ -78,5 +78,28 @@ def get_component(obj: ContextObj, attribute: str):
             click.secho(yaml.dump(result))
 
 
+@config.command(name="get-distributions")
+@click.option(
+    "--host",
+    default=False,
+    is_flag=True,
+    help="Print host distributions.",
+)
+@click.option(
+    "--vm",
+    default=False,
+    is_flag=True,
+    help="Print host distributions.",
+)
+@click.pass_obj
+def get_distributions(obj: ContextObj, host: bool, vm: bool):
+    for d in obj.distributions:
+        if d.package_set == "host" and host:
+            click.secho(d.name)
+        elif d.package_set == "vm" and vm:
+            click.secho(d.name)
+
+
 config.add_command(get_var)
-config.add_command(get_component)
+config.add_command(get_components)
+config.add_command(get_distributions)
