@@ -1,5 +1,6 @@
 include:
   - example-configs/qubes-os-r4.2.yml
+  - example-configs/builder-github.yml
 
 git:
   baseurl: https://github.com
@@ -10,7 +11,7 @@ backend-vmm: xen
 debug: true
 verbose: true
 qubes-release: r4.2
-timeout: 21600
+timeout: 3600
 
 reuse-fetched-source: true
 do-merge: true
@@ -43,3 +44,14 @@ stages:
   - publish:
       executor:
         type: local
+
+gpg-client: qubes-gpg-client-wrapper
+
+sign-key:
+  rpm: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+
+repository-publish:
+  components: current-testing
+
+#repository-upload-remote-host:
+#  rpm: user@yum.qubes-os.org/some/path

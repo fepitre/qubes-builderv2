@@ -102,7 +102,7 @@ class Config:
                     ) from e
             final_conf.update(conf)
 
-            for key in ("distributions", "templates", "components", "stages"):
+            for key in ("distributions", "templates", "components", "stages", "plugins"):
                 if f"+{key}" in final_conf.keys():
                     final_conf.setdefault(key, [])
                     final_conf[key] += final_conf[f"+{key}"]

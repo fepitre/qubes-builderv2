@@ -1,3 +1,9 @@
+WIP: Integration with next generation of Qubes Builder:
+===
+
+Parts below are mostly outdated and needs to be rewritten according to 
+the new Qubes Builder.
+
 Description
 -----------
 

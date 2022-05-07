@@ -1,0 +1,143 @@
+#!/bin/bash -e
+
+# This is script to automate build process in reaction to pushing updates
+# sources to git. The workflow is:
+# - fetch sources, check if properly signed
+# - check if version tag is on top
+# - build package(s) according to builder.yml
+# - upload to current-testing repository
+#
+# All the above should be properly logged
+
+. "$(dirname "$0")"/auto-build-functions.sh
+
+if [ "$DEBUG" == 1 ]; then
+    set -x
+fi
+
+usage() {
+    echo "Usage: $0 component-name" >&2
+}
+
+if [ -z "$1" ]; then
+    usage
+    exit 1
+fi
+
+set -e
+
+SCRIPTS_DIR="$(dirname "$0")"
+
+# Get builder directory from first arg and remove
+# it from the other args that are passed to builder
+BUILDER_DIR="$1"
+shift 1
+
+cd "$BUILDER_DIR"
+
+# Sanity checks
+if [ "${1##*/}" != "${1}" ]; then
+    echo "Found '/' in argument" >&2
+    exit 1
+fi
+
+found=
+for c in $(./qb config get-var components); do
+    if [ "$c" = "$1" ]; then
+        found=1
+    fi
+done
+if [ -z "$found" ]; then
+    echo "No such component: $1" >&2
+    exit 1
+fi
+
+component=$1
+export COMPONENTS=$component
+
+# FIXME: update qubes-builderv2
+
+# Download component source
+./qb -c "$component" package fetch
+
+# Check if a timeout is defined
+build_timeout=$(./qb -c "$component" config get-component --attribute timeout)
+if [ -z "$build_timeout" ]; then
+    build_timeout=$(./qb config get-var timeout)
+fi
+if [ -n "$build_timeout" ]; then
+    build_command_prefix="timeout $build_timeout"
+fi
+
+dists_vm=$(./qb config get-distributions --vm)
+dist_host=$(./qb config get-distributions --host)
+built_for_host=
+built_for_vm=
+build_logs=
+if [ -n "$dist_host" ]; then
+    release_status=$(./qb -c "$component" -d "host-${dist_host}" repository check-release-status-for-component \
+            --abort-no-version \
+            --abort-on-empty \
+            --no-print-version \
+            || :)
+    if [ "$release_status" == "not released" ]; then
+        rm -f "${log_service_output_file:?}"
+        if $build_command_prefix "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -c "$component" -d "host-${dist_host}" package prep build; then
+            built_for_host="$dist_host"
+            build_logs="$build_logs ${component}-host-${dist_host}=$(get_build_log_url)"
+        else
+            # report failure but still upload other packages
+            build_failure "$component" host "$dist_host" "$(get_build_log_url)"
+            build_logs="$build_logs ${component}-host-${dist_host}=$(get_build_log_url)"
+        fi
+    fi
+fi
+
+if [ -n "$dists_vm" ]; then
+    for dist_vm in $dists_vm; do
+        release_status=$(./qb -c "$component" -d "vm-${dist_vm}" repository check-release-status-for-component \
+            --abort-no-version \
+            --abort-on-empty \
+            --no-print-version \
+            || :)
+        if [ "$release_status" == "not released" ]; then
+            rm -f "${log_service_output_file:?}"
+            if $build_command_prefix "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -c "$component" -d "vm-${dist_vm}" package prep build; then
+                built_for_vm="$built_for_vm $dist_vm"
+                build_logs="$build_logs ${component}-vm-${dist_vm}=$(get_build_log_url)"
+            else
+                # report failure but still upload other packages
+                build_failure "$component" vm "$dist_vm" "$(get_build_log_url)"
+                build_logs="$build_logs ${component}-vm-${dist_vm}=$(get_build_log_url)"
+            fi
+        fi
+    done
+fi
+
+# cleanup
+rm -f "$log_service_output_file"
+
+if [ -z "$built_for_host" ] && [ -z "$built_for_vm" ]; then
+    # nothing was built, something gone wrong
+    exit 1
+fi
+
+# sending a log should allow accessing signing keys
+# if signing itself (or upload) fails log the failure as build failure too
+
+export DIST_DOM=dist_host
+export DISTS_VM=dists_vm
+export BUILD_LOGS_URL="$build_logs"
+
+args="$BUILDER_DIR -c $component"
+for dist_dom in $built_for_host; do
+    args="$args -d host-$dist_dom"
+done
+for dist_vm in $built_for_vm; do
+    args="$args -d vm-$dist_vm"
+done
+
+if ! "$SCRIPTS_DIR"/make-with-log $args package sign publish; then
+    build_failure "$component" upload "host:$built_for_host vm:$built_for_vm" "$(get_build_log_url)"
+    exit 1
+fi

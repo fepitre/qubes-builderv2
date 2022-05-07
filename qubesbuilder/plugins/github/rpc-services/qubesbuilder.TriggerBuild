@@ -9,6 +9,8 @@ set -eu
 # repository (branch configured in builder.conf) contains new version tag at
 # the top.
 
+set -x
+
 # Don't read anything from standard input
 exec </dev/null
 
@@ -64,9 +66,10 @@ while read -r release_name builder_dir; do
     # we already verified if $untrusted_component_name do not contains '/' or
     # '.', now lets check if that component really exists in this builder instance
     IFS=$' \t\n'
-    for component in $(make -s -C "$builder_dir" get-var GET_VAR=COMPONENTS); do
+    cd "$builder_dir"
+    for component in $(./qb config get-var components); do
         # check also for mismatching component and git repository name
-        component_url=$(make -s -C "$builder_dir" get-var GET_VAR=GIT_URL_"${component//-/_}")
+        component_url=$(./qb -c "$component" config get-components --attribute url)
         component_repo=$(basename "$component_url" .git)
         # strip 'qubes-' prefix, if any
         component_repo=${component_repo#qubes-}
@@ -77,8 +80,8 @@ while read -r release_name builder_dir; do
             # being built at the same time in the same builder).
             # This is implicit queueing mechanism.
             flock -x "$builder_dir/builder.lock" \
-                "$builder_dir/scripts/auto-build" \
-                "$component" \
+                "$builder_dir/qubesbuilder/plugins/github/scripts/auto-build" \
+                "$builder_dir" "$component" \
                 >>"${log_basename}-${component}-${release_name}.log" 2>&1 </dev/null &
         fi
     done

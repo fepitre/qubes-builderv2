@@ -1,7 +1,10 @@
 import click
 
+from pathlib import Path
+
 from qubesbuilder.config import STAGES, STAGES_ALIAS
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
+from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.plugins.source import FetchPlugin
 from qubesbuilder.plugins.helpers import (
     getSourcePlugin,
@@ -9,6 +12,7 @@ from qubesbuilder.plugins.helpers import (
     getSignPlugin,
     getPublishPlugin,
 )
+from qubesbuilder.plugins.github import GithubPlugin
 
 
 @aliased_group("package", chain=True)
@@ -18,8 +22,8 @@ def package():
     """
 
 
-# FIXME: Find a better design to register necessary plugins for each stage.
-#  It applies for other CLIs.
+# FIXME: Find a better design to register necessary plugins for each stage without hard coding
+#  values like 'github'. It applies for other CLIs.
 def _component_stage(obj: ContextObj, stage_name: str):
     """
     Generic function to trigger stage for a standard component
@@ -94,6 +98,33 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     backend_vmm=obj.config.get("backend-vmm", "xen"),
                 ),
             ]
+            for plugin in obj.config.get("plugins"):
+                # For now, we only assume plugin options are provided as dict
+                if not isinstance(plugin, dict):
+                    continue
+                if plugin.get("github", None):
+                    try:
+                        github_plugin = GithubPlugin(
+                            component=component,
+                            dist=dist,
+                            plugins_dir=obj.config.get_plugins_dir(),
+                            executor=executor,
+                            artifacts_dir=obj.config.get_artifacts_dir(),
+                            verbose=True,
+                            debug=True,
+                            qubes_release=obj.config.get("qubes-release"),
+                            backend_vmm=obj.config.get("backend-vmm", "xen"),
+                            state_dir=Path(plugin["github"]["state-dir"]).resolve(),
+                            api_key=plugin["github"]["api-key"],
+                            build_report_repo=plugin["github"]["build-report-repo"],
+                            build_issues_repo=plugin["github"]["build-issues-repo"],
+                            logs_repo=plugin["github"]["logs-repo"],
+                            repository_publish=obj.config.get("repository-publish", {}),
+                        )
+                        plugins.append(github_plugin)
+                    except KeyError as e:
+                        raise CliError(f"Failed to initialize GitHub plugin: {str(e)}") from e
+
             for plugin in plugins:
                 plugin.run(stage=stage_name)
 

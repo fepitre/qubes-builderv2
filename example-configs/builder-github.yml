@@ -1,0 +1,15 @@
+#plugins:
+#  - github:
+#      state-dir: {{ pillar['build-infra']['home'] }}/github-notify-state
+#      api-key: {{ pillar['build-infra']['github_api_key'] }}
+#      build-report-repo: {{ salt['pillar.get']('build-infra:build_report_repo', 'QubesOS/updates-status') }}
+#      build-issues-repo: {{ salt['pillar.get']('build-infra:build_issues_repo', 'QubesOS/build-issues') }}
+#      logs-repo: {{ salt['pillar.get']('build-infra:logs_repo', 'QubesOS/build-logs') }}
+
+plugins:
+  - github:
+      state-dir: /home/user/github-notify-state
+      api-key: 123456789ABCDEF
+      build-report-repo: 'QubesOS/updates-status'
+      build-issues-repo: 'QubesOS/build-issues'
+      logs-repo: 'QubesOS/build-logs'
