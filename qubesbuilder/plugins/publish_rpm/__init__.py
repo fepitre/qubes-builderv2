@@ -152,7 +152,7 @@ class RPMPublishPlugin(PublishPlugin):
 
     def unpublish(self, build, sign_key, repository_publish):
         # spec file basename will be used as prefix for some artifacts
-        build_bn = build.with_suffix("")
+        build_bn = build.with_suffix("").name
         # Read information from build stage
         build_info = self.get_artifacts_info(stage="build", basename=build_bn)
 
