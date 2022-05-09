@@ -38,6 +38,8 @@ Options:
     --component                              Component to clone.
     --clean                                  Remove previous sources (use git up vs git clone).
     --fetch-only                             Fetch sources but do not merge.
+    --do-merge                               Merge fetched commits
+    --fetch-versions-only                    Fetch only version tags
     --ignore-missing                         Exit with code 0 if remote branch doesn't exists.
     --repo                                   Specify repository directory, component will be guessed based on basename.
     --keys-dir                               Directory containing keys to the armor format.
@@ -249,13 +251,16 @@ if [ -d "$REPO" ] && [ "${CLEAN-}" != '1' ]; then
     fi
     print_headers
     if [ "$DO_MERGE" == "1" ]; then
+        git fetch
         rev="$(git rev-parse -q --verify FETCH_HEAD)"
         if [ "$FETCH_VERSIONS_ONLY" == "1" ]; then
             git tag --points-at "$rev" | grep -q '^v'
         fi
         VERIFY_REF="$rev"
-    elif ! git fetch $GIT_OPTIONS -q --tags -- "$GIT_URL" "$BRANCH"; then
-        if [ "$IGNORE_MISSING" == "1" ]; then exit 0; else exit 1; fi
+    else
+        if ! git fetch $GIT_OPTIONS -q --tags -- "$GIT_URL" "$BRANCH"; then
+            if [ "$IGNORE_MISSING" = "1" ]; then exit 0; else exit 1; fi
+        fi
         VERIFY_REF=FETCH_HEAD
     fi
     fresh_clone=false
