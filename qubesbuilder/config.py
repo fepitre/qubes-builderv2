@@ -31,6 +31,7 @@ from qubesbuilder.exc import ConfigError
 from qubesbuilder.executors.helpers import getExecutor
 from qubesbuilder.log import get_logger
 
+
 STAGES = ["fetch", "prep", "build", "post", "verify", "sign", "publish"]
 STAGES_ALIAS = {
     "f": "fetch",
@@ -207,6 +208,7 @@ class Config:
         branch = self.get("git", {}).get("branch", "master")
         maintainers = self.get("git", {}).get("maintainers", [])
         url = f"{baseurl}/{prefix}{component_name}"
+        timeout = self.get("timeout", 3600)
         if isinstance(component_name, str):
             component_name = {component_name: {}}
         name, options = next(iter(component_name.items()))
@@ -221,5 +223,6 @@ class Config:
             maintainers=options.get("maintainers", maintainers),
             insecure_skip_checking=insecure_skip_checking,
             less_secure_signed_commits_sufficient=less_secure_signed_commits_sufficient,
+            timeout=options.get("timeout", timeout)
         )
         return component

@@ -62,6 +62,7 @@ components:
   - linux-firmware
   - linux-kernel:
       branch: stable-5.10
+      timeout: 21600
   - artwork
   - grub2
   - grub2-theme

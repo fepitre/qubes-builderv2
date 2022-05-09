@@ -43,6 +43,7 @@ class QubesComponent:
         insecure_skip_checking: bool = False,
         less_secure_signed_commits_sufficient: bool = False,
         maintainers: List = None,
+        timeout: int = None
     ):
         self.source_dir: Path = (
             Path(source_dir) if isinstance(source_dir, str) else source_dir
@@ -57,6 +58,7 @@ class QubesComponent:
         self.less_secure_signed_commits_sufficient = (
             less_secure_signed_commits_sufficient
         )
+        self.timeout = timeout
         self._source_hash = ""
 
     def get_parameters(self, placeholders: dict = None):
