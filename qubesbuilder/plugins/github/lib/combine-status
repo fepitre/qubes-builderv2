@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Combine ~/status/*status*.html files into ~/public_html/status.html
+
+# shellcheck disable=SC2012
+releases=$(ls ~/status/builder*status.html|
+    sed -e 's/.*builder-\([^-]*\).*/\1/'|
+    sort|
+    uniq)
+
+(
+cat ~/status/status-head.html
+for rel in $releases; do
+    printf '<h1>Release %s</h1>' "$rel"
+    cat ~/status/builder-"$rel"*status.html
+done
+cat ~/status/status-foot.html
+) > ~/public_html/status.html

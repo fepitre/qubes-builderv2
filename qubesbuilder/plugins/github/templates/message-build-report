@@ -1,0 +1,17 @@
+Update of @COMPONENT@ to @VERSION@ for Qubes @RELEASE_NAME@, see comments below for details.
+
+Built from: @GIT_URL@/commit/@COMMIT_SHA@
+
+[Changes since previous version](@GIT_LOG_URL@):
+@GIT_LOG@
+
+Referenced issues:
+@ISSUES@
+
+If you're release manager, you can issue GPG-inline signed command:
+
+* `Upload @COMPONENT@ @COMMIT_SHA@ @RELEASE_NAME@ current repo` (available 7 days from now)
+* `Upload @COMPONENT@ @COMMIT_SHA@ @RELEASE_NAME@ current (dists) repo`, you can choose subset of distributions, like `vm-fc24 vm-fc25` (available 7 days from now)
+* `Upload @COMPONENT@ @COMMIT_SHA@ @RELEASE_NAME@ security-testing repo`
+
+Above commands will work only if packages in current-testing repository were built from given commit (i.e. no new version superseded it).
