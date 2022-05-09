@@ -60,6 +60,8 @@ class FetchPlugin(ComponentPlugin):
         verbose: bool = False,
         debug: bool = False,
         skip_if_exists: bool = False,
+        do_merge: bool = False,
+        fetch_versions_only: bool = False,
     ):
         super().__init__(
             component=component,
@@ -70,6 +72,8 @@ class FetchPlugin(ComponentPlugin):
         )
         self.executor = executor
         self.skip_if_exists = skip_if_exists
+        self.do_merge = do_merge
+        self.fetch_versions_only = fetch_versions_only
 
     def update_parameters(self):
         """
@@ -94,6 +98,7 @@ class FetchPlugin(ComponentPlugin):
         if stage == "fetch":
             # Source component directory inside executors
             source_dir = BUILDER_DIR / self.component.name
+            copy_in = [(self.plugins_dir / "source", PLUGINS_DIR)]
 
             if local_source_dir.exists():
                 # If we already fetched sources previously and have modified them,
@@ -101,33 +106,38 @@ class FetchPlugin(ComponentPlugin):
                 if not self.skip_if_exists:
                     shutil.rmtree(str(local_source_dir))
                 else:
-                    log.info(f"{self.component}: source already fetched. Skipping.")
+                    log.info(f"{self.component}: source already fetched. Updating.")
+                    copy_in += [(local_source_dir, BUILDER_DIR)]
 
-            if not local_source_dir.exists():
-                # Get GIT source for a given Qubes OS component
-                copy_in = [(self.plugins_dir / "source", PLUGINS_DIR)]
-                copy_out = [(source_dir, self.get_sources_dir())]
-                get_sources_cmd = [
-                    str(PLUGINS_DIR / "source/scripts/get-and-verify-source"),
-                    "--component",
-                    self.component.name,
-                    "--git-branch",
-                    self.component.branch,
-                    "--git-url",
-                    self.component.url,
-                    "--keyring-dir-git",
-                    str(BUILDER_DIR / "keyring"),
-                    "--keys-dir",
-                    str(PLUGINS_DIR / "source/keys"),
-                ]
-                for maintainer in self.component.maintainers:
-                    get_sources_cmd += ["--maintainer", maintainer]
-                if self.component.insecure_skip_checking:
-                    get_sources_cmd += ["--insecure-skip-checking"]
-                if self.component.less_secure_signed_commits_sufficient:
-                    get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
-                cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            # Get GIT source for a given Qubes OS component
+            copy_out = [(source_dir, self.get_sources_dir())]
+            get_sources_cmd = [
+                str(PLUGINS_DIR / "source/scripts/get-and-verify-source"),
+                "--component",
+                self.component.name,
+                "--git-branch",
+                self.component.branch,
+                "--git-url",
+                self.component.url,
+                "--keyring-dir-git",
+                str(BUILDER_DIR / "keyring"),
+                "--keys-dir",
+                str(PLUGINS_DIR / "source/keys"),
+            ]
+            for maintainer in self.component.maintainers:
+                get_sources_cmd += ["--maintainer", maintainer]
+            if self.component.insecure_skip_checking:
+                get_sources_cmd += ["--insecure-skip-checking"]
+            if self.component.less_secure_signed_commits_sufficient:
+                get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
+
+            # We prioritize do merge versions first
+            if local_source_dir.exists() and self.do_merge:
+                get_sources_cmd += ["--do-merge"]
+                if self.fetch_versions_only:
+                    get_sources_cmd += ["--fetch-versions-only"]
+            cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
+            self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
             # Update parameters based on previously fetched sources as .qubesbuilder
             # is now available.
@@ -328,7 +338,7 @@ class SourcePlugin(DistributionPlugin):
                 if not re.match("^v.*", tag):
                     msg = f"{self.component}:{self.dist}: Invalid git version tag detected."
                     raise SourceError(msg)
-                info["git-vtags"].append(tag)
+                info["git-version-tags"].append(tag)
 
             if modules:
                 # Get git module hashes

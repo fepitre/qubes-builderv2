@@ -37,6 +37,8 @@ def _component_stage(obj: ContextObj, stage_name: str):
             verbose=obj.config.verbose,
             debug=obj.config.debug,
             skip_if_exists=obj.config.get("reuse-fetched-source", False),
+            do_merge=obj.config.get("do-merge", False),
+            fetch_versions_only=obj.config.get("fetch-versions-only", False),
         )
         fetch_plugin.run(stage=stage_name)
 

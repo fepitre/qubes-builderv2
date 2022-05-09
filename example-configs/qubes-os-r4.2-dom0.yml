@@ -10,8 +10,11 @@ backend-vmm: xen
 debug: true
 verbose: true
 qubes-release: r4.2
-reuse-fetched-source: false
 build_timeout: 21600
+
+reuse-fetched-source: true
+do-merge: true
+fetch-versions-only: true
 
 distributions:
   - host-fc32
