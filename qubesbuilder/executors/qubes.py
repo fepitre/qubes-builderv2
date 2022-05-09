@@ -68,8 +68,10 @@ class QubesExecutor(Executor):
             log.debug(f"copy-in (cmd): {' '.join(move_to_destination)}")
             subprocess.run(move_to_destination, check=True)
         except subprocess.CalledProcessError as e:
-            msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
-            raise ExecutorError(msg) from e
+            if e.stderr is not None:
+                msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
+                log.error(msg)
+            raise ExecutorError from e
 
     def copy_out(self, vm, source_path: PurePath, destination_dir: Path):
         src = source_path
@@ -97,8 +99,10 @@ class QubesExecutor(Executor):
             log.debug(f"copy-out (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError as e:
-            msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
-            raise ExecutorError(msg) from e
+            if e.stderr is not None:
+                msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
+                log.error(msg)
+            raise ExecutorError from e
 
     def run(
         self,
