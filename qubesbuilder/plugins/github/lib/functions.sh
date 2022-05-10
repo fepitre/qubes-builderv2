@@ -27,9 +27,17 @@ trap 'rm -rf $tmpdir' EXIT
 #
 # The script will close stdin to be sure no other (untrusted) data is obtained.
 read_stdin_command_and_verify_signature() {
-    local_keyring_path="$1"
-    local_output_file="$2"
-    local_signer="$3"
+    local fpr python_script_path local_keyring_path local_output_file local_signer
+
+    if [ "$#" -ne 4 ]; then
+        echo "Wrong number of arguments (expected 4, got $#)" >&2
+        return 1
+    fi
+
+    python_script_path="$1"
+    local_keyring_path="$2"
+    local_output_file="$3"
+    local_signer="$4"
 
     if ! [ -r "$local_keyring_path" ]; then
         echo "Keyring $local_keyring_path does not exist" >&2
@@ -43,62 +51,51 @@ read_stdin_command_and_verify_signature() {
 
     # this will read from standard input of the service, the data should be
     # considered untrusted
-    tr -d '\r' | awk -b \
-            -v in_command=0 \
-            -v in_signature=0 \
-            -v output_data="$tmpdir/untrusted_command.tmp" \
-            -v output_sig="$tmpdir/untrusted_command.sig" \
-            '
-        /^-----BEGIN PGP SIGNED MESSAGE-----$/ {
-            # skip first 3 lines (this one, hash declaration and empty line)
-            in_command=4
-        }
-        /^-----BEGIN PGP SIGNATURE-----$/ {
-            in_command=0
-            in_signature=1
-        }
-        {
-            if (in_command > 1) {
-                in_command--
-                next
-            }
-        }
-        {
-            if (in_command) print >output_data
-            if (in_signature) print >output_sig
-        }
-        /^-----END PGP SIGNATURE-----$/ {
-            in_signature=0
-        }
-    '
-
+    "$python_script_path/parse-command" "$tmpdir/untrusted_command" "$tmpdir/untrusted_command.sig" || exit
     # make sure we don't read anything else from stdin
     exec </dev/null
 
-    if [ ! -r "$tmpdir/untrusted_command.tmp" ] || \
+    if [ ! -r "$tmpdir/untrusted_command" ] || \
             [ ! -r "$tmpdir/untrusted_command.sig" ]; then
         echo "Missing parts of gpg signature" >&2
         exit 1
     fi
 
-    # gpg --clearsign apparently ignore trailing newline while calculating hash. So
-    # must do the same here for signature verification. This is stupid.
-    head -c -1 "$tmpdir/untrusted_command.tmp" > "$tmpdir/untrusted_command"
-
-    if ! gpgv2 --keyring "$local_keyring_path" \
+    if ! gpg2 --keyring "$local_keyring_path" \
+	    --exit-on-status-write-error \
+	    --no-autostart \
+	    --no-tty \
+	    --disable-dirmngr \
+	    --verify \
+	    --batch \
+	    --with-colons \
+	    --no-default-keyring \
             --status-fd=3 \
             "$tmpdir/untrusted_command.sig" \
             "$tmpdir/untrusted_command" \
-            3>"$tmpdir/gpg-status"; then
+            3> "$tmpdir/gpg-status"; then
         echo "Invalid signature" >&2
         exit 1
     fi
-
+    # Notes on the regular expression:
+    # - [45] means that only version 4 and 5 signatures are allowed
+    # - (8|9|10) means that only SHA256, SHA384, and SHA512 are allowed
+    # - 01 means that only type 1 signatures are allowed
+    fpr=$(grep -Po \
+	    '^\[GNUPG:] VALIDSIG [0-9A-F]{40} 202[2-9](-[0-9]{2}){2} [1-9][0-9]+ [0-9]+ [45] 0 [0-9]+ (8|9|10) 01 \K([0-9A-F]{40})$' \
+            "$tmpdir/gpg-status") || {
+        echo 'Cannot obtain signing key fingerprint!' >&2
+        exit 1
+    }
+    if good=$(grep -c '^\[GNUPG:] GOODSIG ' "$tmpdir/gpg-status") && [ "$good" -eq 1 ]; then
+        :
+    else
+        echo 'Signature is not good!' >&2
+        exit 1
+    fi
     # extract signer fingerprint
     if [ -n "$local_signer" ]; then
-        eval "$local_signer"="$(grep -Po \
-            '^\[GNUPG:\] VALIDSIG (([0-9A-F-]+ ){9}|)\K([0-9A-F]*)' \
-            "$tmpdir/gpg-status")"
+        eval "$local_signer=\$fpr"
     fi
     rm -f "$tmpdir/gpg-status"
 
