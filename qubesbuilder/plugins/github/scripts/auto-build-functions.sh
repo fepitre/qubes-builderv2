@@ -41,6 +41,16 @@ cleanup() {
     fi
 }
 
+verify_git_obj() {
+    local content newsig_number
+    content=$(git -c gpg.program=gpg -c gpg.minTrustLevel=fully "verify-$1" --raw -- "$2" 2>&1 >/dev/null) &&
+        newsig_number=$(printf %s\\n "$content" | grep -c '^\[GNUPG:] NEWSIG') &&
+        [ "$newsig_number" = 1 ] && {
+        printf %s\\n "$content" |
+            grep '^\[GNUPG:] TRUST_\(FULLY\|ULTIMATE\) 0 pgp$' >/dev/null
+    }
+}
+
 tmpdir=$(mktemp -d)
 
 trap "cleanup" EXIT

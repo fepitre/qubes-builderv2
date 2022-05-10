@@ -55,7 +55,14 @@ fi
 component=$1
 export COMPONENTS=$component
 
-# FIXME: update qubes-builderv2
+# FIXME: update qubes-builderv2 workflow
+cur_branch="$(git branch --show-current)"
+git fetch origin "$cur_branch"
+if ! verify_git_obj commit FETCH_HEAD; then
+    rm .git/FETCH_HEAD
+    exit 1
+fi
+git merge --ff-only FETCH_HEAD
 
 # Download component source
 ./qb -c "$component" package fetch
