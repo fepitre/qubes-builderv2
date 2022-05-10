@@ -9,7 +9,10 @@
 #
 # All the above should be properly logged
 
-. "$(dirname "$0")"/auto-build-functions.sh
+SCRIPTS_DIR="$(dirname "$0")"
+
+# shellcheck source=qubesbuilder/plugins/github/scripts/auto-build-functions.sh
+. "$SCRIPTS_DIR/auto-build-functions.sh"
 
 if [ "$DEBUG" == 1 ]; then
     set -x
@@ -25,8 +28,6 @@ if [ -z "$1" ]; then
 fi
 
 set -e
-
-SCRIPTS_DIR="$(dirname "$0")"
 
 # Get builder directory from first arg and remove
 # it from the other args that are passed to builder
@@ -144,6 +145,7 @@ for dist_vm in $built_for_vm; do
     args="$args -d vm-$dist_vm"
 done
 
+# shellcheck disable=SC2086
 if ! "$SCRIPTS_DIR"/make-with-log $args package sign publish; then
     build_failure "$component" upload "host:$built_for_host vm:$built_for_vm" "$(get_build_log_url)"
     exit 1

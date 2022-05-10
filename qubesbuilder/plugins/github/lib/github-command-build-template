@@ -4,7 +4,7 @@
 # command
 #
 # First argument is expected to be a command file path, already
-# verified against trusted keys set. 
+# verified against trusted keys set.
 # Second argument is a key fingerprint used to sign the command
 
 if [ $# -lt 2 ]; then
@@ -17,7 +17,7 @@ signer_fpr="$2"
 
 scripts_dir="/usr/local/lib/qubes-builder-github"
 
-# shellcheck source=lib/functions.sh
+# shellcheck source=qubesbuilder/plugins/github/lib/functions.sh
 . "$scripts_dir/functions.sh"
 
 read -r action release_name dist timestamp \

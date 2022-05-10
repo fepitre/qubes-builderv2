@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Script called by qubesbuilder.ProcessGithubCommand for handling "Upload"
 # command
@@ -17,13 +17,13 @@ signer_fpr="$2"
 
 scripts_dir="/usr/local/lib/qubes-builder-github"
 
-# shellcheck source=lib/functions.sh
+# shellcheck source=qubesbuilder/plugins/github/lib/functions.sh
 . "$scripts_dir/functions.sh"
 
 read -r action component commit_sha release_name repo_name dists_and_end \
         < "$command_file"
 
-if [ "x$action" != "xUpload" ]; then
+if [ "$action" != "Upload" ]; then
     echo "Invalid action" >&2
     exit 1
 fi
@@ -49,12 +49,12 @@ case "${dists_and_end}" in
         ;;
 esac
 
-if [ "x${component}" = "xlinux-template-builder" ]; then
-    if [ "x$repo_name" != "xtemplates-itl" ] && [ "x$repo_name" != "xtemplates-community" ]; then
+if [ "${component}" == "linux-template-builder" ]; then
+    if [ "$repo_name" == "templates-itl" ] && [ "$repo_name" != "templates-community" ]; then
         echo "Unsupported target repo" >&2
         exit 1
     fi
-elif [ "x$repo_name" != "xcurrent" ] && [ "x$repo_name" != "xsecurity-testing" ]; then
+elif [ "$repo_name" == "current" ] && [ "$repo_name" != "security-testing" ]; then
     echo "Unsupported target repo" >&2
     exit 1
 fi
@@ -79,7 +79,7 @@ upload_for_release() {
     # for templates verify for each separately
     if [ "$component" != "linux-template-builder" ]; then
         actual_commit_sha=$(git -C "$local_builder_dir/qubes-src/$component" rev-parse HEAD)
-        if [ "x$commit_sha" != "x$actual_commit_sha" ]; then
+        if [ "$commit_sha" != "$actual_commit_sha" ]; then
             echo "Repository have changed in the meantime (current: $actual_commit_sha)" >&2
             return 1
         fi
@@ -92,7 +92,7 @@ upload_for_release() {
 
     # if no specific distribution was requested, upload all of them, unless template
     if [ "$component" != "linux-template-builder" ] && \
-            [ "x$dists_and_end" = "xrepo" ]; then
+            [ "$dists_and_end" == "repo" ]; then
         if [ "${allowed_dists% dom0}" = "$allowed_dists" ]; then
             # exclude dom0
             export DIST_DOM0=""
@@ -135,12 +135,12 @@ upload_for_release() {
     for dist_pair in $dists_and_end; do
         package_set=${dist_pair%%-*}
         dist=${dist_pair#*-}
-        if [ "x$package_set" = "xdom0" ]; then
+        if [ "$package_set" == "dom0" ]; then
             if echo " $supported_dists_dom0 " | grep -q " $dist "; then
                 requested_dists_dom0="$requested_dists_dom0 $dist"
             fi
             # don't fail otherwise - maybe builder in other VM will handle it
-        elif [ "x$package_set" = "xvm" ]; then
+        elif [ "$package_set" = "vm" ]; then
             if echo " $supported_dists_vm " | grep -q " $dist "; then
                 # for templates verify its version here
                 if [ "$component" = "linux-template-builder" ]; then
@@ -158,7 +158,7 @@ upload_for_release() {
                 requested_dists_vm="$requested_dists_vm $dist"
             fi
             # don't fail otherwise - maybe builder in other VM will handle it
-        elif [ "x$dist_pair" = "xrepo" ]; then
+        elif [ "$dist_pair" == "repo" ]; then
             # end processing here
             break
         fi

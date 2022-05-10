@@ -32,7 +32,17 @@ from qubesbuilder.executors.helpers import getExecutor
 from qubesbuilder.log import get_logger
 
 
-STAGES = ["fetch", "prep", "pre", "build", "post", "verify", "sign", "publish", "upload"]
+STAGES = [
+    "fetch",
+    "prep",
+    "pre",
+    "build",
+    "post",
+    "verify",
+    "sign",
+    "publish",
+    "upload",
+]
 STAGES_ALIAS = {
     "f": "fetch",
     "b": "build",
@@ -40,7 +50,7 @@ STAGES_ALIAS = {
     "v": "verify",
     "s": "sign",
     "pu": "publish",
-    "u": "upload"
+    "u": "upload",
 }
 log = get_logger("config")
 
@@ -102,7 +112,13 @@ class Config:
                     ) from e
             final_conf.update(conf)
 
-            for key in ("distributions", "templates", "components", "stages", "plugins"):
+            for key in (
+                "distributions",
+                "templates",
+                "components",
+                "stages",
+                "plugins",
+            ):
                 if f"+{key}" in final_conf.keys():
                     final_conf.setdefault(key, [])
                     final_conf[key] += final_conf[f"+{key}"]
@@ -223,6 +239,6 @@ class Config:
             maintainers=options.get("maintainers", maintainers),
             insecure_skip_checking=insecure_skip_checking,
             less_secure_signed_commits_sufficient=less_secure_signed_commits_sufficient,
-            timeout=options.get("timeout", timeout)
+            timeout=options.get("timeout", timeout),
         )
         return component

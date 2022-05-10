@@ -22,7 +22,7 @@ keyring_path="$HOME/.config/qubes-builder-github/trusted-keys-for-commands.gpg"
 
 scripts_dir="/usr/local/lib/qubes-builder-github"
 
-# shellcheck source=lib/functions.sh
+# shellcheck source=qubesbuilder/plugins/github/lib/functions.sh
 . "$scripts_dir/functions.sh"
 
 command_signer=

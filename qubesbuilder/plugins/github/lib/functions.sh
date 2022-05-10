@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ###
 ### Common setup
@@ -81,6 +81,7 @@ read_stdin_command_and_verify_signature() {
     # - [45] means that only version 4 and 5 signatures are allowed
     # - (8|9|10) means that only SHA256, SHA384, and SHA512 are allowed
     # - 01 means that only type 1 signatures are allowed
+    # shellcheck disable=SC2034
     fpr=$(grep -Po \
 	    '^\[GNUPG:] VALIDSIG [0-9A-F]{40} 202[2-9](-[0-9]{2}){2} [1-9][0-9]+ [0-9]+ [45] 0 [0-9]+ (8|9|10) 01 \K([0-9A-F]{40})$' \
             "$tmpdir/gpg-status") || {

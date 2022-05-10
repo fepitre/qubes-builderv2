@@ -43,7 +43,7 @@ class ApiError(Exception):
 
     def to_dict(self):
         rv = dict(self.payload or ())
-        rv['message'] = self.message
+        rv["message"] = self.message
         return rv
 
 
@@ -56,13 +56,12 @@ def read_config():
       ]
     }
     """
-    config_path = os.environ.get('WEBHOOKS_CONFIG',
-                                 '/home/user/webhooks/webhooks.conf')
-    with open(config_path, 'r') as cfd:
+    config_path = os.environ.get("WEBHOOKS_CONFIG", "/home/user/webhooks/webhooks.conf")
+    with open(config_path, "r") as cfd:
         conf = json.loads(cfd.read())
 
-    if not conf.get('services'):
-        raise AttributeError('Services not provided')
+    if not conf.get("services"):
+        raise AttributeError("Services not provided")
 
     return conf
 
@@ -79,32 +78,35 @@ def handle_invalid_usage(error):
     return response
 
 
-@app.route('/api/services/<string:service_name>', methods=['POST'])
+@app.route("/api/services/<string:service_name>", methods=["POST"])
 def run(service_name):
     """
     POST run service
     """
     event_type_github = request.headers.get("X-GitHub-Event", "")
     event_type_gitlab = request.headers.get("X-Gitlab-Event", "")
-    if event_type_github not in ("push", "issue_comment", "pull_request") and \
-            event_type_gitlab not in ("Pipeline Hook", "Job Hook"):
-        return Response("OK", status=200, mimetype='text/plain')
+    if event_type_github not in (
+        "push",
+        "issue_comment",
+        "pull_request",
+    ) and event_type_gitlab not in ("Pipeline Hook", "Job Hook"):
+        return Response("OK", status=200, mimetype="text/plain")
 
     if service_name not in webhooks_config.get("services", []):
-        raise ApiError('Unknown service', status_code=404)
+        raise ApiError("Unknown service", status_code=404)
 
     try:
-        module = importlib.import_module('services.%s' % service_name)
+        module = importlib.import_module("services.%s" % service_name)
     except (ImportError, ModuleNotFoundError, TypeError):
-        raise ApiError('Cannot import service', status_code=500)
+        raise ApiError("Cannot import service", status_code=500)
 
     service = module.Service()
     payload = json.loads(request.data)
     service.handle(payload)
 
     # return Response("OK", status=200, mimetype='application/json')
-    return Response("OK", status=200, mimetype='text/plain')
+    return Response("OK", status=200, mimetype="text/plain")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
