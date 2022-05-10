@@ -169,7 +169,7 @@ class QubesComponent:
     def get_source_commit_hash(self):
         cmd = ["git", "-C", str(self.source_dir), "rev-parse", "HEAD^{}"]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             return result.stdout.strip("\n")
         except subprocess.CalledProcessError as e:
             raise ComponentError(
