@@ -194,6 +194,30 @@ class RPMPublishPlugin(PublishPlugin):
         # Sign metadata
         self.sign_metadata(build=build, sign_key=sign_key, target_dir=target_dir)
 
+    def create_metalink(self, repository_publish):
+        repository_dir = (
+            self.get_repository_publish_dir()
+            / self.dist.type
+            / self.qubes_release
+            / repository_publish
+            / self.dist.package_set
+            / self.dist.name
+        )
+        repomd = repository_dir / "repodata/repomd.xml"
+        if not repomd.exists():
+            msg = f"{self.component}:{self.dist}: Cannot find repomd '{repomd}'."
+            raise PublishError(msg)
+
+        log.info(f"Creating metalink for {repomd}.")
+        try:
+            cmd = [
+                f"mkmetalink -b {repository_dir} -- {self.plugins_dir}/publish_rpm/mirrors.list {repomd} > {repomd}.metalink"
+            ]
+            self.executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.component}:{self.dist}: Failed to create metalink for '{repomd}'."
+            log.error(msg)
+
     def run(
         self,
         stage: str,
@@ -280,6 +304,8 @@ class RPMPublishPlugin(PublishPlugin):
                 log.info(
                     f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
                 )
+                # Update metalink in case of previous failure on creating it
+                self.create_metalink(repository_publish)
                 return
 
             # Check if we can publish into current
@@ -329,6 +355,8 @@ class RPMPublishPlugin(PublishPlugin):
                     repository_publish=repository_publish,
                 )
 
+                self.create_metalink(repository_publish)
+
                 # Save package information we published for committing into current
                 info.setdefault("repository-publish", []).append(
                     {
@@ -359,6 +387,8 @@ class RPMPublishPlugin(PublishPlugin):
                     sign_key=sign_key,
                     repository_publish=repository_publish,
                 )
+
+                self.create_metalink(repository_publish)
 
                 # Save package information we published for committing into current. If the packages
                 # are not published into another repository, we delete the publish stage information.
