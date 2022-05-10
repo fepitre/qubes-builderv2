@@ -167,7 +167,7 @@ class QubesComponent:
         return self._source_hash
 
     def get_source_commit_hash(self):
-        cmd = ["git", "-C", self.source_dir, "rev-parse", "HEAD^{}"]
+        cmd = ["git", "-C", str(self.source_dir), "rev-parse", "HEAD^{}"]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
             return result.stdout.strip("\n")
