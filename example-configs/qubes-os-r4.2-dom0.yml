@@ -54,4 +54,5 @@ repository-publish:
   components: current-testing
 
 #repository-upload-remote-host:
-#  rpm: user@yum.qubes-os.org/some/path
+#  rpm: user@yum.qubes-os.org:/some/path
+#  deb: user@deb.qubes-os.org:/another/path

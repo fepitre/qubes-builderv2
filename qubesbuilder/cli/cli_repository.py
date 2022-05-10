@@ -4,9 +4,8 @@ import datetime
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.plugins.helpers import getPublishPlugin, getTemplatePlugin
-from qubesbuilder.plugins import DistributionPlugin
+from qubesbuilder.plugins.upload import UploadPlugin
 from qubesbuilder.plugins.publish import (
-    MIN_AGE_DAYS,
     COMPONENT_REPOSITORIES,
     PluginError,
 )
@@ -205,6 +204,33 @@ def check_release_status_for_component(
                 click.secho("not released")
 
 
+#
+# Upload
+#
+@click.command(
+    name="upload",
+    short_help="Upload packages to remove location.",
+)
+@click.pass_obj
+def upload(obj: ContextObj):
+    executor = obj.config.get_stages()["publish"]["executor"]
+    for dist in obj.distributions:
+        upload_plugin = UploadPlugin(
+            dist=dist,
+            plugins_dir=obj.config.get_plugins_dir(),
+            executor=executor,
+            artifacts_dir=obj.config.get_artifacts_dir(),
+            verbose=obj.config.verbose,
+            debug=obj.config.debug,
+            qubes_release=obj.config.get("qubes-release", {}),
+            repository_upload_remote_host=obj.config.get(
+                "repository-upload-remote-host", {}
+            ),
+        )
+        upload_plugin.run(stage="upload")
+
+
 repository.add_command(publish)
 repository.add_command(unpublish)
 repository.add_command(check_release_status_for_component)
+repository.add_command(upload)

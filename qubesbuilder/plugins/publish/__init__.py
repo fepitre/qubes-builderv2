@@ -18,13 +18,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime
-import os
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
-from qubesbuilder.executors.local import LocalExecutor
+from qubesbuilder.executors.local import LocalExecutor, ExecutorError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import DistributionPlugin, PluginError
 
@@ -70,17 +69,10 @@ class PublishPlugin(DistributionPlugin):
         )
 
         self.executor = executor
-        self.verbose = verbose
-        self.debug = debug
         self.qubes_release = qubes_release
         self.repository_publish = repository_publish
         self.gpg_client = gpg_client
         self.sign_key = sign_key
-
-    def run(self, stage: str):
-        if stage == "publish":
-            if not isinstance(self.executor, LocalExecutor):
-                raise PublishError("This plugin only supports local executor.")
 
     def validate_repository_publish(self, repository_publish):
         if repository_publish not in (
@@ -128,3 +120,8 @@ class PublishPlugin(DistributionPlugin):
             return False
 
         return True
+
+    def run(self, stage: str):
+        if stage in ("publish", "upload"):
+            if not isinstance(self.executor, LocalExecutor):
+                raise PublishError("This plugin only supports local executor.")

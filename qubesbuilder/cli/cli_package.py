@@ -6,6 +6,7 @@ from qubesbuilder.config import STAGES, STAGES_ALIAS
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.plugins.source import FetchPlugin
+from qubesbuilder.plugins.upload import UploadPlugin
 from qubesbuilder.plugins.helpers import (
     getSourcePlugin,
     getBuildPlugin,
@@ -98,7 +99,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                     backend_vmm=obj.config.get("backend-vmm", "xen"),
                 ),
             ]
-            for plugin in obj.config.get("plugins"):
+            for plugin in obj.config.get("plugins", []):
                 # For now, we only assume plugin options are provided as dict
                 if not isinstance(plugin, dict):
                     continue
@@ -123,10 +124,27 @@ def _component_stage(obj: ContextObj, stage_name: str):
                         )
                         plugins.append(github_plugin)
                     except KeyError as e:
-                        raise CliError(f"Failed to initialize GitHub plugin: {str(e)}") from e
+                        raise CliError(
+                            f"Failed to initialize GitHub plugin: {str(e)}"
+                        ) from e
 
             for plugin in plugins:
                 plugin.run(stage=stage_name)
+
+    for dist in obj.distributions:
+        upload_plugin = UploadPlugin(
+            dist=dist,
+            plugins_dir=obj.config.get_plugins_dir(),
+            executor=executor,
+            artifacts_dir=obj.config.get_artifacts_dir(),
+            verbose=obj.config.verbose,
+            debug=obj.config.debug,
+            qubes_release=obj.config.get("qubes-release", {}),
+            repository_upload_remote_host=obj.config.get(
+                "repository-upload-remote-host", {}
+            ),
+        )
+        upload_plugin.run(stage=stage_name)
 
 
 @click.command(name="all", short_help="Run all package stages.")
@@ -146,6 +164,12 @@ def fetch(obj: ContextObj):
 @click.pass_obj
 def prep(obj: ContextObj):
     _component_stage(obj=obj, stage_name="prep")
+
+
+@package.command()
+@click.pass_obj
+def pre(obj: ContextObj):
+    _component_stage(obj=obj, stage_name="pre")
 
 
 @package.command()
@@ -178,13 +202,21 @@ def publish(obj: ContextObj):
     _component_stage(obj=obj, stage_name="publish")
 
 
+@package.command()
+@click.pass_obj
+def upload(obj: ContextObj):
+    _component_stage(obj=obj, stage_name="upload")
+
+
 package.add_command(fetch)
 package.add_command(prep)
+package.add_command(pre)
 package.add_command(build)
 package.add_command(post)
 package.add_command(verify)
 package.add_command(sign)
 package.add_command(publish)
+package.add_command(upload)
 package.add_command(_all_package_stage)
 
 package.add_alias(**STAGES_ALIAS)
