@@ -7,6 +7,7 @@
 import argparse
 import requests
 import json
+
 updates_repo = "QubesOS/updates-status"
 
 q_template = """query {{
@@ -44,11 +45,9 @@ comment_mutation = """mutation {{
 
 
 def graphql(query):
-    r = requests.post("https://api.github.com/graphql",
-            json={'query': query},
-            auth=())
+    r = requests.post("https://api.github.com/graphql", json={"query": query}, auth=())
     if not r.ok:
-        raise Exception('API call failed: %s' % r.text)
+        raise Exception("API call failed: %s" % r.text)
     return r.text
 
 
@@ -56,37 +55,49 @@ def close_issue(issue_id, issue_no, repo=updates_repo):
     # Github API v4 lack closeIssue mutation
     # https://platform.github.community/t/add-closeissue-mutation/3250/3
 
-    r = requests.patch('https://api.github.com/repos/{}/issues/{}'.format(
-                repo, issue_no),
-            json={'state': 'closed'}, auth=())
+    r = requests.patch(
+        "https://api.github.com/repos/{}/issues/{}".format(repo, issue_no),
+        json={"state": "closed"},
+        auth=(),
+    )
     if not r.ok:
-        raise Exception('API call failed: %d %s' % (r.status_code, r.text))
+        raise Exception("API call failed: %d %s" % (r.status_code, r.text))
+
 
 def comment_issue(issue_id, issue_no, body, repo=updates_repo):
-    r = requests.post('https://api.github.com/repos/{}/issues/{}/comments'.format(
-                repo, issue_no),
-            json={'body': body}, auth=())
+    r = requests.post(
+        "https://api.github.com/repos/{}/issues/{}/comments".format(repo, issue_no),
+        json={"body": body},
+        auth=(),
+    )
     if not r.ok:
-        raise Exception('API call failed: %d %s' % (r.status_code, r.text))
+        raise Exception("API call failed: %d %s" % (r.status_code, r.text))
     return
     # use this when fully switching to API v4:
     comment_graphql = comment_mutation.format(subjectid=issue_id, body=body)
     print(comment_graphql)
     return graphql(comment_graphql)
 
+
 def add_label(issue_no, label, repo=updates_repo):
-    resp = requests.post("https://api.github.com/repos/{}/issues/{}/labels".format(
-        repo, issue_no),
+    resp = requests.post(
+        "https://api.github.com/repos/{}/issues/{}/labels".format(repo, issue_no),
         json=[label],
-        auth=())
+        auth=(),
+    )
     if not resp.ok:
-        print("WARNING: failed to add {} label to issue {}: {} {}".
-            format(label, issue_no,
-            resp.status_code, resp.content))
+        print(
+            "WARNING: failed to add {} label to issue {}: {} {}".format(
+                label, issue_no, resp.status_code, resp.content
+            )
+        )
+
 
 parser = argparse.ArgumentParser("cleanup-updates-status")
 
-parser.add_argument('--dry-run', '-n', action='store_true', help='only print what would be done')
+parser.add_argument(
+    "--dry-run", "-n", action="store_true", help="only print what would be done"
+)
 
 
 def main():
@@ -96,58 +107,83 @@ def main():
 
     data = graphql(q)
     data = json.loads(data)
-    issues = [e['node'] for e in data['data']['resource']['issues']['edges']]
-    while data['data']['resource']['issues']['pageInfo']['hasNextPage']:
-        cursor = data['data']['resource']['issues']['edges'][-1]['cursor']
-        q = q_template.format(repo=updates_repo, pagination="first:100 after:\"{}\"".format(cursor))
+    issues = [e["node"] for e in data["data"]["resource"]["issues"]["edges"]]
+    while data["data"]["resource"]["issues"]["pageInfo"]["hasNextPage"]:
+        cursor = data["data"]["resource"]["issues"]["edges"][-1]["cursor"]
+        q = q_template.format(
+            repo=updates_repo, pagination='first:100 after:"{}"'.format(cursor)
+        )
         data = graphql(q)
         data = json.loads(data)
-        issues.extend(e['node'] for e in data['data']['resource']['issues']['edges'])
+        issues.extend(e["node"] for e in data["data"]["resource"]["issues"]["edges"])
 
     ### cleanup updates fully uploaded to stable
 
     for issue in issues:
-        issue_no = issue['number']
-        labels = [l['name'] for l in issue['labels']['nodes']]
-        print('Issue {} labels: {!r}'.format(issue_no, labels))
+        issue_no = issue["number"]
+        labels = [l["name"] for l in issue["labels"]["nodes"]]
+        print("Issue {} labels: {!r}".format(issue_no, labels))
         # there is at least one -stable label and no -cur-test label is left
-        if any(l.endswith('-stable') for l in labels) and \
-                all(not l.endswith('-cur-test') for l in labels):
-            print('Closing {} (stable): {}'.format(issue_no, issue['title']))
+        if any(l.endswith("-stable") for l in labels) and all(
+            not l.endswith("-cur-test") for l in labels
+        ):
+            print("Closing {} (stable): {}".format(issue_no, issue["title"]))
             if not args.dry_run:
-                close_issue(issue['id'], issue_no)
-        elif any(l.endswith('-stable') for l in labels):
+                close_issue(issue["id"], issue_no)
+        elif any(l.endswith("-stable") for l in labels):
             # some -cur-test left
-            print('Partial upload {}: {} ({})'.format(issue_no, issue['title'],
-                ' '.join(l for l in labels if l.endswith('-cur-test'))))
+            print(
+                "Partial upload {}: {} ({})".format(
+                    issue_no,
+                    issue["title"],
+                    " ".join(l for l in labels if l.endswith("-cur-test")),
+                )
+            )
 
     ### cleanup updates superseded by later version
 
     # dict of component"-"release -> ( number, title, [ labels ] )
     latest_updates = {}
-    for issue in sorted(issues, key=lambda x: -int(x['number'])):
-        issue_no = issue['number']
-        component = issue['title'].split(' ')[0]
-        release = issue['title'].split('(')[-1].rstrip(')')
-        labels = [l['name'].replace('-cur-test', '').replace('-stable', '') for l in issue['labels']['nodes']
-                  if l['name'] != 'buggy']
-        key = '{}-{}'.format(component, release)
+    for issue in sorted(issues, key=lambda x: -int(x["number"])):
+        issue_no = issue["number"]
+        component = issue["title"].split(" ")[0]
+        release = issue["title"].split("(")[-1].rstrip(")")
+        labels = [
+            l["name"].replace("-cur-test", "").replace("-stable", "")
+            for l in issue["labels"]["nodes"]
+            if l["name"] != "buggy"
+        ]
+        key = "{}-{}".format(component, release)
         if key in latest_updates:
             latest_issue, latest_title, latest_labels = latest_updates[key]
-            if all(label in latest_labels for label in labels
-                    if label.endswith('cur-test') or label.endswith('-testing')):
-                print('Closing {} (superseded by {}): {}'.format(
-                    issue_no, latest_issue, issue['title']))
+            if all(
+                label in latest_labels
+                for label in labels
+                if label.endswith("cur-test") or label.endswith("-testing")
+            ):
+                print(
+                    "Closing {} (superseded by {}): {}".format(
+                        issue_no, latest_issue, issue["title"]
+                    )
+                )
                 if not args.dry_run:
-                    comment_issue(issue['id'], issue_no, 'Superseded by #{}'.format(latest_issue))
-                    close_issue(issue['id'], issue_no)
+                    comment_issue(
+                        issue["id"], issue_no, "Superseded by #{}".format(latest_issue)
+                    )
+                    close_issue(issue["id"], issue_no)
             else:
-                print('Update {} ({}) newer than {} ({}) lack {} labels'.format(
-                            latest_issue, latest_title, issue_no, issue['title'],
-                            [label for label in labels if label not in latest_labels]))
+                print(
+                    "Update {} ({}) newer than {} ({}) lack {} labels".format(
+                        latest_issue,
+                        latest_title,
+                        issue_no,
+                        issue["title"],
+                        [label for label in labels if label not in latest_labels],
+                    )
+                )
         else:
-            latest_updates[key] = (issue_no, issue['title'], labels)
+            latest_updates[key] = (issue_no, issue["title"], labels)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
