@@ -43,7 +43,7 @@ class QubesComponent:
         insecure_skip_checking: bool = False,
         less_secure_signed_commits_sufficient: bool = False,
         maintainers: List = None,
-        timeout: int = None
+        timeout: int = None,
     ):
         self.source_dir: Path = (
             Path(source_dir) if isinstance(source_dir, str) else source_dir
@@ -165,6 +165,16 @@ class QubesComponent:
             ).hexdigest()
             self._source_hash = str(source_dir_hash)
         return self._source_hash
+
+    def get_source_commit_hash(self):
+        cmd = ["git", "-C", self.source_dir, "rev-parse", "HEAD^{}"]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            return result.stdout.strip("\n")
+        except subprocess.CalledProcessError as e:
+            raise ComponentError(
+                f"Cannot determine source commit hash for {self.source_dir}."
+            ) from e
 
     def to_str(self) -> str:
         return self.source_dir.name

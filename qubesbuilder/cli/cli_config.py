@@ -1,3 +1,5 @@
+import pathlib
+
 import click
 import json
 import yaml
@@ -69,13 +71,15 @@ def get_components(obj: ContextObj, attribute: str):
         result = c
         if attribute:
             try:
-                result = result.__getattribute__(attribute)
+                if attribute == "source_hash":
+                    result = result.get_source_hash()
+                elif attribute == "source_commit_hash":
+                    result = result.get_source_commit_hash()
+                else:
+                    result = result.__getattribute__(attribute)
             except AttributeError:
                 return
-        if isinstance(result, str):
-            click.secho(result)
-        else:
-            click.secho(yaml.dump(result))
+        click.secho(str(result))
 
 
 @config.command(name="get-distributions")
