@@ -78,10 +78,10 @@ def test_fetch_skip():
         DEFAULT_BUILDER_CONF, "package", "fetch", stderr=subprocess.STDOUT
     ).decode()
     for sentence in [
-        "python-qasync: source already fetched. Skipping.",
-        "core-vchan-xen: source already fetched. Skipping.",
-        "core-qrexec: source already fetched. Skipping.",
-        "desktop-linux-xfce4-xfwm4: source already fetched. Skipping.",
+        "python-qasync: source already fetched. Updating.",
+        "core-vchan-xen: source already fetched. Updating.",
+        "core-qrexec: source already fetched. Updating.",
+        "desktop-linux-xfce4-xfwm4: source already fetched. Updating.",
         "python-qasync: file qasync-0.23.0.tar.gz already downloaded. Skipping.",
         "desktop-linux-xfce4-xfwm4: file xfwm4-4.14.2.tar.bz2 already downloaded. Skipping.",
     ]:
