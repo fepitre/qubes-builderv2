@@ -46,7 +46,10 @@ class Service:
                 return
             if obj['action'] != 'created':
                 return
-            comment_body = obj['comment']['body']
+            try:
+                comment_body = obj['comment']['body']
+            except TypeError:
+                return
             if type(comment_body) is not str:
                 return
             # strip carriage returns
