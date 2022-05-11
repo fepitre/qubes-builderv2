@@ -47,9 +47,22 @@ class Service:
             if obj['action'] != 'created':
                 return
             comment_body = obj['comment']['body']
-            # skip comment not having signed part at all
-            if '-----BEGIN PGP SIGNED MESSAGE-----' not in comment_body:
+            if type(comment_body) is not str:
                 return
+            # strip carriage returns
+            comment_body = comment_body.replace('\r', '')
+            # skip comment not having signed part at all
+            try:
+                offset = comment_body.index('-----BEGIN PGP SIGNED MESSAGE-----\nHash: ')
+            except ValueError:
+                return
+            comment_body = comment_body[offset:]
+            end_index = '\n-----END PGP SIGNATURE-----\n'
+            try:
+                offset = comment_body.index(end_index)
+            except ValueError:
+                return
+            comment_body = comment_body[:offset + len(end_index)]
             try:
                 with open(self.config_path) as config:
                     build_vms = config.read().splitlines()
