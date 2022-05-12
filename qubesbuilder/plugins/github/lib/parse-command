@@ -32,10 +32,10 @@ def check_base64(untrusted_bytes: bytes) -> None:
         else:
             raise ValueError('invalid base64 character')
 
-def check_command(untrusted_cmd: bytes) -> None:
-    if len(untrusted_cmd) > 255:
+def check_command(untrusted_command: bytes) -> None:
+    if len(untrusted_command) > 255:
         raise ValueError('command too long')
-    for i in untrusted_cmd:
+    for i in untrusted_command:
         if ((0x41 <= i <= 0x5A) or # A-Z
             (0x61 <= i <= 0x7A) or # a-z
             (0x30 <= i <= 0x39) or # 0-9
@@ -46,8 +46,13 @@ def check_command(untrusted_cmd: bytes) -> None:
             pass
         else:
             raise ValueError('invalid character in command')
+    if not (untrusted_command.startswith(b'Build-template ') or
+            untrusted_command.startswith(b'Upload ')):
+        raise ValueError('Unknown command')
+    if untrusted_command[-1] <= 0x20:
+        raise ValueError('Trailing whitespace in command forbidden')
 
-def check_one_signature_packet(untrusted_binary_sig: bytes) -> None:
+def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> None:
     """
     Check that a byte string is exactly one OpenPGP signature packet.
     The contents of the packet are not checked.
@@ -56,7 +61,7 @@ def check_one_signature_packet(untrusted_binary_sig: bytes) -> None:
         raise ValueError('sig too short')
     untrusted_first_byte = untrusted_binary_sig[0]
     if not (untrusted_first_byte & 0x80):
-        raise ValueError('first bit not zero')
+        raise ValueError('first bit zero')
     packet_length = 0
     if untrusted_first_byte & 0x40:
         # new-format packet
@@ -77,6 +82,7 @@ def check_one_signature_packet(untrusted_binary_sig: bytes) -> None:
         else:
             raise ValueError('unsupported partial-length packet')
     else:
+        # old-format packet
         len_bytes = 1 << (untrusted_first_byte & 0x3)
         tag = (untrusted_first_byte >> 2) & 0xF
         if len_bytes > 4:
@@ -87,6 +93,15 @@ def check_one_signature_packet(untrusted_binary_sig: bytes) -> None:
         raise ValueError('bad signature length')
     if tag != 2:
         raise ValueError('packet is not a signature')
+    if untrusted_binary_sig[len_bytes + 1] != 4:
+        raise ValueError('only version 4 signatures allowed')
+    if untrusted_binary_sig[len_bytes + 2] != 1:
+        raise ValueError('expected signature of type 1, got something else')
+    hash_alg = untrusted_binary_sig[len_bytes + 4]
+    if hash_alg < 8 or hash_alg > 10:
+        raise ValueError('unsupported hash algorithm')
+    if hash_str != (b'SHA256', b'SHA384', b'SHA512')[hash_alg - 8]:
+        raise ValueError('hash algorithm mismatch')
 
 def main(command_file, sig_file) -> None:
     untrusted_input = sys.stdin.buffer.read(65536)
@@ -100,12 +115,10 @@ def main(command_file, sig_file) -> None:
         raise ValueError('junk after end of message')
     if untrusted_input[41:49] not in (b'SHA256\n\n', b'SHA384\n\n', b'SHA512\n\n'):
         raise ValueError('bad hash algorithm')
+    hash_str = untrusted_input[41:47]
 
     untrusted_command, untrusted_sig = untrusted_input[49:].split(b'\n', 1)
     check_command(untrusted_command)
-    if not (untrusted_command.startswith(b'Build-template ') or
-            untrusted_command.startswith(b'Upload ')):
-        raise ValueError('Unknown command')
     if len(untrusted_sig) < len(shortest_sig):
         raise ValueError('sig too short')
     if not untrusted_sig.startswith(sig_start):
@@ -131,13 +144,17 @@ def main(command_file, sig_file) -> None:
             must_be_last = True
             if i[-2] == ord('='):
                 check_base64(i[:-2])
+                if i[-3] not in (65, 81, 103, 119):
+                    raise ValueError('bad base64 line (bad byte before padding)')
+            elif i[-2] not in {48, 52, 56, 65, 69, 73, 77, 81, 85, 89, 99, 103, 107, 111, 115, 119}:
+                raise ValueError('bad base64 line (bad byte before padding)')
             else:
                 check_base64(i[:-1])
         else:
             check_base64(i)
         untrusted_binary.append(base64.b64decode(i))
     untrusted_sig_to_write = b''.join(untrusted_binary)
-    check_one_signature_packet(untrusted_sig_to_write)
+    check_one_signature_packet(untrusted_sig_to_write, hash_str)
     with open(sig_file, 'wb') as s, open(command_file, 'wb') as c:
         s.write(untrusted_sig_to_write)
         s.flush()
