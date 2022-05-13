@@ -23,13 +23,25 @@ inside a Fedora/Debian AppVM have been used by the author for validating the cur
 
 Fedora:
 ```bash
-$ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split python3-pyyaml rpm docker python3-docker podman python3-podman reprepro
+$ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec
 ```
 
 Debian:
 ```bash
-$ sudo apt install python3-packaging createrepo-c devscripts gpg qubes-gpg-split python3-yaml rpm docker python3-docker reprepro
+$ sudo apt install python3-packaging createrepo-c devscripts gpg qubes-gpg-split python3-yaml rpm docker python3-docker reprepro python3-pathspec
 ```
+
+Install `mkmetalink`:
+
+Install https://github.com/QubesOS/qubes-infrastructure-mirrors:
+```bash
+$ git clone https://github.com/QubesOS/qubes-infrastructure-mirrors
+$ cd qubes-infrastructure-mirrors
+$ sudo python3 setup.py build
+$ sudo python3 setup.py install
+```
+
+> Remark: Verify commit signature before building it.
 
 ### Docker executor
 
