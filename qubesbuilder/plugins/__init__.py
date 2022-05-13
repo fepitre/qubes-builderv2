@@ -130,11 +130,57 @@ class ComponentPlugin(Plugin):
         self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
         self._source_hash = ""
 
-    def get_component_dir(self, stage: str):
+    def get_component_artifacts_dir(self, stage: str):
         path = self.artifacts_dir / "components" / self.component.name
         path = path / f"{self.component.version}-{self.component.release}"
-        path = path / stage
+        path = path / "nodist" / stage
         return path.resolve()
+
+    def get_artifacts_info(
+        self, stage: str, basename: str, artifacts_dir: Path = None
+    ) -> Dict:
+        artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
+        fileinfo = artifacts_dir / f"{basename}.{stage}.yml"
+        if fileinfo.exists():
+            try:
+                with open(fileinfo, "r") as f:
+                    artifacts_info = yaml.safe_load(f.read())
+                return artifacts_info or {}
+            except (PermissionError, yaml.YAMLError) as e:
+                msg = f"{self.component}:{basename}: Failed to read info from {stage} stage."
+                raise PluginError(msg) from e
+        return {}
+
+    def save_artifacts_info(
+        self, stage: str, basename: str, info: dict, artifacts_dir: Path = None
+    ):
+        artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(artifacts_dir / f"{basename}.{stage}.yml", "w") as f:
+                f.write(yaml.safe_dump(info))
+        except (PermissionError, yaml.YAMLError) as e:
+            msg = (
+                f"{self.component}:{basename}: Failed to write info for {stage} stage."
+            )
+            raise PluginError(msg) from e
+
+    def delete_artifacts_info(
+        self, stage: str, basename: str, artifacts_dir: Path = None
+    ):
+        artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
+        info_path = artifacts_dir / f"{basename}.{stage}.yml"
+        if info_path.exists():
+            info_path.unlink()
+
+    def check_stage_artifacts(self, stage: str, artifacts_dir: Path = None):
+        for build in self.parameters.get("build", []):
+            build_bn = build.with_suffix("").name
+            if not self.get_artifacts_info(
+                stage=stage, basename=build_bn, artifacts_dir=artifacts_dir
+            ):
+                msg = f"Missing '{stage}' stage artifacts for {build_bn}!"
+                raise PluginError(msg)
 
 
 class DistributionPlugin(ComponentPlugin):
@@ -188,60 +234,46 @@ class DistributionPlugin(ComponentPlugin):
                 PurePath(spec) for spec in self.parameters.get("spec", [])
             ]
 
-    def get_dist_component_artifacts_dir(self, stage: str):
-        path = (
-            self.artifacts_dir
-            / "components"
-            / self.component.name
-            / f"{self.component.version}-{self.component.release}/{self.dist.distribution}"
-            / stage
-        )
-        return path
-
     def get_dist_component_artifacts_dir_history(self, stage: str):
         path = (self.artifacts_dir / "components" / self.component.name).resolve()
         return list(path.glob(f"*/{self.dist.distribution}/{stage}"))
 
-    def get_artifacts_info(
+    def get_dist_component_artifacts_dir(self, stage: str):
+        path = self.artifacts_dir / "components" / self.component.name
+        path = path / f"{self.component.version}-{self.component.release}"
+        path = path / self.dist.distribution / stage
+        return path.resolve()
+
+    def get_dist_artifacts_info(
         self, stage: str, basename: str, artifacts_dir: Path = None
     ) -> Dict:
-        artifacts_dir = artifacts_dir or self.get_dist_component_artifacts_dir(stage)
-        fileinfo = artifacts_dir / f"{basename}.{stage}.yml"
-        if fileinfo.exists():
-            try:
-                with open(fileinfo, "r") as f:
-                    artifacts_info = yaml.safe_load(f.read())
-                return artifacts_info or {}
-            except (PermissionError, yaml.YAMLError) as e:
-                msg = f"{self.component}:{self.dist}:{basename}: Failed to read info from {stage} stage."
-                raise PluginError(msg) from e
-        return {}
+        return self.get_artifacts_info(
+            stage=stage,
+            basename=basename,
+            artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
+        )
 
-    def save_artifacts_info(
+    def save_dist_artifacts_info(
         self, stage: str, basename: str, info: dict, artifacts_dir: Path = None
     ):
-        artifacts_dir = artifacts_dir or self.get_dist_component_artifacts_dir(stage)
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            with open(artifacts_dir / f"{basename}.{stage}.yml", "w") as f:
-                f.write(yaml.safe_dump(info))
-        except (PermissionError, yaml.YAMLError) as e:
-            msg = f"{self.component}:{self.dist}:{basename}: Failed to write info for {stage} stage."
-            raise PluginError(msg) from e
+        return self.save_artifacts_info(
+            stage=stage,
+            basename=basename,
+            artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
+            info=info,
+        )
 
-    def delete_artifacts_info(
+    def delete_dist_artifacts_info(
         self, stage: str, basename: str, artifacts_dir: Path = None
     ):
-        artifacts_dir = artifacts_dir or self.get_dist_component_artifacts_dir(stage)
-        info_path = artifacts_dir / f"{basename}.{stage}.yml"
-        if info_path.exists():
-            info_path.unlink()
+        return self.delete_artifacts_info(
+            stage=stage,
+            basename=basename,
+            artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
+        )
 
-    def check_stage_artifacts(self, stage: str, artifacts_dir: Path = None):
-        for build in self.parameters["build"]:
-            build_bn = build.with_suffix("").name
-            if not self.get_artifacts_info(
-                stage=stage, basename=build_bn, artifacts_dir=artifacts_dir
-            ):
-                msg = f"Missing '{stage}' stage artifacts for {build_bn}!"
-                raise PluginError(msg)
+    def check_dist_stage_artifacts(self, stage: str, artifacts_dir: Path = None):
+        return self.check_stage_artifacts(
+            stage=stage,
+            artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
+        )

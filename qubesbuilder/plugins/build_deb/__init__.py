@@ -123,17 +123,12 @@ class DEBBuildPlugin(BuildPlugin):
         super().run(stage=stage)
 
         if stage == "build":
-            # Check if we have Debian related content defined
-            if not self.parameters.get("build", None):
-                log.info(f"{self.component}: nothing to be done for {self.dist}")
-                return
-
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_artifacts_info(
+                == self.get_dist_artifacts_info(
                     stage=stage, basename=directory.with_suffix("").name
                 ).get("source-hash", None)
                 for directory in self.parameters["build"]
@@ -163,7 +158,7 @@ class DEBBuildPlugin(BuildPlugin):
                 directory_bn = directory.with_suffix("").name
 
                 # Read information from source stage
-                source_info = self.get_artifacts_info(
+                source_info = self.get_dist_artifacts_info(
                     stage="prep", basename=directory_bn
                 )
 
@@ -309,4 +304,6 @@ class DEBBuildPlugin(BuildPlugin):
                 info = source_info
                 info["packages"] = packages_list
                 info["source-hash"] = self.component.get_source_hash()
-                self.save_artifacts_info(stage=stage, basename=directory_bn, info=info)
+                self.save_dist_artifacts_info(
+                    stage=stage, basename=directory_bn, info=info
+                )

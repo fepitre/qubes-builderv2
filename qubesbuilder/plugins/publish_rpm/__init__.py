@@ -94,7 +94,7 @@ class RPMPublishPlugin(PublishPlugin):
         build_bn = build.with_suffix("").name
 
         # Read information from build stage
-        build_info = self.get_artifacts_info(stage="build", basename=build_bn)
+        build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
 
         if not build_info.get("rpms", []) and not build_info.get("srpm", None):
             log.info(f"{self.component}:{self.dist}:{build}: Nothing to publish.")
@@ -154,7 +154,7 @@ class RPMPublishPlugin(PublishPlugin):
         # spec file basename will be used as prefix for some artifacts
         build_bn = build.with_suffix("").name
         # Read information from build stage
-        build_info = self.get_artifacts_info(stage="build", basename=build_bn)
+        build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
 
         if not build_info.get("rpms", []) and not build_info.get("srpm", None):
             log.info(f"{self.component}:{self.dist}:{build}: Nothing to unpublish.")
@@ -231,11 +231,6 @@ class RPMPublishPlugin(PublishPlugin):
         """
         # Run stage defined by parent class
         super().run(stage=stage)
-
-        # Check if we have RPM related content defined
-        if not self.parameters.get("build", []):
-            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-            return
 
         # Check if we have a signing key provided
         sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
@@ -325,8 +320,12 @@ class RPMPublishPlugin(PublishPlugin):
 
             for build in self.parameters["build"]:
                 build_bn = build.with_suffix("").name
-                build_info = self.get_artifacts_info(stage="build", basename=build_bn)
-                publish_info = self.get_artifacts_info(stage=stage, basename=build_bn)
+                build_info = self.get_dist_artifacts_info(
+                    stage="build", basename=build_bn
+                )
+                publish_info = self.get_dist_artifacts_info(
+                    stage=stage, basename=build_bn
+                )
 
                 if not build_info:
                     raise PublishError(
@@ -364,7 +363,9 @@ class RPMPublishPlugin(PublishPlugin):
                         "timestamp": datetime.utcnow().strftime("%Y%m%d%H%MZ"),
                     }
                 )
-                self.save_artifacts_info(stage="publish", basename=build_bn, info=info)
+                self.save_dist_artifacts_info(
+                    stage="publish", basename=build_bn, info=info
+                )
 
         if stage == "publish" and unpublish:
             if not all(
@@ -380,7 +381,9 @@ class RPMPublishPlugin(PublishPlugin):
 
             for build in self.parameters["build"]:
                 build_bn = build.with_suffix("").name
-                publish_info = self.get_artifacts_info(stage=stage, basename=build_bn)
+                publish_info = self.get_dist_artifacts_info(
+                    stage=stage, basename=build_bn
+                )
 
                 self.unpublish(
                     build=build,
@@ -398,11 +401,11 @@ class RPMPublishPlugin(PublishPlugin):
                     if r["name"] != repository_publish
                 ]
                 if publish_info.get("repository-publish", []):
-                    self.save_artifacts_info(
+                    self.save_dist_artifacts_info(
                         stage="publish", basename=build_bn, info=publish_info
                     )
                 else:
                     log.info(
                         f"{self.component}:{self.dist}:{build_bn}: Not published anywhere else, deleting publish info."
                     )
-                    self.delete_artifacts_info(stage="publish", basename=build_bn)
+                    self.delete_dist_artifacts_info(stage="publish", basename=build_bn)

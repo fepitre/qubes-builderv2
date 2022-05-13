@@ -94,7 +94,7 @@ class RPMSourcePlugin(SourcePlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_artifacts_info(stage, build.with_suffix("").name).get(
+                == self.get_dist_artifacts_info(stage, build.with_suffix("").name).get(
                     "source-hash", None
                 )
                 for build in self.parameters["build"]
@@ -108,7 +108,7 @@ class RPMSourcePlugin(SourcePlugin):
             distfiles_dir = self.get_distfiles_dir()
 
             # Get fetch info
-            fetch_info = self.get_artifacts_info("fetch", "source")
+            fetch_info = self.get_dist_artifacts_info("fetch", "source")
 
             # Clean previous build artifacts
             if artifacts_dir.exists():
@@ -262,7 +262,9 @@ class RPMSourcePlugin(SourcePlugin):
                             "source-hash": self.component.get_source_hash(),
                         }
                     )
-                    self.save_artifacts_info(stage=stage, basename=build_bn, info=info)
+                    self.save_dist_artifacts_info(
+                        stage=stage, basename=build_bn, info=info
+                    )
 
                     # Clean previous text files as all info are stored inside source_info
                     os.remove(artifacts_dir / f"{build_bn}_package_release_name")

@@ -131,11 +131,6 @@ class RPMBuildPlugin(BuildPlugin):
         super().run(stage=stage)
 
         if stage == "build":
-            # Check if we have RPM related content defined
-            if not self.parameters.get("build", []):
-                log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-                return
-
             distfiles_dir = self.get_distfiles_dir()
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
             rpms_dir = artifacts_dir / "rpm"
@@ -143,7 +138,7 @@ class RPMBuildPlugin(BuildPlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_artifacts_info(stage, build.with_suffix("").name).get(
+                == self.get_dist_artifacts_info(stage, build.with_suffix("").name).get(
                     "source-hash", None
                 )
                 for build in self.parameters["build"]
@@ -177,7 +172,9 @@ class RPMBuildPlugin(BuildPlugin):
                 build_bn = build.with_suffix("").name
 
                 # Read information from source stage
-                source_info = self.get_artifacts_info(stage="prep", basename=build_bn)
+                source_info = self.get_dist_artifacts_info(
+                    stage="prep", basename=build_bn
+                )
 
                 if not source_info.get("srpm", None):
                     raise BuildError(
@@ -282,4 +279,4 @@ class RPMBuildPlugin(BuildPlugin):
                     "rpms": packages_list,
                     "source-hash": self.component.get_source_hash(),
                 }
-                self.save_artifacts_info(stage=stage, basename=build_bn, info=info)
+                self.save_dist_artifacts_info(stage=stage, basename=build_bn, info=info)

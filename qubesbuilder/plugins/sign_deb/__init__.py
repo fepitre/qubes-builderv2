@@ -72,11 +72,6 @@ class DEBSignPlugin(SignPlugin):
         super().run(stage=stage)
 
         if stage == "sign":
-            # Check if we have Debian related content defined
-            if not self.parameters.get("build", []):
-                log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-                return
-
             # Check if we have a signing key provided
             sign_key = self.sign_key.get(
                 self.dist.distribution, None
@@ -119,7 +114,7 @@ class DEBSignPlugin(SignPlugin):
                 directory_bn = directory.with_suffix("").name
 
                 # Read information from build stage
-                build_info = self.get_artifacts_info(
+                build_info = self.get_dist_artifacts_info(
                     stage="build", basename=directory_bn
                 )
 

@@ -149,7 +149,7 @@ class FetchPlugin(ComponentPlugin):
             # Download and verify files given in .qubesbuilder
             for file in self.parameters.get("files", []):
                 parsed_url = urllib.parse.urlparse(file["url"])
-                fn = os.path.basename(parsed_url.geturl())
+                fn = str(os.path.basename(parsed_url.geturl()))
 
                 # If we request to uncompress the file we drop the archive suffix
                 if file.get("uncompress", False):
@@ -216,6 +216,146 @@ class FetchPlugin(ComponentPlugin):
                 ]
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
+            artifacts_dir = self.get_component_artifacts_dir(stage)
+            distfiles_dir = self.get_distfiles_dir()
+
+            # Modules (formerly known as INCLUDED_SOURCES in Makefile.builder)
+            modules = self.parameters.get("modules", [])
+
+            # Source component directory inside executors
+            source_dir = BUILDER_DIR / self.component.name
+
+            # Clean previous build artifacts
+            if artifacts_dir.exists():
+                shutil.rmtree(artifacts_dir.as_posix())
+            artifacts_dir.mkdir(parents=True)
+
+            # We store the fetched source hash as original reference to be compared
+            # for any further modifications. Once the source is fetched, we may locally
+            # modify the source for development and at prep stage we would need to recompute
+            # source hash based on those modifications.
+            info: dict[str, Any] = {"source-hash": self.component.get_source_hash()}
+
+            # Get git hash and tags
+            copy_in = [
+                (self.component.source_dir, BUILDER_DIR),
+            ]
+            copy_out = [
+                (source_dir / "hash", artifacts_dir),
+                (source_dir / "vtags", artifacts_dir),
+            ]
+            cmd = [
+                f"rm -f {source_dir}/hash {source_dir}/vtags",
+                f"cd {BUILDER_DIR}",
+            ]
+            cmd += [f"git -C {source_dir} rev-parse 'HEAD^{{}}' >> {source_dir}/hash"]
+            cmd += [
+                f"git -C {source_dir} tag --points-at HEAD --list 'v*' >> {source_dir}/vtags"
+            ]
+            try:
+                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            except ExecutorError as e:
+                msg = f"{self.component}: Failed to get source hash information: {e}."
+                raise SourceError(msg) from e
+
+            # Read git hash and vtags
+            with open(artifacts_dir / "hash") as f:
+                data = f.read().splitlines()
+
+            if not re.match(r"[\da-f]{7}", data[0]):
+                msg = f"{self.component}: Invalid git hash detected."
+                raise SourceError(msg)
+
+            info["git-commit-hash"] = data[0]
+            info["git-version-tags"] = []
+
+            with open(artifacts_dir / "vtags") as f:
+                data = f.read().splitlines()
+
+            for tag in data:
+                if not re.match("^v.*", tag):
+                    msg = f"{self.component}: Invalid git version tag detected."
+                    raise SourceError(msg)
+                info["git-version-tags"].append(tag)
+
+            if modules:
+                # Get git module hashes
+                copy_in = [
+                    (self.component.source_dir, BUILDER_DIR),
+                ]
+                copy_out = [(source_dir / "modules", artifacts_dir)]
+                cmd = [f"rm -f {source_dir}/modules", f"cd {BUILDER_DIR}"]
+                for module in modules:
+                    cmd += [
+                        f"git -C {source_dir}/{module} rev-parse --short HEAD >> {source_dir}/modules"
+                    ]
+                try:
+                    self.executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
+                except ExecutorError as e:
+                    msg = f"{self.component}: Failed to get source module information: {str(e)}."
+                    raise SourceError(msg) from e
+
+                # Read package release name
+                with open(artifacts_dir / "modules") as f:
+                    data = f.read().splitlines()
+                if len(data) != len(modules):
+                    msg = f"{self.component}: Invalid modules data."
+                    raise SourceError(msg)
+
+                for commit_hash in data:
+                    if not re.match("[0-9a-f]{7}", commit_hash):
+                        msg = f"{self.component}: Invalid module hash detected."
+                        raise SourceError(msg)
+
+                info.update(
+                    {
+                        "modules": [
+                            {"name": name, "hash": str(data[idx])}
+                            for idx, name in enumerate(modules)
+                        ],
+                    }
+                )
+
+                copy_in = [
+                    (distfiles_dir, BUILDER_DIR),
+                    (self.component.source_dir, BUILDER_DIR),
+                    (self.plugins_dir / "source", PLUGINS_DIR),
+                ]
+                copy_out = []
+                cmd = []
+                for module in info["modules"]:
+                    module["archive"] = f"{module['name']}-{module['hash']}.tar.gz"
+                    copy_out += [
+                        (
+                            source_dir / module["name"] / module["archive"],
+                            distfiles_dir,
+                        ),
+                    ]
+                    cmd += [
+                        f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
+                    ]
+
+                try:
+                    self.executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
+                except ExecutorError as e:
+                    msg = f"{self.component}: Failed to generate module archives: {str(e)}."
+                    raise SourceError(msg) from e
+
+            try:
+                self.save_artifacts_info(stage=stage, basename="source", info=info)
+                # Clean previous text files as all info are stored inside info
+                os.remove(artifacts_dir / f"hash")
+                os.remove(artifacts_dir / f"vtags")
+                if modules:
+                    os.remove(artifacts_dir / f"modules")
+            except OSError as e:
+                msg = f"{self.component}: Failed to clean artifacts: {str(e)}."
+                raise SourceError(msg) from e
+
 
 class SourcePlugin(DistributionPlugin):
     """
@@ -259,164 +399,8 @@ class SourcePlugin(DistributionPlugin):
         )
 
     def run(self, stage: str):
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
-        distfiles_dir = self.get_distfiles_dir()
-
         # Compare previous artifacts hash with current source hash
         fetch_info = self.get_artifacts_info("fetch", "source")
-
-        if stage == "fetch":
-            if self.component.get_source_hash() == fetch_info.get("source-hash", None):
-                log.info(
-                    f"{self.component}:{self.dist}: Source hash is the same than already parsed source. Skipping."
-                )
-                return
-
-            if fetch_info:
-                if not self.skip_if_exists:
-                    self.delete_artifacts_info(stage, "source")
-                else:
-                    log.info(
-                        f"{self.component}:{self.dist}: Previous parse artifacts exist. Skipping."
-                    )
-                    return
-
-            # Modules (formerly known as INCLUDED_SOURCES in Makefile.builder)
-            modules = self.parameters.get("modules", [])
-
-            # Source component directory inside executors
-            source_dir = BUILDER_DIR / self.component.name
-
-            # Clean previous build artifacts
-            if artifacts_dir.exists():
-                shutil.rmtree(artifacts_dir.as_posix())
-            artifacts_dir.mkdir(parents=True)
-
-            # We store the fetched source hash as original reference to be compared
-            # for any further modifications. Once the source is fetched, we may locally
-            # modify the source for development and at prep stage we would need to recompute
-            # source hash based on those modifications.
-            info: dict[str, Any] = {"source-hash": self.component.get_source_hash()}
-
-            # Get git hash and tags
-            copy_in = [
-                (self.component.source_dir, BUILDER_DIR),
-            ]
-            copy_out = [
-                (source_dir / "hash", artifacts_dir),
-                (source_dir / "vtags", artifacts_dir),
-            ]
-            cmd = [
-                f"rm -f {source_dir}/hash {source_dir}/vtags",
-                f"cd {BUILDER_DIR}",
-            ]
-            cmd += [f"git -C {source_dir} rev-parse 'HEAD^{{}}' >> {source_dir}/hash"]
-            cmd += [
-                f"git -C {source_dir} tag --points-at HEAD --list 'v*' >> {source_dir}/vtags"
-            ]
-            try:
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
-            except ExecutorError as e:
-                msg = f"{self.component}:{self.dist}: Failed to get source hash information: {e}."
-                raise SourceError(msg) from e
-
-            # Read git hash and vtags
-            with open(artifacts_dir / "hash") as f:
-                data = f.read().splitlines()
-
-            if not re.match(r"[\da-f]{7}", data[0]):
-                msg = f"{self.component}:{self.dist}: Invalid git hash detected."
-                raise SourceError(msg)
-
-            info["git-commit-hash"] = data[0]
-            info["git-version-tags"] = []
-
-            with open(artifacts_dir / "vtags") as f:
-                data = f.read().splitlines()
-
-            for tag in data:
-                if not re.match("^v.*", tag):
-                    msg = f"{self.component}:{self.dist}: Invalid git version tag detected."
-                    raise SourceError(msg)
-                info["git-version-tags"].append(tag)
-
-            if modules:
-                # Get git module hashes
-                copy_in = [
-                    (self.component.source_dir, BUILDER_DIR),
-                ]
-                copy_out = [(source_dir / "modules", artifacts_dir)]
-                cmd = [f"rm -f {source_dir}/modules", f"cd {BUILDER_DIR}"]
-                for module in modules:
-                    cmd += [
-                        f"git -C {source_dir}/{module} rev-parse --short HEAD >> {source_dir}/modules"
-                    ]
-                try:
-                    self.executor.run(
-                        cmd, copy_in, copy_out, environment=self.environment
-                    )
-                except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}: Failed to get source module information: {str(e)}."
-                    raise SourceError(msg) from e
-
-                # Read package release name
-                with open(artifacts_dir / "modules") as f:
-                    data = f.read().splitlines()
-                if len(data) != len(modules):
-                    msg = f"{self.component}:{self.dist}: Invalid modules data."
-                    raise SourceError(msg)
-
-                for commit_hash in data:
-                    if not re.match("[0-9a-f]{7}", commit_hash):
-                        msg = f"{self.component}:{self.dist}: Invalid module hash detected."
-                        raise SourceError(msg)
-
-                info.update(
-                    {
-                        "modules": [
-                            {"name": name, "hash": str(data[idx])}
-                            for idx, name in enumerate(modules)
-                        ],
-                    }
-                )
-
-                copy_in = [
-                    (distfiles_dir, BUILDER_DIR),
-                    (self.component.source_dir, BUILDER_DIR),
-                    (self.plugins_dir / "source", PLUGINS_DIR),
-                ]
-                copy_out = []
-                cmd = []
-                for module in info["modules"]:
-                    module["archive"] = f"{module['name']}-{module['hash']}.tar.gz"
-                    copy_out += [
-                        (
-                            source_dir / module["name"] / module["archive"],
-                            distfiles_dir,
-                        ),
-                    ]
-                    cmd += [
-                        f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
-                    ]
-
-                try:
-                    self.executor.run(
-                        cmd, copy_in, copy_out, environment=self.environment
-                    )
-                except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}: Failed to generate module archives: {str(e)}."
-                    raise SourceError(msg) from e
-
-            try:
-                self.save_artifacts_info(stage=stage, basename="source", info=info)
-                # Clean previous text files as all info are stored inside info
-                os.remove(artifacts_dir / f"hash")
-                os.remove(artifacts_dir / f"vtags")
-                if modules:
-                    os.remove(artifacts_dir / f"modules")
-            except OSError as e:
-                msg = f"{self.component}:{self.dist}: Failed to clean artifacts: {str(e)}."
-                raise SourceError(msg) from e
 
         if stage == "prep":
             # Compare previous artifacts hash with current source hash

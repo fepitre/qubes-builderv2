@@ -160,7 +160,9 @@ def check_release_status_for_component(
                 backend_vmm=obj.config.get("backend-vmm", "xen"),
             )
 
-            fetch_info = plugin.get_artifacts_info(stage="fetch", basename="source")
+            fetch_info = plugin.get_dist_artifacts_info(
+                stage="fetch", basename="source"
+            )
             if abort_on_empty and not plugin.parameters.get("build", []):
                 raise CliError("No packages defined.")
 
@@ -176,7 +178,7 @@ def check_release_status_for_component(
 
             try:
                 # Ensure we have all publish artifacts info
-                plugin.check_stage_artifacts("publish")
+                plugin.check_dist_stage_artifacts("publish")
 
                 for repo_name in COMPONENT_REPOSITORIES:
                     days = 0
@@ -188,7 +190,7 @@ def check_release_status_for_component(
                     ):
                         # FIXME: we pick the first build target found as we have checks for all
                         #  being processed for all stages and not repository publish is not empty
-                        publish_info = plugin.get_artifacts_info(
+                        publish_info = plugin.get_dist_artifacts_info(
                             stage="publish", basename=plugin.parameters["build"][0]
                         )
                         for repo in publish_info.get("repository-publish", []):

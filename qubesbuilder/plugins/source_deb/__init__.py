@@ -99,7 +99,7 @@ class DEBSourcePlugin(SourcePlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_artifacts_info(
+                == self.get_dist_artifacts_info(
                     stage=stage, basename=directory.with_suffix("").name
                 ).get("source-hash", None)
                 for directory in self.parameters["build"]
@@ -115,7 +115,7 @@ class DEBSourcePlugin(SourcePlugin):
             artifacts_dir.mkdir(parents=True)
 
             # Get fetch info
-            fetch_info = self.get_artifacts_info("fetch", "source")
+            fetch_info = self.get_dist_artifacts_info("fetch", "source")
 
             for directory in self.parameters["build"]:
                 # Source component directory inside executors
@@ -301,7 +301,7 @@ class DEBSourcePlugin(SourcePlugin):
                     if package_type == "quilt":
                         info["orig"] = source_orig
 
-                    self.save_artifacts_info(
+                    self.save_dist_artifacts_info(
                         stage=stage, basename=directory_bn, info=info
                     )
 

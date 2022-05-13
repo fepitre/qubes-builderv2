@@ -76,7 +76,7 @@ class DEBPublishPlugin(PublishPlugin):
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
         # Read information from build stage
-        build_info = self.get_artifacts_info(stage="build", basename=directory_bn)
+        build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
 
         if not build_info.get("changes", None):
             log.info(f"{self.component}:{self.dist}:{directory}: Nothing to publish.")
@@ -136,7 +136,7 @@ class DEBPublishPlugin(PublishPlugin):
         directory_bn = directory.with_suffix("").name
 
         # Read information from build stage
-        build_info = self.get_artifacts_info(stage="build", basename=directory_bn)
+        build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
 
         if not build_info.get("changes", None):
             log.info(f"{self.component}:{self.dist}:{directory}: Nothing to publish.")
@@ -187,11 +187,6 @@ class DEBPublishPlugin(PublishPlugin):
         """
         # Run stage defined by parent class
         super().run(stage=stage)
-
-        # Check if we have Debian related content defined
-        if not self.parameters.get("build", []):
-            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-            return
 
         # Check if we have a signing key provided
         sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
@@ -270,10 +265,10 @@ class DEBPublishPlugin(PublishPlugin):
                 # directory basename will be used as prefix for some artifacts
                 directory_bn = directory.with_suffix("").name
 
-                build_info = self.get_artifacts_info(
+                build_info = self.get_dist_artifacts_info(
                     stage="build", basename=directory_bn
                 )
-                publish_info = self.get_artifacts_info(
+                publish_info = self.get_dist_artifacts_info(
                     stage=stage, basename=directory_bn
                 )
 
@@ -312,7 +307,7 @@ class DEBPublishPlugin(PublishPlugin):
                         "timestamp": datetime.utcnow().strftime("%Y%m%d%H%MZ"),
                     }
                 )
-                self.save_artifacts_info(
+                self.save_dist_artifacts_info(
                     stage="publish", basename=directory_bn, info=info
                 )
 
@@ -333,7 +328,7 @@ class DEBPublishPlugin(PublishPlugin):
                 # directory basename will be used as prefix for some artifacts
                 directory_bn = directory.with_suffix("").name
 
-                publish_info = self.get_artifacts_info(
+                publish_info = self.get_dist_artifacts_info(
                     stage=stage, basename=directory_bn
                 )
 
@@ -350,21 +345,23 @@ class DEBPublishPlugin(PublishPlugin):
                     if r["name"] != repository_publish
                 ]
                 if publish_info.get("repository-publish", []):
-                    self.save_artifacts_info(
+                    self.save_dist_artifacts_info(
                         stage="publish", basename=directory_bn, info=publish_info
                     )
                 else:
                     log.info(
                         f"{self.component}:{self.dist}:{directory}: Not published anywhere else, deleting publish info."
                     )
-                    self.delete_artifacts_info(stage="publish", basename=directory_bn)
+                    self.delete_dist_artifacts_info(
+                        stage="publish", basename=directory_bn
+                    )
 
                 # We republish previous package version that has been published previously in the
                 # same repository. This is because reprepro does not manage multiversions officially.
                 for artifacts_dir in self.get_dist_component_artifacts_dir_history(
                     stage=stage
                 ):
-                    publish_info = self.get_artifacts_info(
+                    publish_info = self.get_dist_artifacts_info(
                         stage=stage, basename=directory_bn, artifacts_dir=artifacts_dir
                     )
                     if repository_publish in publish_info.get("repository-publish", []):

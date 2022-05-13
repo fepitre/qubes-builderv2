@@ -87,11 +87,6 @@ class RPMSignPlugin(SignPlugin):
 
         # Sign stage for standard components
         if stage == "sign":
-            # Check if we have RPM related content defined
-            if not self.parameters.get("build", []):
-                log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-                return
-
             # Source artifacts
             prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
             # Build artifacts
@@ -120,7 +115,9 @@ class RPMSignPlugin(SignPlugin):
                 build_bn = build.with_suffix("").name
 
                 # Read information from build stage
-                build_info = self.get_artifacts_info(stage="build", basename=build_bn)
+                build_info = self.get_dist_artifacts_info(
+                    stage="build", basename=build_bn
+                )
 
                 if not build_info.get("rpms", []) and not build_info.get("srpm", None):
                     log.info(f"{self.component}:{self.dist}:{build}: Nothing to sign.")

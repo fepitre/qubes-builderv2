@@ -88,7 +88,7 @@ class PublishPlugin(DistributionPlugin):
             raise PublishError(msg)
 
     def is_published(self, basename, repository):
-        publish_info = self.get_artifacts_info(stage="publish", basename=basename)
+        publish_info = self.get_dist_artifacts_info(stage="publish", basename=basename)
         if not publish_info:
             return False
         return repository in [
@@ -101,7 +101,7 @@ class PublishPlugin(DistributionPlugin):
             return False
 
         # Check minimum day that packages are available for testing
-        publish_info = self.get_artifacts_info(stage="publish", basename=basename)
+        publish_info = self.get_dist_artifacts_info(stage="publish", basename=basename)
         publish_date = None
         for r in publish_info["repository-publish"]:
             if r["name"] == "current-testing":
@@ -122,6 +122,11 @@ class PublishPlugin(DistributionPlugin):
         return True
 
     def run(self, stage: str):
+        # Check if we have Debian related content defined
+        if not self.parameters.get("build", []):
+            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
+            return
+
         if stage in ("publish", "upload"):
             if not isinstance(self.executor, LocalExecutor):
                 raise PublishError("This plugin only supports local executor.")
