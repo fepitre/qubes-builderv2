@@ -29,7 +29,7 @@ def _template_stage(obj: ContextObj, stage_name: str):
             verbose=obj.config.verbose,
             debug=obj.config.debug,
             use_qubes_repo=obj.config.get("use-qubes-repo"),
-            gpg_client=obj.config.get("gpg-client"),
+            gpg_client=obj.config.get("gpg-client", "gpg"),
             sign_key=obj.config.get("sign-key"),
             qubes_release=obj.config.get("qubes-release"),
             repository_publish=obj.config.get("repository-publish"),
