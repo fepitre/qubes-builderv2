@@ -140,6 +140,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
             verbose=obj.config.verbose,
             debug=obj.config.debug,
             qubes_release=obj.config.get("qubes-release", {}),
+            repository_publish=obj.config.get("repository-publish", {}),
             repository_upload_remote_host=obj.config.get(
                 "repository-upload-remote-host", {}
             ),

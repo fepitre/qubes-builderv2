@@ -65,6 +65,18 @@ class DEBPublishPlugin(PublishPlugin):
             backend_vmm=backend_vmm,
         )
 
+    @classmethod
+    def get_debian_suite_from_repository_publish(cls, dist, repository_publish):
+        # set debian suite according to publish repository
+        debian_suite = dist.name
+        if repository_publish == "current-testing":
+            debian_suite += "-testing"
+        elif repository_publish == "security-testing":
+            debian_suite += "-securitytesting"
+        elif repository_publish == "unstable":
+            debian_suite += "-unstable"
+        return debian_suite
+
     def publish(self, directory, keyring_dir, repository_publish):
         # directory basename will be used as prefix for some artifacts
         directory_bn = directory.with_suffix("").name
@@ -106,14 +118,9 @@ class DEBPublishPlugin(PublishPlugin):
             # reprepro options to ignore surprising binary and arch
             reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch --keepunreferencedfiles -b {target_dir}"
 
-            # set debian suite according to publish repository
-            debian_suite = self.dist.name
-            if repository_publish == "current-testing":
-                debian_suite += "-testing"
-            elif repository_publish == "security-testing":
-                debian_suite += "-securitytesting"
-            elif repository_publish == "unstable":
-                debian_suite += "-unstable"
+            debian_suite = self.get_debian_suite_from_repository_publish(
+                self.dist, repository_publish
+            )
 
             # reprepro command
             cmd = [f"reprepro {reprepro_options} include {debian_suite} {changes_file}"]
