@@ -524,7 +524,7 @@ def main():
     build_parser.add_argument("src_dir", help="Component sources path")
     build_parser.add_argument("package_name", help="Binary package name")
     build_parser.add_argument("dist", help="Distribution release code name")
-    build_parser.add_argument("package_set", choices=["dom0", "vm"])
+    build_parser.add_argument("package_set", choices=["host", "vm"])
 
     args = parser.parse_args()
 
@@ -534,8 +534,8 @@ def main():
         auth_headers["Authorization"] = "token {}".format(os.environ["GITHUB_API_KEY"])
 
     dist_label = args.dist
-    if args.package_set == "dom0":
-        dist_label = "dom0"
+    if args.package_set == "host":
+        dist_label = "host"
 
     if args.command == "upload":
         delete_labels = []
