@@ -10,7 +10,7 @@ build_failure() {
     # don't let the API key be logged...
     local GITHUB_API_KEY
     local GITHUB_BUILD_ISSUES_REPO
-    RELEASE=$(./qb config get-var release)
+    RELEASE=$(./qb config get-var qubes-release)
     GITHUB_API_KEY=$(./qb config get-var --json plugins | jq -r '.[0].github."api-key"')
     GITHUB_BUILD_ISSUES_REPO=$(./qb config get-var --json plugins | jq -r '.[0].github."build-issues-repo"')
     echo "Build failed: $component for $package_set (r$RELEASE $dist)" >&2
