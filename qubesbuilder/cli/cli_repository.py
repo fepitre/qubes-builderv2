@@ -160,9 +160,9 @@ def check_release_status_for_component(
                 backend_vmm=obj.config.get("backend-vmm", "xen"),
             )
 
-            fetch_info = plugin.get_dist_artifacts_info(
-                stage="fetch", basename="source"
-            )
+            fetch_info = plugin.get_artifacts_info(stage="fetch", basename="source")
+            if not fetch_info:
+                raise CliError(f"{component}: Cannot find 'fetch' stage artifacts!")
             if abort_on_empty and not plugin.parameters.get("build", []):
                 raise CliError("No packages defined.")
 
@@ -171,7 +171,7 @@ def check_release_status_for_component(
                 if not no_print_version:
                     click.secho("no version tag")
                 if abort_no_version:
-                    CliError("No version tag!")
+                    raise CliError("No version tag!")
             else:
                 if not no_print_version:
                     click.secho(vtags[0])
