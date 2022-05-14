@@ -81,27 +81,29 @@ if [ -n "$build_timeout" ]; then
 fi
 
 dists_vm=$(./qb config get-distributions --vm)
-dist_host=$(./qb config get-distributions --host)
+dists_host=$(./qb config get-distributions --host)
 built_for_host=
 built_for_vm=
 build_logs=
-if [ -n "$dist_host" ]; then
-    release_status=$(./qb -c "$component" -d "host-${dist_host}" repository check-release-status-for-component \
-            --abort-no-version \
-            --abort-on-empty \
-            --no-print-version \
-            || :)
-    if [ "$release_status" == "not released" ]; then
-        rm -f "${log_service_output_file:?}"
-        if $build_command_prefix "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -c "$component" -d "host-${dist_host}" package prep build; then
-            built_for_host="$dist_host"
-            build_logs="$build_logs ${component}-host-${dist_host}=$(get_build_log_url)"
-        else
-            # report failure but still upload other packages
-            build_failure "$component" host "$dist_host" "$(get_build_log_url)"
-            build_logs="$build_logs ${component}-host-${dist_host}=$(get_build_log_url)"
+if [ -n "$dists_host" ]; then
+    for dist_host in $dists_host; do
+        release_status=$(./qb -c "$component" -d "host-${dist_host}" repository check-release-status-for-component \
+                --abort-no-version \
+                --abort-on-empty \
+                --no-print-version \
+                || :)
+        if [ "$release_status" == "not released" ]; then
+            rm -f "${log_service_output_file:?}"
+            if $build_command_prefix "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -c "$component" -d "host-${dist_host}" package prep build; then
+                built_for_host="$dist_host"
+                build_logs="$build_logs ${component}-host-${dist_host}=$(get_build_log_url)"
+            else
+                # report failure but still upload other packages
+                build_failure "$component" host "$dist_host" "$(get_build_log_url)"
+                build_logs="$build_logs ${component}-host-${dist_host}=$(get_build_log_url)"
+            fi
         fi
-    fi
+    done
 fi
 
 if [ -n "$dists_vm" ]; then
@@ -137,13 +139,13 @@ fi
 # sending a log should allow accessing signing keys
 # if signing itself (or upload) fails log the failure as build failure too
 
-export DIST_DOM=dist_host
+export DISTS_HOST=dists_host
 export DISTS_VM=dists_vm
 export BUILD_LOGS_URL="$build_logs"
 
 args="$BUILDER_DIR -c $component"
-for dist_dom in $built_for_host; do
-    args="$args -d host-$dist_dom"
+for dist_host in $built_for_host; do
+    args="$args -d host-$dist_host"
 done
 for dist_vm in $built_for_vm; do
     args="$args -d vm-$dist_vm"

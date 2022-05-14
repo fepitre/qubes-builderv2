@@ -21,7 +21,7 @@ exec {real_stdout_fd}>&1
 export LC_ALL=C.UTF-8
 echo "> starting build with log"
 echo ">> args: $*"
-for v in COMPONENTS DISTS_VM DIST_HOST; do
+for v in COMPONENTS DISTS_HOST DISTS_VM; do
     echo ">> $v=${!v}"
 done
 for c in $COMPONENTS; do
