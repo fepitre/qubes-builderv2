@@ -120,7 +120,6 @@ def main(command_file, sig_file) -> None:
     untrusted_binary = []
     untrusted_base64_body = untrusted_sig[len(sig_start):-35]
     for i in untrusted_base64_body.split(b'\n'):
-        assert i
         if must_be_last:
             raise ValueError('bad end of file')
         len_i = len(i)
