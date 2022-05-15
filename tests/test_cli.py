@@ -73,7 +73,7 @@ def test_fetch():
         assert (ARTIFACTS_DIR / "sources" / component / ".qubesbuilder").exists()
 
 
-def test_fetch_skip():
+def test_fetch_updating():
     result = qb_call_output(
         DEFAULT_BUILDER_CONF, "package", "fetch", stderr=subprocess.STDOUT
     ).decode()
