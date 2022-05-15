@@ -47,8 +47,6 @@ def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> 
     Check that a byte string is exactly one OpenPGP signature packet.
     The contents of the packet are not checked.
     """
-    if len(untrusted_binary_sig) < 34:
-        raise ValueError('sig too short')
     untrusted_first_byte = untrusted_binary_sig[0]
     if not (untrusted_first_byte & 0x80):
         raise ValueError('first bit zero')
