@@ -124,7 +124,9 @@ def main(command_file, sig_file) -> None:
         if must_be_last:
             raise ValueError('bad end of file')
         len_i = len(i)
-        if not i or len_i % 4 or len_i > 64:
+        if len_i > 64:
+            raise ValueError('base64 line longer than 64 bytes')
+        if not i or len_i % 4:
             raise ValueError('bad base64 line')
         if len_i < 64:
             must_be_last = True
