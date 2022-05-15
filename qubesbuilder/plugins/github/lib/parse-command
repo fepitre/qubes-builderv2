@@ -4,22 +4,12 @@ import sys, base64
 prefix = b"-----BEGIN PGP SIGNED MESSAGE-----\nHash: "
 sig_start = b"-----BEGIN PGP SIGNATURE-----\n\n"
 sig_end = b"\n-----END PGP SIGNATURE-----\n"
-shortest_input = b"""\
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA256
+shortest_sig = sig_start + b"""
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+=AAAA""" + sig_end
+shortest_input = prefix + b"""SHA256
 
-Build-template\x20
------BEGIN PGP SIGNATURE-----
-
-=AAAA
------END PGP SIGNATURE-----
-"""
-shortest_sig = b"""\
------BEGIN PGP SIGNATURE-----
-
-=AAAA
------END PGP SIGNATURE-----
-"""
+Build-template\x20a\n""" + shortest_sig
 
 def check_base64(untrusted_bytes: bytes) -> None:
     for i in untrusted_bytes:
