@@ -46,7 +46,7 @@ if [ "${1##*/}" != "${1}" ]; then
 fi
 
 found=
-for c in $(./qb config get-var components); do
+for c in $(./qb config get-components); do
     if [ "$c" = "$1" ]; then
         found=1
     fi
@@ -141,6 +141,7 @@ fi
 
 export DISTS_HOST="${dists_host[*]}"
 export DISTS_VM="${dists_vm[*]}"
+export DISTRIBUTIONS="${./qb config get-distributions}"
 export BUILD_LOGS_URL="${build_logs[*]}"
 
 args="$BUILDER_DIR -c $component"
