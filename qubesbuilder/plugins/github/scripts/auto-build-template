@@ -56,20 +56,22 @@ if [ -z "$found" ]; then
     exit 1
 fi
 
-if ! printf "%s" "$2" | grep -q "^[0-9]\{12\}$"; then
+export TEMPLATES="$template_dist"
+
+if ! printf "%s" "$2" | grep -q "^[0-9]\{12\}Z$"; then
     echo "ERROR: Invalid timestamp format" >&2
     exit 1
 fi
 timestamp="$2"
 
 # check if template is already built
-timestamp_file="artifacts/templates/build_timestamp_$template_dist"
+timestamp_file="$BUILDER_DIR/artifacts/templates/build_timestamp_$template_dist"
 if [ -r "$timestamp_file" ]; then
     timestamp_existing=$(cat "$timestamp_file")
-    if [ "$timestamp" -lt "$timestamp_existing" ]; then
+    if [ "${timestamp::-1}" -lt "${timestamp_existing::-1}" ]; then
         echo "INFO: Newer template ($timestamp_existing) already built" >&2
         exit 0
-    elif [ "$timestamp_existing" -eq "$timestamp" ]; then
+    elif [ "$timestamp_existing" == "$timestamp" ]; then
         template_status=$(./qb -t "$template_dist" repository check-release-status-for-template || :)
         if [ "$template_status" != "not released" ]; then
             echo "INFO: Template already built" >&2
@@ -84,6 +86,7 @@ if [ -z "$repo" ]; then
     exit 1
 fi
 
+# qubes-builder uses this variable (if exists) to define the build timestamp
 TEMPLATE_TIMESTAMP="$timestamp"
 export TEMPLATE_TIMESTAMP
 
@@ -94,7 +97,6 @@ fi
 
 build_logs="linux-template-builder-vm-${template_dist}=$(get_build_log_url)"
 export BUILD_LOGS_URL="$build_logs"
-export TEMPLATES="$template_dist"
 
 if ! "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -t "$template_dist" template sign; then
     build_failure template sign "$template_dist" "$(get_build_log_url)"

@@ -48,7 +48,7 @@ if ! printf "%s" "$timestamp" | grep -q "^[0-9]\{12\}$"; then
     exit 1
 fi
 
-timestamp_format="%Y%m%d%H%M"
+timestamp_format="%Y%m%d%H%MZ"
 timestamp_max=$(date -u -d '+5 min' +$timestamp_format)
 timestamp_min=$(date -u -d '-1 hour' +$timestamp_format)
 if [ "$timestamp" -gt "$timestamp_max" ] || \

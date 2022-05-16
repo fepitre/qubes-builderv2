@@ -343,7 +343,9 @@ class TemplatePlugin(Plugin):
         #
 
         if stage == "prep":
-            template_timestamp = datetime.utcnow().strftime("%Y%m%d%H%MZ")
+            template_timestamp = os.environ.get("TEMPLATE_TIMESTAMP", None)
+            if not template_timestamp:
+                template_timestamp = datetime.utcnow().strftime("%Y%m%d%H%MZ")
             self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
             copy_in = [
