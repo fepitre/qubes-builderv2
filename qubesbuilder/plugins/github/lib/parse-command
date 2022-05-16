@@ -25,17 +25,21 @@ def check_base64(untrusted_bytes: bytes) -> None:
 def check_command(untrusted_command: bytes) -> None:
     if len(untrusted_command) > 255:
         raise ValueError('command too long')
+    last_c = 0x20
     for i in untrusted_command:
         if ((0x41 <= i <= 0x5A) or # A-Z
             (0x61 <= i <= 0x7A) or # a-z
             (0x30 <= i <= 0x39) or # 0-9
             (i == 0x5F) or # '_'
-            (i == 0x2D) or # '-'
-            (i == 0x2E) or # '.'
-            (i == 0x20)): # ' '
+            (i == 0x2E)):
             pass
+        elif ((i == 0x2D) or # '-'
+              (i == 0x20)): # ' '
+            if last_c == 0x20:
+                raise ValueError('Double spaces or space-dash in command')
         else:
             raise ValueError('invalid character in command')
+        last_c = i
     if not (untrusted_command.startswith(b'Build-template ') or
             untrusted_command.startswith(b'Upload ')):
         raise ValueError('Unknown command')
