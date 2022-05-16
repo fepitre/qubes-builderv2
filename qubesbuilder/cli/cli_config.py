@@ -98,12 +98,23 @@ def get_components(obj: ContextObj, attribute: str):
 @click.pass_obj
 def get_distributions(obj: ContextObj, host: bool, vm: bool):
     for d in obj.distributions:
-        if d.package_set == "host" and host:
-            click.secho(d.name)
-        elif d.package_set == "vm" and vm:
-            click.secho(d.name)
+        if not host and not vm:
+            click.secho(d.distribution)
+        else:
+            if d.package_set == "host" and host:
+                click.secho(d.name)
+            elif d.package_set == "vm" and vm:
+                click.secho(d.name)
+
+
+@config.command(name="get-templates")
+@click.pass_obj
+def get_templates(obj: ContextObj):
+    for t in obj.templates:
+        click.secho(t)
 
 
 config.add_command(get_var)
 config.add_command(get_components)
 config.add_command(get_distributions)
+config.add_command(get_templates)

@@ -179,30 +179,89 @@ def check_release_status_for_component(
             try:
                 # Ensure we have all publish artifacts info
                 plugin.check_dist_stage_artifacts("publish")
-
-                for repo_name in COMPONENT_REPOSITORIES:
-                    days = 0
-                    if all(
-                        plugin.is_published(
-                            basename=build.with_suffix("").name, repository=repo_name
-                        )
-                        for build in plugin.parameters["build"]
-                    ):
-                        # FIXME: we pick the first build target found as we have checks for all
-                        #  being processed for all stages and not repository publish is not empty
-                        publish_info = plugin.get_dist_artifacts_info(
-                            stage="publish", basename=plugin.parameters["build"][0]
-                        )
-                        for repo in publish_info.get("repository-publish", []):
-                            if repo["name"] == repo_name:
-                                publish_date = datetime.datetime.strptime(
-                                    repo["timestamp"], "%Y%m%d%H%MZ"
-                                )
-                                days = (datetime.datetime.utcnow() - publish_date).days
-                                break
-                        click.secho(repo_name)
-                        click.secho(f"{days} days ago")
             except PluginError:
+                click.secho("not released")
+                return
+
+            found = False
+            for repo_name in COMPONENT_REPOSITORIES:
+                days = 0
+                if all(
+                    plugin.is_published(
+                        basename=build.with_suffix("").name, repository=repo_name
+                    )
+                    for build in plugin.parameters["build"]
+                ):
+                    # FIXME: we pick the first build target found as we have checks for all
+                    #  being processed for all stages and not repository publish is not empty
+                    publish_info = plugin.get_dist_artifacts_info(
+                        stage="publish", basename=plugin.parameters["build"][0]
+                    )
+                    for repo in publish_info.get("repository-publish", []):
+                        if repo["name"] == repo_name:
+                            publish_date = datetime.datetime.strptime(
+                                repo["timestamp"], "%Y%m%d%H%MZ"
+                            )
+                            days = (datetime.datetime.utcnow() - publish_date).days
+                            break
+                    click.secho(repo_name)
+                    click.secho(f"{days} days ago")
+                    found = True
+
+            if not found:
+                if all(
+                    plugin.get_dist_artifacts_info(
+                        stage="build", basename=build.with_suffix("").name
+                    )
+                    for build in plugin.parameters["build"]
+                ):
+                    click.secho("built, not released")
+                else:
+                    click.secho("not released")
+
+
+@click.command(
+    name="check-release-status-for-template",
+    short_help="Check release status for a given template",
+)
+@click.pass_obj
+def check_release_status_for_template(
+    obj: ContextObj,
+):
+    for template in obj.templates:
+        plugin = getTemplatePlugin(
+            template=template,
+            plugins_dir=obj.config.get_plugins_dir(),
+            executor=obj.config.get_stages()["publish"]["executor"],
+            artifacts_dir=obj.config.get_artifacts_dir(),
+            verbose=obj.config.verbose,
+            debug=obj.config.debug,
+            gpg_client=obj.config.get("gpg-client", "gpg"),
+            sign_key=obj.config.get("sign-key"),
+            qubes_release=obj.config.get("qubes-release"),
+            repository_publish=obj.config.get("repository-publish"),
+        )
+
+        found = False
+        for repo_name in TEMPLATE_REPOSITORIES:
+            days = 0
+            if plugin.is_published(repository=repo_name):
+                publish_info = plugin.get_artifacts_info(stage="publish")
+                for repo in publish_info.get("repository-publish", []):
+                    if repo["name"] == repo_name:
+                        publish_date = datetime.datetime.strptime(
+                            repo["timestamp"], "%Y%m%d%H%MZ"
+                        )
+                        days = (datetime.datetime.utcnow() - publish_date).days
+                        break
+                click.secho(repo_name)
+                click.secho(f"{days} days ago")
+                found = True
+
+        if not found:
+            if plugin.get_artifacts_info(stage="build"):
+                click.secho("built, not released")
+            else:
                 click.secho("not released")
 
 
@@ -236,4 +295,5 @@ def upload(obj: ContextObj):
 repository.add_command(publish)
 repository.add_command(unpublish)
 repository.add_command(check_release_status_for_component)
+repository.add_command(check_release_status_for_template)
 repository.add_command(upload)
