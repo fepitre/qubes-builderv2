@@ -13,7 +13,7 @@ build_failure() {
     RELEASE=$(./qb config get-var qubes-release)
     GITHUB_API_KEY=$(./qb config get-var --json plugins | jq -r '.[0].github."api-key"')
     GITHUB_BUILD_ISSUES_REPO=$(./qb config get-var --json plugins | jq -r '.[0].github."build-issues-repo"')
-    echo "Build failed: $component for $package_set (r$RELEASE $dist)" >&2
+    echo "Build failed: $component for $package_set ($RELEASE $dist)" >&2
     if [ -z "$GITHUB_API_KEY" ] || [ -z "$GITHUB_BUILD_ISSUES_REPO" ]; then
         echo "No alternative way of build failure reporting (GITHUB_API_KEY, GITHUB_BUILD_ISSUES_REPO), exiting" >&2
         exit 1
