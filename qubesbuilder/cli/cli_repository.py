@@ -240,6 +240,9 @@ def check_release_status_for_template(
             sign_key=obj.config.get("sign-key"),
             qubes_release=obj.config.get("qubes-release"),
             repository_publish=obj.config.get("repository-publish"),
+            repository_upload_remote_host=obj.config.get(
+                "repository-upload-remote-host", {}
+            ),
         )
 
         found = False

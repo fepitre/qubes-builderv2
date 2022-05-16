@@ -33,6 +33,9 @@ def _template_stage(obj: ContextObj, stage_name: str):
             sign_key=obj.config.get("sign-key"),
             qubes_release=obj.config.get("qubes-release"),
             repository_publish=obj.config.get("repository-publish"),
+            repository_upload_remote_host=obj.config.get(
+                "repository-upload-remote-host", {}
+            ),
         )
         template_plugin.run(stage=stage_name)
 
@@ -86,6 +89,12 @@ def publish(obj: ContextObj):
     _template_stage(obj=obj, stage_name="publish")
 
 
+@template.command()
+@click.pass_obj
+def upload(obj: ContextObj):
+    _template_stage(obj=obj, stage_name="upload")
+
+
 template.add_command(fetch)
 template.add_command(prep)
 template.add_command(build)
@@ -93,6 +102,7 @@ template.add_command(post)
 template.add_command(verify)
 template.add_command(sign)
 template.add_command(publish)
+template.add_command(upload)
 template.add_command(_all_template_stage)
 
 template.add_alias(**STAGES_ALIAS)

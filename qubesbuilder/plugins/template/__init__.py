@@ -28,6 +28,7 @@ import yaml
 from dateutil.parser import parse as parsedate
 
 from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     Plugin,
@@ -72,6 +73,7 @@ class TemplatePlugin(Plugin):
         gpg_client: str,
         sign_key: dict,
         repository_publish: dict,
+        repository_upload_remote_host: dict,
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
@@ -89,6 +91,7 @@ class TemplatePlugin(Plugin):
         self.gpg_client = gpg_client
         self.sign_key = sign_key
         self.repository_publish = repository_publish
+        self.repository_upload_remote_host = repository_upload_remote_host
         self.use_qubes_repo = use_qubes_repo or {}
 
         self.environment.update(
@@ -267,7 +270,7 @@ class TemplatePlugin(Plugin):
 
         # Publish template with hardlinks to built RPM
         log.info(f"{self.template}: Publishing template.")
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.get_repository_publish_dir() / "rpm"
         target_dir = artifacts_dir / f"{self.qubes_release}/{repository_publish}"
         try:
             target_path = target_dir / "rpm" / rpm.name
@@ -301,7 +304,7 @@ class TemplatePlugin(Plugin):
 
         # If exists, remove hardlinks to built RPMs
         log.info(f"{self.template}: Unpublishing template.")
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.get_repository_publish_dir() / "rpm"
         target_dir = artifacts_dir / f"{self.qubes_release}/{repository_publish}"
         try:
             target_path = target_dir / "rpm" / rpm.name
@@ -417,7 +420,22 @@ class TemplatePlugin(Plugin):
             with open(
                 template_artifacts_dir / f"build_timestamp_{self.template.name}", "w"
             ) as f:
-                f.write(template_timestamp)
+                f.write(template_timestamp)  # type: ignore
+
+            # Save package information we built
+            info = {
+                "rpms": [str(rpm_fn)],
+                "timestamp": template_timestamp,
+            }
+            self.save_artifacts_info(stage, info)
+
+        # Check that we have LocalExecutor for next stages
+        if stage in ("sign", "publish", "upload") and not isinstance(
+            self.executor, LocalExecutor
+        ):
+            raise TemplateError(
+                f"This plugin only supports local executor for '{stage}' stage."
+            )
 
         #
         # Sign
@@ -472,7 +490,7 @@ class TemplatePlugin(Plugin):
         # Publish stage for template components
         if stage == "publish" and not unpublish:
             # repository-publish directory
-            artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+            artifacts_dir = self.get_repository_publish_dir() / "rpm"
 
             self.validate_repository_publish(repository_publish)
 
@@ -523,7 +541,7 @@ class TemplatePlugin(Plugin):
                 raise TemplateError(msg) from e
 
             publish_info = self.get_artifacts_info(stage=stage)
-            info = {"timestamp": self.get_template_timestamp()}
+            info = self.get_artifacts_info(stage="build")
             if (
                 publish_info
                 and publish_info.get("timestamp", None) == self.get_template_timestamp()
@@ -532,7 +550,8 @@ class TemplatePlugin(Plugin):
 
             self.publish(db_path=db_path, repository_publish=repository_publish)
 
-            info.setdefault("repository-publish", []).append(
+            info.setdefault("repository-publish", [])
+            info["repository-publish"].append(  # type: ignore
                 {
                     "name": repository_publish,
                     "timestamp": datetime.utcnow().strftime("%Y%m%d%H%MZ"),
@@ -565,3 +584,35 @@ class TemplatePlugin(Plugin):
                     f"{self.template}: Not published anywhere else, deleting publish info."
                 )
                 self.delete_artifacts_info(stage="publish")
+
+        if stage == "upload":
+            remote_path = self.repository_upload_remote_host.get("rpm", None)
+            if not remote_path:
+                log.info(f"{self.dist}: No remote location defined. Skipping.")
+                return
+
+            repository_publish = self.repository_publish.get(
+                "templates", "templates-itl-testing"
+            )
+
+            try:
+                local_path = (
+                    self.get_repository_publish_dir() / "rpm" / self.qubes_release
+                )
+                # Repository dir relative to local path that will be the same on remote host
+                directories_to_upload = [repository_publish]
+
+                if not directories_to_upload:
+                    raise TemplateError(
+                        f"{self.dist}: Cannot determine directories to upload."
+                    )
+
+                for relative_dir in directories_to_upload:
+                    cmd = [
+                        f"rsync --partial --progress --hard-links -air --mkpath -- {local_path / relative_dir}/ {remote_path}/{relative_dir}/"
+                    ]
+                    self.executor.run(cmd)
+            except ExecutorError as e:
+                raise TemplateError(
+                    f"{self.dist}: Failed to upload to remote host: {str(e)}"
+                ) from e

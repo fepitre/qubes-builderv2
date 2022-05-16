@@ -90,7 +90,7 @@ fi
 TEMPLATE_TIMESTAMP="$timestamp"
 export TEMPLATE_TIMESTAMP
 
-if ! "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -t "$template_dist" template prep build; then
+if ! "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -t "$template_dist" template build; then
     build_failure template vm "$template_dist" "$(get_build_log_url)"
     exit 1
 fi
@@ -103,7 +103,7 @@ if ! "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -t "$template_dist" template si
     exit 1
 fi
 
-if ! "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -t "$template_dist" template publish; then
+if ! "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -t "$template_dist" template publish upload; then
     build_failure template upload "$template_dist" "$(get_build_log_url)"
     exit 1
 fi
