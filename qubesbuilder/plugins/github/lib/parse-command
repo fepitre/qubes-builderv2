@@ -91,7 +91,26 @@ def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> 
     if hash_str != (b'SHA256', b'SHA384', b'SHA512')[hash_alg - 8]:
         raise ValueError('hash algorithm mismatch')
 
+def reconstruct_armored_sig(untrusted_binary_crc24: bytes, untrusted_b64: bytes) -> bytes:
+    """
+    Reconstruct an armored signature from the components
+    """
+    untrusted_array = [sig_start[:-1]]
+    untrusted_encoded = base64.b64encode(untrusted_b64)
+    untrusted_array += (untrusted_encoded[i:i+64] for i in range(0, len(untrusted_encoded), 64))
+    untrusted_array += [b'=' + base64.b64encode(untrusted_binary_crc24), sig_end[1:]]
+    return b'\n'.join(untrusted_array)
+
 def main(command_file, sig_file) -> None:
+    def parse_command_end(untrusted_input: bytes) -> bytes:
+        if not untrusted_input.endswith(sig_end):
+            raise ValueError('junk after end of message')
+        if untrusted_input[-35:-33] != b'\n=':
+            raise ValueError('Missing CRC')
+        untrusted_crc24 = untrusted_input[-33:-29]
+        check_base64(untrusted_crc24)
+        return base64.b64decode(untrusted_crc24)
+
     untrusted_input = sys.stdin.buffer.read(65536)
     if sys.stdin.buffer.read(1):
         raise Exception('Failed to read to end of file')
@@ -99,11 +118,11 @@ def main(command_file, sig_file) -> None:
         raise ValueError('input too short')
     if not untrusted_input.startswith(prefix):
         raise ValueError('not an inline signed message')
-    if not untrusted_input.endswith(sig_end):
-        raise ValueError('junk after end of message')
     if untrusted_input[41:49] not in (b'SHA256\n\n', b'SHA384\n\n', b'SHA512\n\n'):
         raise ValueError('bad hash algorithm')
     hash_str = untrusted_input[41:47]
+
+    untrusted_binary_crc24 = parse_command_end(untrusted_input)
 
     untrusted_command, untrusted_sig = untrusted_input[49:].split(b'\n', 1)
     check_command(untrusted_command)
@@ -111,9 +130,6 @@ def main(command_file, sig_file) -> None:
         raise ValueError('sig too short')
     if not untrusted_sig.startswith(sig_start):
         raise ValueError('Invalid start of signature')
-    if untrusted_sig[-35:-33] != b'\n=':
-        raise ValueError('Missing CRC')
-    check_base64(untrusted_sig[-33:-29])
 
     # Parse the base64 data
     must_be_last = False
@@ -142,10 +158,13 @@ def main(command_file, sig_file) -> None:
         else:
             check_base64(i)
         untrusted_binary.append(base64.b64decode(i))
+
     untrusted_sig_to_write = b''.join(untrusted_binary)
     check_one_signature_packet(untrusted_sig_to_write, hash_str)
+    untrusted_armored_sig_to_write = reconstruct_armored_sig(untrusted_binary_crc24, untrusted_sig_to_write)
+    assert untrusted_armored_sig_to_write == untrusted_sig, "Didn't round-trip!"
     with open(sig_file, 'wb') as s, open(command_file, 'wb') as c:
-        s.write(untrusted_sig_to_write)
+        s.write(untrusted_armored_sig_to_write)
         s.flush()
         c.write(untrusted_command)
         c.flush()
