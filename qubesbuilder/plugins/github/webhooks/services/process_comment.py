@@ -42,38 +42,33 @@ class Service:
 
     def handle(self, obj):
         try:
-            if 'comment' not in obj:
-                return
             if obj['action'] != 'created':
                 return
-            try:
-                comment_body = obj['comment']['body']
-            except TypeError:
-                return
-            if type(comment_body) is not str:
-                return
-            # strip carriage returns
-            comment_body = comment_body.replace('\r', '')
-            # skip comment not having signed part at all
-            try:
-                offset = comment_body.index('-----BEGIN PGP SIGNED MESSAGE-----\nHash: ')
-            except ValueError:
-                return
-            comment_body = comment_body[offset:]
-            end_index = '\n-----END PGP SIGNATURE-----\n'
-            try:
-                offset = comment_body.index(end_index)
-            except ValueError:
-                return
-            comment_body = comment_body[:offset + len(end_index)]
-            try:
-                with open(self.config_path) as config:
-                    build_vms = config.read().splitlines()
-            except IOError as e:
-                print(str(e), file=sys.stderr)
-                return
-            for vm in build_vms:
-                self.qrexec(vm, 'qubesbuilder.ProcessGithubCommand',
-                            comment_body + '\n')
-        except KeyError:
-            pass
+            comment_body = obj['comment']['body']
+        except (TypeError, KeyError):
+            return
+        if type(comment_body) is not str:
+            return
+        # strip carriage returns
+        comment_body = comment_body.replace('\r', '')
+        # skip comment not having signed part at all
+        try:
+            offset = comment_body.index('-----BEGIN PGP SIGNED MESSAGE-----\nHash: ')
+        except ValueError:
+            return
+        comment_body = comment_body[offset:]
+        end_index = '\n-----END PGP SIGNATURE-----\n'
+        try:
+            offset = comment_body.index(end_index)
+        except ValueError:
+            return
+        comment_body = comment_body[:offset + len(end_index)]
+        try:
+            with open(self.config_path) as config:
+                build_vms = config.read().splitlines()
+        except IOError as e:
+            print(str(e), file=sys.stderr)
+            return
+        for vm in build_vms:
+            self.qrexec(vm, 'qubesbuilder.ProcessGithubCommand',
+                        comment_body + '\n')
