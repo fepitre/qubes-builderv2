@@ -26,7 +26,7 @@ scripts_dir="/usr/local/lib/qubes-builder-github"
 . "$scripts_dir/functions.sh"
 
 command_signer=
-read_stdin_command_and_verify_signature "$scripts_dir" "$keyring_path" "$tmpdir/command" command_signer
+read_stdin_command_and_verify_signature "$scripts_dir" "$keyring_path" "${tmpdir:?}/command" command_signer
 
 # shellcheck disable=SC2034
 read -r action args < "$tmpdir/command"
