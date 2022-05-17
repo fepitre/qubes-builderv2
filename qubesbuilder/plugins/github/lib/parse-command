@@ -51,6 +51,9 @@ def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> 
     Check that a byte string is exactly one OpenPGP signature packet.
     The contents of the packet are not checked.
     """
+    sig_len = len(untrusted_binary_sig)
+    if sig_len < 64:
+        raise ValueError('signature too short to be valid')
     untrusted_first_byte = untrusted_binary_sig[0]
     if not (untrusted_first_byte & 0x80):
         raise ValueError('first bit zero')
@@ -81,7 +84,7 @@ def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> 
             raise ValueError('forbidden indefinite-length packet')
         for i in untrusted_binary_sig[1:len_bytes + 1]:
             packet_length = packet_length << 8 | i
-    if packet_length != len(untrusted_binary_sig) - len_bytes - 1:
+    if packet_length != sig_len - len_bytes - 1:
         raise ValueError('bad signature length')
     if tag != 2:
         raise ValueError('packet is not a signature')
@@ -140,15 +143,13 @@ def main(command_file, sig_file) -> None:
     untrusted_binary = []
     untrusted_base64_body = untrusted_sig[len(sig_start):-35]
     for i in untrusted_base64_body.split(b'\n'):
+        if not i:
+            continue # ignore blank lines
         if must_be_last:
             raise ValueError('bad end of file')
         len_i = len(i)
-        if len_i > 64:
-            raise ValueError('base64 line longer than 64 bytes')
-        if not i or len_i % 4:
+        if len_i % 4:
             raise ValueError('bad base64 line')
-        if len_i < 64:
-            must_be_last = True
         if i[-1] == ord('='):
             must_be_last = True
             if i[-2] == ord('='):
@@ -165,10 +166,8 @@ def main(command_file, sig_file) -> None:
 
     untrusted_sig_to_write = b''.join(untrusted_binary)
     check_one_signature_packet(untrusted_sig_to_write, hash_str)
-    untrusted_armored_sig_to_write = reconstruct_armored_sig(untrusted_binary_crc24, untrusted_sig_to_write)
-    assert untrusted_armored_sig_to_write == untrusted_sig, "Didn't round-trip!"
     with open(sig_file, 'wb') as s, open(command_file, 'wb') as c:
-        s.write(untrusted_armored_sig_to_write)
+        s.write(reconstruct_armored_sig(untrusted_binary_crc24, untrusted_sig_to_write))
         s.flush()
         c.write(untrusted_command)
         c.flush()
