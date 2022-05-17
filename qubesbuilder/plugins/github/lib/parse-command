@@ -2,9 +2,10 @@
 import sys, base64
 
 prefix = b"-----BEGIN PGP SIGNED MESSAGE-----\nHash: "
-sig_start = b"-----BEGIN PGP SIGNATURE-----\n\n"
+sig_start = b"-----BEGIN PGP SIGNATURE-----\n"
 sig_end = b"\n-----END PGP SIGNATURE-----\n"
 shortest_sig = sig_start + b"""
+
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 =AAAA""" + sig_end
 shortest_input = prefix + b"""SHA256
@@ -102,7 +103,7 @@ def reconstruct_armored_sig(untrusted_binary_crc24: bytes, untrusted_b64: bytes)
     """
     Reconstruct an armored signature from the components
     """
-    untrusted_array = [sig_start[:-1]]
+    untrusted_array = [sig_start]
     untrusted_encoded = base64.b64encode(untrusted_b64)
     untrusted_array += (untrusted_encoded[i:i+64] for i in range(0, len(untrusted_encoded), 64))
     untrusted_array += [b'=' + base64.b64encode(untrusted_binary_crc24), sig_end[1:]]
