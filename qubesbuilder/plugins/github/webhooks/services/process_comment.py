@@ -24,7 +24,9 @@ import json
 import sys
 import subprocess
 import os
+import re
 
+_trailing_space = re.compile(r'[ \r\t\f\v]*\n')
 
 class Service:
     def __init__(self):
@@ -49,8 +51,8 @@ class Service:
             return
         if type(comment_body) is not str:
             return
-        # strip carriage returns
-        comment_body = comment_body.replace('\r', '')
+        # strip trailing space, including carriage returns
+        comment_body = _trailing_space.replace('\n', comment_body)
         # skip comment not having signed part at all
         try:
             offset = comment_body.index('-----BEGIN PGP SIGNED MESSAGE-----\nHash: ')
