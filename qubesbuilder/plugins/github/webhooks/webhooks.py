@@ -46,31 +46,6 @@ class ApiError(Exception):
         rv['message'] = self.message
         return rv
 
-
-def read_config():
-    """
-    {
-      "services": [
-        "trigger_build",
-        "process_comment"
-      ]
-    }
-    """
-    config_path = os.environ.get('WEBHOOKS_CONFIG',
-                                 '/home/user/webhooks/webhooks.conf')
-    with open(config_path, 'r') as cfd:
-        conf = json.loads(cfd.read())
-
-    if not conf.get('services'):
-        raise AttributeError('Services not provided')
-
-    return conf
-
-
-# read local config
-webhooks_config = read_config()
-
-
 # begin flask app
 @app.errorhandler(ApiError)
 def handle_invalid_usage(error):
@@ -90,7 +65,7 @@ def run(service_name):
             event_type_gitlab not in ("Pipeline Hook", "Job Hook"):
         return Response("OK", status=200, mimetype='text/plain')
 
-    if service_name not in webhooks_config.get("services", []):
+    if service_name not in ('process_comment', 'trigger_build'):
         raise ApiError('Unknown service', status_code=404)
 
     try:
