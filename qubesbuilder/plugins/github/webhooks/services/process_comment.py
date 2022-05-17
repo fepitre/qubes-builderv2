@@ -38,7 +38,7 @@ class Service:
         p = subprocess.Popen(['/usr/bin/qrexec-client-vm', vm, service],
                              stdin=subprocess.PIPE,
                              stdout=open(os.devnull, 'w'))
-        p.communicate(input_data.encode())
+        p.communicate(input_data)
 
     def handle(self, obj):
         try:
@@ -69,6 +69,10 @@ class Service:
         except IOError as e:
             print(str(e), file=sys.stderr)
             return
+        try:
+            comment_body = comment_body.encode('ascii', 'strict')
+        except UnicodeEncodeError:
+            return
         for vm in build_vms:
             self.qrexec(vm, 'qubesbuilder.ProcessGithubCommand',
-                        comment_body + '\n')
+                        comment_body + b'\n')
