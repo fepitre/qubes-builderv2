@@ -1,6 +1,9 @@
 #!/usr/bin/python3 --
 import sys, base64
 
+class BadCommandError(ValueError):
+    pass
+
 prefix = b"-----BEGIN PGP SIGNED MESSAGE-----\nHash: "
 sig_start = b"-----BEGIN PGP SIGNATURE-----\n"
 sig_end = b"\n-----END PGP SIGNATURE-----\n"
@@ -21,11 +24,11 @@ def check_base64(untrusted_bytes: bytes) -> None:
             (i == 0x2B)): # '+'
             pass
         else:
-            raise ValueError('invalid base64 character')
+            raise BadCommandError('invalid base64 character')
 
 def check_command(untrusted_command: bytes) -> None:
     if len(untrusted_command) > 255:
-        raise ValueError('command too long')
+        raise BadCommandError('command too long')
     last_c = 0x20
     for i in untrusted_command:
         if ((0x41 <= i <= 0x5A) or # A-Z
@@ -37,15 +40,15 @@ def check_command(untrusted_command: bytes) -> None:
         elif ((i == 0x2D) or # '-'
               (i == 0x20)): # ' '
             if last_c == 0x20:
-                raise ValueError('Double spaces or space-dash in command')
+                raise BadCommandError('Double spaces or space-dash in command')
         else:
-            raise ValueError('invalid character in command')
+            raise BadCommandError('invalid character in command')
         last_c = i
     if not (untrusted_command.startswith(b'Build-template ') or
             untrusted_command.startswith(b'Upload ')):
-        raise ValueError('Unknown command')
+        raise BadCommandError('Unknown command')
     if untrusted_command[-1] <= 0x20:
-        raise ValueError('Trailing whitespace in command forbidden')
+        raise BadCommandError('Trailing whitespace in command forbidden')
 
 def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> None:
     """
@@ -54,10 +57,10 @@ def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> 
     """
     sig_len = len(untrusted_binary_sig)
     if sig_len < 64:
-        raise ValueError('signature too short to be valid')
+        raise BadCommandError('signature too short to be valid')
     untrusted_first_byte = untrusted_binary_sig[0]
     if not (untrusted_first_byte & 0x80):
-        raise ValueError('first bit zero')
+        raise BadCommandError('first bit zero')
     packet_length = 0
     if untrusted_first_byte & 0x40:
         # new-format packet
@@ -76,28 +79,28 @@ def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> 
             for i in untrusted_binary_sig[2:6]:
                 packet_length = packet_length << 8 | i
         else:
-            raise ValueError('unsupported partial-length packet')
+            raise BadCommandError('unsupported partial-length packet')
     else:
         # old-format packet
         len_bytes = 1 << (untrusted_first_byte & 0x3)
         tag = (untrusted_first_byte >> 2) & 0xF
         if len_bytes > 4:
-            raise ValueError('forbidden indefinite-length packet')
+            raise BadCommandError('forbidden indefinite-length packet')
         for i in untrusted_binary_sig[1:len_bytes + 1]:
             packet_length = packet_length << 8 | i
     if packet_length != sig_len - len_bytes - 1:
-        raise ValueError('bad signature length')
+        raise BadCommandError('bad signature length')
     if tag != 2:
-        raise ValueError('packet is not a signature')
+        raise BadCommandError('packet is not a signature')
     if untrusted_binary_sig[len_bytes + 1] != 4:
-        raise ValueError('only version 4 signatures allowed')
+        raise BadCommandError('only version 4 signatures allowed')
     if untrusted_binary_sig[len_bytes + 2] != 1:
-        raise ValueError('expected signature of type 1, got something else')
+        raise BadCommandError('expected signature of type 1, got something else')
     hash_alg = untrusted_binary_sig[len_bytes + 4]
     if hash_alg < 8 or hash_alg > 10:
-        raise ValueError('unsupported hash algorithm')
+        raise BadCommandError('unsupported hash algorithm')
     if hash_str != (b'SHA256', b'SHA384', b'SHA512')[hash_alg - 8]:
-        raise ValueError('hash algorithm mismatch')
+        raise BadCommandError('hash algorithm mismatch')
 
 def reconstruct_armored_sig(untrusted_binary_crc24: bytes, untrusted_b64: bytes) -> bytes:
     """
@@ -112,22 +115,22 @@ def reconstruct_armored_sig(untrusted_binary_crc24: bytes, untrusted_b64: bytes)
 def main(command_file, sig_file) -> None:
     def parse_command_end(untrusted_input: bytes) -> bytes:
         if not untrusted_input.endswith(sig_end):
-            raise ValueError('junk after end of message')
+            raise BadCommandError('junk after end of message')
         if untrusted_input[-35:-33] != b'\n=':
-            raise ValueError('Missing CRC')
+            raise BadCommandError('Missing CRC')
         untrusted_crc24 = untrusted_input[-33:-29]
         check_base64(untrusted_crc24)
         return base64.b64decode(untrusted_crc24)
 
     untrusted_input = sys.stdin.buffer.read(65536)
     if sys.stdin.buffer.read(1):
-        raise Exception('Failed to read to end of file')
+        raise BadCommandError('Command too long (limit is 65536 bytes)')
     if len(untrusted_input) < len(shortest_input):
-        raise ValueError('input too short')
+        raise BadCommandError('input too short')
     if not untrusted_input.startswith(prefix):
-        raise ValueError('not an inline signed message')
+        raise BadCommandError('not an inline signed message')
     if untrusted_input[41:49] not in (b'SHA256\n\n', b'SHA384\n\n', b'SHA512\n\n'):
-        raise ValueError('bad hash algorithm')
+        raise BadCommandError('bad hash algorithm')
     hash_str = untrusted_input[41:47]
 
     untrusted_binary_crc24 = parse_command_end(untrusted_input)
@@ -135,9 +138,9 @@ def main(command_file, sig_file) -> None:
     untrusted_command, untrusted_sig = untrusted_input[49:].split(b'\n', 1)
     check_command(untrusted_command)
     if len(untrusted_sig) < len(shortest_sig):
-        raise ValueError('sig too short')
+        raise BadCommandError('sig too short')
     if not untrusted_sig.startswith(sig_start):
-        raise ValueError('Invalid start of signature')
+        raise BadCommandError('Invalid start of signature')
 
     # Parse the base64 data
     must_be_last = False
@@ -147,18 +150,18 @@ def main(command_file, sig_file) -> None:
         if not i:
             continue # ignore blank lines
         if must_be_last:
-            raise ValueError('bad end of file')
+            raise BadCommandError('trailing junk after padding')
         len_i = len(i)
         if len_i % 4:
-            raise ValueError('bad base64 line')
+            raise BadCommandError('bad base64 line: length not multiple of 4')
         if i[-1] == ord('='):
             must_be_last = True
             if i[-2] == ord('='):
                 check_base64(i[:-2])
                 if i[-3] not in (65, 81, 103, 119):
-                    raise ValueError('bad base64 line (bad byte before padding)')
+                    raise BadCommandError('bad base64 line: bad byte before padding')
             elif i[-2] not in {48, 52, 56, 65, 69, 73, 77, 81, 85, 89, 99, 103, 107, 111, 115, 119}:
-                raise ValueError('bad base64 line (bad byte before padding)')
+                raise BadCommandError('bad base64 line: bad byte before padding')
             else:
                 check_base64(i[:-1])
         else:
@@ -174,4 +177,8 @@ def main(command_file, sig_file) -> None:
         c.flush()
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2])
+    try:
+        main(sys.argv[1], sys.argv[2])
+    except (BadCommandError, IOError) as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
