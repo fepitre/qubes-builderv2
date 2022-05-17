@@ -26,7 +26,7 @@ import subprocess
 import os
 import re
 
-_trailing_space = re.compile(r'[ \r\t\f\v]*\n')
+_trailing_space = re.compile(br'[ \r\t\f\v]*\n')
 
 class Service:
     def __init__(self):
@@ -51,30 +51,33 @@ class Service:
             return
         if type(comment_body) is not str:
             return
+        try:
+            comment_body = comment_body.encode('ascii', 'strict')
+        except UnicodeEncodeError:
+            return # ignore non-ASCII commands
+
         # strip trailing space, including carriage returns
-        comment_body = _trailing_space.replace('\n', comment_body)
+        comment_body = _trailing_space.replace(b'\n', comment_body)
+
         # skip comment not having signed part at all
         try:
-            offset = comment_body.index('-----BEGIN PGP SIGNED MESSAGE-----\nHash: ')
+            offset = comment_body.index(b'-----BEGIN PGP SIGNED MESSAGE-----\nHash: ')
         except ValueError:
             return
         comment_body = comment_body[offset:]
-        end_index = '\n-----END PGP SIGNATURE-----'
+        end_index = b'\n-----END PGP SIGNATURE-----'
         try:
             offset = comment_body.index(end_index)
         except ValueError:
             return
-        comment_body = comment_body[:offset + len(end_index)]
+        # strip stuff after signature and add trailing newline
+        comment_body = comment_body[:offset + len(end_index)] + b'\n'
         try:
             with open(self.config_path) as config:
                 build_vms = config.read().splitlines()
         except IOError as e:
             print(str(e), file=sys.stderr)
             return
-        try:
-            comment_body = comment_body.encode('ascii', 'strict')
-        except UnicodeEncodeError:
-            return
         for vm in build_vms:
             self.qrexec(vm, 'qubesbuilder.ProcessGithubCommand',
-                        comment_body + b'\n')
+                        comment_body)
