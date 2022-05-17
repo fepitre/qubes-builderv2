@@ -57,7 +57,7 @@ class Service:
         except ValueError:
             return
         comment_body = comment_body[offset:]
-        end_index = '\n-----END PGP SIGNATURE-----\n'
+        end_index = '\n-----END PGP SIGNATURE-----'
         try:
             offset = comment_body.index(end_index)
         except ValueError:
