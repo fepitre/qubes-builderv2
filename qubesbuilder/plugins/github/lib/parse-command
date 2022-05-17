@@ -143,32 +143,24 @@ def main(command_file, sig_file) -> None:
         raise BadCommandError('Invalid start of signature')
 
     # Parse the base64 data
-    must_be_last = False
-    untrusted_binary = []
-    untrusted_base64_body = untrusted_sig[len(sig_start):-35]
-    for i in untrusted_base64_body.split(b'\n'):
-        if not i:
-            continue # ignore blank lines
-        if must_be_last:
-            raise BadCommandError('trailing junk after padding')
-        len_i = len(i)
-        if len_i % 4:
-            raise BadCommandError('bad base64 line: length not multiple of 4')
-        if i[-1] == ord('='):
-            must_be_last = True
-            if i[-2] == ord('='):
-                check_base64(i[:-2])
-                if i[-3] not in (65, 81, 103, 119):
-                    raise BadCommandError('bad base64 line: bad byte before padding')
-            elif i[-2] not in {48, 52, 56, 65, 69, 73, 77, 81, 85, 89, 99, 103, 107, 111, 115, 119}:
+    untrusted_base64_body = untrusted_sig[len(sig_start):-35].replace(b'\n', b'')
+    sig_base64_len = len(untrusted_base64_body)
+    if sig_base64_len < 88:
+        raise BadCommandError('sig too short')
+    if sig_base64_len % 4:
+        raise BadCommandError('base64-encoded data has length not a multiple of 4')
+    if untrusted_base64_body[-1] == ord('='):
+        if untrusted_base64_body[-2] == ord('='):
+            check_base64(untrusted_base64_body[:-2])
+            if untrusted_base64_body[-3] not in (65, 81, 103, 119):
                 raise BadCommandError('bad base64 line: bad byte before padding')
-            else:
-                check_base64(i[:-1])
+        elif untrusted_base64_body[-2] not in {48, 52, 56, 65, 69, 73, 77, 81, 85, 89, 99, 103, 107, 111, 115, 119}:
+            raise BadCommandError('bad base64 line: bad byte before padding')
         else:
-            check_base64(i)
-        untrusted_binary.append(base64.b64decode(i))
-
-    untrusted_sig_to_write = b''.join(untrusted_binary)
+            check_base64(untrusted_base64_body[:-1])
+    else:
+        check_base64(untrusted_base64_body)
+    untrusted_sig_to_write = base64.b64decode(untrusted_base64_body)
     check_one_signature_packet(untrusted_sig_to_write, hash_str)
     with open(sig_file, 'wb') as s, open(command_file, 'wb') as c:
         s.write(reconstruct_armored_sig(untrusted_binary_crc24, untrusted_sig_to_write))
