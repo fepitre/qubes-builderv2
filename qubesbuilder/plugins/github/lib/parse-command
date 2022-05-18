@@ -28,6 +28,9 @@ def check_base64(untrusted_bytes: bytes) -> None:
             raise BadCommandError('invalid base64 character')
 
 def check_command(untrusted_command: bytes) -> None:
+    """
+    Check a command provided via a GitHub comment
+    """
     if len(untrusted_command) > 255:
         raise BadCommandError('command too long')
     last_c = 0x20
