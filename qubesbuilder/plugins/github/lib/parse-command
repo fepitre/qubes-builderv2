@@ -36,7 +36,7 @@ def check_command(untrusted_command: bytes) -> None:
             (0x61 <= i <= 0x7A) or # a-z
             (0x30 <= i <= 0x39) or # 0-9
             (i == 0x5F) or # '_'
-            (i == 0x2E)):
+            (i == 0x2E)): # '.'
             pass
         elif ((i == 0x2D) or # '-'
               (i == 0x20)): # ' '
