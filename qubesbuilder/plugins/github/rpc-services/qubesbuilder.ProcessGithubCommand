@@ -9,7 +9,7 @@
 #    "Upload" component_name commit_sha release_name "current" (dists) "repo"
 # or
 #
-#    "Build-template" dist timestamp
+#    "Build-template" release_name dist timestamp
 #
 # (words in quotes are verbatim - without quotes, others are parameters)
 # Also, instead of "current", "security-testing" value is supported too.
