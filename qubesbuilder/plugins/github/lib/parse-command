@@ -171,6 +171,8 @@ def main(command_file, sig_file) -> None:
         raise BadCommandError('input too short')
     if not untrusted_input.startswith(prefix):
         raise BadCommandError('not an inline signed message')
+    if not untrusted_input.endswith(b'\n'):
+        raise BadCommandError('No trailing newline (webhook bug?)')
     if untrusted_input[41:49] not in (b'SHA256\n\n', b'SHA384\n\n', b'SHA512\n\n'):
         raise BadCommandError('bad hash algorithm')
     hash_str = untrusted_input[41:47]
