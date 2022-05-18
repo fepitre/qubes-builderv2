@@ -113,38 +113,32 @@ def reconstruct_armored_sig(untrusted_binary_crc24: bytes, untrusted_binary_sig:
     untrusted_array.append(b'=' + b2a_base64(untrusted_binary_crc24, newline=False) + sig_end)
     return b'\n'.join(untrusted_array)
 
-def main(command_file, sig_file) -> None:
-    def parse_command_end(untrusted_input: bytes) -> bytes:
-        if not untrusted_input.endswith(sig_end):
-            raise BadCommandError('junk after end of message')
-        if untrusted_input[-35:-33] != b'\n=':
-            raise BadCommandError('Missing CRC')
-        untrusted_crc24 = untrusted_input[-33:-29]
-        check_base64(untrusted_crc24)
-        return a2b_base64(untrusted_crc24)
+def canonicalize_sig(untrusted_armored_sig: bytes, hash_str: bytes) -> bytes:
+    """
+    Canonicalize an ASCII-armored cleartext signature.
 
-    untrusted_input = sys.stdin.buffer.read(65536)
-    if sys.stdin.buffer.read(1):
-        raise BadCommandError('Command too long (limit is 65536 bytes)')
-    if len(untrusted_input) < len(shortest_input):
-        raise BadCommandError('input too short')
-    if not untrusted_input.startswith(prefix):
-        raise BadCommandError('not an inline signed message')
-    if untrusted_input[41:49] not in (b'SHA256\n\n', b'SHA384\n\n', b'SHA512\n\n'):
-        raise BadCommandError('bad hash algorithm')
-    hash_str = untrusted_input[41:47]
-
-    untrusted_binary_crc24 = parse_command_end(untrusted_input)
-
-    untrusted_command, untrusted_sig = untrusted_input[49:].split(b'\n', 1)
-    check_command(untrusted_command)
-    if len(untrusted_sig) < len(shortest_sig):
+    hash_str is the value of the Hash: armor line.
+    """
+    # Check that the signature is long enough
+    if len(untrusted_armored_sig) < len(shortest_sig):
         raise BadCommandError('sig too short')
-    if not untrusted_sig.startswith(sig_start):
+
+    # Check the start and end of the signature
+    if not untrusted_armored_sig.startswith(sig_start):
         raise BadCommandError('Invalid start of signature')
+    if not untrusted_armored_sig.endswith(sig_end):
+        raise BadCommandError('Invalid end of signature (trailing junk?)')
+
+    # Check and extract the CRC
+    if untrusted_armored_sig[-35:-33] != b'\n=':
+        raise BadCommandError('Missing or misplaced CRC')
+    untrusted_b64_crc24 = untrusted_armored_sig[-33:-29]
+    check_base64(untrusted_b64_crc24)
+    untrusted_crc24 = a2b_base64(untrusted_b64_crc24)
+    del untrusted_b64_crc24
 
     # Parse the base64 data
-    untrusted_base64_body = untrusted_sig[len(sig_start):-35].replace(b'\n', b'')
+    untrusted_base64_body = untrusted_armored_sig[len(sig_start):-35].replace(b'\n', b'')
     sig_base64_len = len(untrusted_base64_body)
     if sig_base64_len < 88:
         raise BadCommandError('sig too short')
@@ -162,9 +156,31 @@ def main(command_file, sig_file) -> None:
     else:
         check_base64(untrusted_base64_body)
     untrusted_sig_to_write = a2b_base64(untrusted_base64_body)
+
+    # Check that the signature is a single packet of the correct type
     check_one_signature_packet(untrusted_sig_to_write, hash_str)
+
+    # And reconstruct the armored signature.
+    return reconstruct_armored_sig(untrusted_crc24, untrusted_sig_to_write)
+
+def main(command_file, sig_file) -> None:
+    untrusted_input = sys.stdin.buffer.read(65536)
+    if sys.stdin.buffer.read(1):
+        raise BadCommandError('Command too long (limit is 65536 bytes)')
+    if len(untrusted_input) < len(shortest_input):
+        raise BadCommandError('input too short')
+    if not untrusted_input.startswith(prefix):
+        raise BadCommandError('not an inline signed message')
+    if untrusted_input[41:49] not in (b'SHA256\n\n', b'SHA384\n\n', b'SHA512\n\n'):
+        raise BadCommandError('bad hash algorithm')
+    hash_str = untrusted_input[41:47]
+
+    untrusted_command, untrusted_sig = untrusted_input[49:].split(b'\n', 1)
+    check_command(untrusted_command)
+
+    reconstructed_sig = canonicalize_sig(untrusted_sig, hash_str)
     with open(sig_file, 'wb') as s, open(command_file, 'wb') as c:
-        s.write(reconstruct_armored_sig(untrusted_binary_crc24, untrusted_sig_to_write))
+        s.write(reconstructed_sig)
         s.flush()
         c.write(untrusted_command)
         c.flush()
