@@ -1,5 +1,6 @@
 #!/usr/bin/python3 --
-import sys, base64
+import sys
+from binascii import a2b_base64, b2a_base64
 
 class BadCommandError(ValueError):
     pass
@@ -107,9 +108,9 @@ def reconstruct_armored_sig(untrusted_binary_crc24: bytes, untrusted_binary_sig:
     Reconstruct an armored signature from the components
     """
     untrusted_array = [sig_start]
-    untrusted_encoded = base64.b64encode(untrusted_binary_sig, newline=False)
+    untrusted_encoded = b2a_base64(untrusted_binary_sig, newline=False)
     untrusted_array += (untrusted_encoded[i:i+64] for i in range(0, len(untrusted_encoded), 64))
-    untrusted_array += [b'=' + base64.b64encode(untrusted_binary_crc24), sig_end[1:]]
+    untrusted_array.append(b'=' + b2a_base64(untrusted_binary_crc24, newline=False) + sig_end)
     return b'\n'.join(untrusted_array)
 
 def main(command_file, sig_file) -> None:
@@ -120,7 +121,7 @@ def main(command_file, sig_file) -> None:
             raise BadCommandError('Missing CRC')
         untrusted_crc24 = untrusted_input[-33:-29]
         check_base64(untrusted_crc24)
-        return base64.b64decode(untrusted_crc24)
+        return a2b_base64(untrusted_crc24)
 
     untrusted_input = sys.stdin.buffer.read(65536)
     if sys.stdin.buffer.read(1):
@@ -160,7 +161,7 @@ def main(command_file, sig_file) -> None:
             check_base64(untrusted_base64_body[:-1])
     else:
         check_base64(untrusted_base64_body)
-    untrusted_sig_to_write = base64.b64decode(untrusted_base64_body)
+    untrusted_sig_to_write = a2b_base64(untrusted_base64_body)
     check_one_signature_packet(untrusted_sig_to_write, hash_str)
     with open(sig_file, 'wb') as s, open(command_file, 'wb') as c:
         s.write(reconstruct_armored_sig(untrusted_binary_crc24, untrusted_sig_to_write))
