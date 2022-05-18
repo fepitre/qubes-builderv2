@@ -102,12 +102,12 @@ def check_one_signature_packet(untrusted_binary_sig: bytes, hash_str: bytes) -> 
     if hash_str != (b'SHA256', b'SHA384', b'SHA512')[hash_alg - 8]:
         raise BadCommandError('hash algorithm mismatch')
 
-def reconstruct_armored_sig(untrusted_binary_crc24: bytes, untrusted_b64: bytes) -> bytes:
+def reconstruct_armored_sig(untrusted_binary_crc24: bytes, untrusted_binary_sig: bytes) -> bytes:
     """
     Reconstruct an armored signature from the components
     """
     untrusted_array = [sig_start]
-    untrusted_encoded = base64.b64encode(untrusted_b64)
+    untrusted_encoded = base64.b64encode(untrusted_binary_sig, newline=False)
     untrusted_array += (untrusted_encoded[i:i+64] for i in range(0, len(untrusted_encoded), 64))
     untrusted_array += [b'=' + base64.b64encode(untrusted_binary_crc24), sig_end[1:]]
     return b'\n'.join(untrusted_array)
