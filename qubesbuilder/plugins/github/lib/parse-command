@@ -164,9 +164,9 @@ def canonicalize_sig(untrusted_armored_sig: bytes, hash_str: bytes) -> bytes:
     return reconstruct_armored_sig(untrusted_crc24, untrusted_sig_to_write)
 
 def main(command_file, sig_file) -> None:
-    untrusted_input = sys.stdin.buffer.read(65536)
+    untrusted_input = sys.stdin.buffer.read(8192)
     if sys.stdin.buffer.read(1):
-        raise BadCommandError('Command too long (limit is 65536 bytes)')
+        raise BadCommandError('Command too long (limit is 8192 bytes)')
     if len(untrusted_input) < len(shortest_input):
         raise BadCommandError('input too short')
     if not untrusted_input.startswith(prefix):
