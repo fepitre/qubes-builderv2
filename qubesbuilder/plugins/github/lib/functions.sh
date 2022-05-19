@@ -61,7 +61,7 @@ read_stdin_command_and_verify_signature() {
         exit 1
     fi
 
-    if ! gpg2 --keyring "$local_keyring_path" \
+    if ! LC_ALL=en_US.UTF-8 gpg2 --keyring "$local_keyring_path" \
 	    --exit-on-status-write-error \
 	    --no-autostart \
 	    --no-tty \
