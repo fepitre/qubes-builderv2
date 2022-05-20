@@ -18,6 +18,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import shutil
 import subprocess
+import getpass
+
 from pathlib import Path
 from typing import List, Tuple
 
@@ -32,6 +34,9 @@ class LocalExecutor(Executor):
     """
     Local executor
     """
+
+    def __init__(self, **kwargs):
+        self._kwargs = kwargs
 
     def copy_in(self, source_path: Path, destination_dir: Path):
         src = source_path.resolve()
@@ -60,13 +65,15 @@ class LocalExecutor(Executor):
     ):
 
         # FIXME: ensure to create /builder tree layout in all executors
-        try:
-            subprocess.run(
-                "sudo mkdir -p /builder && sudo chown -R user:user /builder", check=True, shell=True
-            )
-        except subprocess.CalledProcessError as e:
-            raise ExecutorError(str(e))
+        if self._kwargs.get("group", None):
+            chown = f"{self._kwargs.get('user', getpass.getuser())}:{self._kwargs.get('group', 'user')}"
+        else:
+            chown = self._kwargs.get("user", getpass.getuser())
 
+        cmd = [
+            "sudo mkdir -p /builder",
+            f"sudo chown -R {chown} /builder",
+        ] + cmd
         cmd = ["bash", "-c", "&&".join(cmd)]
 
         log.info(f"Executing '{' '.join(cmd)}'.")

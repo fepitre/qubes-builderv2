@@ -9,7 +9,7 @@ def getExecutor(executor_type, executor_options):
     if executor_type in ("podman", "docker"):
         executor = ContainerExecutor(executor_type, **executor_options)
     elif executor_type == "local":
-        executor = LocalExecutor()
+        executor = LocalExecutor(**executor_options)
     elif executor_type == "qubes":
         executor = QubesExecutor(**executor_options)
     if not executor:
