@@ -38,12 +38,12 @@ class Service:
         )
 
     def qrexec(self, vm, service, input_data=None):
-        p = subprocess.Popen(
-            ["/usr/bin/qrexec-client-vm", vm, service],
+        with subprocess.Popen(
+            ["/usr/bin/qrexec-client-vm", "--", vm, service],
             stdin=subprocess.PIPE,
-            stdout=open(os.devnull, "w"),
-        )
-        p.communicate(input_data)
+            stdout=subprocess.DEVNULL,
+        ) as p:
+            p.communicate(input_data)
 
     def handle(self, obj):
         try:
@@ -60,7 +60,7 @@ class Service:
             return  # ignore non-ASCII commands
 
         # strip trailing space, including carriage returns
-        comment_body = _trailing_space.replace(b"\n", comment_body)
+        comment_body = _trailing_space.subn(b"\n", comment_body)[0]
 
         # skip comment not having signed part at all
         try:
