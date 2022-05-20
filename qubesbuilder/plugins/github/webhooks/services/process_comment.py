@@ -37,10 +37,10 @@ class Service:
             'build-vms.list')
 
     def qrexec(self, vm, service, input_data=None):
-        p = subprocess.Popen(['/usr/bin/qrexec-client-vm', vm, service],
-                             stdin=subprocess.PIPE,
-                             stdout=open(os.devnull, 'w'))
-        p.communicate(input_data)
+        with subprocess.Popen(['/usr/bin/qrexec-client-vm', '--', vm, service],
+                               stdin=subprocess.PIPE,
+                               stdout=open(os.devnull, 'w')) as p:
+            p.communicate(input_data)
 
     def handle(self, obj):
         try:
