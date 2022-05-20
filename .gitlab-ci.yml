@@ -3,6 +3,7 @@
 #
 
 stages:
+  - test
   - build
 
 variables:
@@ -13,7 +14,7 @@ variables:
 #
 
 lint:
-  stage: build
+  stage: test
   image: fedora:latest
   tags:
     - docker
@@ -23,7 +24,7 @@ lint:
     - black -v --diff --color --check qubesbuilder
 
 mypy:
-  stage: build
+  stage: test
   image: fedora:latest
   tags:
     - docker
@@ -37,7 +38,7 @@ mypy:
       junit: mypy.xml
 
 shellcheck:
-  stage: build
+  stage: test
   image: fedora:latest
   tags:
     - docker
@@ -47,7 +48,7 @@ shellcheck:
     - shellcheck -x -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
 
 pytest:
-  stage: build
+  stage: test
   tags:
     - qubes
   artifacts:
