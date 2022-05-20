@@ -3,9 +3,7 @@
 #
 
 stages:
-  - test
-  - package
-  - template
+  - build
 
 variables:
   DEBUG: "1"
@@ -15,7 +13,7 @@ variables:
 #
 
 lint:
-  stage: test
+  stage: build
   image: fedora:latest
   tags:
     - docker
@@ -25,7 +23,7 @@ lint:
     - black -v --diff --color --check qubesbuilder
 
 mypy:
-  stage: test
+  stage: build
   image: fedora:latest
   tags:
     - docker
@@ -39,7 +37,7 @@ mypy:
       junit: mypy.xml
 
 shellcheck:
-  stage: test
+  stage: build
   image: fedora:latest
   tags:
     - docker
@@ -49,7 +47,7 @@ shellcheck:
     - shellcheck -x -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
 
 pytest:
-  stage: test
+  stage: build
   tags:
     - qubes
   artifacts:
@@ -74,7 +72,7 @@ pytest:
 #
 
 .component_docker_job:
-  stage: package
+  stage: build
   tags:
     - vm
   artifacts:
@@ -91,7 +89,7 @@ pytest:
     - ./qb -d "${CI_JOB_NAME#docker-}" package all
 
 .component_podman_job:
-  stage: package
+  stage: build
   tags:
     - vm
   artifacts:
@@ -110,7 +108,7 @@ pytest:
     - ./qb -d "${CI_JOB_NAME#podman-}" package all
 
 .component_qubes_job:
-  stage: package
+  stage: build
   tags:
     - qubes
   artifacts:
@@ -126,7 +124,7 @@ pytest:
     - ./qb -d "${CI_JOB_NAME#qubes-}" package all
 
 .template_qubes_job:
-  stage: template
+  stage: build
   tags:
     - qubes
   before_script:
