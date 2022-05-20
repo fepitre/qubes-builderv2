@@ -26,7 +26,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 
 # Directories inside executor
-BUILDER_DIR = PurePath("/builder")
+BUILDER_DIR = Path("/builder")
 BUILD_DIR = BUILDER_DIR / "build"
 PLUGINS_DIR = BUILDER_DIR / "plugins"
 DISTFILES_DIR = BUILDER_DIR / "distfiles"

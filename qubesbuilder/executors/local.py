@@ -44,7 +44,7 @@ class LocalExecutor(Executor):
                 shutil.copytree(str(src), str(dst))
             else:
                 shutil.copy2(str(src), str(dst))
-        except (shutil.Error, FileExistsError) as e:
+        except (shutil.Error, FileExistsError, FileNotFoundError) as e:
             raise ExecutorError from e
 
     def copy_out(self, source_path: Path, destination_dir: Path):
@@ -58,6 +58,14 @@ class LocalExecutor(Executor):
         environment=None,
         no_fail_copy_out=False,
     ):
+
+        # FIXME: ensure to create /builder tree layout in all executors
+        try:
+            subprocess.run(
+                "sudo mkdir -p /builder && sudo chown -R user:user /builder", check=True, shell=True
+            )
+        except subprocess.CalledProcessError as e:
+            raise ExecutorError(str(e))
 
         cmd = ["bash", "-c", "&&".join(cmd)]
 
