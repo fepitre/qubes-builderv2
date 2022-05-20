@@ -49,12 +49,12 @@ case "${dists_and_end}" in
         ;;
 esac
 
-if [ "${component}" == "linux-template-builder" ]; then
-    if [ "$repo_name" == "templates-itl" ] && [ "$repo_name" != "templates-community" ]; then
+if [ "$component" = "linux-template-builder" ]; then
+    if [ "$repo_name" != "templates-itl" ] && [ "$repo_name" != "templates-community" ]; then
         echo "Unsupported target repo" >&2
         exit 1
     fi
-elif [ "$repo_name" == "current" ] && [ "$repo_name" != "security-testing" ]; then
+elif [ "$repo_name" != "current" ] && [ "$repo_name" != "security-testing" ]; then
     echo "Unsupported target repo" >&2
     exit 1
 fi
@@ -92,7 +92,7 @@ upload_for_release() {
 
     # if no specific distribution was requested, upload all of them, unless template
     if [ "$component" != "linux-template-builder" ] && \
-            [ "$dists_and_end" == "repo" ]; then
+            [ "$dists_and_end" = "repo" ]; then
         if [ "${allowed_dists% dom0}" = "$allowed_dists" ]; then
             # exclude dom0
             export DIST_DOM0=""
@@ -135,7 +135,7 @@ upload_for_release() {
     for dist_pair in $dists_and_end; do
         package_set=${dist_pair%%-*}
         dist=${dist_pair#*-}
-        if [ "$package_set" == "dom0" ]; then
+        if [ "$package_set" = "dom0" ]; then
             if echo " $supported_dists_dom0 " | grep -q " $dist "; then
                 requested_dists_dom0="$requested_dists_dom0 $dist"
             fi
@@ -158,7 +158,7 @@ upload_for_release() {
                 requested_dists_vm="$requested_dists_vm $dist"
             fi
             # don't fail otherwise - maybe builder in other VM will handle it
-        elif [ "$dist_pair" == "repo" ]; then
+        elif [ "$dist_pair" = "repo" ]; then
             # end processing here
             break
         fi
