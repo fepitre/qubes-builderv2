@@ -541,24 +541,24 @@ class TemplatePlugin(Plugin):
                 raise TemplateError(msg) from e
 
             publish_info = self.get_artifacts_info(stage=stage)
-            info = self.get_artifacts_info(stage="build")
-            if (
+            build_info = self.get_artifacts_info(stage="build")
+            if not (
                 publish_info
                 and publish_info.get("timestamp", None) == self.get_template_timestamp()
             ):
-                info = publish_info
+                publish_info = build_info
 
             self.publish(db_path=db_path, repository_publish=repository_publish)
 
-            info.setdefault("repository-publish", [])
-            info["repository-publish"].append(  # type: ignore
+            publish_info.setdefault("repository-publish", [])
+            publish_info["repository-publish"].append(
                 {
                     "name": repository_publish,
                     "timestamp": datetime.utcnow().strftime("%Y%m%d%H%MZ"),
                 }
             )
             # Save package information we published for committing into current
-            self.save_artifacts_info(stage, info)
+            self.save_artifacts_info(stage, publish_info)
 
         if stage == "publish" and unpublish:
             if not self.is_published(repository_publish):
