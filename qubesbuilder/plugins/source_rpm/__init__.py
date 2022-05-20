@@ -239,6 +239,8 @@ class RPMSourcePlugin(SourcePlugin):
                 if isinstance(self.executor, QubesExecutor):
                     mock_cmd.append("--isolation=nspawn")
                 else:
+                    msg = f"{self.component}:{self.dist}:{build}: Mock isolation set to 'simple', build has full network access. Use 'qubes' executor for network-isolated build."
+                    log.warning(msg)
                     mock_cmd.append("--isolation=simple")
                 if self.verbose:
                     mock_cmd.append("--verbose")
