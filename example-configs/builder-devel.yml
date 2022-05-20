@@ -232,6 +232,7 @@ stages:
         options:
           image: "qubes-builder-fedora:latest"
   - prep
+  - pre
   - build
   - post
   - verify
@@ -239,5 +240,8 @@ stages:
       executor:
         type: local
   - publish:
+      executor:
+        type: local
+  - upload:
       executor:
         type: local

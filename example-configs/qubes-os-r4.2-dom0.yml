@@ -35,6 +35,7 @@ executor:
 stages:
   - fetch
   - prep
+  - pre
   - build
   - post
   - verify
@@ -42,6 +43,9 @@ stages:
       executor:
         type: local
   - publish:
+      executor:
+        type: local
+  - upload:
       executor:
         type: local
 
