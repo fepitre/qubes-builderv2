@@ -116,8 +116,8 @@ class RPMBuildPlugin(BuildPlugin):
             {
                 "DIST": self.dist.name,
                 "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
-                "USE_QUBES_REPO_VERSION": self.use_qubes_repo.get("version", None),
-                "USE_QUBES_REPO_TESTING": 1
+                "USE_QUBES_REPO_VERSION": str(self.use_qubes_repo.get("version", None)),
+                "USE_QUBES_REPO_TESTING": "1"
                 if self.use_qubes_repo.get("testing", None)
                 else 0,
             }
