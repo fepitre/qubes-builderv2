@@ -57,7 +57,7 @@ class Service:
             return # ignore non-ASCII commands
 
         # strip trailing space, including carriage returns
-        comment_body = _trailing_space.replace(b'\n', comment_body)
+        comment_body = _trailing_space.subn(b'\n', comment_body)[0]
 
         # skip comment not having signed part at all
         try:
