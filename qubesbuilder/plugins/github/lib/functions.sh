@@ -149,29 +149,30 @@ execute_in_each_builder() {
     done < "$config_file"
 }
 
-# get list of allowed distributions for given key, including template aliases
-# if dom0 is allowed, put it at the end of the list
+# get list of allowed distributions for given key
 # Arguments:
 # - builder dir
 # - key fingerprint
-get_allowed_dists() {
+get_allowed_distributionss() {
     local_builder_dir="$1"
     local_signer_fpr="$2"
+    read -r -a local_dists<<<"$(\
+        "$local_builder_dir"/qb --builder-conf "$local_builder_dir"/builder.yml config get-var --json plugins | \
+        jq -r --arg local_signer_fpr "$local_signer_fpr" 'map(.github)[0] | .maintainers."'"$local_signer_fpr"'".distributions | select( . != null ) | join(" ")' \
+    )"
+    echo "${local_dists[@]}"
+}
 
-    local_dists=$(MAKEFLAGS='' make -s -C "$local_builder_dir" \
-            get-var \
-            GET_VAR="ALLOWED_DISTS_$local_signer_fpr")
-
-    # now, filter out those not configured in DISTS_VM
-    # shellcheck disable=SC2016
-    configured_dists=$(MAKEFLAGS='' make -s -C "$local_builder_dir" \
-            TEMPLATE_ALIAS= \
-            FILTERED_DISTS='$(filter $(DISTS_VM),$(ALLOWED_DISTS_'"$local_signer_fpr"'))' \
-            get-var \
-            GET_VAR=FILTERED_DISTS)
-    if echo " $local_dists " | grep -q ' dom0 '; then
-        echo "$configured_dists dom0"
-    else
-        echo "$configured_dists"
-    fi
+# get list of allowed templates for given key
+# Arguments:
+# - builder dir
+# - key fingerprint
+get_allowed_templates() {
+    local_builder_dir="$1"
+    local_signer_fpr="$2"
+    read -r -a local_dists<<<"$(\
+        "$local_builder_dir"/qb --builder-conf "$local_builder_dir"/builder.yml config get-var --json plugins | \
+        jq -r --arg local_signer_fpr "$local_signer_fpr" 'map(.github)[0] | .maintainers."'"$local_signer_fpr"'".templates | select( . != null ) | join(" ")' \
+    )"
+    echo "${local_dists[@]}"
 }

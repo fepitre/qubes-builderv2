@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Script called by qubesbuilder.ProcessGithubCommand for handling "Build-template"
 # command
@@ -12,16 +12,19 @@ if [ $# -lt 2 ]; then
     exit 1
 fi
 
+if [ "$DEBUG" == "1" ]; then
+    set -x
+fi
+
 command_file="$1"
 signer_fpr="$2"
 
 scripts_dir="/usr/local/lib/qubes-builder-github"
 
 # shellcheck source=qubesbuilder/plugins/github/lib/functions.sh
-. "$scripts_dir/functions.sh"
+. "$scripts_dir/lib/functions.sh"
 
-read -r action release_name dist timestamp \
-        < "$command_file"
+read -r action release_name dist timestamp < "$command_file"
 
 if [ "x$action" != "xBuild-template" ]; then
     echo "Invalid action" >&2
@@ -43,16 +46,15 @@ esac
 # release_name verified in build_template_for_release function
 # dist verified in build_template_for_release function
 
-if ! printf "%s" "$timestamp" | grep -q "^[0-9]\{12\}$"; then
+if ! printf "%s" "$timestamp" | grep -q "^[0-9]\{12\}Z$"; then
     echo "Invalid timestamp format" >&2
     exit 1
 fi
 
-timestamp_format="%Y%m%d%H%MZ"
+timestamp_format="%Y%m%d%H%M"
 timestamp_max=$(date -u -d '+5 min' +$timestamp_format)
 timestamp_min=$(date -u -d '-1 hour' +$timestamp_format)
-if [ "$timestamp" -gt "$timestamp_max" ] || \
-        [ "$timestamp" -lt "$timestamp_min" ]; then
+if [ "${timestamp::-1}" -gt "$timestamp_max" ] || [ "${timestamp::-1}" -lt "$timestamp_min" ]; then
     echo "Timestamp outside of allowed range" >&2
     exit 1
 fi
@@ -68,36 +70,21 @@ build_template_for_release() {
         return
     fi
 
-    # get DISTS_VM as configured in builder.conf, without resolving aliases yet
-    supported_dists=$(make --no-print-directory -C "$local_builder_dir" \
-            TEMPLATE_ALIAS= \
-            get-var GET_VAR=DISTS_VM)
-    allowed_dists=$(get_allowed_dists "$local_builder_dir" "$signer_fpr")
+    # get templates as configured in builder.yml, without resolving aliases yet
+    supported_templates=$("$local_builder_dir"/qb --builder-conf "$local_builder_dir"/builder.yml config get-templates)
+    allowed_templates=$(get_allowed_templates "$local_builder_dir" "$signer_fpr")
 
-    if ! echo " $supported_dists " | grep -q " $dist "; then
+    if ! echo "$supported_templates" | grep -q "$dist"; then
         # not listed in this builder instance
         return
     fi
 
-    if ! echo " $allowed_dists " | grep -q " $dist "; then
+    if ! echo "$allowed_templates" | grep -q "$dist"; then
         # not allowed here
         return
     fi
 
-    # $dist verified to be in DISTS_VM, now check BUILDER_TEMPLATE_CONF; for
-    # that $dist must be translated via TEMPLATE_ALIAS
-    dist_translated=$(DISTS_VM=$dist \
-            make --no-print-directory -C "$local_builder_dir" \
-            get-var GET_VAR=DISTS_VM)
-    builder_template_conf=$(make --no-print-directory -C "$local_builder_dir" \
-            get-var GET_VAR=BUILDER_TEMPLATE_CONF)
-    if ! echo " $builder_template_conf"|grep -q " $dist_translated:"; then
-        # template config not set
-        return
-    fi
-
-    "$local_builder_dir/scripts/auto-build-template" \
-        "$dist" "$timestamp"
+    "$local_builder_dir/qubesbuilder/plugins/github/scripts/auto-build-template" "$local_builder_dir" "$dist" "$timestamp"
 }
 
 execute_in_each_builder build_template_for_release

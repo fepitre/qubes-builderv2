@@ -18,7 +18,7 @@ signer_fpr="$2"
 scripts_dir="/usr/local/lib/qubes-builder-github"
 
 # shellcheck source=qubesbuilder/plugins/github/lib/functions.sh
-. "$scripts_dir/functions.sh"
+. "$scripts_dir/lib/functions.sh"
 
 read -r action component commit_sha release_name repo_name dists_and_end \
         < "$command_file"
