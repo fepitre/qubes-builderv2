@@ -13,3 +13,13 @@ plugins:
       build-report-repo: 'QubesOS/updates-status'
       build-issues-repo: 'QubesOS/build-issues'
       logs-repo: 'QubesOS/build-logs'
+      maintainers:
+        9FA64B92F95E706BF28E2CA6484010B5CDC576E2:
+          distributions:
+            - host-fc32
+            - vm-fc35
+          templates:
+            - fedora-35
+            - fedora-35-xfce
+            - debian-11
+            - debian-12
