@@ -407,8 +407,8 @@ fi
 
 if ! "$fresh_clone"; then
     if [ "$DO_MERGE" = "1" ]; then
-        echo "Merging FETCH_HEAD into $REPO"; \
-		git -c merge.verifySignatures=false merge $GIT_MERGE_OPTS --no-edit "$VERIFY_REF"
+        echo "Merging FETCH_HEAD into $REPO"
+        git -c merge.verifySignatures=false merge $GIT_MERGE_OPTS --no-edit "$VERIFY_REF"
     else
         echo "--> Merging..."
         git -c merge.verifySignatures=no merge $GIT_MERGE_OPTS --commit -q "$VERIFY_REF"
