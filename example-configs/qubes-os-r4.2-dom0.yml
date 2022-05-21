@@ -1,6 +1,8 @@
 include:
   - example-configs/qubes-os-r4.2.yml
-  - example-configs/builder-github.yml
+  - example-configs/qubes-os-r4.2-maintainers.yml
+  - example-configs/github.yml
+  - example-configs/github-maintainers.yml
 
 git:
   baseurl: https://github.com

@@ -17,20 +17,19 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from copy import deepcopy
 from pathlib import Path
-from typing import Union, List, Dict, Any, IO
+from typing import Union, List, Dict, Any
 
 import yaml
-import os
 
 from qubesbuilder.common import PROJECT_PATH
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.template import QubesTemplate
 from qubesbuilder.exc import ConfigError
 from qubesbuilder.executors.helpers import getExecutor
 from qubesbuilder.log import get_logger
-
+from qubesbuilder.template import QubesTemplate
 
 STAGES = [
     "fetch",
@@ -53,6 +52,17 @@ STAGES_ALIAS = {
     "u": "upload",
 }
 log = get_logger("config")
+
+
+def deep_merge(a: dict, b: dict) -> dict:
+    result = deepcopy(a)
+    for b_key, b_value in b.items():
+        a_value = result.get(b_key, None)
+        if isinstance(a_value, dict) and isinstance(b_value, dict):
+            result[b_key] = deep_merge(a_value, b_value)
+        else:
+            result[b_key] = deepcopy(b_value)
+    return result
 
 
 class Config:
@@ -94,9 +104,11 @@ class Config:
         try:
             with open(conf_file) as f:
                 conf = yaml.safe_load(f.read())
-                included_conf = conf.get("include", [])
-                conf.pop("include", None)
-                final_conf: Dict[str, Union[str, Any]] = {}
+            included_conf = conf.get("include", [])
+            conf.pop("include", None)
+
+            # Init the final config based on included configs first
+            final_conf: Dict[str, Any] = {}
             for inc in included_conf:
                 inc_path = Path(inc)
                 if not inc_path.exists():
@@ -105,13 +117,38 @@ class Config:
                     )
                 try:
                     data = yaml.safe_load(inc_path.read_text())
-                    final_conf.update(data)
+                    for key in data:
+                        if key in (
+                            "+distributions",
+                            "+templates",
+                            "+components",
+                            "+stages",
+                            "+plugins",
+                        ):
+                            final_conf.setdefault(key, [])
+                            final_conf[key] += data[key]
+                        else:
+                            final_conf[key] = data[key]
                 except yaml.YAMLError as e:
                     raise ConfigError(
                         f"Failed to parse included config '{inc_path}'."
                     ) from e
-            final_conf.update(conf)
 
+            # Override included values from main config
+            for key in conf:
+                if key in (
+                        "+distributions",
+                        "+templates",
+                        "+components",
+                        "+stages",
+                        "+plugins",
+                ):
+                    final_conf.setdefault(key, [])
+                    final_conf[key] += conf[key]
+                else:
+                    final_conf[key] = conf[key]
+
+            # Merge dict from included configs
             for key in (
                 "distributions",
                 "templates",
@@ -120,8 +157,31 @@ class Config:
                 "plugins",
             ):
                 if f"+{key}" in final_conf.keys():
+                    merged_result: Dict[str, Dict] = {}
                     final_conf.setdefault(key, [])
-                    final_conf[key] += final_conf[f"+{key}"]
+                    final_conf.setdefault(f"+{key}", [])
+                    # Iterate over all key and +key in order to merge dicts
+                    for s in final_conf[key] + final_conf[f"+{key}"]:
+                        if isinstance(s, str) and not merged_result.get(s, None):
+                            merged_result[s] = {}
+                        if isinstance(s, dict):
+                            if not merged_result.get(next(iter(s.keys())), None):
+                                merged_result[next(iter(s.keys()))] = next(
+                                    iter(s.values())
+                                )
+                            else:
+                                merged_result[next(iter(s.keys()))] = deep_merge(
+                                    merged_result[next(iter(s.keys()))],
+                                    next(iter(s.values())),
+                                )
+
+                    # Set final value based on merged dict
+                    final_conf[key] = []
+                    for k, v in merged_result.items():
+                        if not v:
+                            final_conf[key].append(k)
+                        else:
+                            final_conf[key].append({k: v})
             return final_conf
         except yaml.YAMLError as e:
             raise ConfigError(f"Failed to parse config '{conf_file}'.") from e

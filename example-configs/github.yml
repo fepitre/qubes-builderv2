@@ -1,0 +1,7 @@
+plugins:
+  - github:
+      state-dir: /home/user/github-notify-state
+      api-key: 123456789ABCDEF
+      build-report-repo: "QubesOS/updates-status"
+      build-issues-repo: "QubesOS/build-issues"
+      logs-repo: "QubesOS/build-logs"
