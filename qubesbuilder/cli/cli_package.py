@@ -5,7 +5,7 @@ from pathlib import Path
 from qubesbuilder.config import STAGES, STAGES_ALIAS
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.cli.cli_exc import CliError
-from qubesbuilder.plugins.source import FetchPlugin
+from qubesbuilder.plugins.fetch import FetchPlugin
 from qubesbuilder.plugins.upload import UploadPlugin
 from qubesbuilder.plugins.helpers import (
     getSourcePlugin,
