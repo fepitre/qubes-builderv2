@@ -23,6 +23,8 @@
 
 set -efo pipefail
 [ "${DEBUG-}" = "1" ] && set -x
+unset CLEAN
+CLEAN=0
 
 usage() {
     echo "Usage: $(basename "$0") [OPTIONS]...
@@ -244,7 +246,10 @@ fi
 trap 'exit_clean' 0 1 2 3 6 15
 
 fresh_clone=false
-if [ -d "$REPO" ] && [ "${CLEAN-}" != '1' ]; then
+if [[ "$CLEAN" = '1' ]]; then
+    rm -rf -- "$REPO"
+fi
+if [[ -d "$REPO" ]]; then
     cd "$REPO"
     if [ "$GIT_CLONE_FAST" != "1" ] && [ "$(git rev-parse --is-shallow-repository)" == "true" ]; then
         GIT_OPTIONS+="--unshallow"
@@ -267,7 +272,7 @@ if [ -d "$REPO" ] && [ "${CLEAN-}" != '1' ]; then
     # shellcheck disable=SC2103
     cd - >/dev/null
 else
-    rm -rf "$REPO"
+    rm -f -- "$REPO"
     print_headers
     if ! git clone $GIT_OPTIONS -n -q -b "$BRANCH" "$GIT_URL" "$REPO"; then
         if [ "$IGNORE_MISSING" == "1" ]; then exit 0; else exit 1; fi
