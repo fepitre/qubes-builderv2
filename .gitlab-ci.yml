@@ -234,3 +234,4 @@ qubes-template-whonix-gateway-16:
 
 qubes-template-whonix-workstation-16:
   extends: .template_qubes_job
+  allow_failure: true
