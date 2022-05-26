@@ -110,12 +110,19 @@ class TemplatePlugin(Plugin):
                 "PLUGINS_DIR": PLUGINS_DIR,
                 "PACKAGES_DIR": REPOSITORY_DIR,
                 "CACHE_DIR": CACHE_DIR / f"cache_{self.dist.name}",
-                "USE_QUBES_REPO_VERSION": self.use_qubes_repo.get("version", None),
-                "USE_QUBES_REPO_TESTING": 1
-                if self.use_qubes_repo.get("testing", None)
-                else 0,
             }
         )
+        if self.use_qubes_repo:
+            self.environment.update(
+                {
+                    "USE_QUBES_REPO_VERSION": str(
+                        self.use_qubes_repo.get("version", None)
+                    ),
+                    "USE_QUBES_REPO_TESTING": "1"
+                    if self.use_qubes_repo.get("testing", None)
+                    else "0",
+                }
+            )
 
     def get_artifacts_info(self, stage: str) -> Dict:
         fileinfo = self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
