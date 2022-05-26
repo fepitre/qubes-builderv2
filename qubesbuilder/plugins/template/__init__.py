@@ -109,6 +109,8 @@ class TemplatePlugin(Plugin):
                 "ARTIFACTS_DIR": BUILD_DIR,
                 "PLUGINS_DIR": PLUGINS_DIR,
                 "PACKAGES_DIR": REPOSITORY_DIR,
+                "DISCARD_PREPARED_IMAGE": "1",
+                "BUILDER_TURBO_MODE": "1",
                 "CACHE_DIR": CACHE_DIR / f"cache_{self.dist.name}",
             }
         )
