@@ -488,6 +488,10 @@ def main():
     parser.add_argument("--auth-token", help="Github authentication token (OAuth2)")
     parser.add_argument("--build-log", help="Build log name in build-logs repository")
     subparsers = parser.add_subparsers(help="command")
+
+
+
+
     upload_parser = subparsers.add_parser("upload")
     upload_parser.set_defaults(command="upload")
     upload_parser.add_argument("release_name", help="Release name, for example r3.0")

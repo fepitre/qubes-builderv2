@@ -1001,8 +1001,13 @@ def test_prep_template_fedora_35_xfce():
         "prep",
     )
 
-    assert (ARTIFACTS_DIR / "templates/prepared_images/fedora-35-xfce.img").exists()
     assert (ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce").exists()
+    assert (ARTIFACTS_DIR / "templates/prepared_images/fedora-35-xfce.img").exists()
+    assert (
+        ARTIFACTS_DIR / "templates/qubeized_images/fedora-35-xfce/root.img"
+    ).exists()
+    assert (ARTIFACTS_DIR / "templates/fedora-35-xfce/appmenus").exists()
+    assert (ARTIFACTS_DIR / "templates/fedora-35-xfce/template.conf").exists()
 
 
 def test_build_template_fedora_35_xfce():
@@ -1017,10 +1022,7 @@ def test_build_template_fedora_35_xfce():
         "template",
         "build",
     )
-    assert (ARTIFACTS_DIR / "templates/prepared_images/fedora-35-xfce.img").exists()
-    assert (
-        ARTIFACTS_DIR / "templates/qubeized_images/fedora-35-xfce/root.img"
-    ).exists()
+
     assert (ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce").exists()
 
     with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:

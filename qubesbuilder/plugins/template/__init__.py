@@ -373,12 +373,24 @@ class TemplatePlugin(Plugin):
                     BUILD_DIR / "prepared_images" / f"{self.template.name}.img",
                     prepared_images,
                 ),
+                (
+                    BUILD_DIR / "qubeized_images" / self.template.name / "root.img",
+                    qubeized_image,
+                ),
+                (
+                    BUILD_DIR / "appmenus",
+                    template_artifacts_dir / self.template.name,
+                ),
+                (
+                    BUILD_DIR / "template.conf",
+                    template_artifacts_dir / self.template.name,
+                ),
             ]
-            cmd = [f"make -C {PLUGINS_DIR}/template prepare build-rootimg-prepare"]
+            cmd = [f"make -C {PLUGINS_DIR}/template prepare build-rootimg"]
             try:
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
-                msg = f"{self.template}: Failed to build template."
+                msg = f"{self.template}: Failed to prepare template."
                 raise TemplateError(msg) from e
 
             with open(
@@ -403,6 +415,18 @@ class TemplatePlugin(Plugin):
                     prepared_images / f"{self.template.name}.img",
                     BUILD_DIR / "prepared_images",
                 ),
+                (
+                    qubeized_image / "root.img",
+                    BUILD_DIR / "qubeized_images" / self.template.name,
+                ),
+                (
+                    template_artifacts_dir / self.template.name / "template.conf",
+                    BUILD_DIR,
+                ),
+                (
+                    template_artifacts_dir / self.template.name / "appmenus",
+                    BUILD_DIR,
+                ),
             ] + [
                 (self.plugins_dir / plugin, PLUGINS_DIR)
                 for plugin in self.plugin_dependencies
@@ -411,15 +435,11 @@ class TemplatePlugin(Plugin):
             # Copy-in previously prepared base root img
             copy_out = [
                 (
-                    BUILD_DIR / "qubeized_images" / self.template.name / "root.img",
-                    qubeized_image,
-                ),
-                (
                     BUILD_DIR / f"rpmbuild/RPMS/noarch/{rpm_fn}",
                     template_artifacts_dir / "rpm",
                 ),
             ]
-            cmd = [f"make -C {PLUGINS_DIR}/template prepare build"]
+            cmd = [f"make -C {PLUGINS_DIR}/template prepare build-rpm"]
             try:
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:

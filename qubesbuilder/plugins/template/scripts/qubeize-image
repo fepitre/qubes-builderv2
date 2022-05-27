@@ -66,8 +66,8 @@ trap cleanup ERR
 # ------------------------------------------------------------------------------
 mkdir -p "${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}"
 
-echo "--> Moving $IMG to $IMG..."
-mv "${BASE_IMG}" "$IMG" || exit 1
+echo "--> Copying $IMG to $IMG..."
+cp "${BASE_IMG}" "$IMG" || exit 1
 
 echo "--> Mounting $IMG"
 if [ "0$TEMPLATE_ROOT_WITH_PARTITIONS" -eq 1 ]; then
@@ -96,7 +96,7 @@ appmenus="$(get_file_or_directory_for_current_flavor "${_appmenus_dir}/appmenus"
 if [ -z "$appmenus" ]; then
     appmenus="${PLUGINS_DIR}/template/appmenus_generic"
 fi
-ln -s "${appmenus}" "${ARTIFACTS_DIR}/appmenus"
+cp -r "${appmenus}" "${ARTIFACTS_DIR}/appmenus"
 
 # ------------------------------------------------------------------------------
 # Create Template Config File
@@ -110,7 +110,7 @@ template_conf="$(get_file_or_directory_for_current_flavor "${_conf_dir}/template
 if [ -z "$template_conf" ]; then
     template_conf="${PLUGINS_DIR}/template/template_generic.conf"
 fi
-ln -s "${template_conf}" "${ARTIFACTS_DIR}/template.conf"
+cp "${template_conf}" "${ARTIFACTS_DIR}/template.conf"
 
 # ------------------------------------------------------------------------------
 # Link directories so they can be mounted
