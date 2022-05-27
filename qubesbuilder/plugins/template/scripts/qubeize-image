@@ -66,13 +66,8 @@ trap cleanup ERR
 # ------------------------------------------------------------------------------
 mkdir -p "${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}"
 
-if [ "0$DISCARD_PREPARED_IMAGE" -eq "1" ]; then
-    echo "--> Moving $IMG to $IMG..."
-    mv "${BASE_IMG}" "$IMG" || exit 1
-else
-    echo "--> Copying $IMG to $IMG..."
-    cp "${BASE_IMG}" "$IMG" || exit 1
-fi
+echo "--> Moving $IMG to $IMG..."
+mv "${BASE_IMG}" "$IMG" || exit 1
 
 echo "--> Mounting $IMG"
 if [ "0$TEMPLATE_ROOT_WITH_PARTITIONS" -eq 1 ]; then
