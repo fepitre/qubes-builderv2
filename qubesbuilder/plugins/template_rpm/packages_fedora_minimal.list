@@ -8,4 +8,5 @@ sudo
 --exclude=firewall-config,firewalld
 --exclude=gnome-boxes
 --exclude=yum-utils
+--exclude=wireplumber
 --exclude=pipewire-*
