@@ -137,11 +137,11 @@ class Config:
             # Override included values from main config
             for key in conf:
                 if key in (
-                        "+distributions",
-                        "+templates",
-                        "+components",
-                        "+stages",
-                        "+plugins",
+                    "+distributions",
+                    "+templates",
+                    "+components",
+                    "+stages",
+                    "+plugins",
                 ):
                     final_conf.setdefault(key, [])
                     final_conf[key] += conf[key]
