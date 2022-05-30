@@ -14,9 +14,9 @@ from qubesbuilder.plugins.sign_rpm import RPMSignPlugin
 from qubesbuilder.plugins.source_deb import DEBSourcePlugin
 from qubesbuilder.plugins.source_rpm import RPMSourcePlugin
 
-from qubesbuilder.plugins.template_rpm import RPMTemplatePlugin
-from qubesbuilder.plugins.template_debian import DEBTemplatePlugin
-from qubesbuilder.plugins.template_whonix import WhonixTemplatePlugin
+from qubesbuilder.plugins.template_rpm import RPMTemplateBuilderPlugin
+from qubesbuilder.plugins.template_debian import DEBTemplateBuilderPlugin
+from qubesbuilder.plugins.template_whonix import WhonixTemplateBuilderPlugin
 
 
 def getSourcePlugin(
@@ -113,15 +113,15 @@ def getTemplatePlugin(
 
     if template.distribution.is_deb():
         if template.flavor in ("whonix-gateway", "whonix-workstation"):
-            template_plugin = WhonixTemplatePlugin(
+            template_plugin = WhonixTemplateBuilderPlugin(
                 template, executor, plugins_dir, artifacts_dir, **kwargs
             )
         else:
-            template_plugin = DEBTemplatePlugin(
+            template_plugin = DEBTemplateBuilderPlugin(
                 template, executor, plugins_dir, artifacts_dir, **kwargs
             )
     elif template.distribution.is_rpm():
-        template_plugin = RPMTemplatePlugin(
+        template_plugin = RPMTemplateBuilderPlugin(
             template, executor, plugins_dir, artifacts_dir, **kwargs
         )
     else:

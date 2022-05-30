@@ -121,6 +121,7 @@ def _component_stage(obj: ContextObj, stage_name: str):
                             build_issues_repo=plugin["github"]["build-issues-repo"],
                             logs_repo=plugin["github"]["logs-repo"],
                             repository_publish=obj.config.get("repository-publish", {}),
+                            log_file=obj.log_file,
                         )
                         plugins.append(github_plugin)
                     except KeyError as e:

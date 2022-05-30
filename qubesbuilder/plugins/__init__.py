@@ -18,6 +18,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import yaml
+import dateutil.parser
+from dateutil.parser import parse as parsedate
 from pathlib import Path
 from pathlib import PurePath
 from typing import List, Dict
@@ -26,6 +28,9 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 
 # Directories inside executor
+from qubesbuilder.executors import Executor
+from qubesbuilder.template import QubesTemplate
+
 BUILDER_DIR = Path("/builder")
 BUILD_DIR = BUILDER_DIR / "build"
 PLUGINS_DIR = BUILDER_DIR / "plugins"
@@ -277,3 +282,69 @@ class DistributionPlugin(ComponentPlugin):
             stage=stage,
             artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
         )
+
+
+class TemplatePlugin(Plugin):
+    def __init__(
+        self,
+        template: QubesTemplate,
+        plugins_dir: Path,
+        artifacts_dir: Path,
+        verbose: bool = False,
+        debug: bool = False,
+    ):
+        super().__init__(
+            plugins_dir=plugins_dir,
+            artifacts_dir=artifacts_dir,
+            verbose=verbose,
+            debug=debug,
+        )
+        self.dist = template.distribution
+        self.template = template
+
+    def get_artifacts_info(self, stage: str) -> Dict:
+        fileinfo = self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
+        if fileinfo.exists():
+            try:
+                with open(fileinfo, "r") as f:
+                    artifacts_info = yaml.safe_load(f.read())
+                return artifacts_info or {}
+            except (PermissionError, yaml.YAMLError) as e:
+                msg = f"{self.template}: Failed to read info from {stage} stage."
+                raise PluginError(msg) from e
+        return {}
+
+    def save_artifacts_info(self, stage: str, info: dict):
+        artifacts_dir = self.get_templates_dir()
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(artifacts_dir / f"{self.template}.{stage}.yml", "w") as f:
+                f.write(yaml.safe_dump(info))
+        except (PermissionError, yaml.YAMLError) as e:
+            msg = f"{self.template}: Failed to write info for {stage} stage."
+            raise PluginError(msg) from e
+
+    def delete_artifacts_info(self, stage: str):
+        artifacts_dir = self.get_templates_dir()
+        info_path = artifacts_dir / f"{self.template}.{stage}.yml"
+        if info_path.exists():
+            info_path.unlink()
+
+    def get_template_timestamp(self):
+        if not self.template.timestamp:
+            # Read information from build stage
+            if not (
+                self.get_templates_dir() / f"build_timestamp_{self.template.name}"
+            ).exists():
+                raise PluginError(f"{self.template}: Cannot find build timestamp.")
+            with open(
+                self.get_templates_dir() / f"build_timestamp_{self.template.name}"
+            ) as f:
+                data = f.read().splitlines()
+
+            try:
+                self.template.timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+            except (dateutil.parser.ParserError, IndexError) as e:
+                msg = f"{self.template}: Failed to parse build timestamp format."
+                raise PluginError(msg) from e
+        return self.template.timestamp

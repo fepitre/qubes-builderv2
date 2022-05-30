@@ -22,7 +22,7 @@
 import logging
 import logging.config
 import os
-
+from pathlib import Path
 from qubesbuilder.exc import QubesBuilderError
 
 RootStreamHandler = logging.StreamHandler()
@@ -101,7 +101,7 @@ class BriefConsoleFormatter(ConsoleFormatter):
         return result
 
 
-def init_logging(console=True, file_path=None, level="DEBUG"):
+def init_logging(console: bool = True, file_path: Path = None, level: str = "DEBUG"):
     """
     Configure logging module.
     """
@@ -142,13 +142,13 @@ def init_logging(console=True, file_path=None, level="DEBUG"):
     if file_path:
         config["handlers"]["file"] = {
             "class": "logging.FileHandler",
-            "filename": file_path,
+            "filename": str(file_path),
             "formatter": "default",
         }
         config["root"]["handlers"].append("file")
 
         try:
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            file_path.parent.mkdir(parents=True, exist_ok=True)
         except OSError as e:
             raise QubesBuilderError("Failed to initialize logging file") from e
 
@@ -156,7 +156,7 @@ def init_logging(console=True, file_path=None, level="DEBUG"):
 
     if file_path:
         # logging does not provide a way to specify file permission
-        os.chmod(file_path, 0o640)
+        file_path.chmod(0o640)
 
     # fixme: is logging allowing handler instance inside dictConfig?
     root_logger = logging.getLogger()

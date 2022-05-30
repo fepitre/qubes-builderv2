@@ -23,7 +23,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict
 
-import dateutil.parser
 import yaml
 from dateutil.parser import parse as parsedate
 
@@ -31,12 +30,12 @@ from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
-    Plugin,
     PluginError,
     BUILD_DIR,
     CACHE_DIR,
     REPOSITORY_DIR,
     PLUGINS_DIR,
+    TemplatePlugin,
 )
 from qubesbuilder.plugins.publish import MIN_AGE_DAYS
 from qubesbuilder.template import QubesTemplate
@@ -56,7 +55,7 @@ class TemplateError(PluginError):
     pass
 
 
-class TemplatePlugin(Plugin):
+class TemplateBuilderPlugin(TemplatePlugin):
     """
     TemplatePlugin manages distribution build.
     """
@@ -83,9 +82,8 @@ class TemplatePlugin(Plugin):
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
+            template=template,
         )
-        self.dist = template.distribution
-        self.template = template
         self.executor = executor
         self.qubes_release = qubes_release
         self.gpg_client = gpg_client
@@ -168,25 +166,6 @@ class TemplatePlugin(Plugin):
             raise TemplateError(f"{self.template}: Please specify GPG client to use!")
 
         return sign_key
-
-    def get_template_timestamp(self):
-        if not self.template.timestamp:
-            # Read information from build stage
-            if not (
-                self.get_templates_dir() / f"build_timestamp_{self.template.name}"
-            ).exists():
-                raise TemplateError(f"{self.template}: Cannot find build timestamp.")
-            with open(
-                self.get_templates_dir() / f"build_timestamp_{self.template.name}"
-            ) as f:
-                data = f.read().splitlines()
-
-            try:
-                self.template.timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
-            except (dateutil.parser.ParserError, IndexError) as e:
-                msg = f"{self.template}: Failed to parse build timestamp format."
-                raise TemplateError(msg) from e
-        return self.template.timestamp
 
     def createrepo(self, target_dir):
         log.info(f"{self.template}: Updating metadata.")
@@ -334,6 +313,7 @@ class TemplatePlugin(Plugin):
         repository_publish: str = None,
         ignore_min_age: bool = False,
         unpublish: bool = False,
+        template_timestamp: str = None,
     ):
 
         repository_dir = self.get_repository_dir() / self.dist.distribution
@@ -349,13 +329,28 @@ class TemplatePlugin(Plugin):
         )
 
         #
+        # Pre
+        #
+
+        if stage == "pre":
+            if template_timestamp:
+                template_timestamp = parsedate(template_timestamp).strftime(
+                    "%Y%m%d%H%MZ"
+                )
+            else:
+                template_timestamp = datetime.utcnow().strftime("%Y%m%d%H%MZ")
+
+            with open(
+                template_artifacts_dir / f"build_timestamp_{self.template.name}", "w"
+            ) as f:
+                f.write(template_timestamp)
+
+        #
         # Prep
         #
 
         if stage == "prep":
-            template_timestamp = os.environ.get("TEMPLATE_TIMESTAMP", None)
-            if not template_timestamp:
-                template_timestamp = datetime.utcnow().strftime("%Y%m%d%H%MZ")
+            template_timestamp = self.get_template_timestamp()
             self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
             copy_in = [
@@ -386,11 +381,6 @@ class TemplatePlugin(Plugin):
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to prepare template."
                 raise TemplateError(msg) from e
-
-            with open(
-                template_artifacts_dir / f"build_timestamp_{self.template.name}", "w"
-            ) as f:
-                f.write(template_timestamp)
 
         #
         # Build

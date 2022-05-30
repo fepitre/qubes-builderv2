@@ -87,7 +87,7 @@ if [ -z "$repo" ]; then
 fi
 
 # qubes-builder uses this variable (if exists) to define the build timestamp
-TEMPLATE_TIMESTAMP="$timestamp"
+TEMPLATE_TIMESTAMP=""
 export TEMPLATE_TIMESTAMP
 
 if ! "$SCRIPTS_DIR"/make-with-log "$BUILDER_DIR" -t "$template_dist" template prep build; then

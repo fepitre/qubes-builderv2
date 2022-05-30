@@ -22,8 +22,10 @@ QubesBuilder command-line interface.
 """
 
 from typing import List
-
+from pathlib import Path
 import click
+
+from datetime import datetime
 
 from qubesbuilder.cli.cli_base import ContextObj, aliased_group
 from qubesbuilder.cli.cli_package import package
@@ -49,6 +51,11 @@ log = get_logger("cli")
     "--builder-conf",
     default="builder.yml",
     help="Path to configuration file (default: builder.yml).",
+)
+@click.option(
+    "--log-file",
+    default=None,
+    help="Path to log file to be created.",
 )
 @click.option(
     "--component",
@@ -90,6 +97,7 @@ def main(
     verbose: int,
     debug: bool,
     builder_conf: str,
+    log_file: str = None,
     component: List = None,
     distribution: List = None,
     template: List = None,
@@ -124,10 +132,22 @@ def main(
         ctx.obj.config.debug = debug
         ctx.command.debug = True  # type: ignore
 
-    if ctx.obj.config.verbose:
-        init_logging(level="DEBUG" if verbose else "INFO")
+    if log_file:
+        file_path = Path(log_file).resolve()
+        file_path.parent.mkdir(exist_ok=True, parents=True)
     else:
-        init_logging(level="WARNING")
+        logs_dir = config.get_logs_dir()
+        logs_dir.mkdir(exist_ok=True, parents=True)
+        file_path = (logs_dir / datetime.utcnow().strftime("%Y%m%d%H%MZ")).with_suffix(
+            ".log"
+        )
+
+    ctx.obj.log_file = file_path
+
+    if ctx.obj.config.verbose:
+        init_logging(level="DEBUG" if verbose else "INFO", file_path=file_path)
+    else:
+        init_logging(level="WARNING", file_path=file_path)
 
     ctx.obj.components = ctx.obj.config.get_components(component)
     ctx.obj.distributions = ctx.obj.config.get_distributions(distribution)

@@ -36,10 +36,14 @@ executor:
 
 stages:
   - fetch
+  - pre:
+      executor:
+        type: local
   - prep
-  - pre
   - build
-  - post
+  - post:
+      executor:
+        type: local
   - verify
   - sign:
       executor:

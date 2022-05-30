@@ -33,8 +33,8 @@ from qubesbuilder.template import QubesTemplate
 
 STAGES = [
     "fetch",
-    "prep",
     "pre",
+    "prep",
     "build",
     "post",
     "verify",
@@ -244,6 +244,9 @@ class Config:
 
     def get_artifacts_dir(self):
         return self._artifacts_dir
+
+    def get_logs_dir(self):
+        return self._artifacts_dir / "logs"
 
     @staticmethod
     def get_plugins_dir():

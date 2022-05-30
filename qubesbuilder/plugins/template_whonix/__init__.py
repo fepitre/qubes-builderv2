@@ -23,12 +23,12 @@ from qubesbuilder.template import QubesTemplate
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import PLUGINS_DIR
-from qubesbuilder.plugins.template_debian import DEBTemplatePlugin
+from qubesbuilder.plugins.template_debian import DEBTemplateBuilderPlugin
 
 log = get_logger("template_whonix")
 
 
-class WhonixTemplatePlugin(DEBTemplatePlugin):
+class WhonixTemplateBuilderPlugin(DEBTemplateBuilderPlugin):
     """
     RPMTemplatePlugin manages RPM distributions build.
     """

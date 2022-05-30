@@ -1,8 +1,0 @@
-Template @TEMPLATE_NAME@ @VERSION@ for Qubes @RELEASE_NAME@, see comments below for details.
-
-If you're release manager, you can issue GPG-inline signed command (depending on template):
-
-* `Upload linux-template-builder @VERSION@ @RELEASE_NAME@ templates-itl vm-@DIST@ repo` (available 7 days from now)
-* `Upload linux-template-builder @VERSION@ @RELEASE_NAME@ templates-community vm-@DIST@ repo` (available 7 days from now)
-
-Above commands will work only if package in testing repository isn't superseded by newer version.
