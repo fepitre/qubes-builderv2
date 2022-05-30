@@ -141,8 +141,10 @@ fi
 
 export DISTS_HOST="${dists_host[*]}"
 export DISTS_VM="${dists_vm[*]}"
-export DISTRIBUTIONS="${./qb config get-distributions}"
 export BUILD_LOGS_URL="${build_logs[*]}"
+
+DISTRIBUTIONS="$(./qb config get-distributions)"
+export DISTRIBUTIONS
 
 args="$BUILDER_DIR -c $component"
 for dist_host in $built_for_host; do
