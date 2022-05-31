@@ -45,7 +45,7 @@ class QubesTemplate:
 
         self.flavor = template_desc.get("flavor", "")
         self.options = template_desc.get("options", [])
-        self.timestamp = None
+        self.timestamp: str = ""
 
     def to_str(self) -> str:
         return f"{self.name}"

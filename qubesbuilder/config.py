@@ -80,7 +80,7 @@ class Config:
         self._components: List[QubesComponent] = []
 
         # Qubes OS Templates
-        self._templates: List[QubesComponent] = []
+        self._templates: List[QubesTemplate] = []
 
         # Artifacts directory location
         if self._conf.get("artifacts-dir", None):

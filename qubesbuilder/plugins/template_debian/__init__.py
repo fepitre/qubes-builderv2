@@ -68,12 +68,13 @@ class DEBTemplateBuilderPlugin(TemplateBuilderPlugin):
         self.plugin_dependencies += ["template_debian", "build_deb"]
 
         self.environment.update(
-            {"TEMPLATE_CONTENT_DIR": PLUGINS_DIR / "template_debian"}
+            {"TEMPLATE_CONTENT_DIR": str(PLUGINS_DIR / "template_debian")}
         )
 
     def run(
         self,
         stage: str,
+        *args,
         repository_publish: str = None,
         ignore_min_age: bool = False,
         unpublish: bool = False,

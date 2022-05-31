@@ -98,18 +98,18 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "DISTRIBUTION": self.dist.fullname,  # legacy value
                 "DIST_CODENAME": self.dist.name,  # DIST
                 "DIST_NAME": self.dist.fullname,  # DISTRIBUTION
-                "DIST_VER": self.dist.version,
+                "DIST_VER": str(self.dist.version),
                 "TEMPLATE_NAME": self.template.name,
                 "TEMPLATE_VERSION": TEMPLATE_VERSION,
                 "TEMPLATE_FLAVOR": self.template.flavor,
                 "TEMPLATE_OPTIONS": " ".join(self.template.options),
                 "INSTALL_DIR": "/builder/mnt",
-                "ARTIFACTS_DIR": BUILD_DIR,
-                "PLUGINS_DIR": PLUGINS_DIR,
-                "PACKAGES_DIR": REPOSITORY_DIR,
+                "ARTIFACTS_DIR": str(BUILD_DIR),
+                "PLUGINS_DIR": str(PLUGINS_DIR),
+                "PACKAGES_DIR": str(REPOSITORY_DIR),
                 "DISCARD_PREPARED_IMAGE": "1",
                 "BUILDER_TURBO_MODE": "1",
-                "CACHE_DIR": CACHE_DIR / f"cache_{self.dist.name}",
+                "CACHE_DIR": str(CACHE_DIR / f"cache_{self.dist.name}"),
             }
         )
         if self.use_qubes_repo:

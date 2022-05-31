@@ -126,7 +126,7 @@ class RPMBuildPlugin(BuildPlugin):
                     ),
                     "USE_QUBES_REPO_TESTING": "1"
                     if self.use_qubes_repo.get("testing", None)
-                    else 0,
+                    else "0",
                 }
             )
 

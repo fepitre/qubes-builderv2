@@ -32,7 +32,7 @@ def getSourcePlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
     elif dist.is_rpm():
-        source_plugin = RPMSourcePlugin(
+        source_plugin = RPMSourcePlugin(  # type: ignore
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
     else:
@@ -53,7 +53,7 @@ def getBuildPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
     elif dist.is_rpm():
-        build_plugin = RPMBuildPlugin(
+        build_plugin = RPMBuildPlugin(  # type: ignore
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
     else:
@@ -74,7 +74,7 @@ def getSignPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
     elif dist.is_rpm():
-        sign_plugin = RPMSignPlugin(
+        sign_plugin = RPMSignPlugin(  # type: ignore
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
     else:
@@ -95,7 +95,7 @@ def getPublishPlugin(
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
     elif dist.is_rpm():
-        publish_plugin = RPMPublishPlugin(
+        publish_plugin = RPMPublishPlugin(  # type: ignore
             component, dist, executor, plugins_dir, artifacts_dir, **kwargs
         )
     else:
@@ -117,11 +117,11 @@ def getTemplatePlugin(
                 template, executor, plugins_dir, artifacts_dir, **kwargs
             )
         else:
-            template_plugin = DEBTemplateBuilderPlugin(
+            template_plugin = DEBTemplateBuilderPlugin(  # type: ignore
                 template, executor, plugins_dir, artifacts_dir, **kwargs
             )
     elif template.distribution.is_rpm():
-        template_plugin = RPMTemplateBuilderPlugin(
+        template_plugin = RPMTemplateBuilderPlugin(  # type: ignore
             template, executor, plugins_dir, artifacts_dir, **kwargs
         )
     else:

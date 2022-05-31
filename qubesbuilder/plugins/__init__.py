@@ -17,20 +17,19 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import yaml
-import dateutil.parser
-from dateutil.parser import parse as parsedate
 from pathlib import Path
 from pathlib import PurePath
 from typing import List, Dict
 
+import dateutil.parser
+import yaml
+from dateutil.parser import parse as parsedate
+
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
-
-# Directories inside executor
-from qubesbuilder.executors import Executor
 from qubesbuilder.template import QubesTemplate
 
+# Directories inside executor
 BUILDER_DIR = Path("/builder")
 BUILD_DIR = BUILDER_DIR / "build"
 PLUGINS_DIR = BUILDER_DIR / "plugins"
@@ -330,7 +329,7 @@ class TemplatePlugin(Plugin):
         if info_path.exists():
             info_path.unlink()
 
-    def get_template_timestamp(self):
+    def get_template_timestamp(self) -> str:
         if not self.template.timestamp:
             # Read information from build stage
             if not (

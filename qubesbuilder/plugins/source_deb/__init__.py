@@ -239,7 +239,7 @@ class DEBSourcePlugin(SourcePlugin):
                 gen_packages_list_cmd = [
                     f"{PLUGINS_DIR}/source_deb/scripts/debian-get-packages-list",
                     str(BUILDER_DIR / source_dsc),
-                    self.dist.version,
+                    str(self.dist.version),
                     f">{BUILDER_DIR}/{directory_bn}_packages.list",
                 ]
 

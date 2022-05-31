@@ -79,7 +79,7 @@ class ContainerExecutor(Executor):
         except (PodmanError, DockerException, ValueError) as e:
             raise ExecutorError("Cannot connect to container client.") from e
 
-    def copy_in(self, container, source_path: Path, destination_dir: PurePath):
+    def copy_in(self, container, source_path: Path, destination_dir: PurePath):  # type: ignore
         src = source_path.resolve()
         dst = destination_dir.as_posix()
 
@@ -97,7 +97,7 @@ class ContainerExecutor(Executor):
                 log.error(msg)
             raise ExecutorError from e
 
-    def copy_out(self, container, source_path: PurePath, destination_dir: Path):
+    def copy_out(self, container, source_path: PurePath, destination_dir: Path):  # type: ignore
         src = source_path.as_posix()
         dst = destination_dir.resolve()
 
@@ -115,7 +115,7 @@ class ContainerExecutor(Executor):
                 log.error(msg)
             raise ExecutorError from e
 
-    def run(
+    def run(  # type: ignore
         self,
         cmd: List[str],
         copy_in: List[Tuple[Path, PurePath]] = None,

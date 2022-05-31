@@ -37,7 +37,7 @@ class QubesExecutor(Executor):
         self._clean = clean
         self._kwargs = kwargs
 
-    def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):
+    def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):  # type: ignore
         src = source_path.expanduser().resolve()
         dst = destination_dir
         # FIXME: Refactor the qvm-run and qrexec commandlines.
@@ -73,7 +73,7 @@ class QubesExecutor(Executor):
                 log.error(msg)
             raise ExecutorError from e
 
-    def copy_out(self, vm, source_path: PurePath, destination_dir: Path):
+    def copy_out(self, vm, source_path: PurePath, destination_dir: Path):  # type: ignore
         src = source_path
         dst = destination_dir.resolve()
 
@@ -104,7 +104,7 @@ class QubesExecutor(Executor):
                 log.error(msg)
             raise ExecutorError from e
 
-    def run(
+    def run(  # type: ignore
         self,
         cmd: List[str],
         copy_in: List[Tuple[Path, PurePath]] = None,

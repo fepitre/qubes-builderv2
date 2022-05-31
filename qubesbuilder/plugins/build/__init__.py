@@ -59,7 +59,7 @@ class BuildPlugin(DistributionPlugin):
             backend_vmm=backend_vmm,
         )
         self.executor = executor
-        self.use_qubes_repo = use_qubes_repo
+        self.use_qubes_repo = use_qubes_repo or {}
 
     def run(self, stage: str):
         # Check if we have Debian related content defined

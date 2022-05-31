@@ -38,7 +38,7 @@ class LocalExecutor(Executor):
     def __init__(self, **kwargs):
         self._kwargs = kwargs
 
-    def copy_in(self, source_path: Path, destination_dir: Path):
+    def copy_in(self, source_path: Path, destination_dir: Path):  # type: ignore
         src = source_path.resolve()
         dst = destination_dir.resolve()
         try:
@@ -52,10 +52,10 @@ class LocalExecutor(Executor):
         except (shutil.Error, FileExistsError, FileNotFoundError) as e:
             raise ExecutorError from e
 
-    def copy_out(self, source_path: Path, destination_dir: Path):
+    def copy_out(self, source_path: Path, destination_dir: Path):  # type: ignore
         self.copy_in(source_path, destination_dir)
 
-    def run(
+    def run(  # type: ignore
         self,
         cmd: List[str],
         copy_in: List[Tuple[Path, Path]] = None,
