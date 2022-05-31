@@ -339,11 +339,9 @@ class TemplatePlugin(Plugin):
         repository_dir = self.get_repository_dir() / self.dist.distribution
         template_artifacts_dir = self.get_templates_dir()
 
-        prepared_images = template_artifacts_dir / "prepared_images"
         qubeized_image = template_artifacts_dir / "qubeized_images" / self.template.name
 
         repository_dir.mkdir(parents=True, exist_ok=True)
-        prepared_images.mkdir(parents=True, exist_ok=True)
         qubeized_image.mkdir(parents=True, exist_ok=True)
 
         repository_publish = repository_publish or self.repository_publish.get(
@@ -369,10 +367,6 @@ class TemplatePlugin(Plugin):
             ]
 
             copy_out = [
-                (
-                    BUILD_DIR / "prepared_images" / f"{self.template.name}.img",
-                    prepared_images,
-                ),
                 (
                     BUILD_DIR / "qubeized_images" / self.template.name / "root.img",
                     qubeized_image,
@@ -411,10 +405,6 @@ class TemplatePlugin(Plugin):
             copy_in = [
                 (self.plugins_dir / "template", PLUGINS_DIR),
                 (repository_dir, REPOSITORY_DIR),
-                (
-                    prepared_images / f"{self.template.name}.img",
-                    BUILD_DIR / "prepared_images",
-                ),
                 (
                     qubeized_image / "root.img",
                     BUILD_DIR / "qubeized_images" / self.template.name,
