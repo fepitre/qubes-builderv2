@@ -39,6 +39,53 @@ from qubesbuilder.log import get_logger, init_logging
 log = get_logger("cli")
 
 
+def init_context_obj(
+    builder_conf,
+    verbose: int = None,
+    debug: bool = None,
+    log_file: str = None,
+    component: List = None,
+    distribution: List = None,
+    template: List = None,
+    executor: str = None,
+    executor_option: List = None,
+):
+    config = Config(builder_conf)
+    if executor:
+        executor_config = {"type": executor, "options": {}}
+        for raw_option in executor_option or []:
+            parsed_option = raw_option.split("=", 1)
+            if len(parsed_option) != 2:
+                raise CliError("Invalid executor option.")
+            option, value = parsed_option
+            executor_config["options"][option] = str(value)  # type: ignore
+        config.set("executor", executor_config)
+
+    obj = ContextObj(config)
+
+    # verbose or debug is overridden by cli options
+    if verbose is not None:
+        obj.config.verbose = verbose
+
+    if debug is not None:
+        obj.config.debug = debug
+
+    if log_file:
+        file_path = Path(log_file).resolve()
+    else:
+        logs_dir = config.get_logs_dir()
+        file_path = (logs_dir / datetime.utcnow().strftime("%Y%m%d%H%MZ")).with_suffix(
+            ".log"
+        )
+
+    obj.log_file = file_path
+    obj.components = obj.config.get_components(component)
+    obj.distributions = obj.config.get_distributions(distribution)
+    obj.templates = obj.config.get_templates(template)
+
+    return obj
+
+
 @aliased_group("qb")
 @click.option("--verbose/--no-verbose", default=None, is_flag=True, help="Output logs.")
 @click.option(
@@ -108,61 +155,30 @@ def main(
     Main CLI
 
     """
-    config = Config(builder_conf)
-    if executor:
-        executor_config = {"type": executor, "options": {}}
-        for raw_option in executor_option or []:
-            parsed_option = raw_option.split("=", 1)
-            if len(parsed_option) != 2:
-                raise CliError("Invalid executor option.")
-            option, value = parsed_option
-            executor_config["options"][option] = str(value)  # type: ignore
-        config.set("executor", executor_config)
+    obj = init_context_obj(
+        builder_conf=builder_conf,
+        verbose=verbose,
+        debug=debug,
+        log_file=log_file,
+        component=component,
+        distribution=distribution,
+        template=template,
+        executor=executor,
+        executor_option=executor_option,
+    )
 
-    ctx.obj = ContextObj(config)
+    if obj.config.verbose:
+        init_logging(level="DEBUG" if verbose else "INFO", file_path=obj.log_file)
+    else:
+        init_logging(level="WARNING", file_path=obj.log_file)
+
+    ctx.obj = obj
 
     # debug mode is also provided by builder configuration
     ctx.command.debug = ctx.obj.config.debug  # type: ignore
 
-    # verbose or debug is overridden by cli options
-    if verbose is not None:
-        ctx.obj.config.verbose = verbose
-
     if debug is not None:
-        ctx.obj.config.debug = debug
         ctx.command.debug = True  # type: ignore
-
-    if log_file:
-        file_path = Path(log_file).resolve()
-        file_path.parent.mkdir(exist_ok=True, parents=True)
-    else:
-        logs_dir = config.get_logs_dir()
-        logs_dir.mkdir(exist_ok=True, parents=True)
-        file_path = (logs_dir / datetime.utcnow().strftime("%Y%m%d%H%MZ")).with_suffix(
-            ".log"
-        )
-
-    ctx.obj.log_file = file_path
-
-    if ctx.obj.config.verbose:
-        init_logging(level="DEBUG" if verbose else "INFO", file_path=file_path)
-    else:
-        init_logging(level="WARNING", file_path=file_path)
-
-    ctx.obj.components = ctx.obj.config.get_components(component)
-    ctx.obj.distributions = ctx.obj.config.get_distributions(distribution)
-    ctx.obj.templates = ctx.obj.config.get_templates()
-
-    # FIXME: Find a syntax that would allow CLI template filtering without having it
-    #  declared inside the builder.yml.
-    if template:
-        templates = []
-        for template_name in template:
-            for tmpl in ctx.obj.templates:
-                if tmpl.name == template_name:
-                    templates.append(tmpl)
-                    break
-        ctx.obj.templates = templates
 
 
 main.epilog = f"""Stages:

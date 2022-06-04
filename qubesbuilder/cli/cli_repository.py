@@ -1,15 +1,18 @@
-import click
 import datetime
+from typing import Dict, Any
+
+import click
+import yaml
 
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.plugins.helpers import getPublishPlugin, getTemplatePlugin
-from qubesbuilder.plugins.upload import UploadPlugin
 from qubesbuilder.plugins.publish import (
     COMPONENT_REPOSITORIES,
     PluginError,
 )
 from qubesbuilder.plugins.template import TEMPLATE_REPOSITORIES
+from qubesbuilder.plugins.upload import UploadPlugin
 
 
 @aliased_group("repository", chain=True)
@@ -133,34 +136,56 @@ def unpublish(obj: ContextObj, repository_publish: str):
     is_flag=True,
     help="Abort when no packages are defined.",
 )
-@click.option(
-    "--no-print-version",
-    default=False,
-    is_flag=True,
-    help="Skip printing version number, only release status.",
-)
+# @click.option(
+#     "--no-print-version",
+#     default=False,
+#     is_flag=True,
+#     help="Skip printing version number, only release status.",
+# )
 @click.pass_obj
 def check_release_status_for_component(
     obj: ContextObj,
     abort_no_version: bool,
     abort_on_empty: bool,
-    no_print_version: bool,
+    # no_print_version: bool,
 ):
-    for component in obj.components:
-        for dist in obj.distributions:
+    release_status = _check_release_status_for_component(
+        config=obj.config,
+        components=obj.components,
+        distributions=obj.distributions,
+        abort_no_version=abort_no_version,
+        abort_on_empty=abort_on_empty,
+        # no_print_version=no_print_version,
+    )
+    click.secho(yaml.dump(release_status.get("status", "")))
+
+
+def _check_release_status_for_component(
+    config,
+    components,
+    distributions,
+    abort_no_version: bool,
+    abort_on_empty: bool,
+    # no_print_version: bool,
+):
+    release_status: Dict[str, Any] = {}
+    for component in components:
+        release_status.setdefault(component.name, {})
+        for dist in distributions:
+            release_status[component.name].setdefault(dist.distribution, {})
             plugin = getPublishPlugin(
                 component=component,
                 dist=dist,
-                plugins_dir=obj.config.get_plugins_dir(),
-                executor=obj.config.get_stages()["publish"]["executor"],
-                artifacts_dir=obj.config.get_artifacts_dir(),
-                verbose=obj.config.verbose,
-                debug=obj.config.debug,
-                gpg_client=obj.config.get("gpg-client", "gpg"),
-                sign_key=obj.config.get("sign-key"),
-                qubes_release=obj.config.get("qubes-release"),
-                repository_publish=obj.config.get("repository-publish"),
-                backend_vmm=obj.config.get("backend-vmm", "xen"),
+                plugins_dir=config.get_plugins_dir(),
+                executor=config.get_stages()["publish"]["executor"],
+                artifacts_dir=config.get_artifacts_dir(),
+                verbose=config.verbose,
+                debug=config.debug,
+                gpg_client=config.get("gpg-client", "gpg"),
+                sign_key=config.get("sign-key"),
+                qubes_release=config.get("qubes-release"),
+                repository_publish=config.get("repository-publish"),
+                backend_vmm=config.get("backend-vmm", "xen"),
             )
 
             fetch_info = plugin.get_artifacts_info(stage="fetch", basename="source")
@@ -171,20 +196,23 @@ def check_release_status_for_component(
 
             vtags = fetch_info.get("git-version-tags", [])
             if not vtags:
-                if not no_print_version:
-                    click.secho("no version tag")
+                # if not no_print_version:
+                #     click.secho("no version tag")
                 if abort_no_version:
                     raise CliError("No version tag!")
             else:
-                if not no_print_version:
-                    click.secho(vtags[0])
+                release_status[component.name][dist.distribution]["tag"] = vtags[0]
+                # if not no_print_version:
+                #     click.secho(vtags[0])
 
             try:
                 # Ensure we have all publish artifacts info
                 plugin.check_dist_stage_artifacts("publish")
             except PluginError:
-                click.secho("not released")
-                return
+                release_status[component.name][dist.distribution][
+                    "status"
+                ] = "not released"
+                return release_status
 
             found = False
             for repo_name in COMPONENT_REPOSITORIES:
@@ -207,8 +235,14 @@ def check_release_status_for_component(
                             )
                             days = (datetime.datetime.utcnow() - publish_date).days
                             break
-                    click.secho(repo_name)
-                    click.secho(f"{days} days ago")
+                    release_status[component.name][dist.distribution].setdefault(
+                        "status", []
+                    )
+                    release_status[component.name][dist.distribution]["status"].append(
+                        {"repo": repo_name, "days": days}
+                    )
+                    # click.secho(repo_name)
+                    # click.secho(f"{days} days ago")
                     found = True
 
             if not found:
@@ -218,9 +252,12 @@ def check_release_status_for_component(
                     )
                     for build in plugin.parameters["build"]
                 ):
-                    click.secho("built, not released")
+                    status = "built, not released"
                 else:
-                    click.secho("not released")
+                    status = "not released"
+                release_status[component.name][dist.distribution]["status"] = status
+
+            return release_status
 
 
 @click.command(
@@ -231,19 +268,28 @@ def check_release_status_for_component(
 def check_release_status_for_template(
     obj: ContextObj,
 ):
-    for template in obj.templates:
+    release_status = _check_release_status_for_template(
+        config=obj.config, templates=obj.templates
+    )
+    click.secho(yaml.dump(release_status.get("status", "")))
+
+
+def _check_release_status_for_template(config, templates):
+    release_status: Dict[str, Any] = {}
+    for template in templates:
+        release_status.setdefault(template.name, {})
         plugin = getTemplatePlugin(
             template=template,
-            plugins_dir=obj.config.get_plugins_dir(),
-            executor=obj.config.get_stages()["publish"]["executor"],
-            artifacts_dir=obj.config.get_artifacts_dir(),
-            verbose=obj.config.verbose,
-            debug=obj.config.debug,
-            gpg_client=obj.config.get("gpg-client", "gpg"),
-            sign_key=obj.config.get("sign-key"),
-            qubes_release=obj.config.get("qubes-release"),
-            repository_publish=obj.config.get("repository-publish"),
-            repository_upload_remote_host=obj.config.get(
+            plugins_dir=config.get_plugins_dir(),
+            executor=config.get_stages()["publish"]["executor"],
+            artifacts_dir=config.get_artifacts_dir(),
+            verbose=config.verbose,
+            debug=config.debug,
+            gpg_client=config.get("gpg-client", "gpg"),
+            sign_key=config.get("sign-key"),
+            qubes_release=config.get("qubes-release"),
+            repository_publish=config.get("repository-publish"),
+            repository_upload_remote_host=config.get(
                 "repository-upload-remote-host", {}
             ),
         )
@@ -260,15 +306,22 @@ def check_release_status_for_template(
                         )
                         days = (datetime.datetime.utcnow() - publish_date).days
                         break
-                click.secho(repo_name)
-                click.secho(f"{days} days ago")
+                # click.secho(repo_name)
+                # click.secho(f"{days} days ago")
+                release_status[template.name].setdefault("status", [])
+                release_status[template.name]["status"].append(
+                    {"repo": repo_name, "days": days}
+                )
                 found = True
 
         if not found:
             if plugin.get_artifacts_info(stage="build"):
-                click.secho("built, not released")
+                status = "built, not released"
             else:
-                click.secho("not released")
+                status = "not released"
+            release_status[template.name]["status"] = status
+
+    return release_status
 
 
 #

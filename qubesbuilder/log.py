@@ -166,3 +166,5 @@ def init_logging(console: bool = True, file_path: Path = None, level: str = "DEB
             global RootStreamHandler
             RootStreamHandler = h  # type: ignore
             break
+
+    return root_logger

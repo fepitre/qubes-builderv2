@@ -33,7 +33,6 @@ from qubesbuilder.template import QubesTemplate
 
 STAGES = [
     "fetch",
-    "pre",
     "prep",
     "build",
     "post",
@@ -67,6 +66,9 @@ def deep_merge(a: dict, b: dict) -> dict:
 
 class Config:
     def __init__(self, conf_file: Union[Path, str]):
+        # Keep path of configuration file
+        self._conf_file = conf_file
+
         # Parse builder configuration file
         self._conf = self.parse_configuration_file(conf_file)
 
@@ -92,6 +94,9 @@ class Config:
 
         self.verbose = self._conf.get("verbose", False)
         self.debug = self._conf.get("debug", False)
+
+    def __repr__(self):
+        return f"<Config {str(self._conf_file)}>"
 
     @staticmethod
     def parse_configuration_file(conf_file: Union[Path, str]):
@@ -201,11 +206,18 @@ class Config:
             self._dists = [QubesDistribution(dist) for dist in distributions]
         return self._dists
 
-    def get_templates(self):
+    def get_templates(self, filtered_templates=None):
         if not self._templates:
-            self._templates = [
-                QubesTemplate(template) for template in self._conf.get("templates", [])
-            ]
+            if filtered_templates:
+                templates = []
+                for template_name in filtered_templates:
+                    for tmpl in self._conf.get("templates", []):
+                        if next(iter(tmpl.keys())) == template_name:
+                            templates.append(tmpl)
+                            break
+            else:
+                templates = self._conf.get("templates", [])
+            self._templates = [QubesTemplate(template) for template in templates]
         return self._templates
 
     def get_stages(self):

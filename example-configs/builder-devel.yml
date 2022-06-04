@@ -232,7 +232,6 @@ stages:
         options:
           image: "qubes-builder-fedora:latest"
   - prep
-  - pre
   - build
   - post
   - verify

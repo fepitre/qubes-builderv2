@@ -988,22 +988,6 @@ def test_unpublish_vm_bullseye():
 #
 
 
-def test_pre_template_fedora_35_xfce():
-    qb_call(
-        DEFAULT_BUILDER_CONF,
-        "-e",
-        "qubes",
-        "--executor-option",
-        "dispvm=qubes-builder-dvm",
-        "-t",
-        "fedora-35-xfce",
-        "template",
-        "pre",
-    )
-
-    assert (ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce").exists()
-
-
 def test_prep_template_fedora_35_xfce():
     qb_call(
         DEFAULT_BUILDER_CONF,

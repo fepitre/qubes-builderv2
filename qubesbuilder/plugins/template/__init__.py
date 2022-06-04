@@ -318,7 +318,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         repository_dir = self.get_repository_dir() / self.dist.distribution
         template_artifacts_dir = self.get_templates_dir()
-
         qubeized_image = template_artifacts_dir / "qubeized_images" / self.template.name
 
         repository_dir.mkdir(parents=True, exist_ok=True)
@@ -329,10 +328,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
         )
 
         #
-        # Pre
+        # Prep
         #
 
-        if stage == "pre":
+        if stage == "prep":
             if template_timestamp:
                 template_timestamp = parsedate(template_timestamp).strftime(
                     "%Y%m%d%H%MZ"
@@ -345,12 +344,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
             ) as f:
                 f.write(template_timestamp)
 
-        #
-        # Prep
-        #
-
-        if stage == "prep":
-            template_timestamp = self.get_template_timestamp()
             self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
             copy_in = [

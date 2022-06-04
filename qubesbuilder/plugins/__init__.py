@@ -82,7 +82,13 @@ class Plugin:
         if self.debug:
             self.environment["DEBUG"] = "1"
 
+    def before(self, stage: str):
+        pass
+
     def run(self, stage: str):
+        pass
+
+    def after(self, stage: str):
         pass
 
     def update_parameters(self):

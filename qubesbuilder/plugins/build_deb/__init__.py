@@ -117,7 +117,7 @@ class DEBBuildPlugin(BuildPlugin):
 
     def run(self, stage: str):
         """
-        Run plugging for given stage.
+        Run plugin for given stage.
         """
         # Run stage defined by parent class
         super().run(stage=stage)

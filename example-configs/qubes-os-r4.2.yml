@@ -131,7 +131,6 @@ stages:
         type: docker
         options:
           image: "qubes-builder-fedora:latest"
-  - pre
   - prep
   - build
   - post
