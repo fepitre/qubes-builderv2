@@ -62,14 +62,14 @@ read_stdin_command_and_verify_signature() {
     fi
 
     if ! LC_ALL=en_US.UTF-8 gpg2 --keyring "$local_keyring_path" \
-	    --exit-on-status-write-error \
-	    --no-autostart \
-	    --no-tty \
-	    --disable-dirmngr \
-	    --verify \
-	    --batch \
-	    --with-colons \
-	    --no-default-keyring \
+            --exit-on-status-write-error \
+            --no-autostart \
+            --no-tty \
+            --disable-dirmngr \
+            --verify \
+            --batch \
+            --with-colons \
+            --no-default-keyring \
             --status-fd=3 \
             "$tmpdir/untrusted_command.sig" \
             "$tmpdir/untrusted_command" \
@@ -84,7 +84,7 @@ read_stdin_command_and_verify_signature() {
     # fpr is used by eval
     # shellcheck disable=SC2034
     fpr=$(grep -Po \
-	    '^\[GNUPG:] VALIDSIG [0-9A-F]{40} 202[2-9](-[0-9]{2}){2} [1-9][0-9]+ [0-9]+ [45] 0 [0-9]+ (8|9|10) 01 \K([0-9A-F]{40})$' \
+            '^\[GNUPG:] VALIDSIG [0-9A-F]{40} 202[2-9](-[0-9]{2}){2} [1-9][0-9]+ [0-9]+ [45] 0 [0-9]+ (8|9|10) 01 \K([0-9A-F]{40})$' \
             "$tmpdir/gpg-status") || {
         echo 'Cannot obtain signing key fingerprint!' >&2
         exit 1
