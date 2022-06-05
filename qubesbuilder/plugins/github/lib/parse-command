@@ -100,31 +100,43 @@ def validate_upload_command(untrusted_command: bytes) -> None:
         raise BadCommandError("Empty component name")
     if b"." in untrusted_component:
         raise BadCommandError('"." not allowed in component name')
-    if len(untrusted_commit_sha) != 40:
-        raise BadCommandError(
-            "Wrong length of commit SHA: found {}, expected 40".format(
-                len(untrusted_commit_sha)
-            )
-        )
-    for i in untrusted_commit_sha:
-        if (0x30 <= i <= 0x39) or (0x61 <= i <= 0x66):
-            pass
-        else:
+    is_template = untrusted_component == b"linux-template-builder"
+    if is_template:
+        allowed_repos = (b'templates-itl', b'templates-community')
+        if len(untrusted_args) != 7:
             raise BadCommandError(
-                f"'{str(untrusted_commit_sha)}' is not a valid commit SHA"
+                "Can only upload one template at a time, not {}".format(
+                    len(untrusted_args)
+                )
             )
-    if untrusted_repo_name not in (
-        b"templates-itl",
-        b"templates-community",
-        b"current",
-        b"security-testing",
-    ):
-        raise BadCommandError(f"Unsupported repo name {str(untrusted_repo_name)}")
+    else:
+        allowed_repos = (b'current', b'security-testing')
+        if len(untrusted_commit_sha) != 40:
+            raise BadCommandError(
+                "Wrong length of commit SHA: found {}, expected 40".format(
+                    len(untrusted_commit_sha)
+                )
+            )
+        for i in untrusted_commit_sha:
+            if (0x30 <= i <= 0x39) or (0x61 <= i <= 0x66):
+                pass
+            else:
+                raise BadCommandError(
+                    "'{}' is not a valid commit SHA".format(
+                        untrusted_commit_sha.encode('ascii', 'strict')
+                    )
+                )
+    if untrusted_repo_name not in allowed_repos:
+        raise BadCommandError("Unsupported repository name {}".format(
+            untrusted_repo_name.encode('ascii', 'strict')
+        ))
     for untrusted_dist_pair in untrusted_args[5:-1]:
         # all other metacharacters caught sooner
         if b"." in untrusted_dist_pair:
             raise BadCommandError('Dist pair cannot contain "."')
         if untrusted_dist_pair.startswith(b"dom0-"):
+            if is_template:
+                raise BadCommandError("Templates cannot be uploaded for dom0")
             untrusted_dist = untrusted_dist_pair[5:]
         elif untrusted_dist_pair.startswith(b"vm-"):
             untrusted_dist = untrusted_dist_pair[3:]
