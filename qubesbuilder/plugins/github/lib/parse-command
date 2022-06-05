@@ -8,12 +8,11 @@ class BadCommandError(ValueError):
 
 
 prefix = b"-----BEGIN PGP SIGNED MESSAGE-----\nHash: "
-sig_start = b"-----BEGIN PGP SIGNATURE-----\n"
+sig_start = b"-----BEGIN PGP SIGNATURE-----\n\n"
 sig_end = b"\n-----END PGP SIGNATURE-----\n"
 shortest_sig = (
     sig_start
     + b"""
-
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 =AAAA"""
     + sig_end
@@ -232,7 +231,7 @@ def reconstruct_armored_sig(
     """
     Reconstruct an armored signature from the components
     """
-    untrusted_array = [sig_start]
+    untrusted_array = [sig_start[:-1]]
     untrusted_encoded = b2a_base64(untrusted_binary_sig, newline=False)
     untrusted_array += (
         untrusted_encoded[i : i + 64] for i in range(0, len(untrusted_encoded), 64)
@@ -255,7 +254,9 @@ def canonicalize_sig(untrusted_armored_sig: bytes, hash_str: bytes) -> bytes:
 
     # Check the start and end of the signature
     if not untrusted_armored_sig.startswith(sig_start):
-        raise BadCommandError("Invalid start of signature")
+        raise BadCommandError(
+            "Invalid start of signature - check there are no armor headers"
+        )
     if not untrusted_armored_sig.endswith(sig_end):
         raise BadCommandError("Invalid end of signature (trailing junk?)")
 
