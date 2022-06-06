@@ -76,6 +76,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
+        template_root_size: str = None,
+        template_root_with_partitions: bool = True,
     ):
         super().__init__(
             plugins_dir=plugins_dir,
@@ -91,7 +93,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
         self.repository_publish = repository_publish
         self.repository_upload_remote_host = repository_upload_remote_host
         self.use_qubes_repo = use_qubes_repo or {}
-
+        self.template_root_size = template_root_size
+        self.template_root_with_partitions = template_root_with_partitions
         self.environment.update(
             {
                 "DIST": self.dist.name,  # legacy value
@@ -112,6 +115,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "CACHE_DIR": str(CACHE_DIR / f"cache_{self.dist.name}"),
             }
         )
+        if self.template_root_size:
+            self.environment.update({"TEMPLATE_ROOT_SIZE": self.template_root_size})
+        if self.template_root_with_partitions:
+            self.environment.update({"TEMPLATE_ROOT_WITH_PARTITIONS": "1"})
         if self.use_qubes_repo:
             self.environment.update(
                 {
