@@ -298,11 +298,11 @@ class Config:
         prefix = self.get("git", {}).get("prefix", "QubesOS/qubes-")
         branch = self.get("git", {}).get("branch", "master")
         maintainers = self.get("git", {}).get("maintainers", [])
-        url = f"{baseurl}/{prefix}{component_name}"
         timeout = self.get("timeout", 3600)
         if isinstance(component_name, str):
             component_name = {component_name: {}}
         name, options = next(iter(component_name.items()))
+        url = f"{baseurl}/{prefix}{name}"
         insecure_skip_checking = name in self._conf.get("insecure-skip-checking", [])
         less_secure_signed_commits_sufficient = name in self._conf.get(
             "less-secure-signed-commits-sufficient", []
