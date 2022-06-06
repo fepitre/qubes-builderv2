@@ -133,7 +133,15 @@ class Config:
                             final_conf.setdefault(key, [])
                             final_conf[key] += data[key]
                         else:
-                            final_conf[key] = data[key]
+                            # if conf top-level key is not defined or is a list we override by
+                            # the included values, else we merge the two dicts where included
+                            # values may override original ones.
+                            if not final_conf.get(key, None) or isinstance(
+                                final_conf[key], list
+                            ):
+                                final_conf[key] = data[key]
+                            elif isinstance(final_conf[key], dict):
+                                final_conf[key] = deep_merge(final_conf[key], data[key])
                 except yaml.YAMLError as e:
                     raise ConfigError(
                         f"Failed to parse included config '{inc_path}'."
