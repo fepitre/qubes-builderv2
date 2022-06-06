@@ -34,6 +34,4 @@ rpmbuild --target noarch \
          --define "_tmppath ${ARTIFACTS_DIR}/rpmbuild/tmp" \
          -bb "${BUILDER_SCRIPTS_DIR}"/../template.spec
 
-if [ "0$DISCARD_PREPARED_IMAGE" -eq "1" ]; then
-    rm -rf "${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}"
-fi
+rm -rf "${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}"

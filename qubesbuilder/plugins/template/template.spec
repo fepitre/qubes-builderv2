@@ -35,10 +35,7 @@ Obsoletes:      %{name} > %{template_version}-%{release}
 %build
 rm -f root.img.part.*
 tar --sparse --dereference -cf - %{_sourcedir}/qubeized_images/%{template_name}/root.img | split -d -b 1G - root.img.part.
-
-if [ "0$DISCARD_PREPARED_IMAGE" -eq 1 ]; then
-    rm -f root.img
-fi
+rm -f root.img
 
 
 %install
