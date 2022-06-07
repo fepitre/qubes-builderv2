@@ -28,7 +28,7 @@ BUILDER_SCRIPTS_DIR="$(dirname "$0")"
 rpmbuild --target noarch \
          --define "template_name ${TEMPLATE_NAME}" \
          --define "template_version ${TEMPLATE_VERSION}" \
-         --define "template_timestamp ${TEMPLATE_TIMESTAMP::-1}" \
+         --define "template_timestamp ${TEMPLATE_TIMESTAMP}" \
          --define "_sourcedir ${ARTIFACTS_DIR}" \
          --define "_topdir ${ARTIFACTS_DIR}/rpmbuild" \
          --define "_tmppath ${ARTIFACTS_DIR}/rpmbuild/tmp" \

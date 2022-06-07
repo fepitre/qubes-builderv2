@@ -105,7 +105,7 @@ class PublishPlugin(DistributionPlugin):
         publish_date = None
         for r in publish_info["repository-publish"]:
             if r["name"] == "current-testing":
-                publish_date = datetime.datetime.strptime(r["timestamp"], "%Y%m%d%H%MZ")
+                publish_date = datetime.datetime.strptime(r["timestamp"], "%Y%m%d%H%M")
                 break
 
         if not publish_date:

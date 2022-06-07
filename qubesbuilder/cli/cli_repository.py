@@ -231,7 +231,7 @@ def _check_release_status_for_component(
                     for repo in publish_info.get("repository-publish", []):
                         if repo["name"] == repo_name:
                             publish_date = datetime.datetime.strptime(
-                                repo["timestamp"], "%Y%m%d%H%MZ"
+                                repo["timestamp"], "%Y%m%d%H%M"
                             )
                             days = (datetime.datetime.utcnow() - publish_date).days
                             break
@@ -302,7 +302,7 @@ def _check_release_status_for_template(config, templates):
                 for repo in publish_info.get("repository-publish", []):
                     if repo["name"] == repo_name:
                         publish_date = datetime.datetime.strptime(
-                            repo["timestamp"], "%Y%m%d%H%MZ"
+                            repo["timestamp"], "%Y%m%d%H%M"
                         )
                         days = (datetime.datetime.utcnow() - publish_date).days
                         break

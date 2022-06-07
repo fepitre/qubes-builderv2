@@ -222,7 +222,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         publish_date = None
         for r in publish_info["repository-publish"]:
             if r["name"] == f"{repository_publish}-testing":
-                publish_date = datetime.strptime(r["timestamp"], "%Y%m%d%H%MZ")
+                publish_date = datetime.strptime(r["timestamp"], "%Y%m%d%H%M")
                 break
 
         if publish_date is None:
@@ -341,10 +341,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
         if stage == "prep":
             if template_timestamp:
                 template_timestamp = parsedate(template_timestamp).strftime(
-                    "%Y%m%d%H%MZ"
+                    "%Y%m%d%H%M"
                 )
             else:
-                template_timestamp = datetime.utcnow().strftime("%Y%m%d%H%MZ")
+                template_timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
 
             with open(
                 template_artifacts_dir / f"build_timestamp_{self.template.name}", "w"
@@ -563,7 +563,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             publish_info["repository-publish"].append(
                 {
                     "name": repository_publish,
-                    "timestamp": datetime.utcnow().strftime("%Y%m%d%H%MZ"),
+                    "timestamp": datetime.utcnow().strftime("%Y%m%d%H%M"),
                 }
             )
             # Save package information we published for committing into current

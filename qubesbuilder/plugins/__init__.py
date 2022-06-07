@@ -348,7 +348,7 @@ class TemplatePlugin(Plugin):
                 data = f.read().splitlines()
 
             try:
-                self.template.timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+                self.template.timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
             except (dateutil.parser.ParserError, IndexError) as e:
                 msg = f"{self.template}: Failed to parse build timestamp format."
                 raise PluginError(msg) from e

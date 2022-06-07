@@ -74,7 +74,7 @@ def init_context_obj(
         file_path = Path(log_file).resolve()
     else:
         logs_dir = config.get_logs_dir()
-        file_path = (logs_dir / datetime.utcnow().strftime("%Y%m%d%H%MZ")).with_suffix(
+        file_path = (logs_dir / datetime.utcnow().strftime("%Y%m%d%H%M")).with_suffix(
             ".log"
         )
 

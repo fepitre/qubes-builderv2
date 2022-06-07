@@ -340,7 +340,7 @@ def test_publish_host_fc32():
         }
 
         # publish into current
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%MZ")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
             ARTIFACTS_DIR
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec.publish.yml"
@@ -792,7 +792,7 @@ def test_publish_vm_bullseye():
         }
 
         # publish into current
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%MZ")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
             ARTIFACTS_DIR
             / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
@@ -1026,7 +1026,7 @@ def test_build_template_fedora_35_xfce():
 
     with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
         data = f.read().splitlines()
-    template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+    template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
         ARTIFACTS_DIR
         / f"templates/rpm/qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
@@ -1065,7 +1065,7 @@ def test_sign_template_fedora_35_xfce():
 
     with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
         data = f.read().splitlines()
-    template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+    template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
         ARTIFACTS_DIR
         / f"templates/rpm/qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
@@ -1106,7 +1106,7 @@ def test_publish_template_fedora_35_xfce():
 
         with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
             data = f.read().splitlines()
-        template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+        template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
         assert info.get("timestamp", []) == template_timestamp
         assert ["templates-itl-testing"] == [
@@ -1114,7 +1114,7 @@ def test_publish_template_fedora_35_xfce():
         ]
 
         # publish into templates-itl
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%MZ")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = ARTIFACTS_DIR / "templates/fedora-35-xfce.publish.yml"
 
         for r in info["repository-publish"]:
@@ -1165,7 +1165,7 @@ def test_unpublish_template_fedora_35_xfce():
 
         with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
             data = f.read().splitlines()
-        template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%MZ")
+        template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
         # unpublish from templates-itl
         qb_call(

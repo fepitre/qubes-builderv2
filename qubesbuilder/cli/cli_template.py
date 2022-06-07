@@ -67,7 +67,7 @@ def fetch(obj: ContextObj):
 @click.option(
     "--template-timestamp",
     default=None,
-    help="Provide template timestamp to use (format must be '%Y%m%d%H%MZ').",
+    help="Provide template timestamp to use (format must be '%Y%m%d%H%M').",
 )
 @click.pass_obj
 def prep(obj: ContextObj, template_timestamp: str):
