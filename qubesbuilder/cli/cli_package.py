@@ -46,6 +46,7 @@ def _component_stage(
             verbose=config.verbose,
             debug=config.debug,
             skip_if_exists=config.get("reuse-fetched-source", False),
+            skip_git_fetch=config.get("skip-git-fetch", False),
             do_merge=config.get("do-merge", False),
             fetch_versions_only=config.get("fetch-versions-only", False),
         )

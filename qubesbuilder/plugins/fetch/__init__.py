@@ -58,6 +58,7 @@ class FetchPlugin(ComponentPlugin):
         verbose: bool = False,
         debug: bool = False,
         skip_if_exists: bool = False,
+        skip_git_fetch: bool = False,
         do_merge: bool = False,
         fetch_versions_only: bool = False,
     ):
@@ -70,6 +71,7 @@ class FetchPlugin(ComponentPlugin):
         )
         self.executor = executor
         self.skip_if_exists = skip_if_exists
+        self.skip_git_fetch = skip_git_fetch
         self.do_merge = do_merge
         self.fetch_versions_only = fetch_versions_only
 
@@ -134,8 +136,9 @@ class FetchPlugin(ComponentPlugin):
                 get_sources_cmd += ["--do-merge"]
                 if self.fetch_versions_only:
                     get_sources_cmd += ["--fetch-versions-only"]
-            cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
-            self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            if not self.skip_git_fetch:
+                cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
+                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
             # Update parameters based on previously fetched sources as .qubesbuilder
             # is now available.
