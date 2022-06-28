@@ -11,3 +11,9 @@ RUN dnf -y update && \
 RUN mkdir /builder /builder/plugins /builder/build
 
 RUN useradd -m user -u 1000
+
+RUN chown -R user /builder
+
+RUN usermod -aG wheel user && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel
+
+USER user

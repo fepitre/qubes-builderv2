@@ -9,3 +9,9 @@ RUN apt-get update && \
 RUN mkdir /builder /builder/plugins /builder/build
 
 RUN useradd -m user -u 1000
+
+RUN chown -R user /builder
+
+RUN usermod -aG sudo user && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/sudo
+
+USER user
