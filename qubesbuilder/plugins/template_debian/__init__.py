@@ -85,4 +85,5 @@ class DEBTemplateBuilderPlugin(TemplateBuilderPlugin):
             repository_publish=repository_publish,
             ignore_min_age=ignore_min_age,
             unpublish=unpublish,
+            **kwargs,
         )

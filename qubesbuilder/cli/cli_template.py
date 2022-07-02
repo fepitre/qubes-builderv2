@@ -29,7 +29,6 @@ def _template_stage(
 
     # Qubes templates
     for tmpl in templates:
-
         template_plugin = getTemplatePlugin(
             template=tmpl,
             plugins_dir=config.get_plugins_dir(),

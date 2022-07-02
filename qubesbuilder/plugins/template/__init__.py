@@ -330,10 +330,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
         repository_dir.mkdir(parents=True, exist_ok=True)
         qubeized_image.mkdir(parents=True, exist_ok=True)
 
-        repository_publish = repository_publish or self.repository_publish.get(
-            "templates", "templates-itl-testing"
-        )
-
         #
         # Prep
         #
@@ -496,6 +492,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
         # Publish
         #
 
+        if stage in ("publish", "upload"):
+            repository_publish = repository_publish or self.repository_publish.get(
+                "templates"
+            )
+            if not repository_publish:
+                raise TemplateError("Cannot determine repository for publish")
+
         # Publish stage for template components
         if stage == "publish" and not unpublish:
             # repository-publish directory
@@ -599,10 +602,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
             if not remote_path:
                 log.info(f"{self.dist}: No remote location defined. Skipping.")
                 return
-
-            repository_publish = self.repository_publish.get(
-                "templates", "templates-itl-testing"
-            )
 
             try:
                 local_path = (

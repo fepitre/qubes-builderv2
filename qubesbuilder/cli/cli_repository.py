@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import click
 import yaml
@@ -13,6 +13,10 @@ from qubesbuilder.plugins.publish import (
 )
 from qubesbuilder.plugins.template import TEMPLATE_REPOSITORIES
 from qubesbuilder.plugins.upload import UploadPlugin
+from qubesbuilder.config import Config
+from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.component import QubesComponent
+from qubesbuilder.template import QubesTemplate
 
 
 @aliased_group("repository", chain=True)
@@ -23,28 +27,31 @@ def repository():
 
 
 def _publish(
-    obj: ContextObj,
+    config: Config,
+    components: List[QubesComponent],
+    distributions: List[QubesDistribution],
+    templates: List[QubesTemplate],
     repository_publish: str,
     ignore_min_age: bool = False,
     unpublish: bool = False,
 ):
-    executor = obj.config.get_stages()["publish"]["executor"]
+    executor = config.get_stages()["publish"]["executor"]
     if repository_publish in COMPONENT_REPOSITORIES:
-        for component in obj.components:
-            for dist in obj.distributions:
+        for component in components:
+            for dist in distributions:
                 publish_plugin = getPublishPlugin(
                     component=component,
                     dist=dist,
-                    plugins_dir=obj.config.get_plugins_dir(),
+                    plugins_dir=config.get_plugins_dir(),
                     executor=executor,
-                    artifacts_dir=obj.config.get_artifacts_dir(),
-                    verbose=obj.config.verbose,
-                    debug=obj.config.debug,
-                    gpg_client=obj.config.get("gpg-client", "gpg"),
-                    sign_key=obj.config.get("sign-key"),
-                    qubes_release=obj.config.get("qubes-release"),
-                    repository_publish=obj.config.get("repository-publish"),
-                    backend_vmm=obj.config.get("backend-vmm", "xen"),
+                    artifacts_dir=config.get_artifacts_dir(),
+                    verbose=config.verbose,
+                    debug=config.debug,
+                    gpg_client=config.get("gpg-client", "gpg"),
+                    sign_key=config.get("sign-key"),
+                    qubes_release=config.get("qubes-release"),
+                    repository_publish=config.get("repository-publish"),
+                    backend_vmm=config.get("backend-vmm", "xen"),
                 )
                 publish_plugin.run(
                     stage="publish",
@@ -53,19 +60,19 @@ def _publish(
                     unpublish=unpublish,
                 )
     elif repository_publish in TEMPLATE_REPOSITORIES:
-        for tmpl in obj.templates:
+        for tmpl in templates:
             publish_plugin = getTemplatePlugin(
                 template=tmpl,
-                plugins_dir=obj.config.get_plugins_dir(),
+                plugins_dir=config.get_plugins_dir(),
                 executor=executor,
-                artifacts_dir=obj.config.get_artifacts_dir(),
-                verbose=obj.config.verbose,
-                debug=obj.config.debug,
-                gpg_client=obj.config.get("gpg-client", "gpg"),
-                sign_key=obj.config.get("sign-key"),
-                qubes_release=obj.config.get("qubes-release"),
-                repository_publish=obj.config.get("repository-publish"),
-                repository_upload_remote_host=obj.config.get(
+                artifacts_dir=config.get_artifacts_dir(),
+                verbose=config.verbose,
+                debug=config.debug,
+                gpg_client=config.get("gpg-client", "gpg"),
+                sign_key=config.get("sign-key"),
+                qubes_release=config.get("qubes-release"),
+                repository_publish=config.get("repository-publish"),
+                repository_upload_remote_host=config.get(
                     "repository-upload-remote-host", {}
                 ),
             )
@@ -96,7 +103,12 @@ def _publish(
 @click.pass_obj
 def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = False):
     _publish(
-        obj=obj, repository_publish=repository_publish, ignore_min_age=ignore_min_age
+        config=obj.config,
+        components=obj.components,
+        distributions=obj.distributions,
+        templates=obj.templates,
+        repository_publish=repository_publish,
+        ignore_min_age=ignore_min_age,
     )
 
 
@@ -112,7 +124,14 @@ def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = Fal
 @click.argument("repository_publish", nargs=1)
 @click.pass_obj
 def unpublish(obj: ContextObj, repository_publish: str):
-    _publish(obj=obj, repository_publish=repository_publish, unpublish=True)
+    _publish(
+        config=obj.config,
+        components=obj.components,
+        distributions=obj.distributions,
+        templates=obj.templates,
+        repository_publish=repository_publish,
+        unpublish=True,
+    )
 
 
 #
@@ -329,26 +348,59 @@ def _check_release_status_for_template(config, templates):
 #
 @click.command(
     name="upload",
-    short_help="Upload packages to remote location.",
+    short_help="Upload packages or templates to remote location.",
 )
 @click.pass_obj
-def upload(obj: ContextObj):
-    executor = obj.config.get_stages()["publish"]["executor"]
-    for dist in obj.distributions:
-        upload_plugin = UploadPlugin(
-            dist=dist,
-            plugins_dir=obj.config.get_plugins_dir(),
-            executor=executor,
-            artifacts_dir=obj.config.get_artifacts_dir(),
-            verbose=obj.config.verbose,
-            debug=obj.config.debug,
-            qubes_release=obj.config.get("qubes-release", {}),
-            repository_publish=obj.config.get("repository-publish"),
-            repository_upload_remote_host=obj.config.get(
-                "repository-upload-remote-host", {}
-            ),
-        )
-        upload_plugin.run(stage="upload")
+def upload(obj: ContextObj, repository_publish: str):
+    _upload(
+        config=obj.config,
+        distributions=obj.distributions,
+        templates=obj.templates,
+        repository_publish=repository_publish,
+    )
+
+
+def _upload(
+    config: Config,
+    distributions: List[QubesDistribution],
+    templates: List[QubesTemplate],
+    repository_publish: str,
+):
+    executor = config.get_stages()["publish"]["executor"]
+    if repository_publish in COMPONENT_REPOSITORIES:
+        for dist in distributions:
+            upload_plugin = UploadPlugin(
+                dist=dist,
+                plugins_dir=config.get_plugins_dir(),
+                executor=executor,
+                artifacts_dir=config.get_artifacts_dir(),
+                verbose=config.verbose,
+                debug=config.debug,
+                qubes_release=config.get("qubes-release", {}),
+                repository_publish=config.get("repository-publish"),
+                repository_upload_remote_host=config.get(
+                    "repository-upload-remote-host", {}
+                ),
+            )
+            upload_plugin.run(stage="upload", repository_publish=repository_publish)
+    elif repository_publish in TEMPLATE_REPOSITORIES:
+        for tmpl in templates:
+            upload_plugin = getTemplatePlugin(
+                template=tmpl,
+                plugins_dir=config.get_plugins_dir(),
+                executor=executor,
+                artifacts_dir=config.get_artifacts_dir(),
+                verbose=config.verbose,
+                debug=config.debug,
+                gpg_client=config.get("gpg-client", "gpg"),
+                sign_key=config.get("sign-key"),
+                qubes_release=config.get("qubes-release"),
+                repository_publish=config.get("repository-publish"),
+                repository_upload_remote_host=config.get(
+                    "repository-upload-remote-host", {}
+                ),
+            )
+            upload_plugin.run(stage="upload", repository_publish=repository_publish)
 
 
 repository.add_command(publish)

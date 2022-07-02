@@ -248,9 +248,12 @@ class RPMPublishPlugin(PublishPlugin):
         # FIXME: Refactor the code handling both standard and template components.
         #  It applies for other plugins.
 
-        repository_publish = repository_publish or self.repository_publish.get(
-            "components", "current-testing"
-        )
+        if stage == "publish":
+            repository_publish = repository_publish or self.repository_publish.get(
+                "components"
+            )
+            if not repository_publish:
+                raise PublishError("Cannot determine repository for publish")
 
         # Publish stage for standard (not template) components
         if stage == "publish" and not unpublish:

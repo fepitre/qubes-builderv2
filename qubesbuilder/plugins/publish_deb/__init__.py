@@ -208,16 +208,21 @@ class DEBPublishPlugin(PublishPlugin):
             log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
-        repository_publish = repository_publish or self.repository_publish.get(
-            "components", "current-testing"
-        )
         # Sign artifacts
         sign_artifacts_dir = self.get_dist_component_artifacts_dir(stage="sign")
 
         # Keyring used for signing
         keyring_dir = sign_artifacts_dir / "keyring"
 
+        if stage == "publish":
+            repository_publish = repository_publish or self.repository_publish.get(
+                "components"
+            )
+            if not repository_publish:
+                raise PublishError("Cannot determine repository for publish")
+
         if stage == "publish" and not unpublish:
+
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 

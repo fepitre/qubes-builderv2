@@ -63,7 +63,7 @@ class UploadPlugin(Plugin):
         self.repository_publish = repository_publish
         self.repository_upload_remote_host = repository_upload_remote_host
 
-    def run(self, stage: str):
+    def run(self, stage: str, repository_publish: str = None):
         if stage == "upload":
             if not isinstance(self.executor, LocalExecutor):
                 raise UploadError("This plugin only supports local executor.")
@@ -73,7 +73,7 @@ class UploadPlugin(Plugin):
                 log.info(f"{self.dist}: No remote location defined. Skipping.")
                 return
 
-            repository_publish = self.repository_publish.get(
+            repository_publish = repository_publish or self.repository_publish.get(
                 "components", "current-testing"
             )
 
