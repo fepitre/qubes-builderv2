@@ -116,6 +116,8 @@ class Config:
             final_conf: Dict[str, Any] = {}
             for inc in included_conf:
                 inc_path = Path(inc)
+                if not inc_path.is_absolute():
+                    inc_path = conf_file.parent / inc_path
                 if not inc_path.exists():
                     raise ConfigError(
                         f"Cannot find included builder configuration '{inc_path}'."
