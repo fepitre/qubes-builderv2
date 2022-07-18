@@ -143,50 +143,17 @@ def unpublish(obj: ContextObj, repository_publish: str):
     name="check-release-status-for-component",
     short_help="Check release status for a given component",
 )
-@click.option(
-    "--abort-no-version",
-    default=False,
-    is_flag=True,
-    help="Abort if no version tag is present.",
-)
-@click.option(
-    "--abort-on-empty",
-    default=False,
-    is_flag=True,
-    help="Abort when no packages are defined.",
-)
-# @click.option(
-#     "--no-print-version",
-#     default=False,
-#     is_flag=True,
-#     help="Skip printing version number, only release status.",
-# )
 @click.pass_obj
-def check_release_status_for_component(
-    obj: ContextObj,
-    abort_no_version: bool,
-    abort_on_empty: bool,
-    # no_print_version: bool,
-):
+def check_release_status_for_component(obj: ContextObj):
     release_status = _check_release_status_for_component(
         config=obj.config,
         components=obj.components,
         distributions=obj.distributions,
-        abort_no_version=abort_no_version,
-        abort_on_empty=abort_on_empty,
-        # no_print_version=no_print_version,
     )
-    click.secho(yaml.dump(release_status.get("status", "")))
+    click.secho(yaml.dump(release_status))
 
 
-def _check_release_status_for_component(
-    config,
-    components,
-    distributions,
-    abort_no_version: bool,
-    abort_on_empty: bool,
-    # no_print_version: bool,
-):
+def _check_release_status_for_component(config, components, distributions):
     release_status: Dict[str, Any] = {}
     for component in components:
         release_status.setdefault(component.name, {})
@@ -209,20 +176,25 @@ def _check_release_status_for_component(
 
             fetch_info = plugin.get_artifacts_info(stage="fetch", basename="source")
             if not fetch_info:
-                raise CliError(f"{component}: Cannot find 'fetch' stage artifacts!")
-            if abort_on_empty and not plugin.parameters.get("build", []):
-                raise CliError("No packages defined.")
+                release_status[component.name][dist.distribution][
+                    "status"
+                ] = "no fetch artifacts"
+                continue
+
+            # we may have nothing to be done for this distribution
+            if not plugin.parameters.get("build", []):
+                release_status[component.name][dist.distribution][
+                    "status"
+                ] = "no packages defined"
+                continue
 
             vtags = fetch_info.get("git-version-tags", [])
-            if not vtags:
-                # if not no_print_version:
-                #     click.secho("no version tag")
-                if abort_no_version:
-                    raise CliError("No version tag!")
-            else:
+            if vtags:
                 release_status[component.name][dist.distribution]["tag"] = vtags[0]
-                # if not no_print_version:
-                #     click.secho(vtags[0])
+            else:
+                release_status[component.name][dist.distribution][
+                    "tag"
+                ] = "no version tag"
 
             try:
                 # Ensure we have all publish artifacts info
@@ -231,7 +203,7 @@ def _check_release_status_for_component(
                 release_status[component.name][dist.distribution][
                     "status"
                 ] = "not released"
-                return release_status
+                continue
 
             found = False
             for repo_name in COMPONENT_REPOSITORIES:
@@ -260,8 +232,6 @@ def _check_release_status_for_component(
                     release_status[component.name][dist.distribution]["status"].append(
                         {"repo": repo_name, "days": days}
                     )
-                    # click.secho(repo_name)
-                    # click.secho(f"{days} days ago")
                     found = True
 
             if not found:
@@ -276,7 +246,7 @@ def _check_release_status_for_component(
                     status = "not released"
                 release_status[component.name][dist.distribution]["status"] = status
 
-            return release_status
+    return release_status
 
 
 @click.command(
@@ -290,7 +260,7 @@ def check_release_status_for_template(
     release_status = _check_release_status_for_template(
         config=obj.config, templates=obj.templates
     )
-    click.secho(yaml.dump(release_status.get("status", "")))
+    click.secho(yaml.dump(release_status))
 
 
 def _check_release_status_for_template(config, templates):
@@ -325,8 +295,6 @@ def _check_release_status_for_template(config, templates):
                         )
                         days = (datetime.datetime.utcnow() - publish_date).days
                         break
-                # click.secho(repo_name)
-                # click.secho(f"{days} days ago")
                 release_status[template.name].setdefault("status", [])
                 release_status[template.name]["status"].append(
                     {"repo": repo_name, "days": days}
