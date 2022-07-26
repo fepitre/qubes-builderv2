@@ -45,7 +45,7 @@ class DEBSourcePlugin(SourcePlugin):
         - prep: Prepare and generate Debian source package (.orig.tar.*, .dsc and .debian.tar.xz).
     """
 
-    plugin_dependencies = ["source"]
+    plugin_dependencies = ["fetch", "source"]
 
     def __init__(
         self,
@@ -226,7 +226,7 @@ class DEBSourcePlugin(SourcePlugin):
                     # Create archive if no external file is provided.
                     if not self.parameters.get("files", []):
                         cmd += [
-                            f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
+                            f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir} {source_orig}",
                             f"mv {source_dir}/{source_orig} {BUILDER_DIR}",
                         ]
                     else:

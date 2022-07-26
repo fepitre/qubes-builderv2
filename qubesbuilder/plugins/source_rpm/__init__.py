@@ -42,7 +42,7 @@ class RPMSourcePlugin(SourcePlugin):
         - prep: Prepare and generate source RPM.
     """
 
-    plugin_dependencies = ["source"]
+    plugin_dependencies = ["fetch", "source"]
 
     def __init__(
         self,
@@ -198,7 +198,7 @@ class RPMSourcePlugin(SourcePlugin):
                     # If no Source0 is provided, we expect 'source' from query-spec.
                     if source_orig != "source":
                         cmd += [
-                            f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir} {source_orig}",
+                            f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir} {source_orig}",
                         ]
                 else:
                     for file in self.parameters["files"]:

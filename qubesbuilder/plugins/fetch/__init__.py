@@ -335,7 +335,7 @@ class FetchPlugin(ComponentPlugin):
                         ),
                     ]
                     cmd += [
-                        f"{PLUGINS_DIR}/source/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
+                        f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
                     ]
 
                 try:

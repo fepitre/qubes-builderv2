@@ -40,6 +40,8 @@ class SourcePlugin(DistributionPlugin):
     Manage generic distribution source
     """
 
+    plugin_dependencies = ["fetch"]
+
     def __init__(
         self,
         component: QubesComponent,
