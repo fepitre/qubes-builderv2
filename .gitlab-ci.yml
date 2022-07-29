@@ -164,12 +164,15 @@ pytest:
 
 podman-host-fc32:
   extends: .component_podman_job
+  allow_failure: true
 
 podman-vm-fc35:
   extends: .component_podman_job
+  allow_failure: true
 
 podman-vm-centos-stream8:
   extends: .component_podman_job
+  allow_failure: true
 
 #podman-vm-bullseye:
 #  extends: .component_podman_job
