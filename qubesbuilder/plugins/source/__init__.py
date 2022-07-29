@@ -80,7 +80,11 @@ class SourcePlugin(DistributionPlugin):
 
     def run(self, stage: str):
         # Compare previous artifacts hash with current source hash
-        fetch_info = self.get_artifacts_info("fetch", "source")
+        fetch_info = self.get_dist_artifacts_info(
+            "fetch",
+            "source",
+            artifacts_dir=self.get_component_artifacts_dir("fetch"),
+        )
 
         if stage == "prep":
             # Compare previous artifacts hash with current source hash

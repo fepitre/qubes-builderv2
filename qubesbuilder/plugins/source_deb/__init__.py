@@ -115,7 +115,11 @@ class DEBSourcePlugin(SourcePlugin):
             artifacts_dir.mkdir(parents=True)
 
             # Get fetch info
-            fetch_info = self.get_dist_artifacts_info("fetch", "source")
+            fetch_info = self.get_dist_artifacts_info(
+                "fetch",
+                "source",
+                artifacts_dir=self.get_component_artifacts_dir("fetch"),
+            )
 
             for directory in self.parameters["build"]:
                 # Source component directory inside executors

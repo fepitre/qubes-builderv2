@@ -108,7 +108,11 @@ class RPMSourcePlugin(SourcePlugin):
             distfiles_dir = self.get_distfiles_dir()
 
             # Get fetch info
-            fetch_info = self.get_dist_artifacts_info("fetch", "source")
+            fetch_info = self.get_dist_artifacts_info(
+                "fetch",
+                "source",
+                artifacts_dir=self.get_component_artifacts_dir("fetch"),
+            )
 
             # Clean previous build artifacts
             if artifacts_dir.exists():

@@ -174,7 +174,11 @@ def _check_release_status_for_component(config, components, distributions):
                 backend_vmm=config.get("backend-vmm", "xen"),
             )
 
-            fetch_info = plugin.get_artifacts_info(stage="fetch", basename="source")
+            fetch_info = plugin.get_dist_artifacts_info(
+                "fetch",
+                "source",
+                artifacts_dir=plugin.get_component_artifacts_dir("fetch"),
+            )
             if not fetch_info:
                 release_status[component.name][dist.distribution][
                     "status"
