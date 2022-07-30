@@ -237,6 +237,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         return True
 
+    def get_template_tag(self):
+        return f"{TEMPLATE_VERSION}-{self.get_template_timestamp()}"
+
     def publish(self, db_path, repository_publish):
         # Read information from build stage
         template_timestamp = self.get_template_timestamp()
@@ -244,7 +247,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         rpm = (
             self.get_templates_dir()
             / "rpm"
-            / f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
+            / f"qubes-template-{self.template.name}-{self.get_template_tag()}.noarch.rpm"
         )
         if not rpm.exists():
             msg = f"{self.template}: Cannot find template RPM '{rpm}'."

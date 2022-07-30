@@ -288,6 +288,7 @@ def _check_release_status_for_template(config, templates):
         )
 
         found = False
+        set_template_tag = False
         for repo_name in TEMPLATE_REPOSITORIES:
             days = 0
             if plugin.is_published(repository=repo_name):
@@ -304,13 +305,18 @@ def _check_release_status_for_template(config, templates):
                     {"repo": repo_name, "days": days}
                 )
                 found = True
+                set_template_tag = True
 
         if not found:
             if plugin.get_artifacts_info(stage="build"):
                 status = "built, not released"
+                set_template_tag = True
             else:
                 status = "not released"
             release_status[template.name]["status"] = status
+
+        if set_template_tag:
+            release_status[template.name]["tag"] = plugin.get_template_tag()
 
     return release_status
 
