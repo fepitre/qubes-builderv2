@@ -215,34 +215,37 @@ def _check_release_status_for_component(config, components, distributions):
                 ] = "not released"
                 continue
 
-            found = False
-            for repo_name in COMPONENT_REPOSITORIES:
-                days = 0
-                if all(
-                    plugin.is_published(
-                        basename=build.with_suffix("").name, repository=repo_name
-                    )
-                    for build in plugin.parameters["build"]
-                ):
-                    # FIXME: we pick the first build target found as we have checks for all
-                    #  being processed for all stages and not repository publish is not empty
-                    publish_info = plugin.get_dist_artifacts_info(
-                        stage="publish", basename=plugin.parameters["build"][0]
-                    )
-                    for repo in publish_info.get("repository-publish", []):
-                        if repo["name"] == repo_name:
-                            publish_date = datetime.datetime.strptime(
-                                repo["timestamp"], "%Y%m%d%H%M"
-                            )
-                            days = (datetime.datetime.utcnow() - publish_date).days
-                            break
-                    release_status[component.name][dist.distribution].setdefault(
-                        "status", []
-                    )
-                    release_status[component.name][dist.distribution]["status"].append(
-                        {"repo": repo_name, "days": days}
-                    )
-                    found = True
+            try:
+                found = False
+                for repo_name in COMPONENT_REPOSITORIES:
+                    days = 0
+                    if all(
+                        plugin.is_published(
+                            basename=build.with_suffix("").name, repository=repo_name
+                        )
+                        for build in plugin.parameters["build"]
+                    ):
+                        # FIXME: we pick the first build target found as we have checks for all
+                        #  being processed for all stages and not repository publish is not empty
+                        publish_info = plugin.get_dist_artifacts_info(
+                            stage="publish", basename=plugin.parameters["build"][0]
+                        )
+                        for repo in publish_info.get("repository-publish", []):
+                            if repo["name"] == repo_name:
+                                publish_date = datetime.datetime.strptime(
+                                    repo["timestamp"], "%Y%m%d%H%M"
+                                )
+                                days = (datetime.datetime.utcnow() - publish_date).days
+                                break
+                        release_status[component.name][dist.distribution].setdefault(
+                            "status", []
+                        )
+                        release_status[component.name][dist.distribution]["status"].append(
+                            {"repo": repo_name, "days": days}
+                        )
+                        found = True
+            except (PluginError, ValueError, TypeError) as e:
+                raise CliError(f"{component}:{dist}: Failed to process status ({str(e)}).")
 
             if not found:
                 if all(
@@ -293,25 +296,28 @@ def _check_release_status_for_template(config, templates):
             ),
         )
 
-        found = False
-        set_template_tag = False
-        for repo_name in TEMPLATE_REPOSITORIES:
-            days = 0
-            if plugin.is_published(repository=repo_name):
-                publish_info = plugin.get_artifacts_info(stage="publish")
-                for repo in publish_info.get("repository-publish", []):
-                    if repo["name"] == repo_name:
-                        publish_date = datetime.datetime.strptime(
-                            repo["timestamp"], "%Y%m%d%H%M"
-                        )
-                        days = (datetime.datetime.utcnow() - publish_date).days
-                        break
-                release_status[template.name].setdefault("status", [])
-                release_status[template.name]["status"].append(
-                    {"repo": repo_name, "days": days}
-                )
-                found = True
-                set_template_tag = True
+        try:
+            found = False
+            set_template_tag = False
+            for repo_name in TEMPLATE_REPOSITORIES:
+                days = 0
+                if plugin.is_published(repository=repo_name):
+                    publish_info = plugin.get_artifacts_info(stage="publish")
+                    for repo in publish_info.get("repository-publish", []):
+                        if repo["name"] == repo_name:
+                            publish_date = datetime.datetime.strptime(
+                                repo["timestamp"], "%Y%m%d%H%M"
+                            )
+                            days = (datetime.datetime.utcnow() - publish_date).days
+                            break
+                    release_status[template.name].setdefault("status", [])
+                    release_status[template.name]["status"].append(
+                        {"repo": repo_name, "days": days}
+                    )
+                    found = True
+                    set_template_tag = True
+        except (PluginError, ValueError) as e:
+            raise CliError(f"{template}: Failed to process status ({str(e)}).")
 
         if not found:
             if plugin.get_artifacts_info(stage="build"):
