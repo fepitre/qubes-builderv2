@@ -215,39 +215,46 @@ def _check_release_status_for_component(config, components, distributions):
                 ] = "not released"
                 continue
 
+            # We may have nothing to do for this component-distribution
+            if not plugin.parameters["build"]:
+                continue
+
+            # FIXME: we pick the first build target found as we have checks
+            #  for all being processed for all stages
+            publish_info = plugin.get_dist_artifacts_info(
+                stage="publish", basename=plugin.parameters["build"][0].with_suffix("").name
+            )
+
             try:
                 found = False
                 for repo_name in COMPONENT_REPOSITORIES:
                     days = 0
-                    if all(
+                    if not all(
                         plugin.is_published(
                             basename=build.with_suffix("").name, repository=repo_name
                         )
                         for build in plugin.parameters["build"]
                     ):
-                        # FIXME: we pick the first build target found as we have checks for all
-                        #  being processed for all stages and not repository publish is not empty
-                        publish_info = plugin.get_dist_artifacts_info(
-                            stage="publish", basename=plugin.parameters["build"][0]
-                        )
-                        for repo in publish_info.get("repository-publish", []):
-                            if repo["name"] == repo_name:
-                                publish_date = datetime.datetime.strptime(
-                                    repo["timestamp"], "%Y%m%d%H%M"
-                                )
-                                days = (datetime.datetime.utcnow() - publish_date).days
-                                break
+                        continue
+                    # Find the publish repository timestamp
+                    for repo in publish_info.get("repository-publish", []):
+                        if repo["name"] == repo_name:
+                            publish_date = datetime.datetime.strptime(
+                                repo["timestamp"], "%Y%m%d%H%M"
+                            )
+                            days = (datetime.datetime.utcnow() - publish_date).days
+                            break
 
-                        release_status[component.name][dist.distribution][
-                            "status"
-                        ] = "released"
-                        release_status[component.name][dist.distribution].setdefault(
-                            "repo", []
-                        )
-                        release_status[component.name][dist.distribution][
-                            "repo"
-                        ].append({"name": repo_name, "days": days})
-                        found = True
+                    release_status[component.name][dist.distribution][
+                        "status"
+                    ] = "released"
+                    release_status[component.name][dist.distribution].setdefault(
+                        "repo", []
+                    )
+                    release_status[component.name][dist.distribution]["repo"].append(
+                        {"name": repo_name, "days": days}
+                    )
+                    found = True
             except (PluginError, ValueError, TypeError) as e:
                 raise CliError(
                     f"{component}:{dist}: Failed to process status ({str(e)})."
