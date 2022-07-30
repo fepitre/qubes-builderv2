@@ -17,8 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
-from pathlib import PurePath
+from pathlib import Path, PurePosixPath
 from typing import List, Dict
 
 import dateutil.parser
@@ -36,6 +35,11 @@ PLUGINS_DIR = BUILDER_DIR / "plugins"
 DISTFILES_DIR = BUILDER_DIR / "distfiles"
 REPOSITORY_DIR = BUILDER_DIR / "repository"
 CACHE_DIR = BUILDER_DIR / "cache"
+
+
+class PackagePath(PurePosixPath):
+    def mangle(self):
+        return str(self).replace("/", "_")
 
 
 class PluginError(Exception):
@@ -185,7 +189,7 @@ class ComponentPlugin(Plugin):
 
     def check_stage_artifacts(self, stage: str, artifacts_dir: Path = None):
         for build in self.parameters.get("build", []):
-            build_bn = build.with_suffix("").name
+            build_bn = build.mangle()
             if not self.get_artifacts_info(
                 stage=stage, basename=build_bn, artifacts_dir=artifacts_dir
             ):
@@ -236,13 +240,17 @@ class DistributionPlugin(ComponentPlugin):
         )
 
         self.parameters["build"] = [
-            PurePath(build) for build in self.parameters.get("build", [])
+            PackagePath(build) for build in self.parameters.get("build", [])
         ]
         # For retro-compatibility
         if self.dist.type == "rpm":
             self.parameters["build"] += [
-                PurePath(spec) for spec in self.parameters.get("spec", [])
+                PackagePath(spec) for spec in self.parameters.get("spec", [])
             ]
+        # Check conflicts when mangle paths
+        mangle_builds = [build.mangle() for build in self.parameters.get("build", [])]
+        if len(set(mangle_builds)) != len(self.parameters["build"]):
+            raise PluginError(f"{component}:{dist}: Conflicting build paths")
 
     def get_dist_component_artifacts_dir_history(self, stage: str):
         path = (self.artifacts_dir / "components" / self.component.name).resolve()
