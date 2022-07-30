@@ -43,15 +43,15 @@ SPEC_FILE="$2"
 DIST_TAG="$3"
 
 SCRIPTS_DIR="$(dirname "$0")"
-SPEC_BN="$(basename "$SPEC_FILE")"
-SPEC_BN="${SPEC_BN%.spec}"
+SPEC_MANGLE_PATH="${SPEC_FILE/$SOURCE_DIR\//}"
+SPEC_MANGLE_PATH="${SPEC_MANGLE_PATH//\//_}"
 
 "${SCRIPTS_DIR}"/query-spec \
-    "$SOURCE_DIR" "$SPEC_FILE" '%{name}-%{version}-%{release}\n' "${DIST_TAG}" 2>$ERR_OUTPUT | { head -1 && cat >/dev/null; } > "${SOURCE_DIR}/${SPEC_BN}_package_release_name"
+    "$SOURCE_DIR" "$SPEC_FILE" '%{name}-%{version}-%{release}\n' "${DIST_TAG}" 2>$ERR_OUTPUT | { head -1 && cat >/dev/null; } > "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_package_release_name"
 
 "${SCRIPTS_DIR}"/query-spec \
-    "$SOURCE_DIR" "$SPEC_FILE" '%{SOURCE0}' "${DIST_TAG}" 2>$ERR_OUTPUT | awk '{print $2}' >> "${SOURCE_DIR}/${SPEC_BN}_package_release_name"
+    "$SOURCE_DIR" "$SPEC_FILE" '%{SOURCE0}' "${DIST_TAG}" 2>$ERR_OUTPUT | awk '{print $2}' >> "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_package_release_name"
 
 "${SCRIPTS_DIR}"/query-spec \
     "$SOURCE_DIR" "$SPEC_FILE" PACKAGES_LIST "${DIST_TAG}" 2>$ERR_OUTPUT \
-    > "${SOURCE_DIR}/${SPEC_BN}_packages.list"
+    > "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_packages.list"

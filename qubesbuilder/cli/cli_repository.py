@@ -222,7 +222,7 @@ def _check_release_status_for_component(config, components, distributions):
             # FIXME: we pick the first build target found as we have checks
             #  for all being processed for all stages
             publish_info = plugin.get_dist_artifacts_info(
-                stage="publish", basename=plugin.parameters["build"][0].with_suffix("").name
+                stage="publish", basename=plugin.parameters["build"][0].mangle()
             )
 
             try:
@@ -231,7 +231,7 @@ def _check_release_status_for_component(config, components, distributions):
                     days = 0
                     if not all(
                         plugin.is_published(
-                            basename=build.with_suffix("").name, repository=repo_name
+                            basename=build.mangle(), repository=repo_name
                         )
                         for build in plugin.parameters["build"]
                     ):
@@ -263,7 +263,7 @@ def _check_release_status_for_component(config, components, distributions):
             if not found:
                 if all(
                     plugin.get_dist_artifacts_info(
-                        stage="build", basename=build.with_suffix("").name
+                        stage="build", basename=build.mangle()
                     )
                     for build in plugin.parameters["build"]
                 ):

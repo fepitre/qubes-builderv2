@@ -100,7 +100,7 @@ def test_prep_host_fc32():
 
     with open(
         ARTIFACTS_DIR
-        / "components/core-qrexec/4.1.18-1/host-fc32/prep/qubes-qrexec.prep.yml"
+        / "components/core-qrexec/4.1.18-1/host-fc32/prep/rpm_spec_qubes-qrexec.spec.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
@@ -121,7 +121,7 @@ def test_prep_host_fc32():
 
     with open(
         ARTIFACTS_DIR
-        / "components/core-qrexec/4.1.18-1/host-fc32/prep/qubes-qrexec-dom0.prep.yml"
+        / "components/core-qrexec/4.1.18-1/host-fc32/prep/rpm_spec_qubes-qrexec-dom0.spec.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
@@ -144,7 +144,7 @@ def test_build_host_fc32():
 
     with open(
         ARTIFACTS_DIR
-        / "components/core-qrexec/4.1.18-1/host-fc32/build/qubes-qrexec.build.yml"
+        / "components/core-qrexec/4.1.18-1/host-fc32/build/rpm_spec_qubes-qrexec.spec.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
@@ -163,7 +163,7 @@ def test_build_host_fc32():
 
     with open(
         ARTIFACTS_DIR
-        / "components/core-qrexec/4.1.18-1/host-fc32/build/qubes-qrexec-dom0.build.yml"
+        / "components/core-qrexec/4.1.18-1/host-fc32/build/rpm_spec_qubes-qrexec-dom0.spec.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
@@ -279,13 +279,13 @@ def test_publish_host_fc32():
 
         with open(
             ARTIFACTS_DIR
-            / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec.publish.yml"
+            / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
             ARTIFACTS_DIR
-            / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec-dom0.publish.yml"
+            / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
@@ -313,13 +313,13 @@ def test_publish_host_fc32():
         )
         with open(
             ARTIFACTS_DIR
-            / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec.publish.yml"
+            / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
             ARTIFACTS_DIR
-            / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec-dom0.publish.yml"
+            / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
@@ -343,11 +343,11 @@ def test_publish_host_fc32():
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
             ARTIFACTS_DIR
-            / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec.publish.yml"
+            / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         )
         publish_dom0_file = (
             ARTIFACTS_DIR
-            / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec-dom0.publish.yml"
+            / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         )
 
         for r in info["repository-publish"]:
@@ -544,13 +544,13 @@ def test_unpublish_host_fc32():
 
         with open(
             ARTIFACTS_DIR
-            / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec.publish.yml"
+            / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
             ARTIFACTS_DIR
-            / "components/core-qrexec/4.1.18-1/host-fc32/publish/qubes-qrexec-dom0.publish.yml"
+            / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
@@ -612,7 +612,7 @@ def test_prep_vm_bullseye():
 
     with open(
         ARTIFACTS_DIR
-        / "components/python-qasync/0.23.0-1/vm-bullseye/prep/debian.prep.yml"
+        / "components/python-qasync/0.23.0-1/vm-bullseye/prep/debian-pkg_debian.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
@@ -648,7 +648,7 @@ def test_build_vm_bullseye():
 
     with open(
         ARTIFACTS_DIR
-        / "components/python-qasync/0.23.0-1/vm-bullseye/build/debian.build.yml"
+        / "components/python-qasync/0.23.0-1/vm-bullseye/build/debian-pkg_debian.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
@@ -741,7 +741,7 @@ def test_publish_vm_bullseye():
 
         with open(
             ARTIFACTS_DIR
-            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
+            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
@@ -775,7 +775,7 @@ def test_publish_vm_bullseye():
         )
         with open(
             ARTIFACTS_DIR
-            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
+            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
@@ -795,7 +795,7 @@ def test_publish_vm_bullseye():
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
             ARTIFACTS_DIR
-            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
+            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian-pkg_debian.publish.yml"
         )
 
         for r in info["repository-publish"]:
@@ -953,7 +953,7 @@ def test_unpublish_vm_bullseye():
 
         with open(
             ARTIFACTS_DIR
-            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian.publish.yml"
+            / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 

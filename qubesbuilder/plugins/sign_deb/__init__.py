@@ -111,7 +111,7 @@ class DEBSignPlugin(SignPlugin):
 
             for directory in self.parameters["build"]:
                 # directory basename will be used as prefix for some artifacts
-                directory_bn = directory.with_suffix("").name
+                directory_bn = directory.mangle()
 
                 # Read information from build stage
                 build_info = self.get_dist_artifacts_info(

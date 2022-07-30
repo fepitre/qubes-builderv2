@@ -129,7 +129,7 @@ class DEBBuildPlugin(BuildPlugin):
             if all(
                 self.component.get_source_hash()
                 == self.get_dist_artifacts_info(
-                    stage=stage, basename=directory.with_suffix("").name
+                    stage=stage, basename=directory.mangle()
                 ).get("source-hash", None)
                 for directory in self.parameters["build"]
             ):
@@ -155,7 +155,7 @@ class DEBBuildPlugin(BuildPlugin):
 
             for directory in self.parameters["build"]:
                 # directory basename will be used as prefix for some artifacts
-                directory_bn = directory.with_suffix("").name
+                directory_bn = directory.mangle()
 
                 # Read information from source stage
                 source_info = self.get_dist_artifacts_info(

@@ -100,7 +100,7 @@ class DEBSourcePlugin(SourcePlugin):
             if all(
                 self.component.get_source_hash()
                 == self.get_dist_artifacts_info(
-                    stage=stage, basename=directory.with_suffix("").name
+                    stage=stage, basename=directory.mangle()
                 ).get("source-hash", None)
                 for directory in self.parameters["build"]
             ):
@@ -126,7 +126,7 @@ class DEBSourcePlugin(SourcePlugin):
                 source_dir = BUILDER_DIR / self.component.name
 
                 # directory basename will be used as prefix for some artifacts
-                directory_bn = directory.with_suffix("").name
+                directory_bn = directory.mangle()
 
                 # Generate package release name
                 copy_in = [

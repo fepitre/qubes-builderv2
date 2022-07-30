@@ -112,7 +112,7 @@ class RPMSignPlugin(SignPlugin):
 
             for build in self.parameters["build"]:
                 # spec file basename will be used as prefix for some artifacts
-                build_bn = build.with_suffix("").name
+                build_bn = build.mangle()
 
                 # Read information from build stage
                 build_info = self.get_dist_artifacts_info(

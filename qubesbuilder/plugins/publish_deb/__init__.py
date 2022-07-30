@@ -79,7 +79,7 @@ class DEBPublishPlugin(PublishPlugin):
 
     def publish(self, directory, keyring_dir, repository_publish):
         # directory basename will be used as prefix for some artifacts
-        directory_bn = directory.with_suffix("").name
+        directory_bn = directory.mangle()
 
         # Build artifacts (source included)
         build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
@@ -140,7 +140,7 @@ class DEBPublishPlugin(PublishPlugin):
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
         # directory basename will be used as prefix for some artifacts
-        directory_bn = directory.with_suffix("").name
+        directory_bn = directory.mangle()
 
         # Read information from build stage
         build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
@@ -247,7 +247,7 @@ class DEBPublishPlugin(PublishPlugin):
             # Check if we already published packages into the provided repository
             if all(
                 self.is_published(
-                    basename=directory.with_suffix("").name,
+                    basename=directory.mangle(),
                     repository=repository_publish,
                 )
                 for directory in self.parameters["build"]
@@ -260,7 +260,7 @@ class DEBPublishPlugin(PublishPlugin):
             # Check if we can publish into current
             if repository_publish == "current" and not all(
                 self.can_be_published_in_stable(
-                    basename=directory.with_suffix("").name,
+                    basename=directory.mangle(),
                     ignore_min_age=ignore_min_age,
                 )
                 for directory in self.parameters["build"]
@@ -275,7 +275,7 @@ class DEBPublishPlugin(PublishPlugin):
 
             for directory in self.parameters["build"]:
                 # directory basename will be used as prefix for some artifacts
-                directory_bn = directory.with_suffix("").name
+                directory_bn = directory.mangle()
 
                 build_info = self.get_dist_artifacts_info(
                     stage="build", basename=directory_bn
@@ -326,7 +326,7 @@ class DEBPublishPlugin(PublishPlugin):
         if stage == "publish" and unpublish:
             if not all(
                 self.is_published(
-                    basename=directory.with_suffix("").name,
+                    basename=directory.mangle(),
                     repository=repository_publish,
                 )
                 for directory in self.parameters["build"]
@@ -338,7 +338,7 @@ class DEBPublishPlugin(PublishPlugin):
 
             for directory in self.parameters["build"]:
                 # directory basename will be used as prefix for some artifacts
-                directory_bn = directory.with_suffix("").name
+                directory_bn = directory.mangle()
 
                 publish_info = self.get_dist_artifacts_info(
                     stage=stage, basename=directory_bn

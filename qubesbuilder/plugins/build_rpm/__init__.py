@@ -145,7 +145,7 @@ class RPMBuildPlugin(BuildPlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_dist_artifacts_info(stage, build.with_suffix("").name).get(
+                == self.get_dist_artifacts_info(stage, build.mangle()).get(
                     "source-hash", None
                 )
                 for build in self.parameters["build"]
@@ -176,7 +176,7 @@ class RPMBuildPlugin(BuildPlugin):
 
             for build in self.parameters["build"]:
                 # spec file basename will be used as prefix for some artifacts
-                build_bn = build.with_suffix("").name
+                build_bn = build.mangle()
 
                 # Read information from source stage
                 source_info = self.get_dist_artifacts_info(

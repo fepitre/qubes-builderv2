@@ -39,15 +39,18 @@ DEBIAN_DIRECTORY="$2"
 
 DIRECTORY_BN="$(basename "$DEBIAN_DIRECTORY")"
 
+DIRECTORY_MANGLE_PATH="${DEBIAN_DIRECTORY/$SOURCE_DIR\//}"
+DIRECTORY_MANGLE_PATH="${DIRECTORY_MANGLE_PATH//\//_}"
+
 SCRIPTS_DIR="$(dirname "$0")"
 
 "${SCRIPTS_DIR}"/debian-parser changelog --package-release-name \
     "${SOURCE_DIR}/${DIRECTORY_BN}/changelog" \
-    > "${SOURCE_DIR}/${DIRECTORY_BN}_package_release_name"
+    > "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_package_release_name"
 
 "${SCRIPTS_DIR}"/debian-parser changelog --package-release-name-full \
     "${SOURCE_DIR}/${DIRECTORY_BN}/changelog" \
-    >> "${SOURCE_DIR}/${DIRECTORY_BN}_package_release_name"
+    >> "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_package_release_name"
 
 grep -Po "(?<=^3.0 \()\w+" < "${SOURCE_DIR}/${DIRECTORY_BN}/source/format" \
-    >> "${SOURCE_DIR}/${DIRECTORY_BN}_package_release_name"
+    >> "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_package_release_name"

@@ -91,7 +91,7 @@ class RPMPublishPlugin(PublishPlugin):
 
     def publish(self, build, sign_key, db_path, repository_publish):
         # spec file basename will be used as prefix for some artifacts
-        build_bn = build.with_suffix("").name
+        build_bn = build.mangle()
 
         # Read information from build stage
         build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
@@ -152,7 +152,7 @@ class RPMPublishPlugin(PublishPlugin):
 
     def unpublish(self, build, sign_key, repository_publish):
         # spec file basename will be used as prefix for some artifacts
-        build_bn = build.with_suffix("").name
+        build_bn = build.mangle()
         # Read information from build stage
         build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
 
@@ -295,7 +295,7 @@ class RPMPublishPlugin(PublishPlugin):
             # Check if we already published packages into the provided repository
             if all(
                 self.is_published(
-                    basename=build.with_suffix("").name, repository=repository_publish
+                    basename=build.mangle(), repository=repository_publish
                 )
                 for build in self.parameters["build"]
             ):
@@ -309,7 +309,7 @@ class RPMPublishPlugin(PublishPlugin):
             # Check if we can publish into current
             if repository_publish == "current" and not all(
                 self.can_be_published_in_stable(
-                    basename=build.with_suffix("").name, ignore_min_age=ignore_min_age
+                    basename=build.mangle(), ignore_min_age=ignore_min_age
                 )
                 for build in self.parameters["build"]
             ):
@@ -322,7 +322,7 @@ class RPMPublishPlugin(PublishPlugin):
                 raise PublishError(failure_msg)
 
             for build in self.parameters["build"]:
-                build_bn = build.with_suffix("").name
+                build_bn = build.mangle()
                 build_info = self.get_dist_artifacts_info(
                     stage="build", basename=build_bn
                 )
@@ -373,7 +373,7 @@ class RPMPublishPlugin(PublishPlugin):
         if stage == "publish" and unpublish:
             if not all(
                 self.is_published(
-                    basename=build.with_suffix("").name, repository=repository_publish
+                    basename=build.mangle(), repository=repository_publish
                 )
                 for build in self.parameters["build"]
             ):
@@ -383,7 +383,7 @@ class RPMPublishPlugin(PublishPlugin):
                 return
 
             for build in self.parameters["build"]:
-                build_bn = build.with_suffix("").name
+                build_bn = build.mangle()
                 publish_info = self.get_dist_artifacts_info(
                     stage=stage, basename=build_bn
                 )

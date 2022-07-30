@@ -94,7 +94,7 @@ class RPMSourcePlugin(SourcePlugin):
             # Compare previous artifacts hash with current source hash
             if all(
                 self.component.get_source_hash()
-                == self.get_dist_artifacts_info(stage, build.with_suffix("").name).get(
+                == self.get_dist_artifacts_info(stage, build.mangle()).get(
                     "source-hash", None
                 )
                 for build in self.parameters["build"]
@@ -124,7 +124,7 @@ class RPMSourcePlugin(SourcePlugin):
                 source_dir = BUILDER_DIR / self.component.name
 
                 # spec file basename will be used as prefix for some artifacts
-                build_bn = build.with_suffix("").name
+                build_bn = build.mangle()
 
                 # Generate %{name}-%{version}-%{release} and %Source0
                 copy_in = [
