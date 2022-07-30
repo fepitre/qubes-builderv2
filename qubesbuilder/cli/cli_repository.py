@@ -237,15 +237,21 @@ def _check_release_status_for_component(config, components, distributions):
                                 )
                                 days = (datetime.datetime.utcnow() - publish_date).days
                                 break
+
+                        release_status[component.name][dist.distribution][
+                            "status"
+                        ] = "released"
                         release_status[component.name][dist.distribution].setdefault(
-                            "status", []
+                            "repo", []
                         )
-                        release_status[component.name][dist.distribution]["status"].append(
-                            {"repo": repo_name, "days": days}
-                        )
+                        release_status[component.name][dist.distribution][
+                            "repo"
+                        ].append({"name": repo_name, "days": days})
                         found = True
             except (PluginError, ValueError, TypeError) as e:
-                raise CliError(f"{component}:{dist}: Failed to process status ({str(e)}).")
+                raise CliError(
+                    f"{component}:{dist}: Failed to process status ({str(e)})."
+                )
 
             if not found:
                 if all(
@@ -310,9 +316,10 @@ def _check_release_status_for_template(config, templates):
                             )
                             days = (datetime.datetime.utcnow() - publish_date).days
                             break
-                    release_status[template.name].setdefault("status", [])
-                    release_status[template.name]["status"].append(
-                        {"repo": repo_name, "days": days}
+                    release_status[template.name]["status"] = "released"
+                    release_status[template.name].setdefault("repo", [])
+                    release_status[template.name]["repo"].append(
+                        {"name": repo_name, "days": days}
                     )
                     found = True
                     set_template_tag = True
