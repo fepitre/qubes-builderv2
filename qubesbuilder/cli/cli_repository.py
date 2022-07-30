@@ -15,7 +15,7 @@ from qubesbuilder.plugins.template import TEMPLATE_REPOSITORIES
 from qubesbuilder.plugins.upload import UploadPlugin
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.component import QubesComponent
+from qubesbuilder.component import QubesComponent, ComponentError
 from qubesbuilder.template import QubesTemplate
 
 
@@ -159,20 +159,26 @@ def _check_release_status_for_component(config, components, distributions):
         release_status.setdefault(component.name, {})
         for dist in distributions:
             release_status[component.name].setdefault(dist.distribution, {})
-            plugin = getPublishPlugin(
-                component=component,
-                dist=dist,
-                plugins_dir=config.get_plugins_dir(),
-                executor=config.get_stages()["publish"]["executor"],
-                artifacts_dir=config.get_artifacts_dir(),
-                verbose=config.verbose,
-                debug=config.debug,
-                gpg_client=config.get("gpg-client", "gpg"),
-                sign_key=config.get("sign-key"),
-                qubes_release=config.get("qubes-release"),
-                repository_publish=config.get("repository-publish"),
-                backend_vmm=config.get("backend-vmm", "xen"),
-            )
+            try:
+                plugin = getPublishPlugin(
+                    component=component,
+                    dist=dist,
+                    plugins_dir=config.get_plugins_dir(),
+                    executor=config.get_stages()["publish"]["executor"],
+                    artifacts_dir=config.get_artifacts_dir(),
+                    verbose=config.verbose,
+                    debug=config.debug,
+                    gpg_client=config.get("gpg-client", "gpg"),
+                    sign_key=config.get("sign-key"),
+                    qubes_release=config.get("qubes-release"),
+                    repository_publish=config.get("repository-publish"),
+                    backend_vmm=config.get("backend-vmm", "xen"),
+                )
+            except ComponentError:
+                release_status[component.name][dist.distribution][
+                    "status"
+                ] = "no source"
+                continue
 
             fetch_info = plugin.get_dist_artifacts_info(
                 "fetch",
