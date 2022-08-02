@@ -128,6 +128,8 @@ class QubesComponent:
         except yaml.YAMLError as e:
             raise ComponentError(f"Cannot render '.qubesbuilder'.") from e
 
+        # TODO: add extra validation of some field (not sure if the best place, but this is common for all usages)
+
         return rendered_data or {}
 
     @staticmethod

@@ -135,6 +135,7 @@ class RPMSourcePlugin(SourcePlugin):
                     for dependency in self.plugin_dependencies
                 ]
 
+                # marmarek: use temporary dir?
                 copy_out = [
                     (source_dir / f"{build_bn}_package_release_name", artifacts_dir),
                     (source_dir / f"{build_bn}_packages.list", artifacts_dir),
@@ -161,7 +162,7 @@ class RPMSourcePlugin(SourcePlugin):
                 source_rpm = f"{data[0]}.src.rpm"
                 # Source0 may contain a URL.
                 source_orig = os.path.basename(data[1])
-                if not is_filename_valid(source_rpm) and not is_filename_valid(
+                if not is_filename_valid(source_rpm) or not is_filename_valid(
                     source_orig
                 ):
                     msg = f"{self.component}:{self.dist}:{build}: Invalid source names."
@@ -240,6 +241,7 @@ class RPMSourcePlugin(SourcePlugin):
                     f"--resultdir={BUILD_DIR}",
                     "--disablerepo=builder-local",
                 ]
+                # marmarek: shouldn't this be the other way around? force --isolation=simple in case of docker only
                 if isinstance(self.executor, QubesExecutor):
                     mock_cmd.append("--isolation=nspawn")
                 else:

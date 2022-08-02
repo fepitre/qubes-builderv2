@@ -196,7 +196,7 @@ class FetchPlugin(ComponentPlugin):
                         "--checksum-file",
                         str(BUILDER_DIR / self.component.name / file["sha512"]),
                     ]
-                if file.get("signature", None):
+                elif file.get("signature", None):
                     download_verify_cmd += ["--signature-url", file["signature"]]
                     copy_out += [
                         (
@@ -206,6 +206,8 @@ class FetchPlugin(ComponentPlugin):
                             distfiles_dir,
                         )
                     ]
+                else:
+                    raise FetchError(f"No verification method for {final_fn}")
                 if file.get("pubkeys", None):
                     for pubkey in file["pubkeys"]:
                         download_verify_cmd += ["--pubkey-file", pubkey]
@@ -263,7 +265,7 @@ class FetchPlugin(ComponentPlugin):
             with open(artifacts_dir / "hash") as f:
                 data = f.read().splitlines()
 
-            if not re.match(r"[\da-f]{7}", data[0]):
+            if not re.match(r"[\da-f]{7}", data[0]): # marmarek: 7?
                 msg = f"{self.component}: Invalid git hash detected."
                 raise FetchError(msg)
 
@@ -306,7 +308,7 @@ class FetchPlugin(ComponentPlugin):
                     raise FetchError(msg)
 
                 for commit_hash in data:
-                    if not re.match("[0-9a-f]{7}", commit_hash):
+                    if not re.match("[0-9a-f]{7}", commit_hash): # marmarek: 7?
                         msg = f"{self.component}: Invalid module hash detected."
                         raise FetchError(msg)
 

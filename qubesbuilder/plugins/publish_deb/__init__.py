@@ -96,7 +96,7 @@ class DEBPublishPlugin(PublishPlugin):
 
         log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
 
-        # Verify signatures
+        # Verify signatures (sanity check, refuse to publish if packages weren't signed)
         try:
             log.info(f"{self.component}:{self.dist}:{directory}: Verifying signatures.")
             cmd = []

@@ -263,12 +263,14 @@ class RPMPublishPlugin(PublishPlugin):
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
+            # marmarek: see comment in sign_rpm, probably should be some per-key directory, not copied for every component
             # Ensure dbpath from sign stage (still) exists
             db_path = sign_artifacts_dir / "rpmdb"
             if not db_path.exists():
                 msg = f"{self.component}: {self.dist}: Failed to find RPM DB path."
                 raise PublishError(msg)
 
+            # marmarek: should this be done only if not exists yet?
             # Create publish repository skeleton
             comps = (
                 self.plugins_dir

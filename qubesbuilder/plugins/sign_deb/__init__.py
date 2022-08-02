@@ -98,7 +98,7 @@ class DEBSignPlugin(SignPlugin):
             keyring_dir.mkdir(mode=0o700)
 
             # Export public key and generate local keyring
-            sign_key_asc = artifacts_dir / f"{sign_key}.asc"
+            sign_key_asc = artifacts_dir / f"{sign_key}.asc" # marmarek: use a temporary directory? this doesn't need to remain in artifacts
             cmd = [
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
                 f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}",

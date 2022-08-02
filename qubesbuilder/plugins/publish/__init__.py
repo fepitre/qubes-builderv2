@@ -30,7 +30,7 @@ from qubesbuilder.plugins import DistributionPlugin, PluginError
 log = get_logger("publish")
 
 # Define the minimum age for which packages can be published to 'current'
-MIN_AGE_DAYS = 5
+MIN_AGE_DAYS = 5 # marmarek: should be configurable
 COMPONENT_REPOSITORIES = ["current", "current-testing", "security-testing", "unstable"]
 
 

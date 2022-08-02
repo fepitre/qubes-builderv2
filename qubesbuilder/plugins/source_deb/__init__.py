@@ -136,6 +136,7 @@ class DEBSourcePlugin(SourcePlugin):
                 for dependency in self.plugin_dependencies:
                     copy_in += [(self.plugins_dir / dependency, PLUGINS_DIR)]
 
+                # marmarek: better copy out into temporary dir (it is removed at the end anyway)
                 copy_out = [
                     (source_dir / f"{directory_bn}_package_release_name", artifacts_dir)
                 ]
@@ -172,7 +173,7 @@ class DEBSourcePlugin(SourcePlugin):
                 package_type = data[2]
                 if not is_filename_valid(
                     package_release_name
-                ) and not is_filename_valid(package_release_name_full):
+                ) or not is_filename_valid(package_release_name_full):
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid source names."
                     raise SourceError(msg)
 
@@ -189,7 +190,7 @@ class DEBSourcePlugin(SourcePlugin):
                     # FIXME: The first file is the source archive. Is it valid for all the cases?
                     ext = self.parameters["files"][0]["url"].split(".")[-1]
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid extension '{ext}'."
-                    if ext not in ("gz", "bz2", "gz", "lzma2"):
+                    if ext not in ("gz", "bz2", "xz", "lzma2"):
                         raise SourceError(msg)
                 else:
                     ext = "gz"
@@ -212,6 +213,7 @@ class DEBSourcePlugin(SourcePlugin):
                 copy_out = [
                     (BUILDER_DIR / source_dsc, artifacts_dir),
                     (BUILDER_DIR / source_debian, artifacts_dir),
+                    # marmarek: better copy out into temporary dir
                     (BUILDER_DIR / f"{directory_bn}_packages.list", artifacts_dir),
                 ]
                 if package_type == "quilt":

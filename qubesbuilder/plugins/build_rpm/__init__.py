@@ -171,6 +171,7 @@ class RPMBuildPlugin(BuildPlugin):
             repository_dir.mkdir(parents=True, exist_ok=True)
 
             # Remove previous versions in order to keep latest one only
+            # marmarek: this will fail for components with common prefix (for example core-admin and core-admin-linux)
             for build in repository_dir.glob(f"{self.component.name}-*"):
                 shutil.rmtree(build.as_posix())
 
@@ -226,6 +227,7 @@ class RPMBuildPlugin(BuildPlugin):
                     f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
                     f"--resultdir={BUILD_DIR}",
                 ]
+                # marmarek: same comment as in source_rpm
                 if isinstance(self.executor, QubesExecutor):
                     mock_cmd.append("--isolation=nspawn")
                 else:

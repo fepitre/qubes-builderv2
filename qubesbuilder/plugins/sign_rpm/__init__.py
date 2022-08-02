@@ -97,8 +97,8 @@ class RPMSignPlugin(SignPlugin):
             # We ensure to create a clean keyring for RPM
             if artifacts_dir.exists():
                 shutil.rmtree(artifacts_dir)
-            db_path = artifacts_dir / "rpmdb"
-            sign_key_asc = artifacts_dir / f"{sign_key}.asc"
+            db_path = artifacts_dir / "rpmdb" # marmarek: use temporary dir? or some per-sign_key dir (instead of per-component, having the same thing copied multiple times)
+            sign_key_asc = artifacts_dir / f"{sign_key}.asc" # marmarek: use temporary dir?
             cmd = [
                 f"mkdir -p {db_path}",
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
