@@ -57,7 +57,7 @@ def provision_local_repository(
     )
 
     # Create target directory that will have hardlinks to SRPM and built RPMs
-    target_dir = repository_dir / f"{component.name}-{component.version}"
+    target_dir = repository_dir / f"{component.name}_{component.version}"
     if target_dir.exists():
         shutil.rmtree(target_dir.as_posix())
     target_dir.mkdir(parents=True)
@@ -170,9 +170,8 @@ class RPMBuildPlugin(BuildPlugin):
             repository_dir = self.get_repository_dir() / self.dist.distribution
             repository_dir.mkdir(parents=True, exist_ok=True)
 
-            # Remove previous versions in order to keep latest one only
-            # marmarek: this will fail for components with common prefix (for example core-admin and core-admin-linux)
-            for build in repository_dir.glob(f"{self.component.name}-*"):
+            # Remove previous versions in order to keep the latest one only
+            for build in repository_dir.glob(f"{self.component.name}_*"):
                 shutil.rmtree(build.as_posix())
 
             for build in self.parameters["build"]:
