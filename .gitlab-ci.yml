@@ -62,6 +62,7 @@ pytest:
   coverage: '/TOTAL.*\s(\d+)%/'
   variables:
     PYTHONPATH: .
+    TMPDIR: /home/user
   before_script:
     - sudo dnf install -y python3-pathspec
   script:
