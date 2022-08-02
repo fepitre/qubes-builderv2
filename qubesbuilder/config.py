@@ -68,10 +68,10 @@ class Config:
         # Artifacts directory location
         if self._conf.get("artifacts-dir", None):
             self._artifacts_dir = Path(self._conf["artifacts-dir"]).resolve()
-            log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
         else:
             self._artifacts_dir = PROJECT_PATH / "artifacts"
-            log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
+
+        # log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
 
         self.verbose = self._conf.get("verbose", False)
         self.debug = self._conf.get("debug", False)
@@ -247,6 +247,9 @@ class Config:
 
     def get_artifacts_dir(self):
         return self._artifacts_dir
+
+    def set_artifacts_dir(self, directory: Path):
+        self._artifacts_dir = directory
 
     def get_logs_dir(self):
         return self._artifacts_dir / "logs"
