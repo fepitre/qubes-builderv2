@@ -26,7 +26,7 @@ from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
-from qubesbuilder.executors.qubes import QubesExecutor
+from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import BUILDER_DIR, PLUGINS_DIR, BUILD_DIR, DISTFILES_DIR
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
@@ -241,13 +241,12 @@ class RPMSourcePlugin(SourcePlugin):
                     f"--resultdir={BUILD_DIR}",
                     "--disablerepo=builder-local",
                 ]
-                # marmarek: shouldn't this be the other way around? force --isolation=simple in case of docker only
-                if isinstance(self.executor, QubesExecutor):
-                    mock_cmd.append("--isolation=nspawn")
-                else:
+                if isinstance(self.executor, ContainerExecutor):
                     msg = f"{self.component}:{self.dist}:{build}: Mock isolation set to 'simple', build has full network access. Use 'qubes' executor for network-isolated build."
                     log.warning(msg)
                     mock_cmd.append("--isolation=simple")
+                else:
+                    mock_cmd.append("--isolation=nspawn")
                 if self.verbose:
                     mock_cmd.append("--verbose")
 

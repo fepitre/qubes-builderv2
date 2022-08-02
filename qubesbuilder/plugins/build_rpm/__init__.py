@@ -26,7 +26,7 @@ from typing import List
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
-from qubesbuilder.executors.qubes import QubesExecutor
+from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     BUILDER_DIR,
@@ -227,13 +227,12 @@ class RPMBuildPlugin(BuildPlugin):
                     f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
                     f"--resultdir={BUILD_DIR}",
                 ]
-                # marmarek: same comment as in source_rpm
-                if isinstance(self.executor, QubesExecutor):
-                    mock_cmd.append("--isolation=nspawn")
-                else:
+                if isinstance(self.executor, ContainerExecutor):
                     msg = f"{self.component}:{self.dist}:{build}: Mock isolation set to 'simple', build has full network access. Use 'qubes' executor for network-isolated build."
                     log.warning(msg)
                     mock_cmd.append("--isolation=simple")
+                else:
+                    mock_cmd.append("--isolation=nspawn")
                 if self.verbose:
                     mock_cmd.append("--verbose")
                 if self.use_qubes_repo and self.use_qubes_repo.get("version"):
