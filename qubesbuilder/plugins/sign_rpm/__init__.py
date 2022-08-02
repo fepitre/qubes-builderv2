@@ -16,9 +16,8 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
-import os
 import shutil
+import tempfile
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
@@ -91,14 +90,12 @@ class RPMSignPlugin(SignPlugin):
             prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
             # Build artifacts
             build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
-            # Sign artifacts
-            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
-            # We ensure to create a clean keyring for RPM
-            if artifacts_dir.exists():
-                shutil.rmtree(artifacts_dir)
-            db_path = artifacts_dir / "rpmdb" # marmarek: use temporary dir? or some per-sign_key dir (instead of per-component, having the same thing copied multiple times)
-            sign_key_asc = artifacts_dir / f"{sign_key}.asc" # marmarek: use temporary dir?
+            # RPMDB
+            db_path = self.artifacts_dir / f"rpmdb/{sign_key}"
+
+            temp_dir = Path(tempfile.mkdtemp())
+            sign_key_asc = temp_dir / f"{sign_key}.asc"
             cmd = [
                 f"mkdir -p {db_path}",
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
@@ -109,6 +106,9 @@ class RPMSignPlugin(SignPlugin):
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create RPM dbpath."
                 raise SignError(msg) from e
+            finally:
+                # Clear temporary dir
+                shutil.rmtree(temp_dir)
 
             for build in self.parameters["build"]:
                 # spec file basename will be used as prefix for some artifacts

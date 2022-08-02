@@ -19,6 +19,7 @@
 
 import os
 import shutil
+import tempfile
 from pathlib import Path
 
 from qubesbuilder.common import is_filename_valid
@@ -122,6 +123,9 @@ class DEBSourcePlugin(SourcePlugin):
             )
 
             for directory in self.parameters["build"]:
+                # Temporary dir for temporary copied-out files
+                temp_dir = Path(tempfile.mkdtemp())
+
                 # Source component directory inside executors
                 source_dir = BUILDER_DIR / self.component.name
 
@@ -136,9 +140,8 @@ class DEBSourcePlugin(SourcePlugin):
                 for dependency in self.plugin_dependencies:
                     copy_in += [(self.plugins_dir / dependency, PLUGINS_DIR)]
 
-                # marmarek: better copy out into temporary dir (it is removed at the end anyway)
                 copy_out = [
-                    (source_dir / f"{directory_bn}_package_release_name", artifacts_dir)
+                    (source_dir / f"{directory_bn}_package_release_name", temp_dir)
                 ]
 
                 # Update changelog
@@ -162,7 +165,7 @@ class DEBSourcePlugin(SourcePlugin):
                     raise SourceError(msg) from e
 
                 # Read package release name
-                with open(artifacts_dir / f"{directory_bn}_package_release_name") as f:
+                with open(temp_dir / f"{directory_bn}_package_release_name") as f:
                     data = f.read().splitlines()
                 if len(data) != 3:
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid data."
@@ -171,9 +174,9 @@ class DEBSourcePlugin(SourcePlugin):
                 package_release_name = data[0]
                 package_release_name_full = data[1]
                 package_type = data[2]
-                if not is_filename_valid(
-                    package_release_name
-                ) or not is_filename_valid(package_release_name_full):
+                if not is_filename_valid(package_release_name) or not is_filename_valid(
+                    package_release_name_full
+                ):
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid source names."
                     raise SourceError(msg)
 
@@ -213,8 +216,7 @@ class DEBSourcePlugin(SourcePlugin):
                 copy_out = [
                     (BUILDER_DIR / source_dsc, artifacts_dir),
                     (BUILDER_DIR / source_debian, artifacts_dir),
-                    # marmarek: better copy out into temporary dir
-                    (BUILDER_DIR / f"{directory_bn}_packages.list", artifacts_dir),
+                    (BUILDER_DIR / f"{directory_bn}_packages.list", temp_dir),
                 ]
                 if package_type == "quilt":
                     copy_out += [(BUILDER_DIR / source_orig, artifacts_dir)]
@@ -282,7 +284,7 @@ class DEBSourcePlugin(SourcePlugin):
 
                 # Read packages list
                 packages_list = []
-                with open(artifacts_dir / f"{directory_bn}_packages.list") as f:
+                with open(temp_dir / f"{directory_bn}_packages.list") as f:
                     data = f.read().splitlines()
                 for line in data:
                     if not is_filename_valid(line):
@@ -311,9 +313,8 @@ class DEBSourcePlugin(SourcePlugin):
                         stage=stage, basename=directory_bn, info=info
                     )
 
-                    # Clean previous text files as all info are stored inside source_info
-                    os.remove(artifacts_dir / f"{directory_bn}_package_release_name")
-                    os.remove(artifacts_dir / f"{directory_bn}_packages.list")
+                    # Clean temporary directory
+                    shutil.rmtree(temp_dir)
                 except OSError as e:
                     msg = f"{self.component}:{self.dist}:{directory}: Failed to clean artifacts: {str(e)}."
                     raise SourceError(msg) from e

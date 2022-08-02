@@ -257,15 +257,11 @@ class RPMPublishPlugin(PublishPlugin):
 
         # Publish stage for standard (not template) components
         if stage == "publish" and not unpublish:
-            # Sign artifacts
-            sign_artifacts_dir = self.get_dist_component_artifacts_dir(stage="sign")
-
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
-            # marmarek: see comment in sign_rpm, probably should be some per-key directory, not copied for every component
             # Ensure dbpath from sign stage (still) exists
-            db_path = sign_artifacts_dir / "rpmdb"
+            db_path = self.artifacts_dir / f"rpmdb/{sign_key}"
             if not db_path.exists():
                 msg = f"{self.component}: {self.dist}: Failed to find RPM DB path."
                 raise PublishError(msg)

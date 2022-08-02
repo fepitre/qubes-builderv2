@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import shutil
+import tempfile
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
@@ -98,7 +99,8 @@ class DEBSignPlugin(SignPlugin):
             keyring_dir.mkdir(mode=0o700)
 
             # Export public key and generate local keyring
-            sign_key_asc = artifacts_dir / f"{sign_key}.asc" # marmarek: use a temporary directory? this doesn't need to remain in artifacts
+            temp_dir = Path(tempfile.mkdtemp())
+            sign_key_asc = temp_dir / f"{sign_key}.asc"
             cmd = [
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
                 f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}",
@@ -108,6 +110,8 @@ class DEBSignPlugin(SignPlugin):
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to export public signing key."
                 raise SignError(msg) from e
+            finally:
+                shutil.rmtree(temp_dir)
 
             for directory in self.parameters["build"]:
                 # directory basename will be used as prefix for some artifacts

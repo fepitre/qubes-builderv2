@@ -19,7 +19,7 @@
 
 import os
 import shutil
-import urllib.parse
+import tempfile
 from pathlib import Path
 
 from qubesbuilder.common import is_filename_valid
@@ -120,6 +120,9 @@ class RPMSourcePlugin(SourcePlugin):
             artifacts_dir.mkdir(parents=True)
 
             for build in self.parameters["build"]:
+                # Temporary dir for temporary copied-out files
+                temp_dir = Path(tempfile.mkdtemp())
+
                 # Source component directory inside executors
                 source_dir = BUILDER_DIR / self.component.name
 
@@ -135,10 +138,9 @@ class RPMSourcePlugin(SourcePlugin):
                     for dependency in self.plugin_dependencies
                 ]
 
-                # marmarek: use temporary dir?
                 copy_out = [
-                    (source_dir / f"{build_bn}_package_release_name", artifacts_dir),
-                    (source_dir / f"{build_bn}_packages.list", artifacts_dir),
+                    (source_dir / f"{build_bn}_package_release_name", temp_dir),
+                    (source_dir / f"{build_bn}_packages.list", temp_dir),
                 ]
                 cmd = [
                     f"{PLUGINS_DIR}/source_rpm/scripts/get-source-info "
@@ -153,7 +155,7 @@ class RPMSourcePlugin(SourcePlugin):
                     raise SourceError(msg) from e
 
                 # Read package release name
-                with open(artifacts_dir / f"{build_bn}_package_release_name") as f:
+                with open(temp_dir / f"{build_bn}_package_release_name") as f:
                     data = f.read().splitlines()
                 if len(data) < 2:
                     msg = f"{self.component}:{self.dist}:{build}: Invalid data."
@@ -170,7 +172,7 @@ class RPMSourcePlugin(SourcePlugin):
 
                 # Read packages list
                 packages_list = []
-                with open(artifacts_dir / f"{build_bn}_packages.list") as f:
+                with open(temp_dir / f"{build_bn}_packages.list") as f:
                     data = f.read().splitlines()
                 for line in data:
                     if not is_filename_valid(line):
@@ -273,9 +275,8 @@ class RPMSourcePlugin(SourcePlugin):
                         stage=stage, basename=build_bn, info=info
                     )
 
-                    # Clean previous text files as all info are stored inside source_info
-                    os.remove(artifacts_dir / f"{build_bn}_package_release_name")
-                    os.remove(artifacts_dir / f"{build_bn}_packages.list")
+                    # Clean temporary directory
+                    shutil.rmtree(temp_dir)
                 except OSError as e:
                     msg = f"{self.component}:{self.dist}:{build}: Failed to clean artifacts: {str(e)}."
                     raise SourceError(msg) from e
