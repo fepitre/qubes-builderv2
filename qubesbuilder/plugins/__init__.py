@@ -98,6 +98,10 @@ class Plugin:
     def update_parameters(self):
         pass
 
+    def get_temp_dir(self):
+        path = self.artifacts_dir / "tmp"
+        return path.resolve()
+
     def get_sources_dir(self):
         path = self.artifacts_dir / "sources"
         return path.resolve()
@@ -143,6 +147,10 @@ class ComponentPlugin(Plugin):
         self.component = component
         self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
         self._source_hash = ""
+
+    def get_component_distfiles_dir(self):
+        path = self.get_distfiles_dir() / self.component.name
+        return path
 
     def get_component_artifacts_dir(self, stage: str):
         path = self.artifacts_dir / "components" / self.component.name

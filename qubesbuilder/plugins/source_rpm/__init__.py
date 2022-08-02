@@ -105,7 +105,7 @@ class RPMSourcePlugin(SourcePlugin):
                 return
 
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
-            distfiles_dir = self.get_distfiles_dir()
+            distfiles_dir = self.get_component_distfiles_dir()
 
             # Get fetch info
             fetch_info = self.get_dist_artifacts_info(
@@ -186,7 +186,7 @@ class RPMSourcePlugin(SourcePlugin):
 
                 # Copy-in distfiles, content and source
                 copy_in = [
-                    (distfiles_dir, BUILDER_DIR),
+                    (distfiles_dir, DISTFILES_DIR),
                     (self.component.source_dir, BUILDER_DIR),
                     (self.plugins_dir / "source_rpm", PLUGINS_DIR),
                 ] + [

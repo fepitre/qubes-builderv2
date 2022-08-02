@@ -1,0 +1,97 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2021 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -e
+[ "$DEBUG" = "1" ] && set -x
+
+usage() {
+echo "Usage: $(basename "$0") [OPTIONS]...
+This script downloads a file.
+
+Options:
+    --file-name        File name to be downloaded
+    --file-url         File URL
+    --signature-url    Signature file URL
+    --output-dir       Output directory
+    --uncompress       Decompress downloaded file (xz or bzip)
+"
+}
+
+if ! OPTS=$(getopt -o hf:u:s:o:x --long help,file-name:,file-url:,signature-url:,output-dir:,uncompress -n "$0" -- "$@"); then
+    echo "ERROR: Failed while parsing options."
+    exit 1
+fi
+
+eval set -- "$OPTS"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h | --help) usage ;;
+        -f | --file-name ) FILE_NAME="$2"; shift ;;
+        -u | --file-url ) FILE_URL="$2"; shift ;;
+        -s | --signature-url ) SIGNATURE_URL="$2"; shift ;;
+        -o | --output-dir ) OUTPUT_DIR="$2"; shift ;;
+        -x | --uncompress ) UNCOMPRESS="1"; shift ;;
+    esac
+    shift
+done
+
+if [ -z "${FILE_URL}" ]; then
+    printf "ERROR: Please provide file URL.\n"
+    exit 1
+fi
+FETCH_CMD=(curl --proto '=https' --proto-redir '=https' --tlsv1.2 --http1.1 -sSfL -o)
+
+if [ -z "${FILE_NAME}" ]; then
+    echo "ERROR: Please provide FILE_NAME."
+    exit 1
+fi
+
+UNTRUSTED_FILE_NAME="untrusted_${FILE_NAME}"
+
+if [ -n "${OUTPUT_DIR}" ]; then
+    mkdir -p "${OUTPUT_DIR}"
+else
+    OUTPUT_DIR='.'
+fi
+
+cd "${OUTPUT_DIR}"
+
+# Download file with untrusted suffix
+"${FETCH_CMD[@]}" "${UNTRUSTED_FILE_NAME}" "$FILE_URL"
+
+# Uncompress downloaded file if signature is on the TAR archive only (e.g. linux)
+if [ "$UNCOMPRESS" == 1 ]; then
+    if [ "${FILE_NAME%.tar.gz}" != "${FILE_NAME}" ]; then
+        gunzip "${UNTRUSTED_FILE_NAME}"
+        UNTRUSTED_FILE_NAME="untrusted_${FILE_NAME%.gz}"
+    elif [ "${FILE_NAME%.xz}" != "${FILE_NAME}" ]; then
+        unxz "${UNTRUSTED_FILE_NAME}"
+        UNTRUSTED_FILE_NAME="untrusted_${FILE_NAME%.xz}"
+    fi
+fi
+
+if [ -n "${SIGNATURE_URL}" ]; then
+    # Download signature file
+    SIGNATURE_FILE_NAME="$(basename "${SIGNATURE_URL}")"
+    UNTRUSTED_SIGNATURE_FILE_NAME="untrusted_${SIGNATURE_FILE_NAME}"
+    "${FETCH_CMD[@]}" "${UNTRUSTED_SIGNATURE_FILE_NAME}" "${SIGNATURE_URL}"
+fi

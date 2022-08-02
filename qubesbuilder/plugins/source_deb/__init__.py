@@ -94,7 +94,7 @@ class DEBSourcePlugin(SourcePlugin):
                 log.info(f"{self.component}: nothing to be done for {self.dist}")
                 return
 
-            distfiles_dir = self.get_distfiles_dir()
+            distfiles_dir = self.get_component_distfiles_dir()
             artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
             # Compare previous artifacts hash with current source hash
@@ -207,7 +207,7 @@ class DEBSourcePlugin(SourcePlugin):
                 copy_in = [
                     (self.component.source_dir, BUILDER_DIR),
                     (self.plugins_dir / "source_deb", PLUGINS_DIR),
-                    (distfiles_dir, BUILDER_DIR),
+                    (distfiles_dir, DISTFILES_DIR),
                 ]
                 for dependency in self.plugin_dependencies:
                     copy_in += [(self.plugins_dir / dependency, PLUGINS_DIR)]
