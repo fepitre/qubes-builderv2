@@ -1,4 +1,5 @@
 import os.path
+import pathlib
 import re
 import shutil
 import subprocess
@@ -18,9 +19,13 @@ HASH_RE = re.compile("[a-f0-9]{40}")
 
 @pytest.fixture(scope="session")
 def artifacts_dir(tmpdir_factory):
-    tmpdir = tmpdir_factory.mktemp("github-")
-    artifacts_dir = tmpdir / "artifacts"
-    artifacts_dir.mkdir()
+    if os.environ.get("ARTIFACTS_DIR"):
+        artifacts_dir = pathlib.Path(os.environ.get("ARTIFACTS_DIR"))
+    else:
+        tmpdir = tmpdir_factory.mktemp("github-")
+        artifacts_dir = tmpdir / "artifacts"
+    if not artifacts_dir.exists():
+        artifacts_dir.mkdir()
     yield artifacts_dir
 
 
