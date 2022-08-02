@@ -49,3 +49,24 @@ def str_to_bool(input_str: str) -> bool:
         return True
     else:
         return False
+
+
+STAGES = [
+    "fetch",
+    "prep",
+    "build",
+    "post",
+    "verify",
+    "sign",
+    "publish",
+    "upload",
+]
+STAGES_ALIAS = {
+    "f": "fetch",
+    "b": "build",
+    "po": "post",
+    "v": "verify",
+    "s": "sign",
+    "pu": "publish",
+    "u": "upload",
+}

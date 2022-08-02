@@ -29,7 +29,7 @@ from typing import Union, List
 import yaml
 from packaging.version import Version, InvalidVersion
 
-from qubesbuilder.common import sanitize_line
+from qubesbuilder.common import sanitize_line, STAGES
 from qubesbuilder.exc import ComponentError
 
 
@@ -123,12 +123,21 @@ class QubesComponent:
         for key, val in placeholders.items():
             data = data.replace(key, val)
 
+        # TODO: add more extra validation of some field
+        if ".." in data:
+            raise ComponentError(f"Forbidden pattern '..' in '.qubesbuilder'.")
+
+        for s in STAGES:
+            forbidden_pattern = f".{s}.yml"
+            if forbidden_pattern in data:
+                raise ComponentError(
+                    f"Forbidden pattern '{forbidden_pattern}' in '.qubesbuilder'."
+                )
+
         try:
             rendered_data = yaml.safe_load(data)
         except yaml.YAMLError as e:
             raise ComponentError(f"Cannot render '.qubesbuilder'.") from e
-
-        # TODO: add extra validation of some field (not sure if the best place, but this is common for all usages)
 
         return rendered_data or {}
 

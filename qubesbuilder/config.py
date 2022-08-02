@@ -23,7 +23,7 @@ from typing import Union, List, Dict, Any
 
 import yaml
 
-from qubesbuilder.common import PROJECT_PATH
+from qubesbuilder.common import PROJECT_PATH, STAGES
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.exc import ConfigError
@@ -31,25 +31,6 @@ from qubesbuilder.executors.helpers import getExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.template import QubesTemplate
 
-STAGES = [
-    "fetch",
-    "prep",
-    "build",
-    "post",
-    "verify",
-    "sign",
-    "publish",
-    "upload",
-]
-STAGES_ALIAS = {
-    "f": "fetch",
-    "b": "build",
-    "po": "post",
-    "v": "verify",
-    "s": "sign",
-    "pu": "publish",
-    "u": "upload",
-}
 log = get_logger("config")
 
 

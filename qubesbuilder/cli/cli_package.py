@@ -4,7 +4,8 @@ import click
 
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.component import QubesComponent
-from qubesbuilder.config import Config, STAGES, STAGES_ALIAS
+from qubesbuilder.config import Config
+from qubesbuilder.common import STAGES, STAGES_ALIAS
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.plugins.fetch import FetchPlugin
 from qubesbuilder.plugins.helpers import (

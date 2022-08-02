@@ -3,7 +3,8 @@ from typing import List
 import click
 
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
-from qubesbuilder.config import Config, STAGES, STAGES_ALIAS
+from qubesbuilder.config import Config
+from qubesbuilder.common import STAGES, STAGES_ALIAS
 from qubesbuilder.plugins.helpers import getTemplatePlugin
 from qubesbuilder.template import QubesTemplate
 

@@ -33,7 +33,8 @@ from qubesbuilder.cli.cli_repository import repository
 from qubesbuilder.cli.cli_template import template
 from qubesbuilder.cli.cli_config import config
 from qubesbuilder.cli.cli_exc import CliError
-from qubesbuilder.config import Config, STAGES
+from qubesbuilder.config import Config
+from qubesbuilder.common import STAGES
 from qubesbuilder.log import get_logger, init_logging
 
 log = get_logger("cli")
