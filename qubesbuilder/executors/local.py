@@ -70,12 +70,18 @@ class LocalExecutor(Executor):
         else:
             chown = self._kwargs.get("user", getpass.getuser())
 
-        cmd = [
-            "sudo mkdir -p /builder",
-            f"sudo chown -R {chown} /builder",
-        ] + cmd
-        cmd = ["bash", "-c", "&&".join(cmd)]
+        try:
+            subprocess.run(
+                [
+                    f"sudo mkdir -p /builder && sudo chown -R {chown} /builder",
+                ],
+                check=True,
+                shell=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise ExecutorError(f"Failed to prepare executor: {str(e)}")
 
+        cmd = ["bash", "-c", "&&".join(cmd)]
         log.info(f"Executing '{' '.join(cmd)}'.")
 
         # copy-in hook
