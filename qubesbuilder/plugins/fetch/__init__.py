@@ -265,7 +265,7 @@ class FetchPlugin(ComponentPlugin):
             with open(artifacts_dir / "hash") as f:
                 data = f.read().splitlines()
 
-            if not re.match(r"[\da-f]{7}", data[0]): # marmarek: 7?
+            if not re.match(r"[\da-f]{40}", data[0]):
                 msg = f"{self.component}: Invalid git hash detected."
                 raise FetchError(msg)
 
@@ -308,7 +308,7 @@ class FetchPlugin(ComponentPlugin):
                     raise FetchError(msg)
 
                 for commit_hash in data:
-                    if not re.match("[0-9a-f]{7}", commit_hash): # marmarek: 7?
+                    if not re.match("[0-9a-f]{40}", commit_hash):
                         msg = f"{self.component}: Invalid module hash detected."
                         raise FetchError(msg)
 
