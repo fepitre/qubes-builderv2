@@ -23,7 +23,7 @@ inside a Fedora/Debian AppVM have been used by the author for validating the cur
 
 Fedora:
 ```bash
-$ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec
+$ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec rpm-sign
 ```
 
 Debian:
