@@ -137,11 +137,17 @@ class RPMPublishPlugin(PublishPlugin):
             / f"{self.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
         )
         try:
+            # srpc and rpms
             for rpm in packages_list:
                 target_path = target_dir / "rpm" / rpm.name
                 target_path.unlink(missing_ok=True)
                 # target_path.hardlink_to(rpm)
                 os.link(rpm, target_path)
+
+            # buildinfo
+            target_path = target_dir / "rpm" / build_info["buildinfo"]
+            target_path.unlink(missing_ok=True)
+            os.link(build_artifacts_dir / "rpm" / build_info["buildinfo"], target_path)
         except (ValueError, PermissionError, NotImplementedError) as e:
             msg = f"{self.component}:{self.dist}:{build}: Failed to publish packages."
             raise PublishError(msg) from e

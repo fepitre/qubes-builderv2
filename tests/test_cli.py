@@ -228,9 +228,22 @@ def test_build_host_fc32(artifacts_dir):
     assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("srpm", None) == srpm
 
+    # buildinfo
+    assert (
+        artifacts_dir
+        / "components/core-qrexec/4.1.18-1/host-fc32/build/rpm/qubes-core-qrexec-4.1.18-1.fc32.x86_64.buildinfo"
+    ).exists()
+
 
 def test_sign_host_fc32(artifacts_dir):
     env = os.environ.copy()
+
+    buildinfo = (
+        artifacts_dir
+        / "components/core-qrexec/4.1.18-1/host-fc32/build/rpm/qubes-core-qrexec-4.1.18-1.fc32.x86_64.buildinfo"
+    )
+    buildinfo_number_lines = len(buildinfo.read_text(encoding="utf8").splitlines())
+
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
         # Better copy testing keyring into a separate directory to prevent locks inside
@@ -282,6 +295,13 @@ def test_sign_host_fc32(artifacts_dir):
             shell=True,
         )
         assert "digests signatures OK" in result.stdout.decode()
+
+    # Ensure that original content is at least here with the 3 headers PGP BEGIN/END and at least
+    # one line inside the signature
+    signed_buildinfo_number_lines = len(
+        buildinfo.read_text(encoding="utf8").splitlines()
+    )
+    assert signed_buildinfo_number_lines > buildinfo_number_lines + 4
 
 
 def test_publish_host_fc32(artifacts_dir):
@@ -387,6 +407,11 @@ def test_publish_host_fc32(artifacts_dir):
             "current-testing",
         }
 
+        # buildinfo
+        assert (
+            artifacts_dir / "repository-publish/rpm/r4.2/current-testing/host/fc32"
+        ).exists()
+
         # publish into current
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
@@ -449,6 +474,11 @@ def test_publish_host_fc32(artifacts_dir):
             "current-testing",
             "current",
         }
+
+        # buildinfo
+        assert (
+            artifacts_dir / "repository-publish/rpm/r4.2/current/host/fc32"
+        ).exists()
 
     rpms = [
         "qubes-core-qrexec-4.1.18-1.fc32.src.rpm",

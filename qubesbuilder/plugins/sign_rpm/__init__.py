@@ -118,9 +118,7 @@ class RPMSignPlugin(SignPlugin):
             build_bn = build.mangle()
 
             # Read information from build stage
-            build_info = self.get_dist_artifacts_info(
-                stage="build", basename=build_bn
-            )
+            build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
 
             if not build_info.get("rpms", []) and not build_info.get("srpm", None):
                 log.info(f"{self.component}:{self.dist}:{build}: Nothing to sign.")
@@ -140,10 +138,23 @@ class RPMSignPlugin(SignPlugin):
                         f"{self.plugins_dir}/sign_rpm/scripts/sign-rpm "
                         f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm}"
                     ]
-
                     self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to sign RPMs."
+                raise SignError(msg) from e
+
+            buildinfo_file = build_artifacts_dir / "rpm" / build_info["buildinfo"]
+
+            try:
+                log.info(
+                    f"{self.component}:{self.dist}:{build}: Signing '{buildinfo_file.name}'."
+                )
+                cmd = [
+                    f"{self.plugins_dir}/sign_rpm/scripts/update-rpmbuildinfo {buildinfo_file} {self.gpg_client} {sign_key}"
+                ]
+                self.executor.run(cmd)
+            except ExecutorError as e:
+                msg = f"{self.component}:{self.dist}:{build}: Failed to sign buildinfo file."
                 raise SignError(msg) from e
 
             # Re-provision builder local repository with signatures

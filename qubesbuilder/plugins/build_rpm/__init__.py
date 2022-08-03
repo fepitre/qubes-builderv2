@@ -74,7 +74,12 @@ def provision_local_repository(
             target_path = target_dir / rpm
             # target_path.hardlink_to(rpm_path)
             os.link(rpm_path, target_path)
-    except (ValueError, PermissionError, NotImplementedError) as e:
+
+        # buildinfo
+        buildinfo_path = build_artifacts_dir / "rpm" / source_info["buildinfo"]
+        target_path = target_dir / source_info["buildinfo"]
+        os.link(buildinfo_path, target_path)
+    except (ValueError, PermissionError, NotImplementedError, FileExistsError) as e:
         msg = f"{component}:{dist}:{build}: Failed to provision local repository."
         raise BuildError(msg) from e
 
@@ -186,6 +191,10 @@ class RPMBuildPlugin(BuildPlugin):
                     f"Cannot find SRPM for '{build}'. Missing 'prep' stage call?"
                 )
 
+            buildinfo_file = source_info["srpm"].replace(
+                ".src.rpm", f".{self.dist.architecture}.buildinfo"
+            )
+
             #
             # Build from SRPM
             #
@@ -203,6 +212,7 @@ class RPMBuildPlugin(BuildPlugin):
             copy_out = [
                 (BUILD_DIR / "rpm" / rpm, rpms_dir) for rpm in source_info["rpms"]
             ]
+            copy_out += [(BUILD_DIR / buildinfo_file, rpms_dir)]
 
             # Createrepo of local builder repository and ensure 'mock' group can access
             # build directory
@@ -219,8 +229,8 @@ class RPMBuildPlugin(BuildPlugin):
                 f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
             )
             mock_cmd = [
-                f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
-                f"/usr/libexec/mock/mock",
+                "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
+                "/usr/libexec/mock/mock --no-cleanup-after",
                 f"--rebuild {BUILD_DIR / source_info['srpm']}",
                 f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
                 f"--resultdir={BUILD_DIR}",
@@ -237,7 +247,16 @@ class RPMBuildPlugin(BuildPlugin):
                 mock_cmd.append("--enablerepo=qubes-current")
             if self.use_qubes_repo and self.use_qubes_repo.get("testing"):
                 mock_cmd.append("--enablerepo=qubes-current-testing")
-            cmd += [" ".join(mock_cmd)]
+
+            self.environment["BIND_MOUNT_ENABLE"] = "True"
+            buildinfo_cmd = [
+                "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION,BIND_MOUNT_ENABLE",
+                "/usr/libexec/mock/mock",
+                f"--root /builder/plugins/source_rpm/mock/{mock_conf}",
+                f'--chroot /plugins/build_rpm/scripts/rpmbuildinfo /builddir/build/SRPMS/{source_info["srpm"]} > {BUILD_DIR}/{buildinfo_file}',
+            ]
+
+            cmd += [" ".join(mock_cmd), " ".join(buildinfo_cmd)]
 
             # Move RPMs into a separate dir and generate packages list based on given
             # distribution tag. For example, 'fc32', 'fc32.qubes', etc.
@@ -263,11 +282,22 @@ class RPMBuildPlugin(BuildPlugin):
                 msg = f"{self.component}:{self.dist}:{build}: Failed to build RPMs: {str(e)}."
                 raise BuildError(msg) from e
 
+            # Symlink SRPM into result RPMs
+            srpm_path = prep_artifacts_dir / source_info["srpm"]
+            os.link(srpm_path, rpms_dir / source_info["srpm"])
+
             # Get packages list that have been actually built from predicted ones
             packages_list = []
             for rpm in source_info["rpms"]:
                 if os.path.exists(rpms_dir / rpm):
                     packages_list.append(rpm)
+
+            info = {
+                "srpm": source_info["srpm"],
+                "rpms": packages_list,
+                "buildinfo": buildinfo_file,
+                "source-hash": self.component.get_source_hash(),
+            }
 
             # Provision builder local repository
             provision_local_repository(
@@ -275,16 +305,11 @@ class RPMBuildPlugin(BuildPlugin):
                 component=self.component,
                 dist=self.dist,
                 repository_dir=repository_dir,
-                source_info=source_info,
+                source_info=info,
                 packages_list=packages_list,
                 prep_artifacts_dir=prep_artifacts_dir,
                 build_artifacts_dir=artifacts_dir,
             )
 
             # Save package information we parsed for next stages
-            info = {
-                "srpm": source_info["srpm"],
-                "rpms": packages_list,
-                "source-hash": self.component.get_source_hash(),
-            }
             self.save_dist_artifacts_info(stage=stage, basename=build_bn, info=info)
