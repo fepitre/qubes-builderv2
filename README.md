@@ -124,21 +124,30 @@ Options:
   --verbose / --no-verbose  Output logs.
   --debug / --no-debug      Print full traceback on exception.
   --builder-conf TEXT       Path to configuration file (default: builder.yml).
+  --artifacts-dir TEXT      Path to artifacts directory (default:
+                            ./artifacts).
+  --log-file TEXT           Path to log file to be created.
   -c, --component TEXT      Override component in configuration file (can be
                             repeated).
   -d, --distribution TEXT   Override distribution in configuration file (can
                             be repeated).
   -t, --template TEXT       Override template in configuration file (can be
                             repeated).
+  -e, --executor TEXT       Override executor type in configuration file.
+  --executor-option TEXT    Override executor options in configuration file
+                            provided as "option=value" (can be repeated). For
+                            example, --executor-option image="qubes-builder-
+                            fedora:latest"
   --help                    Show this message and exit.
 
 Commands:
   package     Package CLI
   template    Template CLI
   repository  Repository CLI
+  config      Config CLI
 
 Stages:
-    fetch prep build post verify sign publish
+    fetch prep build post verify sign publish upload
 
 Remark:
     The Qubes OS components are separated in two groups: standard and template
