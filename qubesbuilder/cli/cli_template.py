@@ -45,6 +45,7 @@ def _template_stage(
             repository_upload_remote_host=config.get(
                 "repository-upload-remote-host", {}
             ),
+            min_age_days=config.get("min-age-days", 5),
         )
 
         template_plugin.run(stage=stage_name, template_timestamp=template_timestamp)

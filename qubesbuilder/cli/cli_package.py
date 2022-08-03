@@ -102,6 +102,7 @@ def _component_stage(
                 qubes_release=config.get("qubes-release", {}),
                 repository_publish=config.get("repository-publish", {}),
                 backend_vmm=config.get("backend-vmm", "xen"),
+                min_age_days=config.get("min-age-days", 5),
             )
 
             for plugin in [source_plugin, build_plugin, sign_plugin, publish_plugin]:

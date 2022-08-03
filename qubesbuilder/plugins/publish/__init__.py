@@ -30,7 +30,6 @@ from qubesbuilder.plugins import DistributionPlugin, PluginError
 log = get_logger("publish")
 
 # Define the minimum age for which packages can be published to 'current'
-MIN_AGE_DAYS = 5  # marmarek: should be configurable
 COMPONENT_REPOSITORIES = ["current", "current-testing", "security-testing", "unstable"]
 
 
@@ -55,6 +54,7 @@ class PublishPlugin(DistributionPlugin):
         sign_key: dict,
         repository_publish: dict,
         backend_vmm: str,
+        min_age_days: int,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -73,6 +73,7 @@ class PublishPlugin(DistributionPlugin):
         self.repository_publish = repository_publish
         self.gpg_client = gpg_client
         self.sign_key = sign_key
+        self.min_age_days = min_age_days
 
     def validate_repository_publish(self, repository_publish):
         if repository_publish not in (
@@ -114,7 +115,7 @@ class PublishPlugin(DistributionPlugin):
 
         # Check that packages have been published before threshold_date
         threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
-            days=MIN_AGE_DAYS
+            days=self.min_age_days
         )
         if not ignore_min_age and publish_date > threshold_date:
             return False

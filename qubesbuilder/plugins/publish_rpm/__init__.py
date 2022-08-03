@@ -25,7 +25,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.publish import PublishPlugin, PublishError, MIN_AGE_DAYS
+from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_rpm")
 
@@ -49,6 +49,7 @@ class RPMPublishPlugin(PublishPlugin):
         sign_key: dict,
         repository_publish: dict,
         backend_vmm: str,
+        min_age_days: int,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -65,6 +66,7 @@ class RPMPublishPlugin(PublishPlugin):
             verbose=verbose,
             debug=debug,
             backend_vmm=backend_vmm,
+            min_age_days=min_age_days,
         )
 
     def createrepo(self, build, target_dir):
@@ -315,7 +317,7 @@ class RPMPublishPlugin(PublishPlugin):
                     f"{self.component}:{self.dist}: "
                     f"Refusing to publish to 'current' as packages are not "
                     f"uploaded to 'current-testing' or 'security-testing' "
-                    f"for at least {MIN_AGE_DAYS} days."
+                    f"for at least {self.min_age_days} days."
                 )
                 raise PublishError(failure_msg)
 
