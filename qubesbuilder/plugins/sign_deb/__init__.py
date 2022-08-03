@@ -72,87 +72,87 @@ class DEBSignPlugin(SignPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
-        if stage == "sign":
-            # Check if we have a signing key provided
-            sign_key = self.sign_key.get(
-                self.dist.distribution, None
-            ) or self.sign_key.get("deb", None)
-            if not sign_key:
-                log.info(f"{self.component}:{self.dist}: No signing key found.")
-                return
+        if stage != "sign":
+            return
 
-            # Check if we have a gpg client provided
-            if not self.gpg_client:
-                log.info(f"{self.component}: Please specify GPG client to use!")
-                return
+        # Check if we have a signing key provided
+        sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
+            "deb", None
+        )
+        if not sign_key:
+            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            return
 
-            # Build artifacts (source included)
-            build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
-            # Sign artifacts
-            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        # Check if we have a gpg client provided
+        if not self.gpg_client:
+            log.info(f"{self.component}: Please specify GPG client to use!")
+            return
 
-            if artifacts_dir.exists():
-                shutil.rmtree(artifacts_dir)
-            artifacts_dir.mkdir(parents=True)
+        # Build artifacts (source included)
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+        # Sign artifacts
+        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
-            keyring_dir = artifacts_dir / "keyring"
-            keyring_dir.mkdir(mode=0o700)
+        if artifacts_dir.exists():
+            shutil.rmtree(artifacts_dir)
+        artifacts_dir.mkdir(parents=True)
 
-            # Export public key and generate local keyring
-            temp_dir = Path(tempfile.mkdtemp())
-            sign_key_asc = temp_dir / f"{sign_key}.asc"
-            cmd = [
-                f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
-                f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}",
-            ]
+        keyring_dir = artifacts_dir / "keyring"
+        keyring_dir.mkdir(mode=0o700)
+
+        # Export public key and generate local keyring
+        temp_dir = Path(tempfile.mkdtemp())
+        sign_key_asc = temp_dir / f"{sign_key}.asc"
+        cmd = [
+            f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
+            f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}",
+        ]
+        try:
+            self.executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.component}:{self.dist}: Failed to export public signing key."
+            raise SignError(msg) from e
+        finally:
+            shutil.rmtree(temp_dir)
+
+        for directory in self.parameters["build"]:
+            # directory basename will be used as prefix for some artifacts
+            directory_bn = directory.mangle()
+
+            # Read information from build stage
+            build_info = self.get_dist_artifacts_info(
+                stage="build", basename=directory_bn
+            )
+
+            if not build_info.get("changes", None):
+                log.info(f"{self.component}:{self.dist}:{directory}: Nothing to sign.")
+                continue
             try:
+                log.info(
+                    f"{self.component}:{self.dist}:{directory}: Signing from '{build_info['changes']}' info."
+                )
+                cmd = [
+                    f"debsign -k{sign_key} -p{self.gpg_client} --no-re-sign {build_artifacts_dir / build_info['changes']}"
+                ]
                 self.executor.run(cmd)
             except ExecutorError as e:
-                msg = f"{self.component}:{self.dist}: Failed to export public signing key."
+                msg = f"{self.component}:{self.dist}:{directory}: Failed to sign Debian packages."
                 raise SignError(msg) from e
-            finally:
-                shutil.rmtree(temp_dir)
 
-            for directory in self.parameters["build"]:
-                # directory basename will be used as prefix for some artifacts
-                directory_bn = directory.mangle()
-
-                # Read information from build stage
-                build_info = self.get_dist_artifacts_info(
-                    stage="build", basename=directory_bn
+            # Re-provision builder local repository with signatures
+            repository_dir = self.get_repository_dir() / self.dist.distribution
+            try:
+                # We use build_info that contains source_info and build_artifacts_dir
+                # which contains sources files.
+                provision_local_repository(
+                    debian_directory=directory,
+                    component=self.component,
+                    dist=self.dist,
+                    repository_dir=repository_dir,
+                    source_info=build_info,
+                    packages_list=build_info["packages"],
+                    build_artifacts_dir=build_artifacts_dir,
                 )
-
-                if not build_info.get("changes", None):
-                    log.info(
-                        f"{self.component}:{self.dist}:{directory}: Nothing to sign."
-                    )
-                    continue
-                try:
-                    log.info(
-                        f"{self.component}:{self.dist}:{directory}: Signing from '{build_info['changes']}' info."
-                    )
-                    cmd = [
-                        f"debsign -k{sign_key} -p{self.gpg_client} --no-re-sign {build_artifacts_dir / build_info['changes']}"
-                    ]
-                    self.executor.run(cmd)
-                except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: Failed to sign Debian packages."
-                    raise SignError(msg) from e
-
-                # Re-provision builder local repository with signatures
-                repository_dir = self.get_repository_dir() / self.dist.distribution
-                try:
-                    # We use build_info that contains source_info and build_artifacts_dir
-                    # which contains sources files.
-                    provision_local_repository(
-                        debian_directory=directory,
-                        component=self.component,
-                        dist=self.dist,
-                        repository_dir=repository_dir,
-                        source_info=build_info,
-                        packages_list=build_info["packages"],
-                        build_artifacts_dir=build_artifacts_dir,
-                    )
-                except BuildError as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: Failed to re-provision local repository."
-                    raise SignError(msg) from e
+            except BuildError as e:
+                msg = f"{self.component}:{self.dist}:{directory}: Failed to re-provision local repository."
+                raise SignError(msg) from e

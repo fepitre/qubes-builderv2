@@ -92,6 +92,9 @@ class FetchPlugin(ComponentPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
+        if stage != "fetch":
+            return
+
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name
 
@@ -101,320 +104,309 @@ class FetchPlugin(ComponentPlugin):
         # Ensure "artifacts/tmp" directory exists
         self.get_temp_dir().mkdir(exist_ok=True)
 
-        if stage == "fetch":
-            # Source component directory inside executors
-            source_dir = BUILDER_DIR / self.component.name
-            copy_in = [(self.plugins_dir / "fetch", PLUGINS_DIR)]
+        # Source component directory inside executors
+        source_dir = BUILDER_DIR / self.component.name
+        copy_in = [(self.plugins_dir / "fetch", PLUGINS_DIR)]
 
-            if local_source_dir.exists():
-                # If we already fetched sources previously and have modified them,
-                # we may want to keep local modifications.
-                if not self.skip_if_exists:
-                    shutil.rmtree(str(local_source_dir))
-                else:
-                    log.info(f"{self.component}: source already fetched. Updating.")
-                    copy_in += [(local_source_dir, BUILDER_DIR)]
+        if local_source_dir.exists():
+            # If we already fetched sources previously and have modified them,
+            # we may want to keep local modifications.
+            if not self.skip_if_exists:
+                shutil.rmtree(str(local_source_dir))
+            else:
+                log.info(f"{self.component}: source already fetched. Updating.")
+                copy_in += [(local_source_dir, BUILDER_DIR)]
 
-            # Get GIT source for a given Qubes OS component
-            copy_out = [(source_dir, self.get_sources_dir())]
-            get_sources_cmd = [
-                str(PLUGINS_DIR / "fetch/scripts/get-and-verify-source"),
-                "--component",
-                self.component.name,
-                "--git-branch",
-                self.component.branch,
-                "--git-url",
-                self.component.url,
-                "--keyring-dir-git",
-                str(BUILDER_DIR / "keyring"),
-                "--keys-dir",
-                str(PLUGINS_DIR / "fetch/keys"),
-            ]
-            for maintainer in self.component.maintainers:
-                get_sources_cmd += ["--maintainer", maintainer]
-            if self.component.insecure_skip_checking:
-                get_sources_cmd += ["--insecure-skip-checking"]
-            if self.component.less_secure_signed_commits_sufficient:
-                get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
+        # Get GIT source for a given Qubes OS component
+        copy_out = [(source_dir, self.get_sources_dir())]
+        get_sources_cmd = [
+            str(PLUGINS_DIR / "fetch/scripts/get-and-verify-source"),
+            "--component",
+            self.component.name,
+            "--git-branch",
+            self.component.branch,
+            "--git-url",
+            self.component.url,
+            "--keyring-dir-git",
+            str(BUILDER_DIR / "keyring"),
+            "--keys-dir",
+            str(PLUGINS_DIR / "fetch/keys"),
+        ]
+        for maintainer in self.component.maintainers:
+            get_sources_cmd += ["--maintainer", maintainer]
+        if self.component.insecure_skip_checking:
+            get_sources_cmd += ["--insecure-skip-checking"]
+        if self.component.less_secure_signed_commits_sufficient:
+            get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
 
-            # We prioritize do merge versions first
-            if local_source_dir.exists() and self.do_merge:
-                get_sources_cmd += ["--do-merge"]
-                if self.fetch_versions_only:
-                    get_sources_cmd += ["--fetch-versions-only"]
-            if not self.skip_git_fetch:
-                cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+        # We prioritize do merge versions first
+        if local_source_dir.exists() and self.do_merge:
+            get_sources_cmd += ["--do-merge"]
+            if self.fetch_versions_only:
+                get_sources_cmd += ["--fetch-versions-only"]
+        if not self.skip_git_fetch:
+            cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
+            self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
-            # Update parameters based on previously fetched sources as .qubesbuilder
-            # is now available.
-            self.update_parameters()
+        # Update parameters based on previously fetched sources as .qubesbuilder
+        # is now available.
+        self.update_parameters()
 
-            distfiles_dir = self.get_component_distfiles_dir()
-            distfiles_dir.mkdir(parents=True, exist_ok=True)
+        distfiles_dir = self.get_component_distfiles_dir()
+        distfiles_dir.mkdir(parents=True, exist_ok=True)
 
-            # Download and verify files given in .qubesbuilder
-            for file in self.parameters.get("files", []):
-                # Temporary dir for downloaded file
-                temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
-
-                #
-                # download
-                #
-                parsed_url = urllib.parse.urlparse(file["url"])
-                fn = str(os.path.basename(parsed_url.geturl()))
-
-                # If we request to uncompress the file we drop the archive suffix
-                if file.get("uncompress", False):
-                    final_fn = Path(fn).with_suffix("").name
-                else:
-                    final_fn = fn
-
-                untrusted_final_fn = "untrusted_" + final_fn
-
-                if (distfiles_dir / final_fn).exists():
-                    if not self.skip_if_exists:
-                        os.remove(distfiles_dir / final_fn)
-                    else:
-                        log.info(
-                            f"{self.component}: file {final_fn} already downloaded. Skipping."
-                        )
-                        continue
-                copy_in = [
-                    (self.plugins_dir / "fetch", PLUGINS_DIR),
-                    (self.component.source_dir, BUILDER_DIR),
-                ]
-                copy_out = [(source_dir / untrusted_final_fn, temp_dir)]
-
-                # Construct command for "download-file".
-                download_cmd = [
-                    str(PLUGINS_DIR / "fetch/scripts/download-file"),
-                    "--output-dir",
-                    str(BUILDER_DIR / self.component.name),
-                    "--file-name",
-                    fn,
-                    "--file-url",
-                    file["url"],
-                ]
-                if file.get("signature", None):
-                    download_cmd += ["--signature-url", file["signature"]]
-                    signature_fn = os.path.basename(file["signature"])
-                    untrusted_signature_fn = "untrusted_" + signature_fn
-                    copy_out += [
-                        (
-                            BUILDER_DIR / self.component.name / untrusted_signature_fn,
-                            temp_dir,
-                        )
-                    ]
-                if file.get("uncompress", False):
-                    download_cmd += ["--uncompress"]
-                cmd = [" ".join(download_cmd)]
-                try:
-                    self.executor.run(
-                        cmd, copy_in, copy_out, environment=self.environment
-                    )
-                except ExecutorError as e:
-                    shutil.rmtree(temp_dir)
-                    raise FetchError(f"Failed to download file '{file}': {str(e)}.")
-
-                #
-                # verify
-                #
-
-                # Keep executor workflow if we move verification of files in another
-                # cage type (copy-in, copy-out and cmd would need adjustments).
-
-                local_executor = LocalExecutor()
-                copy_in = []
-                copy_out = [(temp_dir / final_fn, distfiles_dir)]
-
-                # Construct command for "verify-file".
-                verify_cmd = [
-                    str(self.plugins_dir / "fetch/scripts/verify-file"),
-                    "--output-dir",
-                    str(temp_dir),
-                    "--untrusted-file",
-                    str(temp_dir / untrusted_final_fn),
-                ]
-                if file.get("sha256", None):
-                    verify_cmd += [
-                        "--checksum-cmd",
-                        "sha256sum",
-                        "--checksum-file",
-                        str(self.component.source_dir / file["sha256"]),
-                    ]
-                elif file.get("sha512", None):
-                    verify_cmd += [
-                        "--checksum-cmd",
-                        "sha512sum",
-                        "--checksum-file",
-                        str(self.component.source_dir / file["sha512"]),
-                    ]
-                elif file.get("signature", None):
-                    signature_fn = os.path.basename(file["signature"])
-                    untrusted_signature_fn = "untrusted_" + signature_fn
-                    verify_cmd += [
-                        "--untrusted-signature-file",
-                        str(temp_dir / untrusted_signature_fn),
-                    ]
-                    copy_out += [
-                        (
-                            temp_dir / signature_fn,
-                            distfiles_dir,
-                        )
-                    ]
-                else:
-                    raise FetchError(f"No verification method for {final_fn}")
-
-                if file.get("pubkeys", None):
-                    for pubkey in file["pubkeys"]:
-                        verify_cmd += [
-                            "--pubkey-file",
-                            str(self.component.source_dir / pubkey),
-                        ]
-
-                cmd = [" ".join(verify_cmd)]
-                try:
-                    local_executor.run(
-                        cmd, copy_in, copy_out, environment=self.environment
-                    )
-                except ExecutorError as e:
-                    raise FetchError(f"Failed to verify file '{file}': {str(e)}.")
-                finally:
-                    shutil.rmtree(temp_dir)
-
-            #
-            # source hash and version tags determination
-            #
-
-            # Temporary directory
+        # Download and verify files given in .qubesbuilder
+        for file in self.parameters.get("files", []):
+            # Temporary dir for downloaded file
             temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
 
-            # Source component directory inside executors
-            source_dir = BUILDER_DIR / self.component.name
+            #
+            # download
+            #
+            parsed_url = urllib.parse.urlparse(file["url"])
+            fn = str(os.path.basename(parsed_url.geturl()))
 
-            # We store the fetched source hash as original reference to be compared
-            # for any further modifications. Once the source is fetched, we may locally
-            # modify the source for development and at prep stage we would need to recompute
-            # source hash based on those modifications.
-            info: dict[str, Any] = {"source-hash": self.component.get_source_hash()}
+            # If we request to uncompress the file we drop the archive suffix
+            if file.get("uncompress", False):
+                final_fn = Path(fn).with_suffix("").name
+            else:
+                final_fn = fn
 
-            # Get git hash and tags
+            untrusted_final_fn = "untrusted_" + final_fn
+
+            if (distfiles_dir / final_fn).exists():
+                if not self.skip_if_exists:
+                    os.remove(distfiles_dir / final_fn)
+                else:
+                    log.info(
+                        f"{self.component}: file {final_fn} already downloaded. Skipping."
+                    )
+                    continue
             copy_in = [
+                (self.plugins_dir / "fetch", PLUGINS_DIR),
                 (self.component.source_dir, BUILDER_DIR),
             ]
-            copy_out = [
-                (source_dir / "hash", temp_dir),
-                (source_dir / "vtags", temp_dir),
+            copy_out = [(source_dir / untrusted_final_fn, temp_dir)]
+
+            # Construct command for "download-file".
+            download_cmd = [
+                str(PLUGINS_DIR / "fetch/scripts/download-file"),
+                "--output-dir",
+                str(BUILDER_DIR / self.component.name),
+                "--file-name",
+                fn,
+                "--file-url",
+                file["url"],
             ]
-            cmd = [
-                f"rm -f {source_dir}/hash {source_dir}/vtags",
-                f"cd {BUILDER_DIR}",
-            ]
-            cmd += [f"git -C {source_dir} rev-parse 'HEAD^{{}}' >> {source_dir}/hash"]
-            cmd += [
-                f"git -C {source_dir} tag --points-at HEAD --list 'v*' >> {source_dir}/vtags"
-            ]
+            if file.get("signature", None):
+                download_cmd += ["--signature-url", file["signature"]]
+                signature_fn = os.path.basename(file["signature"])
+                untrusted_signature_fn = "untrusted_" + signature_fn
+                copy_out += [
+                    (
+                        BUILDER_DIR / self.component.name / untrusted_signature_fn,
+                        temp_dir,
+                    )
+                ]
+            if file.get("uncompress", False):
+                download_cmd += ["--uncompress"]
+            cmd = [" ".join(download_cmd)]
             try:
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
-                msg = f"{self.component}: Failed to get source hash information: {e}."
+                shutil.rmtree(temp_dir)
+                raise FetchError(f"Failed to download file '{file}': {str(e)}.")
+
+            #
+            # verify
+            #
+
+            # Keep executor workflow if we move verification of files in another
+            # cage type (copy-in, copy-out and cmd would need adjustments).
+
+            local_executor = LocalExecutor()
+            copy_in = []
+            copy_out = [(temp_dir / final_fn, distfiles_dir)]
+
+            # Construct command for "verify-file".
+            verify_cmd = [
+                str(self.plugins_dir / "fetch/scripts/verify-file"),
+                "--output-dir",
+                str(temp_dir),
+                "--untrusted-file",
+                str(temp_dir / untrusted_final_fn),
+            ]
+            if file.get("sha256", None):
+                verify_cmd += [
+                    "--checksum-cmd",
+                    "sha256sum",
+                    "--checksum-file",
+                    str(self.component.source_dir / file["sha256"]),
+                ]
+            elif file.get("sha512", None):
+                verify_cmd += [
+                    "--checksum-cmd",
+                    "sha512sum",
+                    "--checksum-file",
+                    str(self.component.source_dir / file["sha512"]),
+                ]
+            elif file.get("signature", None):
+                signature_fn = os.path.basename(file["signature"])
+                untrusted_signature_fn = "untrusted_" + signature_fn
+                verify_cmd += [
+                    "--untrusted-signature-file",
+                    str(temp_dir / untrusted_signature_fn),
+                ]
+                copy_out += [
+                    (
+                        temp_dir / signature_fn,
+                        distfiles_dir,
+                    )
+                ]
+            else:
+                raise FetchError(f"No verification method for {final_fn}")
+
+            if file.get("pubkeys", None):
+                for pubkey in file["pubkeys"]:
+                    verify_cmd += [
+                        "--pubkey-file",
+                        str(self.component.source_dir / pubkey),
+                    ]
+
+            cmd = [" ".join(verify_cmd)]
+            try:
+                local_executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            except ExecutorError as e:
+                raise FetchError(f"Failed to verify file '{file}': {str(e)}.")
+            finally:
+                shutil.rmtree(temp_dir)
+
+        #
+        # source hash and version tags determination
+        #
+
+        # Temporary directory
+        temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
+
+        # Source component directory inside executors
+        source_dir = BUILDER_DIR / self.component.name
+
+        # We store the fetched source hash as original reference to be compared
+        # for any further modifications. Once the source is fetched, we may locally
+        # modify the source for development and at prep stage we would need to recompute
+        # source hash based on those modifications.
+        info: dict[str, Any] = {"source-hash": self.component.get_source_hash()}
+
+        # Get git hash and tags
+        copy_in = [
+            (self.component.source_dir, BUILDER_DIR),
+        ]
+        copy_out = [
+            (source_dir / "hash", temp_dir),
+            (source_dir / "vtags", temp_dir),
+        ]
+        cmd = [
+            f"rm -f {source_dir}/hash {source_dir}/vtags",
+            f"cd {BUILDER_DIR}",
+        ]
+        cmd += [f"git -C {source_dir} rev-parse 'HEAD^{{}}' >> {source_dir}/hash"]
+        cmd += [
+            f"git -C {source_dir} tag --points-at HEAD --list 'v*' >> {source_dir}/vtags"
+        ]
+        try:
+            self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+        except ExecutorError as e:
+            msg = f"{self.component}: Failed to get source hash information: {e}."
+            raise FetchError(msg) from e
+
+        # Read git hash and vtags
+        with open(temp_dir / "hash") as f:
+            data = f.read().splitlines()
+
+        if not re.match(r"[\da-f]{40}", data[0]):
+            msg = f"{self.component}: Invalid git hash detected."
+            raise FetchError(msg)
+
+        info["git-commit-hash"] = data[0]
+        info["git-version-tags"] = []
+
+        with open(temp_dir / "vtags") as f:
+            data = f.read().splitlines()
+
+        for tag in data:
+            if not re.match("^v.*", tag):
+                msg = f"{self.component}: Invalid git version tag detected."
+                raise FetchError(msg)
+            info["git-version-tags"].append(tag)
+
+        # Modules (formerly known as INCLUDED_SOURCES in Makefile.builder)
+        modules = self.parameters.get("modules", [])
+        if modules:
+            # Get git module hashes
+            copy_in = [
+                (self.component.source_dir, BUILDER_DIR),
+            ]
+            copy_out = [(source_dir / "modules", temp_dir)]
+            cmd = [f"rm -f {source_dir}/modules", f"cd {BUILDER_DIR}"]
+            for module in modules:
+                cmd += [
+                    f"git -C {source_dir}/{module} rev-parse HEAD >> {source_dir}/modules"
+                ]
+            try:
+                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            except ExecutorError as e:
+                msg = f"{self.component}: Failed to get source module information: {str(e)}."
                 raise FetchError(msg) from e
 
-            # Read git hash and vtags
-            with open(temp_dir / "hash") as f:
+            # Read package release name
+            with open(temp_dir / "modules") as f:
                 data = f.read().splitlines()
-
-            if not re.match(r"[\da-f]{40}", data[0]):
-                msg = f"{self.component}: Invalid git hash detected."
+            if len(data) != len(modules):
+                msg = f"{self.component}: Invalid modules data."
                 raise FetchError(msg)
 
-            info["git-commit-hash"] = data[0]
-            info["git-version-tags"] = []
-
-            with open(temp_dir / "vtags") as f:
-                data = f.read().splitlines()
-
-            for tag in data:
-                if not re.match("^v.*", tag):
-                    msg = f"{self.component}: Invalid git version tag detected."
-                    raise FetchError(msg)
-                info["git-version-tags"].append(tag)
-
-            # Modules (formerly known as INCLUDED_SOURCES in Makefile.builder)
-            modules = self.parameters.get("modules", [])
-            if modules:
-                # Get git module hashes
-                copy_in = [
-                    (self.component.source_dir, BUILDER_DIR),
-                ]
-                copy_out = [(source_dir / "modules", temp_dir)]
-                cmd = [f"rm -f {source_dir}/modules", f"cd {BUILDER_DIR}"]
-                for module in modules:
-                    cmd += [
-                        f"git -C {source_dir}/{module} rev-parse HEAD >> {source_dir}/modules"
-                    ]
-                try:
-                    self.executor.run(
-                        cmd, copy_in, copy_out, environment=self.environment
-                    )
-                except ExecutorError as e:
-                    msg = f"{self.component}: Failed to get source module information: {str(e)}."
-                    raise FetchError(msg) from e
-
-                # Read package release name
-                with open(temp_dir / "modules") as f:
-                    data = f.read().splitlines()
-                if len(data) != len(modules):
-                    msg = f"{self.component}: Invalid modules data."
+            for commit_hash in data:
+                if not re.match("[0-9a-f]{40}", commit_hash):
+                    msg = f"{self.component}: Invalid module hash detected."
                     raise FetchError(msg)
 
-                for commit_hash in data:
-                    if not re.match("[0-9a-f]{40}", commit_hash):
-                        msg = f"{self.component}: Invalid module hash detected."
-                        raise FetchError(msg)
+            info.update(
+                {
+                    "modules": [
+                        {"name": name, "hash": str(data[idx])}
+                        for idx, name in enumerate(modules)
+                    ],
+                }
+            )
 
-                info.update(
-                    {
-                        "modules": [
-                            {"name": name, "hash": str(data[idx])}
-                            for idx, name in enumerate(modules)
-                        ],
-                    }
-                )
-
-                copy_in = [
-                    (self.component.source_dir, BUILDER_DIR),
-                    (self.plugins_dir / "fetch", PLUGINS_DIR),
+            copy_in = [
+                (self.component.source_dir, BUILDER_DIR),
+                (self.plugins_dir / "fetch", PLUGINS_DIR),
+            ]
+            copy_out = []
+            cmd = []
+            for module in info["modules"]:
+                module["archive"] = f"{module['name']}-{module['hash'][0:16]}.tar.gz"
+                copy_out += [
+                    (
+                        source_dir / module["name"] / module["archive"],
+                        distfiles_dir,
+                    ),
                 ]
-                copy_out = []
-                cmd = []
-                for module in info["modules"]:
-                    module[
-                        "archive"
-                    ] = f"{module['name']}-{module['hash'][0:16]}.tar.gz"
-                    copy_out += [
-                        (
-                            source_dir / module["name"] / module["archive"],
-                            distfiles_dir,
-                        ),
-                    ]
-                    cmd += [
-                        f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
-                    ]
-
-                try:
-                    self.executor.run(
-                        cmd, copy_in, copy_out, environment=self.environment
-                    )
-                except ExecutorError as e:
-                    msg = f"{self.component}: Failed to generate module archives: {str(e)}."
-                    raise FetchError(msg) from e
+                cmd += [
+                    f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
+                ]
 
             try:
-                self.save_artifacts_info(stage=stage, basename="source", info=info)
-                # Clean temp_dir
-                shutil.rmtree(temp_dir)
-            except OSError as e:
-                msg = f"{self.component}: Failed to clean artifacts: {str(e)}."
+                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            except ExecutorError as e:
+                msg = f"{self.component}: Failed to generate module archives: {str(e)}."
                 raise FetchError(msg) from e
+
+        try:
+            self.save_artifacts_info(stage=stage, basename="source", info=info)
+            # Clean temp_dir
+            shutil.rmtree(temp_dir)
+        except OSError as e:
+            msg = f"{self.component}: Failed to clean artifacts: {str(e)}."
+            raise FetchError(msg) from e

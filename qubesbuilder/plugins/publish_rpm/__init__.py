@@ -234,6 +234,9 @@ class RPMPublishPlugin(PublishPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
+        if stage != "publish":
+            return
+
         # Check if we have a signing key provided
         sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
             "rpm", None
@@ -250,15 +253,14 @@ class RPMPublishPlugin(PublishPlugin):
         # FIXME: Refactor the code handling both standard and template components.
         #  It applies for other plugins.
 
-        if stage == "publish":
-            repository_publish = repository_publish or self.repository_publish.get(
-                "components"
-            )
-            if not repository_publish:
-                raise PublishError("Cannot determine repository for publish")
+        repository_publish = repository_publish or self.repository_publish.get(
+            "components"
+        )
+        if not repository_publish:
+            raise PublishError("Cannot determine repository for publish")
 
         # Publish stage for standard (not template) components
-        if stage == "publish" and not unpublish:
+        if not unpublish:
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
@@ -370,7 +372,7 @@ class RPMPublishPlugin(PublishPlugin):
                     stage="publish", basename=build_bn, info=info
                 )
 
-        if stage == "publish" and unpublish:
+        if unpublish:
             if not all(
                 self.is_published(
                     basename=build.mangle(), repository=repository_publish

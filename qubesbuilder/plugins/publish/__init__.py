@@ -123,11 +123,11 @@ class PublishPlugin(DistributionPlugin):
         return True
 
     def run(self, stage: str):
-        # Check if we have Debian related content defined
-        if not self.parameters.get("build", []):
-            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-            return
-
         if stage in ("publish", "upload"):
             if not isinstance(self.executor, LocalExecutor):
                 raise PublishError("This plugin only supports local executor.")
+
+            # Check if we have Debian related content defined
+            if not self.parameters.get("build", []):
+                log.info(f"{self.component}:{self.dist}: Nothing to be done.")
+                return

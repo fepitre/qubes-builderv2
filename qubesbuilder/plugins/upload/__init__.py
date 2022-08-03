@@ -64,53 +64,53 @@ class UploadPlugin(Plugin):
         self.repository_upload_remote_host = repository_upload_remote_host
 
     def run(self, stage: str, repository_publish: str = None):
-        if stage == "upload":
-            if not isinstance(self.executor, LocalExecutor):
-                raise UploadError("This plugin only supports local executor.")
+        if stage != "upload":
+            return
 
-            remote_path = self.repository_upload_remote_host.get(self.dist.type, None)
-            if not remote_path:
-                log.info(f"{self.dist}: No remote location defined. Skipping.")
-                return
+        if not isinstance(self.executor, LocalExecutor):
+            raise UploadError("This plugin only supports local executor.")
 
-            repository_publish = repository_publish or self.repository_publish.get(
-                "components", "current-testing"
+        remote_path = self.repository_upload_remote_host.get(self.dist.type, None)
+        if not remote_path:
+            log.info(f"{self.dist}: No remote location defined. Skipping.")
+            return
+
+        repository_publish = repository_publish or self.repository_publish.get(
+            "components", "current-testing"
+        )
+
+        try:
+            local_path = (
+                self.get_repository_publish_dir() / self.dist.type / self.qubes_release
             )
-
-            try:
-                local_path = (
-                    self.get_repository_publish_dir()
-                    / self.dist.type
-                    / self.qubes_release
+            # Repository dir relative to local path that will be the same on remote host
+            directories_to_upload = []
+            if self.dist.is_rpm():
+                directories_to_upload.append(
+                    f"{repository_publish}/{self.dist.package_set}/{self.dist.name}"
                 )
-                # Repository dir relative to local path that will be the same on remote host
-                directories_to_upload = []
-                if self.dist.is_rpm():
-                    directories_to_upload.append(
-                        f"{repository_publish}/{self.dist.package_set}/{self.dist.name}"
+            elif self.dist.is_deb():
+                debian_suite = (
+                    DEBPublishPlugin.get_debian_suite_from_repository_publish(
+                        self.dist, repository_publish
                     )
-                elif self.dist.is_deb():
-                    debian_suite = (
-                        DEBPublishPlugin.get_debian_suite_from_repository_publish(
-                            self.dist, repository_publish
-                        )
-                    )
-                    directories_to_upload.append(
-                        f"{self.dist.package_set}/dists/{debian_suite}"
-                    )
-                    directories_to_upload.append(f"{self.dist.package_set}/pool")
+                )
+                directories_to_upload.append(
+                    f"{self.dist.package_set}/dists/{debian_suite}"
+                )
+                directories_to_upload.append(f"{self.dist.package_set}/pool")
 
-                if not directories_to_upload:
-                    raise UploadError(
-                        f"{self.dist}: Cannot determine directories to upload."
-                    )
-
-                for relative_dir in directories_to_upload:
-                    cmd = [
-                        f"rsync --partial --progress --hard-links -air --mkpath -- {local_path / relative_dir}/ {remote_path}/{relative_dir}/"
-                    ]
-                    self.executor.run(cmd)
-            except ExecutorError as e:
+            if not directories_to_upload:
                 raise UploadError(
-                    f"{self.dist}: Failed to upload to remote host: {str(e)}"
-                ) from e
+                    f"{self.dist}: Cannot determine directories to upload."
+                )
+
+            for relative_dir in directories_to_upload:
+                cmd = [
+                    f"rsync --partial --progress --hard-links -air --mkpath -- {local_path / relative_dir}/ {remote_path}/{relative_dir}/"
+                ]
+                self.executor.run(cmd)
+        except ExecutorError as e:
+            raise UploadError(
+                f"{self.dist}: Failed to upload to remote host: {str(e)}"
+            ) from e
