@@ -29,7 +29,6 @@ from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
-    DISTFILES_DIR,
     BUILD_DIR,
     PLUGINS_DIR,
     REPOSITORY_DIR,
@@ -194,7 +193,6 @@ class RPMBuildPlugin(BuildPlugin):
 
                 # Copy-in distfiles, content and source RPM
                 copy_in = [
-                    (distfiles_dir, DISTFILES_DIR),
                     (self.plugins_dir / "build_rpm", PLUGINS_DIR),
                     (repository_dir, REPOSITORY_DIR),
                     (prep_artifacts_dir / source_info["srpm"], BUILD_DIR),

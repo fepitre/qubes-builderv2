@@ -212,14 +212,18 @@ class RPMSourcePlugin(SourcePlugin):
                         fn = os.path.basename(file["url"])
                         if file.get("uncompress", False):
                             fn = Path(fn).with_suffix("").name
-                        cmd.append(f"mv {DISTFILES_DIR}/{fn} {source_dir}")
+                        cmd.append(
+                            f"mv {DISTFILES_DIR / self.component.name / fn} {source_dir}"
+                        )
                         if file.get("signature", None):
                             cmd.append(
-                                f"mv {DISTFILES_DIR}/{os.path.basename(file['signature'])} {source_dir}"
+                                f"mv {DISTFILES_DIR / self.component.name / os.path.basename(file['signature'])} {source_dir}"
                             )
 
                 for module in fetch_info.get("modules", []):
-                    cmd.append(f"mv {DISTFILES_DIR}/{module['archive']} {source_dir}")
+                    cmd.append(
+                        f"mv {DISTFILES_DIR / self.component.name / module['archive']} {source_dir}"
+                    )
                     cmd.append(
                         f"sed -i 's/@{module['name']}@/{module['archive']}/g' {source_dir / build}.in"
                     )

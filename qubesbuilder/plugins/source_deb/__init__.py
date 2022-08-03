@@ -241,7 +241,7 @@ class DEBSourcePlugin(SourcePlugin):
                         for file in self.parameters["files"]:
                             fn = os.path.basename(file["url"])
                             cmd.append(
-                                f"mv {DISTFILES_DIR}/{fn} {BUILDER_DIR}/{source_orig}"
+                                f"mv {DISTFILES_DIR / self.component.name / fn} {BUILDER_DIR}/{source_orig}"
                             )
 
                 gen_packages_list_cmd = [

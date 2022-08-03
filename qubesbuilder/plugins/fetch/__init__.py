@@ -384,7 +384,6 @@ class FetchPlugin(ComponentPlugin):
                 )
 
                 copy_in = [
-                    (distfiles_dir, BUILDER_DIR),
                     (self.component.source_dir, BUILDER_DIR),
                     (self.plugins_dir / "fetch", PLUGINS_DIR),
                 ]
