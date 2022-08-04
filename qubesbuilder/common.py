@@ -16,7 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+from typing import List
 from pathlib import Path
 from string import digits, ascii_letters
 
@@ -47,9 +47,17 @@ for s in STAGES:
     FORBIDDEN_PATTERNS += [f".{s}.yml", f".{s}.yaml"]
 
 
-def is_filename_valid(filename: str) -> bool:
+def is_filename_valid(
+    filename: str, allowed_ext: str = None, forbidden_filename: str = None
+) -> bool:
     if filename == "" or filename[0] in ("-", "."):
         return False
+    if forbidden_filename and filename == forbidden_filename:
+        return False
+    if allowed_ext:
+        p = Path(filename)
+        if p.suffix != allowed_ext:
+            return False
     for c in filename:
         if c not in digits + ascii_letters + "-_.+":
             return False

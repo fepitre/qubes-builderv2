@@ -131,6 +131,9 @@ class RPMSourcePlugin(SourcePlugin):
             # spec file basename will be used as prefix for some artifacts
             build_bn = build.mangle()
 
+            # generate expected artifacts info filename for sanity checks
+            artifacts_info_filename = self.get_artifacts_info_filename(stage, build_bn)
+
             # Generate %{name}-%{version}-%{release} and %Source0
             copy_in = [
                 (self.component.source_dir, BUILDER_DIR),
@@ -164,7 +167,11 @@ class RPMSourcePlugin(SourcePlugin):
             source_rpm = f"{data[0]}.src.rpm"
             # Source0 may contain a URL.
             source_orig = os.path.basename(data[1])
-            if not is_filename_valid(source_rpm) or not is_filename_valid(source_orig):
+            if not is_filename_valid(
+                source_rpm, forbidden_filename=artifacts_info_filename
+            ) or not is_filename_valid(
+                source_orig, forbidden_filename=artifacts_info_filename
+            ):
                 msg = f"{self.component}:{self.dist}:{build}: Invalid source names."
                 raise SourceError(msg)
 
@@ -173,7 +180,7 @@ class RPMSourcePlugin(SourcePlugin):
             with open(temp_dir / f"{build_bn}_packages.list") as f:
                 data = f.read().splitlines()
             for line in data:
-                if not is_filename_valid(line):
+                if not is_filename_valid(line, allowed_ext=".rpm"):
                     msg = f"{self.component}:{self.dist}:{build}: Invalid package name."
                     raise SourceError(msg)
                 packages_list.append(line)

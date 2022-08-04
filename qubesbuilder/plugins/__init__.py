@@ -148,6 +148,10 @@ class ComponentPlugin(Plugin):
         self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
         self._source_hash = ""
 
+    @staticmethod
+    def get_artifacts_info_filename(stage: str, basename: str):
+        return f"{basename}.{stage}.yml"
+
     def get_component_distfiles_dir(self):
         path = self.get_distfiles_dir() / self.component.name
         return path
@@ -162,7 +166,7 @@ class ComponentPlugin(Plugin):
         self, stage: str, basename: str, artifacts_dir: Path = None
     ) -> Dict:
         artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
-        fileinfo = artifacts_dir / f"{basename}.{stage}.yml"
+        fileinfo = artifacts_dir / self.get_artifacts_info_filename(stage, basename)
         if fileinfo.exists():
             try:
                 with open(fileinfo, "r") as f:
@@ -179,7 +183,9 @@ class ComponentPlugin(Plugin):
         artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         try:
-            with open(artifacts_dir / f"{basename}.{stage}.yml", "w") as f:
+            with open(
+                artifacts_dir / self.get_artifacts_info_filename(stage, basename), "w"
+            ) as f:
                 f.write(yaml.safe_dump(info))
         except (PermissionError, yaml.YAMLError) as e:
             msg = (
@@ -191,7 +197,7 @@ class ComponentPlugin(Plugin):
         self, stage: str, basename: str, artifacts_dir: Path = None
     ):
         artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
-        info_path = artifacts_dir / f"{basename}.{stage}.yml"
+        info_path = artifacts_dir / self.get_artifacts_info_filename(stage, basename)
         if info_path.exists():
             info_path.unlink()
 

@@ -134,6 +134,11 @@ class DEBSourcePlugin(SourcePlugin):
             # directory basename will be used as prefix for some artifacts
             directory_bn = directory.mangle()
 
+            # generate expected artifacts info filename for sanity checks
+            artifacts_info_filename = self.get_artifacts_info_filename(
+                stage, directory_bn
+            )
+
             # Generate package release name
             copy_in = [
                 (self.component.source_dir, BUILDER_DIR),
@@ -172,8 +177,10 @@ class DEBSourcePlugin(SourcePlugin):
             package_release_name = data[0]
             package_release_name_full = data[1]
             package_type = data[2]
-            if not is_filename_valid(package_release_name) or not is_filename_valid(
-                package_release_name_full
+            if not is_filename_valid(
+                package_release_name, forbidden_filename=artifacts_info_filename
+            ) or not is_filename_valid(
+                package_release_name_full, forbidden_filename=artifacts_info_filename
             ):
                 msg = f"{self.component}:{self.dist}:{directory}: Invalid source names."
                 raise SourceError(msg)
@@ -189,13 +196,13 @@ class DEBSourcePlugin(SourcePlugin):
                 source_debian = f"{package_release_name_full}.debian.tar.xz"
             if self.parameters.get("files", []):
                 # FIXME: The first file is the source archive. Is it valid for all the cases?
-                ext = self.parameters["files"][0]["url"].split(".")[-1]
+                ext = Path(self.parameters["files"][0]["url"]).suffix
                 msg = f"{self.component}:{self.dist}:{directory}: Invalid extension '{ext}'."
-                if ext not in ("gz", "bz2", "xz", "lzma2"):
+                if ext not in (".gz", ".bz2", ".xz", ".lzma2"):
                     raise SourceError(msg)
             else:
-                ext = "gz"
-            source_orig = f"{package_release_name}.orig.tar.{ext}"
+                ext = ".gz"
+            source_orig = f"{package_release_name}.orig.tar{ext}"
 
             #
             # Create Debian source: orig, debian and dsc
@@ -283,7 +290,7 @@ class DEBSourcePlugin(SourcePlugin):
             with open(temp_dir / f"{directory_bn}_packages.list") as f:
                 data = f.read().splitlines()
             for line in data:
-                if not is_filename_valid(line):
+                if not is_filename_valid(line, allowed_ext=".deb"):
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid package name."
                     raise SourceError(msg)
                 packages_list.append(line)
