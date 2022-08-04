@@ -49,6 +49,10 @@ def deep_check(data):
         for p in FORBIDDEN_PATTERNS:
             if p in data:
                 raise ValueError(f"Forbidden pattern '{p}' found in '{data}'.")
+    elif isinstance(data, int):
+        pass
+    else:
+        raise ValueError(f"Unexpected data type {type(data)} found")
 
 
 class QubesComponent:
