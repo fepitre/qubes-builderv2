@@ -32,6 +32,24 @@ from packaging.version import Version, InvalidVersion
 from qubesbuilder.common import sanitize_line, STAGES
 from qubesbuilder.exc import ComponentError
 
+FORBIDDEN_PATTERNS = [".."]
+for s in STAGES:
+    FORBIDDEN_PATTERNS += [f".{s}.yml", f".{s}.yaml"]
+
+
+def deep_check(data):
+    if isinstance(data, dict):
+        for k, v in data.items():
+            deep_check(k)
+            deep_check(v)
+    elif isinstance(data, list):
+        for l in data:
+            deep_check(l)
+    elif isinstance(data, str):
+        for p in FORBIDDEN_PATTERNS:
+            if p in data:
+                raise ValueError(f"Forbidden pattern '{p}' found in '{data}'.")
+
 
 class QubesComponent:
     def __init__(
@@ -123,21 +141,16 @@ class QubesComponent:
         for key, val in placeholders.items():
             data = data.replace(key, val)
 
-        # TODO: add more extra validation of some field
-        if ".." in data:
-            raise ComponentError(f"Forbidden pattern '..' in '.qubesbuilder'.")
-
-        for s in STAGES:
-            forbidden_pattern = f".{s}.yml"
-            if forbidden_pattern in data:
-                raise ComponentError(
-                    f"Forbidden pattern '{forbidden_pattern}' in '.qubesbuilder'."
-                )
-
         try:
             rendered_data = yaml.safe_load(data)
         except yaml.YAMLError as e:
             raise ComponentError(f"Cannot render '.qubesbuilder'.") from e
+
+        # TODO: add more extra validation of some field
+        try:
+            deep_check(rendered_data)
+        except ValueError as e:
+            raise ComponentError(f"Invalid '.qubesbuilder': {str(e)}")
 
         return rendered_data or {}
 
