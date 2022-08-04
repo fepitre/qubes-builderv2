@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM debian@sha256:b9b1f4a7df16fcf7f287802d827b80f481a1e4caecb62c40c2e26fdebdc2eab9
 MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
 
 # Install dependencies for Qubes Builder
