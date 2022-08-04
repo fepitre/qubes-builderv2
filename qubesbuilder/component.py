@@ -84,7 +84,7 @@ class QubesComponent:
             )
             if result.stdout:
                 version = sanitize_line(result.stdout.rstrip(b"\n")).rstrip()
-                version_re = re.compile("v?([0-9]+(?:\.[0-9]+)*)-([0-9]+.*)")
+                version_re = re.compile(r"v?([0-9]+(?:\.[0-9]+)*)-([0-9]+.*)")
                 if len(version) > 255 or not version_re.match(version):
                     raise ComponentError(f"Invalid version for {self.source_dir}.")
                 version, release = version_re.match(version).groups()  # type: ignore
