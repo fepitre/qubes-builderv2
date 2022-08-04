@@ -124,7 +124,7 @@ class QubesComponent:
             data = data.replace(key, val)
 
         try:
-            rendered_data = yaml.safe_load(data)
+            rendered_data = yaml.safe_load(data) or {}
         except yaml.YAMLError as e:
             raise ComponentError(f"Cannot render '.qubesbuilder'.") from e
 
@@ -134,7 +134,7 @@ class QubesComponent:
         except ValueError as e:
             raise ComponentError(f"Invalid '.qubesbuilder': {str(e)}")
 
-        return rendered_data or {}
+        return rendered_data
 
     @staticmethod
     def _update_hash_from_file(filename: Path, hash: sha512):
