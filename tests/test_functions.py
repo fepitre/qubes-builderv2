@@ -1,7 +1,6 @@
 import pytest
 
-from qubesbuilder.common import is_filename_valid
-from qubesbuilder.component import deep_check
+from qubesbuilder.common import is_filename_valid, deep_check
 
 
 def test_filename():

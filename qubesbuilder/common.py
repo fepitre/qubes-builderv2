@@ -22,6 +22,30 @@ from string import digits, ascii_letters
 
 PROJECT_PATH = Path(__file__).resolve().parents[1]
 
+STAGES = [
+    "fetch",
+    "prep",
+    "build",
+    "post",
+    "verify",
+    "sign",
+    "publish",
+    "upload",
+]
+STAGES_ALIAS = {
+    "f": "fetch",
+    "b": "build",
+    "po": "post",
+    "v": "verify",
+    "s": "sign",
+    "pu": "publish",
+    "u": "upload",
+}
+FORBIDDEN_PATTERNS = [".."]
+
+for s in STAGES:
+    FORBIDDEN_PATTERNS += [f".{s}.yml", f".{s}.yaml"]
+
 
 def is_filename_valid(filename: str) -> bool:
     if filename == "" or filename[0] in ("-", "."):
@@ -51,22 +75,19 @@ def str_to_bool(input_str: str) -> bool:
         return False
 
 
-STAGES = [
-    "fetch",
-    "prep",
-    "build",
-    "post",
-    "verify",
-    "sign",
-    "publish",
-    "upload",
-]
-STAGES_ALIAS = {
-    "f": "fetch",
-    "b": "build",
-    "po": "post",
-    "v": "verify",
-    "s": "sign",
-    "pu": "publish",
-    "u": "upload",
-}
+def deep_check(data):
+    if isinstance(data, dict):
+        for k, v in data.items():
+            deep_check(k)
+            deep_check(v)
+    elif isinstance(data, list):
+        for l in data:
+            deep_check(l)
+    elif isinstance(data, str):
+        for p in FORBIDDEN_PATTERNS:
+            if p in data:
+                raise ValueError(f"Forbidden pattern '{p}' found in '{data}'.")
+    elif isinstance(data, int):
+        pass
+    else:
+        raise ValueError(f"Unexpected data type {type(data)} found")

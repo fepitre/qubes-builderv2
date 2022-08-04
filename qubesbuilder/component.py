@@ -29,30 +29,8 @@ from typing import Union, List
 import yaml
 from packaging.version import Version, InvalidVersion
 
-from qubesbuilder.common import sanitize_line, STAGES
+from qubesbuilder.common import sanitize_line, deep_check
 from qubesbuilder.exc import ComponentError
-
-FORBIDDEN_PATTERNS = [".."]
-for s in STAGES:
-    FORBIDDEN_PATTERNS += [f".{s}.yml", f".{s}.yaml"]
-
-
-def deep_check(data):
-    if isinstance(data, dict):
-        for k, v in data.items():
-            deep_check(k)
-            deep_check(v)
-    elif isinstance(data, list):
-        for l in data:
-            deep_check(l)
-    elif isinstance(data, str):
-        for p in FORBIDDEN_PATTERNS:
-            if p in data:
-                raise ValueError(f"Forbidden pattern '{p}' found in '{data}'.")
-    elif isinstance(data, int):
-        pass
-    else:
-        raise ValueError(f"Unexpected data type {type(data)} found")
 
 
 class QubesComponent:
