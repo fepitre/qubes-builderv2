@@ -131,7 +131,8 @@ class ContainerExecutor(Executor):
             with self.get_client() as client:
                 # prepare container for given image and command
                 image = client.images.get(self.attrs["Id"])
-                cmd = ["bash", "-c", "&&".join(cmd)]
+                final_cmd = f'sudo mkdir -p /builder && sudo chown -R user:user /builder; {"&&".join(cmd)}'
+                container_cmd = ["bash", "-c", final_cmd]
                 # FIXME: Ensure podman client can parse non str value
                 #  https://github.com/containers/podman/issues/11984
                 if self._container_client == "podman":
@@ -145,7 +146,7 @@ class ContainerExecutor(Executor):
                     volumes = ["/dev/loop-control"]  # type: ignore
                 container = client.containers.create(
                     image,
-                    cmd,
+                    container_cmd,
                     privileged=True,
                     environment=environment,
                     volumes=volumes,
