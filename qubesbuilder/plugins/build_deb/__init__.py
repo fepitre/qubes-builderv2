@@ -54,7 +54,7 @@ def provision_local_repository(
     )
 
     # Create target directory that will have hardlinks to built packages
-    target_dir = repository_dir / f"{component.name}-{component.version}"
+    target_dir = repository_dir / f"{component.name}_{component.version}"
     if target_dir.exists():
         shutil.rmtree(target_dir.as_posix())
     target_dir.mkdir(parents=True)
@@ -122,188 +122,184 @@ class DEBBuildPlugin(BuildPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
-        if stage == "build":
-            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        if stage != "build":
+            return
 
-            # Compare previous artifacts hash with current source hash
-            if all(
-                self.component.get_source_hash()
-                == self.get_dist_artifacts_info(
-                    stage=stage, basename=directory.mangle()
-                ).get("source-hash", None)
-                for directory in self.parameters["build"]
-            ):
-                log.info(
-                    f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
+        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+
+        # Compare previous artifacts hash with current source hash
+        if all(
+            self.component.get_source_hash()
+            == self.get_dist_artifacts_info(
+                stage=stage, basename=directory.mangle()
+            ).get("source-hash", None)
+            for directory in self.parameters["build"]
+        ):
+            log.info(
+                f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
+            )
+            return
+
+        # Clean previous build artifacts
+        if artifacts_dir.exists():
+            shutil.rmtree(artifacts_dir.as_posix())
+        artifacts_dir.mkdir(parents=True)
+
+        # Source artifacts
+        prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
+
+        repository_dir = self.get_repository_dir() / self.dist.distribution
+        repository_dir.mkdir(parents=True, exist_ok=True)
+
+        # Remove previous versions in order to keep the latest one only
+        for build in repository_dir.glob(f"{self.component.name}_*"):
+            shutil.rmtree(build.as_posix())
+
+        for directory in self.parameters["build"]:
+            # directory basename will be used as prefix for some artifacts
+            directory_bn = directory.mangle()
+
+            # Read information from source stage
+            source_info = self.get_dist_artifacts_info(
+                stage="prep", basename=directory_bn
+            )
+
+            #
+            # Build Debian packages
+            #
+
+            debian_source_files = ["dsc", "debian"]
+            if not source_info.get("package-type", None):
+                raise BuildError(
+                    f"Cannot determine source type. Missing 'prep' stage call?"
                 )
-                return
+            if source_info["package-type"] == "quilt":
+                debian_source_files.append("orig")
+            for src in debian_source_files:
+                if not source_info.get(src, None):
+                    raise BuildError(f"Cannot find sources for '{directory}'")
 
-            # Clean previous build artifacts
-            if artifacts_dir.exists():
-                shutil.rmtree(artifacts_dir.as_posix())
-            artifacts_dir.mkdir(parents=True)
+            # Copy-in plugin, repository and sources
+            copy_in = [
+                (self.plugins_dir / "build_deb", PLUGINS_DIR),
+                (self.plugins_dir / "source_deb" / "pbuilder", BUILDER_DIR),
+                (repository_dir, REPOSITORY_DIR),
+            ]
+            copy_in += [
+                (prep_artifacts_dir / source_info[f], BUILD_DIR)
+                for f in debian_source_files
+            ]
+            # Copy-in plugin dependencies
+            copy_in += [
+                (self.plugins_dir / plugin, PLUGINS_DIR)
+                for plugin in self.plugin_dependencies
+            ]
 
-            # Source artifacts
-            prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
+            results_dir = BUILDER_DIR / "pbuilder" / "results"
+            source_info["changes"] = source_info["dsc"].replace(
+                ".dsc", "_amd64.changes"
+            )
+            source_info["buildinfo"] = source_info["dsc"].replace(
+                ".dsc", "_amd64.buildinfo"
+            )
+            copy_out = [
+                (
+                    results_dir / source_info["dsc"].replace(".dsc", "_amd64.changes"),
+                    artifacts_dir,
+                ),
+                (
+                    results_dir
+                    / source_info["dsc"].replace(".dsc", "_amd64.buildinfo"),
+                    artifacts_dir,
+                ),
+            ]
+            # We prefer to keep originally copied in source to cross-check
+            # what's inside the resulting .changes file.
+            # copy_out += [
+            #     (results_dir / source_info[f], artifacts_dir) for f in debian_source_files
+            # ]
+            copy_out += [
+                (results_dir / deb, artifacts_dir) for deb in source_info["packages"]
+            ]
 
-            repository_dir = self.get_repository_dir() / self.dist.distribution
-            repository_dir.mkdir(parents=True, exist_ok=True)
+            # Create local builder repository
+            extra_sources = (
+                f"deb [trusted=yes] file:///tmp/qubes-deb {self.dist.name} main"
+            )
+            # extra_sources = ""
+            cmd = [
+                f"{PLUGINS_DIR}/build_deb/scripts/create-local-repo {REPOSITORY_DIR} {self.dist.fullname} {self.dist.name}"
+            ]
 
-            # Remove previous versions in order to keep latest one only
-            for build in repository_dir.glob(f"{self.component.name}-*"):
-                shutil.rmtree(build.as_posix())
-
-            for directory in self.parameters["build"]:
-                # directory basename will be used as prefix for some artifacts
-                directory_bn = directory.mangle()
-
-                # Read information from source stage
-                source_info = self.get_dist_artifacts_info(
-                    stage="prep", basename=directory_bn
-                )
-
-                #
-                # Build Debian packages
-                #
-
-                debian_source_files = ["dsc", "debian"]
-                if not source_info.get("package-type", None):
-                    raise BuildError(
-                        f"Cannot determine source type. Missing 'prep' stage call?"
-                    )
-                if source_info["package-type"] == "quilt":
-                    debian_source_files.append("orig")
-                for src in debian_source_files:
-                    if not source_info.get(src, None):
-                        raise BuildError(f"Cannot find sources for '{directory}'")
-
-                # Copy-in plugin, repository and sources
-                copy_in = [
-                    (self.plugins_dir / "build_deb", PLUGINS_DIR),
-                    (self.plugins_dir / "source_deb" / "pbuilder", BUILDER_DIR),
-                    (repository_dir, REPOSITORY_DIR),
-                ]
-                copy_in += [
-                    (prep_artifacts_dir / source_info[f], BUILD_DIR)
-                    for f in debian_source_files
-                ]
-                # Copy-in plugin dependencies
-                copy_in += [
-                    (self.plugins_dir / plugin, PLUGINS_DIR)
-                    for plugin in self.plugin_dependencies
-                ]
-
-                results_dir = BUILDER_DIR / "pbuilder" / "results"
-                source_info["changes"] = source_info["dsc"].replace(
-                    ".dsc", "_amd64.changes"
-                )
-                source_info["buildinfo"] = source_info["dsc"].replace(
-                    ".dsc", "_amd64.buildinfo"
-                )
-                copy_out = [
-                    (
-                        results_dir
-                        / source_info["dsc"].replace(".dsc", "_amd64.changes"),
-                        artifacts_dir,
-                    ),
-                    (
-                        results_dir
-                        / source_info["dsc"].replace(".dsc", "_amd64.buildinfo"),
-                        artifacts_dir,
-                    ),
-                ]
-                # We prefer to keep originally copied in source to cross-check
-                # what's inside the resulting .changes file.
-                # copy_out += [
-                #     (results_dir / source_info[f], artifacts_dir) for f in debian_source_files
-                # ]
-                copy_out += [
-                    (results_dir / deb, artifacts_dir)
-                    for deb in source_info["packages"]
-                ]
-
-                # Create local builder repository
-                extra_sources = (
-                    f"deb [trusted=yes] file:///tmp/qubes-deb {self.dist.name} main"
-                )
-                # extra_sources = ""
-                cmd = [
-                    f"{PLUGINS_DIR}/build_deb/scripts/create-local-repo {REPOSITORY_DIR} {self.dist.fullname} {self.dist.name}"
-                ]
-
-                if self.use_qubes_repo.get("version", None):
-                    qubes_version = self.use_qubes_repo["version"]
-                    extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name} main"
-                    cmd += [
-                        f"gpg --dearmor "
-                        f"< {PLUGINS_DIR}/source_deb/keys/qubes-debian-r{qubes_version}.asc "
-                        f"> {BUILDER_DIR}/pbuilder/qubes-keyring.gpg"
-                    ]
-                    if self.use_qubes_repo.get("testing", False):
-                        extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name}-testing main"
-
-                # fmt: off
-                # FIXME: We disable black here because it removes escaped quotes.
-                #  This is until we use shlex.quote.
-
-                # FIXME: Allow to pass a prebuilt pbuilder base.tgz.
+            if self.use_qubes_repo.get("version", None):
+                qubes_version = self.use_qubes_repo["version"]
+                extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name} main"
                 cmd += [
-                    f"sudo -E pbuilder create "
-                    f"--distribution {self.dist.name} "
-                    f"--configfile {BUILDER_DIR}/pbuilder/pbuilderrc "
-                    f"--othermirror \"{extra_sources}\""
+                    f"gpg --dearmor "
+                    f"< {PLUGINS_DIR}/source_deb/keys/qubes-debian-r{qubes_version}.asc "
+                    f"> {BUILDER_DIR}/pbuilder/qubes-keyring.gpg"
                 ]
+                if self.use_qubes_repo.get("testing", False):
+                    extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name}-testing main"
 
-                cmd += [
-                    f"sudo -E pbuilder build --override-config "
-                    f"--distribution {self.dist.name} "
-                    f"--configfile {BUILDER_DIR}/pbuilder/pbuilderrc "
-                    f"--othermirror \"{extra_sources}\" "
-                    f"{str(BUILD_DIR / source_info['dsc'])}"
-                ]
-                # fmt: on
-                try:
-                    self.executor.run(
-                        cmd,
-                        copy_in,
-                        copy_out,
-                        environment=self.environment,
-                        no_fail_copy_out=True,
-                    )
-                except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{directory}: Failed to build packages: {str(e)}."
-                    raise BuildError(msg) from e
+            # fmt: off
+            # FIXME: We disable black here because it removes escaped quotes.
+            #  This is until we use shlex.quote.
 
-                # Get packages list that have been actually built from predicted ones
-                packages_list = []
-                for deb in source_info["packages"]:
-                    if os.path.exists(artifacts_dir / deb):
-                        packages_list.append(deb)
+            # FIXME: Allow to pass a prebuilt pbuilder base.tgz.
+            cmd += [
+                f"sudo -E pbuilder create "
+                f"--distribution {self.dist.name} "
+                f"--configfile {BUILDER_DIR}/pbuilder/pbuilderrc "
+                f"--othermirror \"{extra_sources}\""
+            ]
 
-                # We prefer to keep originally copied in source to cross-check
-                # what's inside the resulting .changes file.
-                files = [
-                    prep_artifacts_dir / source_info[f] for f in debian_source_files
-                ]
-                for file in files:
-                    target_path = artifacts_dir / file.name
-                    shutil.copy2(file, target_path)
-
-                # Provision builder local repository
-                provision_local_repository(
-                    debian_directory=directory,
-                    component=self.component,
-                    dist=self.dist,
-                    repository_dir=repository_dir,
-                    source_info=source_info,
-                    packages_list=packages_list,
-                    build_artifacts_dir=artifacts_dir,
+            cmd += [
+                f"sudo -E pbuilder build --override-config "
+                f"--distribution {self.dist.name} "
+                f"--configfile {BUILDER_DIR}/pbuilder/pbuilderrc "
+                f"--othermirror \"{extra_sources}\" "
+                f"{str(BUILD_DIR / source_info['dsc'])}"
+            ]
+            # fmt: on
+            try:
+                self.executor.run(
+                    cmd,
+                    copy_in,
+                    copy_out,
+                    environment=self.environment,
+                    no_fail_copy_out=True,
                 )
+            except ExecutorError as e:
+                msg = f"{self.component}:{self.dist}:{directory}: Failed to build packages: {str(e)}."
+                raise BuildError(msg) from e
 
-                # Save package information we parsed for next stages
-                info = source_info
-                info["packages"] = packages_list
-                info["source-hash"] = self.component.get_source_hash()
-                self.save_dist_artifacts_info(
-                    stage=stage, basename=directory_bn, info=info
-                )
+            # Get packages list that have been actually built from predicted ones
+            packages_list = []
+            for deb in source_info["packages"]:
+                if os.path.exists(artifacts_dir / deb):
+                    packages_list.append(deb)
+
+            # We prefer to keep originally copied in source to cross-check
+            # what's inside the resulting .changes file.
+            files = [prep_artifacts_dir / source_info[f] for f in debian_source_files]
+            for file in files:
+                target_path = artifacts_dir / file.name
+                shutil.copy2(file, target_path)
+
+            # Provision builder local repository
+            provision_local_repository(
+                debian_directory=directory,
+                component=self.component,
+                dist=self.dist,
+                repository_dir=repository_dir,
+                source_info=source_info,
+                packages_list=packages_list,
+                build_artifacts_dir=artifacts_dir,
+            )
+
+            # Save package information we parsed for next stages
+            info = source_info
+            info["packages"] = packages_list
+            info["source-hash"] = self.component.get_source_hash()
+            self.save_dist_artifacts_info(stage=stage, basename=directory_bn, info=info)

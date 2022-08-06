@@ -16,9 +16,8 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
-import os
 import shutil
+import tempfile
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
@@ -72,6 +71,9 @@ class RPMSignPlugin(SignPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
+        if stage != "sign":
+            return
+
         # Check if we have a signing key provided
         sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
             "rpm", None
@@ -86,75 +88,87 @@ class RPMSignPlugin(SignPlugin):
             return
 
         # Sign stage for standard components
-        if stage == "sign":
-            # Source artifacts
-            prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
-            # Build artifacts
-            build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
-            # Sign artifacts
-            artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
-            # We ensure to create a clean keyring for RPM
-            if artifacts_dir.exists():
-                shutil.rmtree(artifacts_dir)
-            db_path = artifacts_dir / "rpmdb"
-            sign_key_asc = artifacts_dir / f"{sign_key}.asc"
-            cmd = [
-                f"mkdir -p {db_path}",
-                f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
-                f"rpmkeys --dbpath={db_path} --import {sign_key_asc}",
+        # Source artifacts
+        prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
+        # Build artifacts
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+
+        # RPMDB
+        db_path = self.artifacts_dir / f"rpmdb/{sign_key}"
+
+        temp_dir = Path(tempfile.mkdtemp())
+        sign_key_asc = temp_dir / f"{sign_key}.asc"
+        cmd = [
+            f"mkdir -p {db_path}",
+            f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
+            f"rpmkeys --dbpath={db_path} --import {sign_key_asc}",
+        ]
+        try:
+            self.executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.component}:{self.dist}: Failed to create RPM dbpath."
+            raise SignError(msg) from e
+        finally:
+            # Clear temporary dir
+            shutil.rmtree(temp_dir)
+
+        for build in self.parameters["build"]:
+            # spec file basename will be used as prefix for some artifacts
+            build_bn = build.mangle()
+
+            # Read information from build stage
+            build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
+
+            if not build_info.get("rpms", []) and not build_info.get("srpm", None):
+                log.info(f"{self.component}:{self.dist}:{build}: Nothing to sign.")
+                continue
+
+            packages_list = [
+                build_artifacts_dir / "rpm" / rpm for rpm in build_info["rpms"]
             ]
+            packages_list += [prep_artifacts_dir / build_info["srpm"]]
+
             try:
-                self.executor.run(cmd)
+                for rpm in packages_list:
+                    log.info(
+                        f"{self.component}:{self.dist}:{build}: Signing '{rpm.name}'."
+                    )
+                    cmd = [
+                        f"{self.plugins_dir}/sign_rpm/scripts/sign-rpm "
+                        f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm}"
+                    ]
+                    self.executor.run(cmd)
             except ExecutorError as e:
-                msg = f"{self.component}:{self.dist}: Failed to create RPM dbpath."
+                msg = f"{self.component}:{self.dist}:{build}: Failed to sign RPMs."
                 raise SignError(msg) from e
 
-            for build in self.parameters["build"]:
-                # spec file basename will be used as prefix for some artifacts
-                build_bn = build.mangle()
+            buildinfo_file = build_artifacts_dir / "rpm" / build_info["buildinfo"]
 
-                # Read information from build stage
-                build_info = self.get_dist_artifacts_info(
-                    stage="build", basename=build_bn
+            try:
+                log.info(
+                    f"{self.component}:{self.dist}:{build}: Signing '{buildinfo_file.name}'."
                 )
-
-                if not build_info.get("rpms", []) and not build_info.get("srpm", None):
-                    log.info(f"{self.component}:{self.dist}:{build}: Nothing to sign.")
-                    continue
-
-                packages_list = [
-                    build_artifacts_dir / "rpm" / rpm for rpm in build_info["rpms"]
+                cmd = [
+                    f"{self.plugins_dir}/sign_rpm/scripts/update-rpmbuildinfo {buildinfo_file} {self.gpg_client} {sign_key}"
                 ]
-                packages_list += [prep_artifacts_dir / build_info["srpm"]]
+                self.executor.run(cmd)
+            except ExecutorError as e:
+                msg = f"{self.component}:{self.dist}:{build}: Failed to sign buildinfo file."
+                raise SignError(msg) from e
 
-                try:
-                    for rpm in packages_list:
-                        log.info(
-                            f"{self.component}:{self.dist}:{build}: Signing '{rpm.name}'."
-                        )
-                        cmd = [
-                            f"{self.plugins_dir}/sign_rpm/scripts/sign-rpm "
-                            f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm}"
-                        ]
-
-                        self.executor.run(cmd)
-                except ExecutorError as e:
-                    msg = f"{self.component}:{self.dist}:{build}: Failed to sign RPMs."
-                    raise SignError(msg) from e
-
-                # Re-provision builder local repository with signatures
-                repository_dir = self.get_repository_dir() / self.dist.distribution
-                try:
-                    provision_local_repository(
-                        build=build,
-                        component=self.component,
-                        dist=self.dist,
-                        repository_dir=repository_dir,
-                        source_info=build_info,
-                        packages_list=build_info["rpms"],
-                        prep_artifacts_dir=prep_artifacts_dir,
-                        build_artifacts_dir=build_artifacts_dir,
-                    )
-                except BuildError as e:
-                    raise SignError from e
+            # Re-provision builder local repository with signatures
+            repository_dir = self.get_repository_dir() / self.dist.distribution
+            try:
+                provision_local_repository(
+                    build=build,
+                    component=self.component,
+                    dist=self.dist,
+                    repository_dir=repository_dir,
+                    source_info=build_info,
+                    packages_list=build_info["rpms"],
+                    prep_artifacts_dir=prep_artifacts_dir,
+                    build_artifacts_dir=build_artifacts_dir,
+                )
+            except BuildError as e:
+                raise SignError from e

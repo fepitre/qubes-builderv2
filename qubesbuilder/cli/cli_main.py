@@ -33,7 +33,8 @@ from qubesbuilder.cli.cli_repository import repository
 from qubesbuilder.cli.cli_template import template
 from qubesbuilder.cli.cli_config import config
 from qubesbuilder.cli.cli_exc import CliError
-from qubesbuilder.config import Config, STAGES
+from qubesbuilder.config import Config
+from qubesbuilder.common import STAGES
 from qubesbuilder.log import get_logger, init_logging
 
 log = get_logger("cli")
@@ -41,6 +42,7 @@ log = get_logger("cli")
 
 def init_context_obj(
     builder_conf,
+    artifacts_dir: str = None,
     verbose: int = None,
     debug: bool = None,
     log_file: str = None,
@@ -60,6 +62,9 @@ def init_context_obj(
             option, value = parsed_option
             executor_config["options"][option] = str(value)  # type: ignore
         config.set("executor", executor_config)
+
+    if artifacts_dir is not None:
+        config.set_artifacts_dir(Path(artifacts_dir).resolve())
 
     obj = ContextObj(config)
 
@@ -98,6 +103,11 @@ def init_context_obj(
     "--builder-conf",
     default="builder.yml",
     help="Path to configuration file (default: builder.yml).",
+)
+@click.option(
+    "--artifacts-dir",
+    default=None,
+    help="Path to artifacts directory (default: ./artifacts).",
 )
 @click.option(
     "--log-file",
@@ -144,6 +154,7 @@ def main(
     verbose: int,
     debug: bool,
     builder_conf: str,
+    artifacts_dir: str = None,
     log_file: str = None,
     component: List = None,
     distribution: List = None,
@@ -157,6 +168,7 @@ def main(
     """
     obj = init_context_obj(
         builder_conf=builder_conf,
+        artifacts_dir=artifacts_dir,
         verbose=verbose,
         debug=debug,
         log_file=log_file,

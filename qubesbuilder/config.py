@@ -23,7 +23,7 @@ from typing import Union, List, Dict, Any
 
 import yaml
 
-from qubesbuilder.common import PROJECT_PATH
+from qubesbuilder.common import PROJECT_PATH, STAGES
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.exc import ConfigError
@@ -31,25 +31,6 @@ from qubesbuilder.executors.helpers import getExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.template import QubesTemplate
 
-STAGES = [
-    "fetch",
-    "prep",
-    "build",
-    "post",
-    "verify",
-    "sign",
-    "publish",
-    "upload",
-]
-STAGES_ALIAS = {
-    "f": "fetch",
-    "b": "build",
-    "po": "post",
-    "v": "verify",
-    "s": "sign",
-    "pu": "publish",
-    "u": "upload",
-}
 log = get_logger("config")
 
 
@@ -87,10 +68,10 @@ class Config:
         # Artifacts directory location
         if self._conf.get("artifacts-dir", None):
             self._artifacts_dir = Path(self._conf["artifacts-dir"]).resolve()
-            log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
         else:
             self._artifacts_dir = PROJECT_PATH / "artifacts"
-            log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
+
+        # log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
 
         self.verbose = self._conf.get("verbose", False)
         self.debug = self._conf.get("debug", False)
@@ -266,6 +247,9 @@ class Config:
 
     def get_artifacts_dir(self):
         return self._artifacts_dir
+
+    def set_artifacts_dir(self, directory: Path):
+        self._artifacts_dir = directory
 
     def get_logs_dir(self):
         return self._artifacts_dir / "logs"

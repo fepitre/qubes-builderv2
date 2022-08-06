@@ -62,14 +62,16 @@ class BuildPlugin(DistributionPlugin):
         self.use_qubes_repo = use_qubes_repo or {}
 
     def run(self, stage: str):
+        if stage != "build":
+            return
+
         # Check if we have Debian related content defined
         if not self.parameters.get("build", []):
             log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 
-        if stage == "build":
-            # Ensure all build targets artifacts exist from previous required stage
-            try:
-                self.check_dist_stage_artifacts(stage="prep")
-            except PluginError as e:
-                raise BuildError(str(e)) from e
+        # Ensure all build targets artifacts exist from previous required stage
+        try:
+            self.check_dist_stage_artifacts(stage="prep")
+        except PluginError as e:
+            raise BuildError(str(e)) from e

@@ -1,30 +1,60 @@
 import os.path
+import pathlib
 import re
 import shutil
 import subprocess
 import tempfile
-import dnf
-import yaml
-import dateutil.parser
-from dateutil.parser import parse as parsedate
 from datetime import datetime, timedelta
+
+import dnf
+import pytest
+import yaml
+from dateutil.parser import parse as parsedate
+
 from qubesbuilder.common import PROJECT_PATH
 
 DEFAULT_BUILDER_CONF = PROJECT_PATH / "tests/builder-ci.yml"
-ARTIFACTS_DIR = PROJECT_PATH / "artifacts"
 HASH_RE = re.compile("[a-f0-9]{40}")
 
 
-def qb_call(builder_conf, *args, **kwargs):
+@pytest.fixture(scope="session")
+def artifacts_dir(tmpdir_factory):
+    if os.environ.get("ARTIFACTS_DIR"):
+        artifacts_dir = pathlib.Path(os.environ.get("ARTIFACTS_DIR"))
+    else:
+        tmpdir = tmpdir_factory.mktemp("github-")
+        artifacts_dir = tmpdir / "artifacts"
+    if not artifacts_dir.exists():
+        artifacts_dir.mkdir()
+    yield artifacts_dir
+
+
+def qb_call(builder_conf, artifacts_dir, *args, **kwargs):
     subprocess.check_call(
-        [PROJECT_PATH / "qb", "--verbose", "--builder-conf", builder_conf, *args],
+        [
+            PROJECT_PATH / "qb",
+            "--verbose",
+            "--builder-conf",
+            str(builder_conf),
+            "--artifacts-dir",
+            str(artifacts_dir),
+            *args,
+        ],
         **kwargs,
     )
 
 
-def qb_call_output(builder_conf, *args, **kwargs):
+def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
     return subprocess.check_output(
-        [PROJECT_PATH / "qb", "--verbose", "--builder-conf", builder_conf, *args],
+        [
+            PROJECT_PATH / "qb",
+            "--verbose",
+            "--builder-conf",
+            str(builder_conf),
+            "--artifacts-dir",
+            str(artifacts_dir),
+            *args,
+        ],
         **kwargs,
     )
 
@@ -58,11 +88,13 @@ def rpm_packages_list(repository_dir):
 #
 
 
-def test_fetch():
-    qb_call(DEFAULT_BUILDER_CONF, "package", "fetch")
+def test_fetch(artifacts_dir):
+    qb_call(DEFAULT_BUILDER_CONF, artifacts_dir, "package", "fetch")
 
-    assert (ARTIFACTS_DIR / "distfiles/qasync-0.23.0.tar.gz").exists()
-    assert (ARTIFACTS_DIR / "distfiles/xfwm4-4.14.2.tar.bz2").exists()
+    assert (artifacts_dir / "distfiles/python-qasync/qasync-0.23.0.tar.gz").exists()
+    assert (
+        artifacts_dir / "distfiles/desktop-linux-xfce4-xfwm4/xfwm4-4.14.2.tar.bz2"
+    ).exists()
 
     for component in [
         "core-qrexec",
@@ -70,12 +102,16 @@ def test_fetch():
         "desktop-linux-xfce4-xfwm4",
         "python-qasync",
     ]:
-        assert (ARTIFACTS_DIR / "sources" / component / ".qubesbuilder").exists()
+        assert (artifacts_dir / "sources" / component / ".qubesbuilder").exists()
 
 
-def test_fetch_updating():
+def test_fetch_updating(artifacts_dir):
     result = qb_call_output(
-        DEFAULT_BUILDER_CONF, "package", "fetch", stderr=subprocess.STDOUT
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "package",
+        "fetch",
+        stderr=subprocess.STDOUT,
     ).decode()
     for sentence in [
         "python-qasync: source already fetched. Updating.",
@@ -93,13 +129,20 @@ def test_fetch_updating():
 #
 
 
-def test_prep_host_fc32():
+def test_prep_host_fc32(artifacts_dir):
     qb_call(
-        DEFAULT_BUILDER_CONF, "-c", "core-qrexec", "-d", "host-fc32", "package", "prep"
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-c",
+        "core-qrexec",
+        "-d",
+        "host-fc32",
+        "package",
+        "prep",
     )
 
     with open(
-        ARTIFACTS_DIR
+        artifacts_dir
         / "components/core-qrexec/4.1.18-1/host-fc32/prep/rpm_spec_qubes-qrexec.spec.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
@@ -120,7 +163,7 @@ def test_prep_host_fc32():
     assert info.get("srpm", None) == srpm
 
     with open(
-        ARTIFACTS_DIR
+        artifacts_dir
         / "components/core-qrexec/4.1.18-1/host-fc32/prep/rpm_spec_qubes-qrexec-dom0.spec.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
@@ -137,13 +180,20 @@ def test_prep_host_fc32():
     assert info.get("srpm", None) == srpm
 
 
-def test_build_host_fc32():
+def test_build_host_fc32(artifacts_dir):
     qb_call(
-        DEFAULT_BUILDER_CONF, "-c", "core-qrexec", "-d", "host-fc32", "package", "build"
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-c",
+        "core-qrexec",
+        "-d",
+        "host-fc32",
+        "package",
+        "build",
     )
 
     with open(
-        ARTIFACTS_DIR
+        artifacts_dir
         / "components/core-qrexec/4.1.18-1/host-fc32/build/rpm_spec_qubes-qrexec.spec.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
@@ -162,7 +212,7 @@ def test_build_host_fc32():
     assert info.get("srpm", None) == srpm
 
     with open(
-        ARTIFACTS_DIR
+        artifacts_dir
         / "components/core-qrexec/4.1.18-1/host-fc32/build/rpm_spec_qubes-qrexec-dom0.spec.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
@@ -178,9 +228,22 @@ def test_build_host_fc32():
     assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("srpm", None) == srpm
 
+    # buildinfo
+    assert (
+        artifacts_dir
+        / "components/core-qrexec/4.1.18-1/host-fc32/build/rpm/qubes-core-qrexec-4.1.18-1.fc32.x86_64.buildinfo"
+    ).exists()
 
-def test_sign_host_fc32():
+
+def test_sign_host_fc32(artifacts_dir):
     env = os.environ.copy()
+
+    buildinfo = (
+        artifacts_dir
+        / "components/core-qrexec/4.1.18-1/host-fc32/build/rpm/qubes-core-qrexec-4.1.18-1.fc32.x86_64.buildinfo"
+    )
+    buildinfo_number_lines = len(buildinfo.read_text(encoding="utf8").splitlines())
+
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
         # Better copy testing keyring into a separate directory to prevent locks inside
@@ -194,6 +257,7 @@ def test_sign_host_fc32():
 
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "core-qrexec",
             "-d",
@@ -203,12 +267,7 @@ def test_sign_host_fc32():
             env=env,
         )
 
-    assert (
-        ARTIFACTS_DIR
-        / "components/core-qrexec/4.1.18-1/host-fc32/sign/632F8C69E01B25C9E0C3ADF2F360C0D259FB650C.asc"
-    ).exists()
-
-    dbpath = ARTIFACTS_DIR / "components/core-qrexec/4.1.18-1/host-fc32/sign/rpmdb"
+    dbpath = artifacts_dir / "rpmdb/632F8C69E01B25C9E0C3ADF2F360C0D259FB650C"
     assert dbpath.exists()
 
     rpms = [
@@ -225,7 +284,7 @@ def test_sign_host_fc32():
     ]
     for rpm in rpms:
         rpm_path = (
-            ARTIFACTS_DIR
+            artifacts_dir
             / f"components/core-qrexec/4.1.18-1/host-fc32/{f'prep/{rpm}' if rpm.endswith('.src.rpm') else f'build/rpm/{rpm}'}"
         )
         assert rpm_path.exists()
@@ -237,8 +296,15 @@ def test_sign_host_fc32():
         )
         assert "digests signatures OK" in result.stdout.decode()
 
+    # Ensure that original content is at least here with the 3 headers PGP BEGIN/END and at least
+    # one line inside the signature
+    signed_buildinfo_number_lines = len(
+        buildinfo.read_text(encoding="utf8").splitlines()
+    )
+    assert signed_buildinfo_number_lines > buildinfo_number_lines + 4
 
-def test_publish_host_fc32():
+
+def test_publish_host_fc32(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -251,6 +317,7 @@ def test_publish_host_fc32():
         # publish into unstable
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "core-qrexec",
             "-d",
@@ -278,13 +345,13 @@ def test_publish_host_fc32():
         srpm_dom0 = "qubes-core-qrexec-dom0-4.1.18-1.fc32.src.rpm"
 
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
@@ -302,6 +369,7 @@ def test_publish_host_fc32():
         # publish into current-testing
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "core-qrexec",
             "-d",
@@ -312,13 +380,13 @@ def test_publish_host_fc32():
             env=env,
         )
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
@@ -339,14 +407,19 @@ def test_publish_host_fc32():
             "current-testing",
         }
 
+        # buildinfo
+        assert (
+            artifacts_dir / "repository-publish/rpm/r4.2/current-testing/host/fc32"
+        ).exists()
+
         # publish into current
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         )
         publish_dom0_file = (
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         )
 
@@ -368,6 +441,7 @@ def test_publish_host_fc32():
 
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "core-qrexec",
             "-d",
@@ -401,6 +475,11 @@ def test_publish_host_fc32():
             "current",
         }
 
+        # buildinfo
+        assert (
+            artifacts_dir / "repository-publish/rpm/r4.2/current/host/fc32"
+        ).exists()
+
     rpms = [
         "qubes-core-qrexec-4.1.18-1.fc32.src.rpm",
         "qubes-core-qrexec-4.1.18-1.fc32.x86_64.rpm",
@@ -417,7 +496,7 @@ def test_publish_host_fc32():
     # Check that packages are in the published repository
     for repository in ["unstable", "current-testing", "current"]:
         repository_dir = (
-            f"file://{ARTIFACTS_DIR}/repository-publish/rpm/r4.2/{repository}/host/fc32"
+            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc32"
         )
         packages = rpm_packages_list(repository_dir)
         assert set(rpms) == set(packages)
@@ -426,9 +505,10 @@ def test_publish_host_fc32():
 # Check that we properly ignore already done stages.
 
 
-def test_prep_host_fc32_skip():
+def test_prep_host_fc32_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "-c",
         "core-qrexec",
         "-d",
@@ -444,9 +524,10 @@ def test_prep_host_fc32_skip():
     )
 
 
-def test_build_host_fc32_skip():
+def test_build_host_fc32_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "-c",
         "core-qrexec",
         "-d",
@@ -462,7 +543,7 @@ def test_build_host_fc32_skip():
     )
 
 
-def test_sign_host_fc32_skip():
+def test_sign_host_fc32_skip(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -474,6 +555,7 @@ def test_sign_host_fc32_skip():
 
         result = qb_call_output(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "core-qrexec",
             "-d",
@@ -503,7 +585,7 @@ def test_sign_host_fc32_skip():
 # Check that we unpublish properly from current-testing
 
 
-def test_unpublish_host_fc32():
+def test_unpublish_host_fc32(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -516,6 +598,7 @@ def test_unpublish_host_fc32():
         # publish into unstable
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "core-qrexec",
             "-d",
@@ -543,13 +626,13 @@ def test_unpublish_host_fc32():
         srpm_dom0 = "qubes-core-qrexec-dom0-4.1.18-1.fc32.src.rpm"
 
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/core-qrexec/4.1.18-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
@@ -585,7 +668,7 @@ def test_unpublish_host_fc32():
     ]
     for repository in ["unstable", "current-testing", "current"]:
         repository_dir = (
-            f"file://{ARTIFACTS_DIR}/repository-publish/rpm/r4.2/{repository}/host/fc32"
+            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc32"
         )
         packages = rpm_packages_list(repository_dir)
         if repository == "current":
@@ -599,9 +682,10 @@ def test_unpublish_host_fc32():
 #
 
 
-def test_prep_vm_bullseye():
+def test_prep_vm_bullseye(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "-c",
         "python-qasync",
         "-d",
@@ -611,7 +695,7 @@ def test_prep_vm_bullseye():
     )
 
     with open(
-        ARTIFACTS_DIR
+        artifacts_dir
         / "components/python-qasync/0.23.0-1/vm-bullseye/prep/debian-pkg_debian.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
@@ -635,9 +719,10 @@ def test_prep_vm_bullseye():
     assert info.get("package-release-name-full", None) == package_release_name_full
 
 
-def test_build_vm_bullseye():
+def test_build_vm_bullseye(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "-c",
         "python-qasync",
         "-d",
@@ -647,7 +732,7 @@ def test_build_vm_bullseye():
     )
 
     with open(
-        ARTIFACTS_DIR
+        artifacts_dir
         / "components/python-qasync/0.23.0-1/vm-bullseye/build/debian-pkg_debian.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
@@ -668,7 +753,7 @@ def test_build_vm_bullseye():
     assert info.get("package-release-name-full", None) == package_release_name_full
 
 
-def test_sign_vm_bullseye():
+def test_sign_vm_bullseye(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -680,6 +765,7 @@ def test_sign_vm_bullseye():
 
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "python-qasync",
             "-d",
@@ -689,13 +775,8 @@ def test_sign_vm_bullseye():
             env=env,
         )
 
-    assert (
-        ARTIFACTS_DIR
-        / "components/python-qasync/0.23.0-1/vm-bullseye/sign/632F8C69E01B25C9E0C3ADF2F360C0D259FB650C.asc"
-    ).exists()
-
     keyring_dir = (
-        ARTIFACTS_DIR / "components/python-qasync/0.23.0-1/vm-bullseye/sign/keyring"
+        artifacts_dir / "components/python-qasync/0.23.0-1/vm-bullseye/sign/keyring"
     )
     assert keyring_dir.exists()
 
@@ -706,7 +787,7 @@ def test_sign_vm_bullseye():
     ]
     for f in files:
         file_path = (
-            ARTIFACTS_DIR / f"components/python-qasync/0.23.0-1/vm-bullseye/build/{f}"
+            artifacts_dir / f"components/python-qasync/0.23.0-1/vm-bullseye/build/{f}"
         )
         assert file_path.exists()
         result = subprocess.run(
@@ -716,7 +797,7 @@ def test_sign_vm_bullseye():
         assert result.returncode == 0
 
 
-def test_publish_vm_bullseye():
+def test_publish_vm_bullseye(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -729,6 +810,7 @@ def test_publish_vm_bullseye():
         # publish into unstable
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "python-qasync",
             "-d",
@@ -740,7 +822,7 @@ def test_publish_vm_bullseye():
         )
 
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
@@ -764,6 +846,7 @@ def test_publish_vm_bullseye():
         # publish into current-testing
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "python-qasync",
             "-d",
@@ -774,7 +857,7 @@ def test_publish_vm_bullseye():
             env=env,
         )
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
@@ -794,7 +877,7 @@ def test_publish_vm_bullseye():
         # publish into current
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian-pkg_debian.publish.yml"
         )
 
@@ -808,6 +891,7 @@ def test_publish_vm_bullseye():
 
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "python-qasync",
             "-d",
@@ -834,7 +918,7 @@ def test_publish_vm_bullseye():
         }
 
     # Check that packages are in the published repositories
-    repository_dir = ARTIFACTS_DIR / "repository-publish/deb/r4.2/vm"
+    repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
     for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
         packages = deb_packages_list(repository_dir, codename)
         expected_packages = [
@@ -847,9 +931,10 @@ def test_publish_vm_bullseye():
 # Check that we properly ignore already done stages.
 
 
-def test_prep_vm_bullseye_skip():
+def test_prep_vm_bullseye_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "-c",
         "python-qasync",
         "-d",
@@ -865,9 +950,10 @@ def test_prep_vm_bullseye_skip():
     )
 
 
-def test_build_vm_bullseye_skip():
+def test_build_vm_bullseye_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "-c",
         "python-qasync",
         "-d",
@@ -883,7 +969,7 @@ def test_build_vm_bullseye_skip():
     )
 
 
-def test_sign_vm_bullseye_skip():
+def test_sign_vm_bullseye_skip(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -895,6 +981,7 @@ def test_sign_vm_bullseye_skip():
 
         result = qb_call_output(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "python-qasync",
             "-d",
@@ -911,9 +998,9 @@ def test_sign_vm_bullseye_skip():
 # Check that we unpublish properly from current-testing
 
 
-def test_unpublish_vm_bullseye():
+def test_unpublish_vm_bullseye(artifacts_dir):
     # FIXME: we rely on previous test_publish_vm_bullseye being ran before
-    repository_dir = ARTIFACTS_DIR / "repository-publish/deb/r4.2/vm"
+    repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
     for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
         packages = deb_packages_list(repository_dir, codename)
         expected_packages = [
@@ -934,6 +1021,7 @@ def test_unpublish_vm_bullseye():
         # publish into unstable
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-c",
             "python-qasync",
             "-d",
@@ -952,7 +1040,7 @@ def test_unpublish_vm_bullseye():
         package_release_name_full = "python-qasync_0.23.0-1+deb11u1"
 
         with open(
-            ARTIFACTS_DIR
+            artifacts_dir
             / "components/python-qasync/0.23.0-1/vm-bullseye/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
@@ -970,7 +1058,7 @@ def test_unpublish_vm_bullseye():
         }
 
     # Check that packages are in the published repositories
-    repository_dir = ARTIFACTS_DIR / "repository-publish/deb/r4.2/vm"
+    repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
     for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
         packages = deb_packages_list(repository_dir, codename)
         if codename == "bullseye":
@@ -988,9 +1076,10 @@ def test_unpublish_vm_bullseye():
 #
 
 
-def test_prep_template_fedora_35_xfce():
+def test_prep_template_fedora_35_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "-e",
         "qubes",
         "--executor-option",
@@ -1001,17 +1090,18 @@ def test_prep_template_fedora_35_xfce():
         "prep",
     )
 
-    assert (ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce").exists()
+    assert (artifacts_dir / "templates/build_timestamp_fedora-35-xfce").exists()
     assert (
-        ARTIFACTS_DIR / "templates/qubeized_images/fedora-35-xfce/root.img"
+        artifacts_dir / "templates/qubeized_images/fedora-35-xfce/root.img"
     ).exists()
-    assert (ARTIFACTS_DIR / "templates/fedora-35-xfce/appmenus").exists()
-    assert (ARTIFACTS_DIR / "templates/fedora-35-xfce/template.conf").exists()
+    assert (artifacts_dir / "templates/fedora-35-xfce/appmenus").exists()
+    assert (artifacts_dir / "templates/fedora-35-xfce/template.conf").exists()
 
 
-def test_build_template_fedora_35_xfce():
+def test_build_template_fedora_35_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "-e",
         "qubes",
         "--executor-option",
@@ -1022,19 +1112,19 @@ def test_build_template_fedora_35_xfce():
         "build",
     )
 
-    assert (ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce").exists()
+    assert (artifacts_dir / "templates/build_timestamp_fedora-35-xfce").exists()
 
-    with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
+    with open(artifacts_dir / "templates/build_timestamp_fedora-35-xfce") as f:
         data = f.read().splitlines()
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
-        ARTIFACTS_DIR
+        artifacts_dir
         / f"templates/rpm/qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
     )
     assert rpm_path.exists()
 
 
-def test_sign_template_fedora_35_xfce():
+def test_sign_template_fedora_35_xfce(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1049,6 +1139,7 @@ def test_sign_template_fedora_35_xfce():
 
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-t",
             "fedora-35-xfce",
             "template",
@@ -1057,17 +1148,17 @@ def test_sign_template_fedora_35_xfce():
         )
 
     assert (
-        ARTIFACTS_DIR / "templates/632F8C69E01B25C9E0C3ADF2F360C0D259FB650C.asc"
+        artifacts_dir / "templates/632F8C69E01B25C9E0C3ADF2F360C0D259FB650C.asc"
     ).exists()
 
-    dbpath = ARTIFACTS_DIR / "templates/rpmdb"
+    dbpath = artifacts_dir / "templates/rpmdb"
     assert dbpath.exists()
 
-    with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
+    with open(artifacts_dir / "templates/build_timestamp_fedora-35-xfce") as f:
         data = f.read().splitlines()
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
-        ARTIFACTS_DIR
+        artifacts_dir
         / f"templates/rpm/qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
     )
     assert rpm_path.exists()
@@ -1080,7 +1171,7 @@ def test_sign_template_fedora_35_xfce():
     assert "digests signatures OK" in result.stdout.decode()
 
 
-def test_publish_template_fedora_35_xfce():
+def test_publish_template_fedora_35_xfce(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1093,6 +1184,7 @@ def test_publish_template_fedora_35_xfce():
         # publish into templates-itl-testing
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-t",
             "fedora-35-xfce",
             "repository",
@@ -1101,10 +1193,10 @@ def test_publish_template_fedora_35_xfce():
             env=env,
         )
 
-        with open(ARTIFACTS_DIR / "templates/fedora-35-xfce.publish.yml") as f:
+        with open(artifacts_dir / "templates/fedora-35-xfce.publish.yml") as f:
             info = yaml.safe_load(f.read())
 
-        with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
+        with open(artifacts_dir / "templates/build_timestamp_fedora-35-xfce") as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
@@ -1115,7 +1207,7 @@ def test_publish_template_fedora_35_xfce():
 
         # publish into templates-itl
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
-        publish_file = ARTIFACTS_DIR / "templates/fedora-35-xfce.publish.yml"
+        publish_file = artifacts_dir / "templates/fedora-35-xfce.publish.yml"
 
         for r in info["repository-publish"]:
             if r["name"] == "templates-itl-testing":
@@ -1127,6 +1219,7 @@ def test_publish_template_fedora_35_xfce():
 
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-t",
             "fedora-35-xfce",
             "repository",
@@ -1147,13 +1240,13 @@ def test_publish_template_fedora_35_xfce():
     for repository in ["templates-itl-testing", "templates-itl"]:
         rpm = f"qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
         repository_dir = (
-            f"file://{ARTIFACTS_DIR}/repository-publish/rpm/r4.2/{repository}"
+            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}"
         )
         packages = rpm_packages_list(repository_dir)
         assert {rpm} == set(packages)
 
 
-def test_unpublish_template_fedora_35_xfce():
+def test_unpublish_template_fedora_35_xfce(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1163,13 +1256,14 @@ def test_unpublish_template_fedora_35_xfce():
         env["GNUPGHOME"] = gnupghome
         env["HOME"] = tmpdir
 
-        with open(ARTIFACTS_DIR / "templates/build_timestamp_fedora-35-xfce") as f:
+        with open(artifacts_dir / "templates/build_timestamp_fedora-35-xfce") as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
         # unpublish from templates-itl
         qb_call(
             DEFAULT_BUILDER_CONF,
+            artifacts_dir,
             "-t",
             "fedora-35-xfce",
             "repository",
@@ -1178,7 +1272,7 @@ def test_unpublish_template_fedora_35_xfce():
             env=env,
         )
 
-        publish_file = ARTIFACTS_DIR / "templates/fedora-35-xfce.publish.yml"
+        publish_file = artifacts_dir / "templates/fedora-35-xfce.publish.yml"
         with open(publish_file) as f:
             info = yaml.safe_load(f.read())
 
@@ -1191,7 +1285,7 @@ def test_unpublish_template_fedora_35_xfce():
     for repository in ["templates-itl-testing", "templates-itl"]:
         rpm = f"qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
         repository_dir = (
-            f"file://{ARTIFACTS_DIR}/repository-publish/rpm/r4.2/{repository}"
+            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}"
         )
         packages = rpm_packages_list(repository_dir)
         if repository == "templates-itl":

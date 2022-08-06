@@ -23,7 +23,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.publish import PublishPlugin, PublishError, MIN_AGE_DAYS
+from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_deb")
 
@@ -47,6 +47,7 @@ class DEBPublishPlugin(PublishPlugin):
         sign_key: dict,
         repository_publish: dict,
         backend_vmm: str,
+        min_age_days: int,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -63,6 +64,7 @@ class DEBPublishPlugin(PublishPlugin):
             verbose=verbose,
             debug=debug,
             backend_vmm=backend_vmm,
+            min_age_days=min_age_days,
         )
 
     @classmethod
@@ -96,7 +98,7 @@ class DEBPublishPlugin(PublishPlugin):
 
         log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
 
-        # Verify signatures
+        # Verify signatures (sanity check, refuse to publish if packages weren't signed)
         try:
             log.info(f"{self.component}:{self.dist}:{directory}: Verifying signatures.")
             cmd = []
@@ -195,6 +197,9 @@ class DEBPublishPlugin(PublishPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
+        if stage != "publish":
+            return
+
         # Check if we have a signing key provided
         sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
             "deb", None
@@ -214,14 +219,13 @@ class DEBPublishPlugin(PublishPlugin):
         # Keyring used for signing
         keyring_dir = sign_artifacts_dir / "keyring"
 
-        if stage == "publish":
-            repository_publish = repository_publish or self.repository_publish.get(
-                "components"
-            )
-            if not repository_publish:
-                raise PublishError("Cannot determine repository for publish")
+        repository_publish = repository_publish or self.repository_publish.get(
+            "components"
+        )
+        if not repository_publish:
+            raise PublishError("Cannot determine repository for publish")
 
-        if stage == "publish" and not unpublish:
+        if not unpublish:
 
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
@@ -269,7 +273,7 @@ class DEBPublishPlugin(PublishPlugin):
                     f"{self.component}:{self.dist}: "
                     f"Refusing to publish to 'current' as packages are not "
                     f"uploaded to 'current-testing' or 'security-testing' "
-                    f"for at least {MIN_AGE_DAYS} days."
+                    f"for at least {self.min_age_days} days."
                 )
                 raise PublishError(failure_msg)
 
@@ -323,7 +327,7 @@ class DEBPublishPlugin(PublishPlugin):
                     stage="publish", basename=directory_bn, info=info
                 )
 
-        if stage == "publish" and unpublish:
+        if unpublish:
             if not all(
                 self.is_published(
                     basename=directory.mangle(),

@@ -66,17 +66,19 @@ class SignPlugin(DistributionPlugin):
         self.sign_key = sign_key
 
     def run(self, stage: str):
+        if stage != "sign":
+            return
+
         # Check if we have Debian related content defined
         if not self.parameters.get("build", []):
             log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 
-        if stage == "sign":
-            if not isinstance(self.executor, LocalExecutor):
-                raise SignError("This plugin only supports local executor.")
+        if not isinstance(self.executor, LocalExecutor):
+            raise SignError("This plugin only supports local executor.")
 
-            # Ensure all build targets artifacts exist from previous required stage
-            try:
-                self.check_dist_stage_artifacts(stage="build")
-            except PluginError as e:
-                raise SignError(str(e)) from e
+        # Ensure all build targets artifacts exist from previous required stage
+        try:
+            self.check_dist_stage_artifacts(stage="build")
+        except PluginError as e:
+            raise SignError(str(e)) from e

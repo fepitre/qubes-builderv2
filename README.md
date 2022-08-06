@@ -12,10 +12,9 @@ fetching sources and actually building them, everything will be executed inside 
 the help of what we call an `executor`. For every single command that needs to perform an action from sources 
 for example, cloning and verifying Git sources,rendering a SPEC file, generate SRPM or Debian source packages, etc.,
 a fresh and new cage will be used. It remains only the signing and publishing process being executed locally and not
-inside a cage. This is to be improved in the future.
+inside a cage. This is to be improved in the future. For now, only Docker, Podman, Local and Qubes executors are available.
 
-For now, only Docker, Podman, Local and Qubes executors are available. Only Docker, Local and Qubes executors
-inside a Fedora/Debian AppVM have been used by the author for validating the current development.
+> **Remark**: Only Docker, Local (`sign`, `publish` and `upload` stages only) and Qubes executors inside a Fedora AppVM have been used by the author for validating the current development.
 
 ## How-to
 
@@ -124,21 +123,30 @@ Options:
   --verbose / --no-verbose  Output logs.
   --debug / --no-debug      Print full traceback on exception.
   --builder-conf TEXT       Path to configuration file (default: builder.yml).
+  --artifacts-dir TEXT      Path to artifacts directory (default:
+                            ./artifacts).
+  --log-file TEXT           Path to log file to be created.
   -c, --component TEXT      Override component in configuration file (can be
                             repeated).
   -d, --distribution TEXT   Override distribution in configuration file (can
                             be repeated).
   -t, --template TEXT       Override template in configuration file (can be
                             repeated).
+  -e, --executor TEXT       Override executor type in configuration file.
+  --executor-option TEXT    Override executor options in configuration file
+                            provided as "option=value" (can be repeated). For
+                            example, --executor-option image="qubes-builder-
+                            fedora:latest"
   --help                    Show this message and exit.
 
 Commands:
   package     Package CLI
   template    Template CLI
   repository  Repository CLI
+  config      Config CLI
 
 Stages:
-    fetch prep build post verify sign publish
+    fetch prep build post verify sign publish upload
 
 Remark:
     The Qubes OS components are separated in two groups: standard and template

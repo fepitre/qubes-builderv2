@@ -52,6 +52,7 @@ def _publish(
                     qubes_release=config.get("qubes-release"),
                     repository_publish=config.get("repository-publish"),
                     backend_vmm=config.get("backend-vmm", "xen"),
+                    min_age_days=config.get("min-age-days", 5),
                 )
                 publish_plugin.run(
                     stage="publish",
@@ -75,6 +76,7 @@ def _publish(
                 repository_upload_remote_host=config.get(
                     "repository-upload-remote-host", {}
                 ),
+                min_age_days=config.get("min-age-days", 5),
             )
             publish_plugin.run(
                 stage="publish",
@@ -173,6 +175,7 @@ def _check_release_status_for_component(config, components, distributions):
                     qubes_release=config.get("qubes-release"),
                     repository_publish=config.get("repository-publish"),
                     backend_vmm=config.get("backend-vmm", "xen"),
+                    min_age_days=config.get("min-age-days", 5),
                 )
             except ComponentError:
                 release_status[component.name][dist.distribution][
@@ -307,6 +310,7 @@ def _check_release_status_for_template(config, templates):
             repository_upload_remote_host=config.get(
                 "repository-upload-remote-host", {}
             ),
+            min_age_days=config.get("min-age-days", 5),
         )
 
         try:
@@ -403,6 +407,7 @@ def _upload(
                 repository_upload_remote_host=config.get(
                     "repository-upload-remote-host", {}
                 ),
+                min_age_days=config.get("min-age-days", 5),
             )
             upload_plugin.run(stage="upload", repository_publish=repository_publish)
 

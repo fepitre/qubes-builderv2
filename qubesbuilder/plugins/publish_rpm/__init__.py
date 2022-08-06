@@ -25,7 +25,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins.publish import PublishPlugin, PublishError, MIN_AGE_DAYS
+from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_rpm")
 
@@ -49,6 +49,7 @@ class RPMPublishPlugin(PublishPlugin):
         sign_key: dict,
         repository_publish: dict,
         backend_vmm: str,
+        min_age_days: int,
         verbose: bool = False,
         debug: bool = False,
     ):
@@ -65,6 +66,7 @@ class RPMPublishPlugin(PublishPlugin):
             verbose=verbose,
             debug=debug,
             backend_vmm=backend_vmm,
+            min_age_days=min_age_days,
         )
 
     def createrepo(self, build, target_dir):
@@ -135,11 +137,17 @@ class RPMPublishPlugin(PublishPlugin):
             / f"{self.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
         )
         try:
+            # srpc and rpms
             for rpm in packages_list:
                 target_path = target_dir / "rpm" / rpm.name
                 target_path.unlink(missing_ok=True)
                 # target_path.hardlink_to(rpm)
                 os.link(rpm, target_path)
+
+            # buildinfo
+            target_path = target_dir / "rpm" / build_info["buildinfo"]
+            target_path.unlink(missing_ok=True)
+            os.link(build_artifacts_dir / "rpm" / build_info["buildinfo"], target_path)
         except (ValueError, PermissionError, NotImplementedError) as e:
             msg = f"{self.component}:{self.dist}:{build}: Failed to publish packages."
             raise PublishError(msg) from e
@@ -232,6 +240,9 @@ class RPMPublishPlugin(PublishPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
+        if stage != "publish":
+            return
+
         # Check if we have a signing key provided
         sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
             "rpm", None
@@ -248,27 +259,24 @@ class RPMPublishPlugin(PublishPlugin):
         # FIXME: Refactor the code handling both standard and template components.
         #  It applies for other plugins.
 
-        if stage == "publish":
-            repository_publish = repository_publish or self.repository_publish.get(
-                "components"
-            )
-            if not repository_publish:
-                raise PublishError("Cannot determine repository for publish")
+        repository_publish = repository_publish or self.repository_publish.get(
+            "components"
+        )
+        if not repository_publish:
+            raise PublishError("Cannot determine repository for publish")
 
         # Publish stage for standard (not template) components
-        if stage == "publish" and not unpublish:
-            # Sign artifacts
-            sign_artifacts_dir = self.get_dist_component_artifacts_dir(stage="sign")
-
+        if not unpublish:
             # repository-publish directory
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
             # Ensure dbpath from sign stage (still) exists
-            db_path = sign_artifacts_dir / "rpmdb"
+            db_path = self.artifacts_dir / f"rpmdb/{sign_key}"
             if not db_path.exists():
                 msg = f"{self.component}: {self.dist}: Failed to find RPM DB path."
                 raise PublishError(msg)
 
+            # marmarek: should this be done only if not exists yet?
             # Create publish repository skeleton
             comps = (
                 self.plugins_dir
@@ -317,7 +325,7 @@ class RPMPublishPlugin(PublishPlugin):
                     f"{self.component}:{self.dist}: "
                     f"Refusing to publish to 'current' as packages are not "
                     f"uploaded to 'current-testing' or 'security-testing' "
-                    f"for at least {MIN_AGE_DAYS} days."
+                    f"for at least {self.min_age_days} days."
                 )
                 raise PublishError(failure_msg)
 
@@ -370,7 +378,7 @@ class RPMPublishPlugin(PublishPlugin):
                     stage="publish", basename=build_bn, info=info
                 )
 
-        if stage == "publish" and unpublish:
+        if unpublish:
             if not all(
                 self.is_published(
                     basename=build.mangle(), repository=repository_publish

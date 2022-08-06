@@ -29,7 +29,7 @@ from typing import Union, List
 import yaml
 from packaging.version import Version, InvalidVersion
 
-from qubesbuilder.common import sanitize_line
+from qubesbuilder.common import sanitize_line, deep_check
 from qubesbuilder.exc import ComponentError
 
 
@@ -84,7 +84,7 @@ class QubesComponent:
             )
             if result.stdout:
                 version = sanitize_line(result.stdout.rstrip(b"\n")).rstrip()
-                version_re = re.compile("v?([0-9]+(?:\.[0-9]+)*)-([0-9]+.*)")
+                version_re = re.compile(r"v?([0-9]+(?:\.[0-9]+)*)-([0-9]+.*)")
                 if len(version) > 255 or not version_re.match(version):
                     raise ComponentError(f"Invalid version for {self.source_dir}.")
                 version, release = version_re.match(version).groups()  # type: ignore
@@ -124,11 +124,17 @@ class QubesComponent:
             data = data.replace(key, val)
 
         try:
-            rendered_data = yaml.safe_load(data)
+            rendered_data = yaml.safe_load(data) or {}
         except yaml.YAMLError as e:
             raise ComponentError(f"Cannot render '.qubesbuilder'.") from e
 
-        return rendered_data or {}
+        # TODO: add more extra validation of some field
+        try:
+            deep_check(rendered_data)
+        except ValueError as e:
+            raise ComponentError(f"Invalid '.qubesbuilder': {str(e)}")
+
+        return rendered_data
 
     @staticmethod
     def _update_hash_from_file(filename: Path, hash: sha512):

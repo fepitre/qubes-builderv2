@@ -44,6 +44,7 @@ class WhonixTemplateBuilderPlugin(DEBTemplateBuilderPlugin):
         sign_key: dict,
         repository_publish: dict,
         repository_upload_remote_host: dict,
+        min_age_days: int,
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
@@ -61,6 +62,7 @@ class WhonixTemplateBuilderPlugin(DEBTemplateBuilderPlugin):
             use_qubes_repo=use_qubes_repo,
             verbose=verbose,
             debug=debug,
+            min_age_days=min_age_days,
         )
 
         # The parent class will automatically copy-in all its plugin dependencies. Calling parent

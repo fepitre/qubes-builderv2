@@ -37,7 +37,6 @@ from qubesbuilder.plugins import (
     PLUGINS_DIR,
     TemplatePlugin,
 )
-from qubesbuilder.plugins.publish import MIN_AGE_DAYS
 from qubesbuilder.template import QubesTemplate
 
 log = get_logger("template")
@@ -73,6 +72,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         sign_key: dict,
         repository_publish: dict,
         repository_upload_remote_host: dict,
+        min_age_days: int,
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
@@ -90,6 +90,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         self.qubes_release = qubes_release
         self.gpg_client = gpg_client
         self.sign_key = sign_key
+        self.min_age_days = min_age_days
         self.repository_publish = repository_publish
         self.repository_upload_remote_host = repository_upload_remote_host
         self.use_qubes_repo = use_qubes_repo or {}
@@ -231,7 +232,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
 
         # Check that packages have been published before threshold_date
-        threshold_date = datetime.utcnow() - timedelta(days=MIN_AGE_DAYS)
+        threshold_date = datetime.utcnow() - timedelta(days=self.min_age_days)
         if not ignore_min_age and publish_date > threshold_date:
             return False
 
@@ -524,7 +525,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 failure_msg = (
                     f"{self.template}: "
                     f"Refusing to publish to '{repository_publish}' as template is not uploaded "
-                    f"to '{repository_publish}-testing' for at least {MIN_AGE_DAYS} days."
+                    f"to '{repository_publish}-testing' for at least {self.min_age_days} days."
                 )
                 raise TemplateError(failure_msg)
 

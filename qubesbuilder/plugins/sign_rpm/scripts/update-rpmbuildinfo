@@ -1,0 +1,54 @@
+#!/bin/sh
+
+# Update rpm buildinfo file after signing packages
+
+# Packages referenced there are assumed to be present in the same directory
+# The script assumes Signed-Checksums-Sha256 (if any) is the last field and
+# Format: is the first
+
+set -e
+
+buildinfo="$1"
+gpg_client="$2"
+gpg_sign_key="$3"
+
+if test $# -lt 2; then
+    echo usage: "$0" BUILDINFO GPG_CLIENT >&2
+    exit 1
+fi
+
+if [ -z "${buildinfo}" ]; then
+    echo "ERROR: Please provide buildinfo file."
+    exit 1
+fi
+
+if [ -z "${gpg_client}" ]; then
+    echo "ERROR: Please provide GPG client to use."
+    exit 1
+fi
+
+if [ -z "${gpg_sign_key}" ]; then
+    echo "ERROR: Please provide GPG key fingerprint to use."
+    exit 1
+fi
+
+
+dir="$(dirname "$buildinfo")"
+
+# Print everything until old Signed-Checksums-Sha256: header, skipping signature
+# header if any
+(
+sed -n '/^Format:/,/^Signed-Checksums-Sha256:/{/^Signed-Checksums-Sha256/d; p}' < "$buildinfo"
+
+echo "Signed-Checksums-Sha256:"
+
+# Then, for each file listed in Checksums-Sha256, add it to Signed-Checksums-Sha256
+sed -n '/^Checksums-Sha256:/,/^[^ ]/{ /^ /p}' < "$buildinfo" |\
+while read -r _ size name; do
+    checksum=$(sha256sum -b "$dir/$name" | cut -c 1-64)
+    size=$(stat -c '%s' "$dir/$name")
+    printf ' %s %s %s\n' "$checksum" "$size" "$name"
+done
+) | "$gpg_client" --clearsign --local-user "$gpg_sign_key" > "$buildinfo.signed"
+
+mv "$buildinfo.signed" "$buildinfo"
