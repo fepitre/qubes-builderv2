@@ -63,14 +63,15 @@ class ContainerExecutor(Executor):
         with self.get_client() as client:
             try:
                 # Check if we have the image locally
-                image = client.images.get(image)
-                if not image:
-                    # Try to pull the image
-                    image = client.images.pull(image)
+                docker_image = client.images.get(image)
             except (PodmanError, DockerException) as e:
-                raise ExecutorError(f"Cannot find {image}.") from e
+                # Try to pull the image
+                try:
+                    docker_image = client.images.pull(image)
+                except (PodmanError, DockerException) as e:
+                    raise ExecutorError(f"Cannot find {image}.") from e
 
-        self.attrs = image.attrs
+        self.attrs = docker_image.attrs
 
     @contextmanager
     def get_client(self):
