@@ -129,6 +129,13 @@ components:
   - xscreensaver
   - remote-support
   - xdotool
+  - mgmt-salt
+  - mgmt-salt-base
+  - mgmt-salt-base-topd
+  - mgmt-salt-base-config
+  - mgmt-salt-dom0-qvm
+  - mgmt-salt-dom0-virtual-machines
+  - mgmt-salt-dom0-update
 
 less-secure-signed-commits-sufficient:
   - lvm2
@@ -205,6 +212,13 @@ less-secure-signed-commits-sufficient:
   - xscreensaver
   - remote-support
   - xdotool
+  - mgmt-salt
+  - mgmt-salt-base
+  - mgmt-salt-base-topd
+  - mgmt-salt-base-config
+  - mgmt-salt-dom0-qvm
+  - mgmt-salt-dom0-virtual-machines
+  - mgmt-salt-dom0-update
 
 repository-publish:
   components: current-testing
