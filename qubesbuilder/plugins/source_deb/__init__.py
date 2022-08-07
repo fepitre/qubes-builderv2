@@ -248,9 +248,9 @@ class DEBSourcePlugin(SourcePlugin):
                     ]
 
                 # Create archive only if no external files are provided or if explicitly requested.
-                if not self.parameters.get("files", []) or self.parameters.get(
-                    "create-archive", False
-                ):
+                create_archive = not self.parameters.get("files", [])
+                create_archive = self.parameters.get("create-archive", create_archive)
+                if create_archive:
                     cmd += [
                         f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir} {source_orig}",
                         f"mv {source_dir}/{source_orig} {BUILDER_DIR}",

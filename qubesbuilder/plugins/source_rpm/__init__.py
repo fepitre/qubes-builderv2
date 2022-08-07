@@ -216,9 +216,9 @@ class RPMSourcePlugin(SourcePlugin):
                     f"{PLUGINS_DIR}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
                 ]
             # Create archive only if no external files are provided or if explicitly requested.
-            if not self.parameters.get("files", []) or self.parameters.get(
-                "create-archive", False
-            ):
+            create_archive = not self.parameters.get("files", [])
+            create_archive = self.parameters.get("create-archive", create_archive)
+            if create_archive:
                 # If no Source0 is provided, we expect 'source' from query-spec.
                 if source_orig != "source":
                     cmd += [
