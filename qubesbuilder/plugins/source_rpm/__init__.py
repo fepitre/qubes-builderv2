@@ -205,6 +205,16 @@ class RPMSourcePlugin(SourcePlugin):
             ]
 
             cmd = []
+            if self.component.is_salt():
+                copy_in += [
+                    (self.plugins_dir / "source/salt/Makefile.install", source_dir)
+                ]
+                cmd += [
+                    f"{PLUGINS_DIR}/source/salt/yaml-dumper "
+                    "--env VERBOSE "
+                    f"--outfile {source_dir}/Makefile.vars -- "
+                    f"{PLUGINS_DIR}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
+                ]
             # Create archive only if no external files are provided or if explicitly requested.
             if not self.parameters.get("files", []) or self.parameters.get(
                 "create-archive", False

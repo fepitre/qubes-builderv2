@@ -1,0 +1,11 @@
+# vim: set syntax=yaml ts=2 sw=2 sts=2 et :
+
+default-saltenv:         base
+default-testenv:         test
+
+default-test-dirname:    tests
+default-state-dir:       /srv/salt
+default-pillar-dir:      /srv/pillar
+default-formula-dir:     /srv/formulas
+default-test-state-dir:  /srv/formulas
+default-test-pillar-dir: /srv/pillar

@@ -182,6 +182,9 @@ class QubesComponent:
                 f"Cannot determine source commit hash for {self.source_dir}."
             ) from e
 
+    def is_salt(self):
+        return (self.source_dir / "FORMULA").exists()
+
     def to_str(self) -> str:
         return self.source_dir.name
 

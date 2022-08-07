@@ -1,0 +1,254 @@
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2015 Jason Mehring <nrgaway@gmail.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+### FORMULA vars available
+
+# The following vars are contained and imported from Makefile.vars which
+# are parsed from the YAML FORMULA configuration file in each formula
+# directory.
+#
+# Sample vars with values:
+#   MGMT_PACKAGE_NAME ?= qubes-mgmt-salt-all-gnupg
+#   MGMT_NAME ?= gnupg-formula
+#   MGMT_TOP_LEVEL_DIR ?= gnupg
+#   MGMT_FORMULA_FILES ?= README.rst LICENSE _modules _states _renderers pillar gnupg
+#   MGMT_PILLAR_FILES ?= pillar/gnupg
+#   MGMT_TEST_FORMULA_FILES ?= README.rst LICENSE tests
+#   MGMT_TEST_PILLAR_FILES ?=
+#   MGMT_FORMULA_DIR ?= /srv/formulas/base/gnupg-formula
+#   MGMT_PILLAR_DIR ?= /srv/pillar/base/gnupg
+#   MGMT_TEST_STATE_DIR ?= /srv/formulas
+#   MGMT_SALTENV ?= base
+#   MGMT_VERSION ?= 3.0.0
+#   MGMT_RELEASE ?= 1
+#   MGMT_OS ?= RedHat, Debian, Ubuntu, Suse, FreeBSD
+#   MGMT_OS_FAMILY ?= RedHat, Debian, Suse, FreeBSD
+#   MGMT_SUMMARY ?= Custom gpg state, module and renderer
+#   MGMT_DESCRIPTION ?= The custom state and module provides the ability to import or verify gpg keys
+
+### FORMULA_DEFAULTS vars available
+
+# Sample vars with values:
+#   MGMT_DEFAULT_SALTENV ?= base
+#   MGMT_DEFAULT_TESTENV ?= test
+#
+#   MGMT_DEFAULT_TEST_DIRNAME ?= tests
+#   MGMT_DEFAULT_STATE_DIR ?= /srv/salt
+#   MGMT_DEFAULT_PILLAR_DIR ?= /srv/pillar
+#   MGMT_DEFAULT_FORMULA_DIR ?= /srv/formulas
+#   MGMT_DEFAULT_TEST_STATE_DIR ?= /srv/formulas
+#   MGMT_DEFAULT_TEST_PILLAR_DIR ?= /srv/pillar
+#   VERBOSE ?= 2
+
+### Example uses within FORMULA configuration file
+
+#  formula_dir:    $(MGMT_DEFAULT_FORMULA_DIR)/$(MGMT_SALTENV)/$(MGMT_NAME)
+#  pillar_dir:     $(MGMT_DEFAULT_PILLAR_DIR)/$(MGMT_SALTENV)/$(MGMT_TOP_LEVEL_DIR)
+#  test_state_dir: $(MGMT_DEFAULT_TEST_STATE_DIR)
+
+REQUIRED_FORMULA_FIELDS := MGMT_PACKAGE_NAME MGMT_NAME MGMT_VERSION MGMT_RELEASE MGMT_SUMMARY MGMT_DESCRIPTION
+
+# Set defaults for missing fields
+MGMT_FORMULA_FILES      ?=
+MGMT_PILLAR_FILES       ?=
+MGMT_TEST_FORMULA_FILES ?=
+MGMT_TEST_PILLAR_FILES  ?=
+
+MGMT_TOP_LEVEL_DIR      ?= $(MGMT_NAME)
+MGMT_STATE_NAME         ?= $(MGMT_TOP_LEVEL_DIR)
+MGMT_FORMULA_DIR        ?= $(MGMT_DEFAULT_STATE_DIR)
+MGMT_PILLAR_DIR         ?= $(MGMT_DEFAULT_PILLAR_DIR)
+MGMT_TEST_STATE_DIR     ?= $(MGMT_DEFAULT_TEST_STATE_DIR)
+MGMT_TEST_PILLAR_DIR    ?= $(MGMT_DEFAULT_TEST_PILLAR_DIR)
+MGMT_SALTENV            ?= $(MGMT_DEFAULT_SALTENV)
+
+MGMT_OS                 ?= RedHat, Debian, Ubuntu, Suse, FreeBSD
+MGMT_OS_FAMILY          ?= RedHat, Debian, Suse, FreeBSD
+
+# Install Formula
+install-formula:
+ifneq (,$(MGMT_FORMULA_FILES))
+	install -d $(DESTDIR)$(MGMT_FORMULA_DIR)
+	cp -r $(MGMT_FORMULA_FILES) $(DESTDIR)$(MGMT_FORMULA_DIR)/
+ifneq (,$(filter $(MGMT_DEFAULT_STATE_DIR)%, $(MGMT_FORMULA_DIR)))
+	# Place README and LICENSE in each non _* subdirectory only if in main /srv/salt tree
+	$(foreach subdir,$(filter-out _%, $(MGMT_FORMULA_FILES)), \
+			cp LICENSE README.rst $(DESTDIR)$(MGMT_FORMULA_DIR)/$(subdir)/;)
+endif
+else
+	@true
+endif
+
+# Install Pillar Data
+install-pillar:
+ifneq (,$(MGMT_PILLAR_FILES))
+	install -d $(DESTDIR)$(MGMT_PILLAR_DIR)
+	cp -Tr $(MGMT_PILLAR_FILES) $(DESTDIR)$(MGMT_PILLAR_DIR)/
+else
+	@true
+endif
+	
+# Install Formula Tests
+install-test-formula: test_state_dir = $(MGMT_TEST_STATE_DIR)/$(MGMT_DEFAULT_TESTENV)/$(MGMT_NAME)
+install-test-formula: 
+ifneq (,$(MGMT_TEST_FORMULA_FILES))
+	install -d $(DESTDIR)$(test_state_dir)
+ifneq (,$(filter-out tests, $(MGMT_TEST_FORMULA_FILES)))
+	# Test Formula Contents (minus state directory)
+	cp -r $(filter-out tests, $(MGMT_TEST_FORMULA_FILES)) $(DESTDIR)$(test_state_dir)/
+endif
+ifneq (,$(filter tests, $(MGMT_TEST_FORMULA_FILES)))
+	# Test Formula State Directory
+	# rename 'tests' directory to $(STATE_NAME)
+	cp -r tests $(DESTDIR)$(test_state_dir)/$(MGMT_STATE_NAME)
+endif
+else
+	@true
+endif
+
+install-test-pillar: test_pillar_dir = $(MGMT_DEFAULT_PILLAR_DIR)/$(MGMT_DEFAULT_TESTENV)
+install-test-pillar:
+ifneq (,$(MGMT_TEST_PILLAR_FILES))
+	install -d $(DESTDIR)$(test_pillar_dir)
+	cp -Tr $(MGMT_TEST_PILLAR_FILES) $(DESTDIR)$(test_pillar_dir)/
+else
+	@true
+endif
+
+# Required FORMULA fields
+.PHONY: required
+required:
+	$(foreach _var, $(REQUIRED_FORMULA_FIELDS), \
+	    $(if $($(_var)),,$(error FORMULA '$(_var)' is missing!)) \
+	)
+
+.PHONY: all
+all: required
+	@true
+
+.PHONY: get-testenv
+get-testenv: required
+	@echo "$(MGMT_DEFAULT_TESTENV)"
+
+.PHONY: get-default_test_dirname
+get-default_test_dir: required
+	@echo "$(MGMT_DEFAULT_TEST_DIRNAME)"
+
+.PHONY: get-default_state_dir
+get-default_state_dir: required
+	@echo "$(MGMT_DEFAULT_STATE_DIR)"
+
+.PHONY: get-default_pillar_dir
+get-default_pillar_dir: required
+	@echo "$(MGMT_DEFAULT_PILLAR_DIR)"
+
+.PHONY: get-default_formula_dir
+get-default_formula_dir: required
+	@echo "$(MGMT_DEFAULT_FORMULA_DIR)"
+
+.PHONY: get-package_name
+get-package_name: required
+	@echo "$(MGMT_PACKAGE_NAME)"
+
+.PHONY: get-formula_name
+get-formula_name: required
+	@echo "$(MGMT_NAME)"
+
+.PHONY: get-state_name
+get-state_name: required
+	@echo "$(MGMT_TOP_LEVEL_DIR)"
+
+.PHONY: get-formula_root
+get-formula_root: required
+	@echo "$(MGMT_FORMULA_ROOT)"
+
+.PHONY: get-saltenv
+get-saltenv: required
+	@echo "$(MGMT_SALTENV)"
+
+.PHONY: get-formula_files
+get-formula: required
+	@echo "$(MGMT_FORMULA_FILES)"
+
+.PHONY: get-pillar_files
+get-pillar: required
+	@echo "$(MGMT_PILLAR_FILES)"
+
+.PHONY: get-test_formula_files
+get-test_formula: required
+	@echo "$(MGMT_TEST_FORMULA_FILES)"
+
+.PHONY: get-test_pillar_files
+get-test_pillar: required
+	@echo "$(MGMT_TEST_PILLAR_FILES)"
+
+.PHONY: get-test_state_dir
+get-test_state_dir: required
+	@echo "$(MGMT_TEST_STATE_DIR)"
+
+.PHONY: get-version
+get-version: required
+	@echo "$(MGMT_VERSION)"
+
+.PHONY: get-release
+get-release: required
+	@echo "$(MGMT_RELEASE)"
+
+.PHONY: get-summary
+get-summary: required
+	@echo "$(MGMT_SUMMARY)"
+
+.PHONY: get-description
+get-description: required
+	echo "$(MGMT_DESCRIPTION)"
+
+.PHONY: get-verbose
+get-verbose: required
+	@echo "$(VERBOSE)"
+
+.PHONY: get-destdir
+get-destdir: required
+	@echo "$(DESTDIR)"
+
+.PHONY: get-formula_dir
+get-formula_dir: required
+	@echo "$(MGMT_FORMULA_DIR)"
+
+.PHONY: get-pillar_dir
+get-pillar_dir: required
+	@echo "$(MGMT_PILLAR_DIR)"
+	
+.PHONY: install-custom
+install-custom:: 
+	@true
+
+.PHONY: install
+install:: required 
+install:: install-formula install-pillar 
+install:: install-test-formula install-test-pillar 
+install:: install-custom
+	@if [ $(VERBOSE) -gt 1 ]; then \
+	    echo; \
+	    if which tree >/dev/null 2>&1; then \
+	        for path in $$(tree -aif --noreport $(DESTDIR)); do \
+	            echo "$${path##*$(DESTDIR)}"; \
+	        done; \
+	        echo; \
+	        tree -aC $(DESTDIR); \
+	    fi \
+	fi
