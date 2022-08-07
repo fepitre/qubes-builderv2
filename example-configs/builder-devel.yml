@@ -85,9 +85,8 @@ components:
   - gui-agent-linux
   - gui-agent-xen-hvm-stubdom
   - seabios
-# FIXME: we need to handle the case of having sha1sum files
-#  - vmm-xen-stubdom-legacy
-#  - vmm-xen-stubdom-linux
+  - vmm-xen-stubdom-legacy
+  - vmm-xen-stubdom-linux
   - app-linux-split-gpg
   - app-thunderbird
   - app-linux-pdf-converter
