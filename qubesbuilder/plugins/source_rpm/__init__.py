@@ -205,25 +205,27 @@ class RPMSourcePlugin(SourcePlugin):
             ]
 
             cmd = []
-            # Create archive if no external file is provided.
-            if not self.parameters.get("files", []):
+            # Create archive only if no external files are provided or if explicitly requested.
+            if not self.parameters.get("files", []) or self.parameters.get(
+                "create-archive", False
+            ):
                 # If no Source0 is provided, we expect 'source' from query-spec.
                 if source_orig != "source":
                     cmd += [
                         f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir} {source_orig}",
                     ]
-            else:
-                for file in self.parameters["files"]:
-                    fn = os.path.basename(file["url"])
-                    if file.get("uncompress", False):
-                        fn = Path(fn).with_suffix("").name
+
+            for file in self.parameters.get("files", []):
+                fn = os.path.basename(file["url"])
+                if file.get("uncompress", False):
+                    fn = Path(fn).with_suffix("").name
+                cmd.append(
+                    f"mv {DISTFILES_DIR / self.component.name / fn} {source_dir}"
+                )
+                if file.get("signature", None):
                     cmd.append(
-                        f"mv {DISTFILES_DIR / self.component.name / fn} {source_dir}"
+                        f"mv {DISTFILES_DIR / self.component.name / os.path.basename(file['signature'])} {source_dir}"
                     )
-                    if file.get("signature", None):
-                        cmd.append(
-                            f"mv {DISTFILES_DIR / self.component.name / os.path.basename(file['signature'])} {source_dir}"
-                        )
 
             for module in fetch_info.get("modules", []):
                 cmd.append(

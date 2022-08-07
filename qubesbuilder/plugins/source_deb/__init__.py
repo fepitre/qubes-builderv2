@@ -236,18 +236,19 @@ class DEBSourcePlugin(SourcePlugin):
             ]
 
             if package_type == "quilt":
-                # Create archive if no external file is provided.
-                if not self.parameters.get("files", []):
+                # Create archive only if no external files are provided or if explicitly requested.
+                if not self.parameters.get("files", []) or self.parameters.get(
+                    "create-archive", False
+                ):
                     cmd += [
                         f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir} {source_orig}",
                         f"mv {source_dir}/{source_orig} {BUILDER_DIR}",
                     ]
-                else:
-                    for file in self.parameters["files"]:
-                        fn = os.path.basename(file["url"])
-                        cmd.append(
-                            f"mv {DISTFILES_DIR / self.component.name / fn} {BUILDER_DIR}/{source_orig}"
-                        )
+                for file in self.parameters.get("files", []):
+                    fn = os.path.basename(file["url"])
+                    cmd.append(
+                        f"mv {DISTFILES_DIR / self.component.name / fn} {BUILDER_DIR}/{source_orig}"
+                    )
 
             gen_packages_list_cmd = [
                 f"{PLUGINS_DIR}/source_deb/scripts/debian-get-packages-list",
