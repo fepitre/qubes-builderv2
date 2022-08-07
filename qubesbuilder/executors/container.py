@@ -154,7 +154,7 @@ class ContainerExecutor(Executor):
 
                 # Adjust log namespace
                 log.name = f"executor:{self._container_client}:{container.short_id}"
-                log.info(f"Executing '{' '.join(cmd)}'.")
+                log.info(f"Executing '{final_cmd}'.")
 
                 # copy-in hook
                 for src_in, dst_in in copy_in or []:
@@ -178,7 +178,7 @@ class ContainerExecutor(Executor):
                         log.info(f"output: {str(line)}")
                 rc = process.poll()
                 if rc != 0:
-                    raise ExecutorError(f"Failed to run '{cmd}' (status={rc}).")
+                    raise ExecutorError(f"Failed to run '{final_cmd}' (status={rc}).")
 
                 # copy-out hook
                 for src_out, dst_out in copy_out or []:
