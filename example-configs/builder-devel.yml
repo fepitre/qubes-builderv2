@@ -114,8 +114,7 @@ components:
   - dummy-backlight
   - xorg-x11-drv-intel
   - linux-gbulb
-# FIXME: we need to handle the case of downloading detached signature of hash
-#  - linux-scrypt
+  - linux-scrypt
   - qubes-release
   - pykickstart
   - blivet
