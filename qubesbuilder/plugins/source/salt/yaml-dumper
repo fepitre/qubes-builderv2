@@ -1,15 +1,28 @@
-#!/usr/bin/python3 -O
-# -*- coding: utf-8 -*-`
+#!/bin/python3
 #
-# vim: set ts=4 sw=4 sts=4 et :
-'''
-:maintainer:    Jason Mehring <nrgaway@gmail.com>
-:maturity:      new
-:depends:       none
-:platform:      all
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2015 Jason Mehring <nrgaway@gmail.com>
+# Copyright (C) 2022 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
 
-Dump a YAML configuration file to key = value pairs
-'''
+#
+# Dump a YAML configuration file to key = value pairs
+#
 
 import argparse
 import collections
@@ -20,16 +33,13 @@ import yaml
 from yaml.parser import ParserError
 from yaml.reader import ReaderError
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"
 
 # prefer C bindings over python when available
-BaseLoader = getattr(yaml, 'CLoader', yaml.Loader)
+BaseLoader = getattr(yaml, "CLoader", yaml.Loader)
 
 
-def _ordered_load(stream,
-                  Loader=BaseLoader,
-                  object_pairs_hook=collections.OrderedDict):
-
+def _ordered_load(stream, Loader=BaseLoader, object_pairs_hook=collections.OrderedDict):
     class OrderedLoader(Loader):
         pass
 
@@ -38,55 +48,59 @@ def _ordered_load(stream,
         return object_pairs_hook(loader.construct_pairs(node))
 
     OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        construct_mapping)
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
+    )
 
     return yaml.load(stream, OrderedLoader)
 
 
 def main(argv):
     parser = argparse.ArgumentParser(
-            description='Convert YAML configuration file to Makefile')
+        description="Convert YAML configuration file to Makefile"
+    )
 
-    parser.add_argument('--prefix',
-                        action='store',
-                        default='MGMT_',
-                        help='Prefix to prepend to key')
+    parser.add_argument(
+        "--prefix", action="store", default="MGMT_", help="Prefix to prepend to key"
+    )
 
-    parser.add_argument('--env',
-                        action='store',
-                        default=[],
-                        nargs='*',
-                        help='Also add selected ENV vars')
+    parser.add_argument(
+        "--env",
+        action="store",
+        default=[],
+        nargs="*",
+        help="Also add selected ENV vars",
+    )
 
-    parser.add_argument('--outfile',
-                        type=argparse.FileType('w'),
-                        default=sys.stdout,
-                        help='Output file')
+    parser.add_argument(
+        "--outfile", type=argparse.FileType("w"), default=sys.stdout, help="Output file"
+    )
 
-    parser.add_argument('infiles',
-                        type=argparse.FileType('r'),
-                        default=[sys.stdin],
-                        nargs='*',
-                        help='Path(s) to YAML config file(s)')
+    parser.add_argument(
+        "infiles",
+        type=argparse.FileType("r"),
+        default=[sys.stdin],
+        nargs="*",
+        help="Path(s) to YAML config file(s)",
+    )
 
     config = collections.OrderedDict()
     environ = os.environ.copy()
     args = parser.parse_args()
 
     try:
-        data = ''
+        data = ""
         for infile in args.infiles:
             data += infile.read()
         data = _ordered_load(data, yaml.SafeLoader)
         if data:
             config.update(data)
     except (ParserError, ReaderError):
-        sys.exit('Parser Error: {0}:'.format(infile))
+        print("Parser Error: {0}:".format(infile))
+        sys.exit(1)
 
     if args.env:
         for env in args.env:
-            config[env] = environ.get(env, '')
+            config[env] = environ.get(env, "")
 
     data = []
     width = 20 + len(args.prefix)
@@ -97,21 +111,23 @@ def main(argv):
 
         # Don't add prefix to ENV vars
         if key not in args.env:
-            key = '{0}{1}'.format(args.prefix, str(key).upper().replace('-', '_'))
+            key = "{0}{1}".format(args.prefix, str(key).upper().replace("-", "_"))
 
         if item is None:
-            item = ''
+            item = ""
         else:
             item = str(item)
-            item = item.replace('\n', '\\\n')
+            item = item.replace("\n", "\\\n")
 
-        data.append('{0:>{1}} ?= {2}'.format(key, width, item))
+        data.append("{0:>{1}} ?= {2}".format(key, width, item))
 
     try:
         for line in data:
-            args.outfile.write(line + '\n')
-    except (IOError) as e:
-        sys.exit('IOError: {0}:'.format(args.outfile.name), e)
+            args.outfile.write(line + "\n")
+    except IOError as e:
+        print("IOError: {0}:".format(args.outfile.name))
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
