@@ -56,7 +56,14 @@ class TemplateError(PluginError):
 
 class TemplateBuilderPlugin(TemplatePlugin):
     """
-    TemplatePlugin manages distribution build.
+    TemplatePlugin manages distribution release.
+
+    Stages:
+        - prep - Create root image and qubeized image.
+        - build - Create template RPM from qubeized image.
+        - sign - Sign template RPM.
+        - publish - Create repository to be published and uploaded to remote mirror.
+        - upload - Upload published repository for given distribution to remote mirror.
     """
 
     plugin_dependencies = ["source_rpm", "source_deb"]

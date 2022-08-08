@@ -44,6 +44,9 @@ class DEBSourcePlugin(SourcePlugin):
 
     Stages:
         - prep: Prepare and generate Debian source package (.orig.tar.*, .dsc and .debian.tar.xz).
+
+    Entry points:
+        - source
     """
 
     plugin_dependencies = ["fetch", "source"]

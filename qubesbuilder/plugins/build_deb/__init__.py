@@ -87,6 +87,12 @@ def provision_local_repository(
 class DEBBuildPlugin(BuildPlugin):
     """
     Manage Debian distribution build.
+
+    Stages:
+        - build - Build Debian packages and provision local repository.
+
+    Entry points:
+        - build
     """
 
     plugin_dependencies = ["source_deb", "build"]

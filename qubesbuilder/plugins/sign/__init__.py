@@ -36,6 +36,12 @@ class SignError(PluginError):
 class SignPlugin(DistributionPlugin):
     """
     SignPlugin manages generic distribution sign.
+
+    Stages:
+        - sign - Ensure all build targets artifacts exist from previous required stages.
+
+    Entry points:
+        - build
     """
 
     def __init__(

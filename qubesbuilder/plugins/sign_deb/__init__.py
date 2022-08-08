@@ -35,6 +35,12 @@ log = get_logger("sign_deb")
 class DEBSignPlugin(SignPlugin):
     """
     DEBSignPlugin manages DEB distribution sign.
+
+    Stages:
+        - sign - Sign Debian package files.
+
+    Entry points:
+        - build
     """
 
     plugin_dependencies = ["sign", "build_deb"]

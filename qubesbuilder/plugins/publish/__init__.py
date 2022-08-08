@@ -40,6 +40,12 @@ class PublishError(PluginError):
 class PublishPlugin(DistributionPlugin):
     """
     PublishPlugin manages generic distribution publication.
+
+    Stages:
+        - publish - Ensure all build targets artifacts exist from previous required stages.
+
+    Entry points:
+        - build
     """
 
     def __init__(

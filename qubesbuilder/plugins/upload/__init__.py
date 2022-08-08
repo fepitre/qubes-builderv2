@@ -36,6 +36,9 @@ class UploadError(PluginError):
 class UploadPlugin(Plugin):
     """
     UploadPlugin manages generic distribution upload.
+
+    Stages:
+        - upload - Upload published repository for given distribution to remote mirror.
     """
 
     def __init__(

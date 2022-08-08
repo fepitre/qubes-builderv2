@@ -30,7 +30,13 @@ log = get_logger("publish_deb")
 
 class DEBPublishPlugin(PublishPlugin):
     """
-    DEGBPublishPlugin manages DEB distribution publication.
+    DEBPublishPlugin manages DEB distribution publication.
+
+    Stages:
+        - publish - Create repository to be published and uploaded to remote mirror.
+
+    Entry points:
+        - build
     """
 
     plugin_dependencies = ["publish"]

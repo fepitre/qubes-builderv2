@@ -35,6 +35,12 @@ class BuildError(PluginError):
 class BuildPlugin(DistributionPlugin):
     """
     BuildPlugin manages generic distribution build.
+
+    Stages:
+        - build - Ensure all build targets artifacts exist from previous required stage.
+
+    Entry points:
+        - build
     """
 
     def __init__(
@@ -65,7 +71,6 @@ class BuildPlugin(DistributionPlugin):
         if stage != "build":
             return
 
-        # Check if we have Debian related content defined
         if not self.parameters.get("build", []):
             log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return

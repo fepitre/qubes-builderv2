@@ -34,6 +34,12 @@ log = get_logger("sign_rpm")
 class RPMSignPlugin(SignPlugin):
     """
     RPMSignPlugin manages RPM distribution sign.
+
+    Stages:
+        - sign - Sign SRPM, RPMs and buildinfo file.
+
+    Entry points:
+        - build
     """
 
     plugin_dependencies = ["sign"]

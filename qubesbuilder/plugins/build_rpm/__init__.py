@@ -87,6 +87,12 @@ def provision_local_repository(
 class RPMBuildPlugin(BuildPlugin):
     """
     Manage RPM distribution build.
+
+    Stages:
+        - build - Build RPMs and provision local repository.
+
+    Entry points:
+        - build
     """
 
     plugin_dependencies = ["source_rpm", "build"]

@@ -40,6 +40,9 @@ class RPMSourcePlugin(SourcePlugin):
 
     Stages:
         - prep: Prepare and generate source RPM.
+
+    Entry points:
+        - source
     """
 
     plugin_dependencies = ["fetch", "source"]

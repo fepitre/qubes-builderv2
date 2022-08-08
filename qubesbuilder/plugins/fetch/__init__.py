@@ -48,7 +48,10 @@ class FetchPlugin(ComponentPlugin):
     Manage generic fetch source
 
     Stages:
-        - fetch: Downloads and verify external files
+        - fetch - Downloads and verify external files, create submodule archives.
+
+    Entry points:
+        - source
     """
 
     def __init__(

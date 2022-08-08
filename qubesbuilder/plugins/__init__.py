@@ -214,6 +214,10 @@ class ComponentPlugin(Plugin):
 class DistributionPlugin(ComponentPlugin):
     """
     Distribution Component plugin
+
+    Entry points:
+        - PACKAGE-SET
+        - PACKAGE_SET-DISTRIBUTION_NAME
     """
 
     plugin_dependencies: List[str] = []

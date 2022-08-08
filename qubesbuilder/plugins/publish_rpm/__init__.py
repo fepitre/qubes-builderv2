@@ -33,6 +33,12 @@ log = get_logger("publish_rpm")
 class RPMPublishPlugin(PublishPlugin):
     """
     RPMPublishPlugin manages RPM distribution publication.
+
+    Stages:
+        - publish - Create repository to be published and uploaded to remote mirror.
+
+    Entry points:
+        - build
     """
 
     plugin_dependencies = ["publish", "sign_rpm"]
