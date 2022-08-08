@@ -30,7 +30,7 @@ log = get_logger("publish_deb")
 
 class DEBPublishPlugin(PublishPlugin):
     """
-    DEBPublishPlugin manages DEB distribution publication.
+    DEBPublishPlugin manages Debian distribution publication.
 
     Stages:
         - publish - Create repository to be published and uploaded to remote mirror.

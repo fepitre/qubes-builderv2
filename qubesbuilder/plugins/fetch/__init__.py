@@ -45,7 +45,7 @@ class FetchError(PluginError):
 
 class FetchPlugin(ComponentPlugin):
     """
-    Manage generic fetch source
+    FetchPlugin manages generic fetch source
 
     Stages:
         - fetch - Downloads and verify external files, create submodule archives.

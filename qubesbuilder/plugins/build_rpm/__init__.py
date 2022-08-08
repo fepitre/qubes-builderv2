@@ -86,7 +86,7 @@ def provision_local_repository(
 
 class RPMBuildPlugin(BuildPlugin):
     """
-    Manage RPM distribution build.
+    RPMBuildPlugin manages RPM distribution build.
 
     Stages:
         - build - Build RPMs and provision local repository.

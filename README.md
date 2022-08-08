@@ -114,6 +114,27 @@ Currently, only those are used:
 - publish (publishing signed packages)
 - upload (upload publish repository to a remote mirror)
 
+### Plugins
+
+- `fetch` - Manages generic fetch source,
+- `source` - Manages generic distribution source,
+- `source_rpm` - Manages RPM distribution source,
+- `source_deb` - Manages Debian distribution source,
+- `build` - Manages generic distribution build,
+- `build_rpm` - Manages RPM distribution build,
+- `build_deb` - Manages Debian distribution build,
+- `sign` - Manages generic distribution sign,
+- `sign_rpm` - Manages RPM distribution sign,
+- `sign_deb` - Manages Debian distribution sign,
+- `publish` - Manages generic distribution publication,
+- `publish_rpm` - Manages RPM distribution publication,
+- `publish_deb` - Manages Debian distribution publication,
+- `upload` - Manages generic distribution upload,
+- `template` - Manages generic distribution release,
+- `template_rpm` - Manages RPM distribution release,
+- `template_deb` - Manages Debian distribution release,
+- `template_whonix` - Manages Whonix distribution release.
+
 ### CLI
 
 ```bash
@@ -253,23 +274,52 @@ If you plan to sign packages with Split GPG, don't forget to add to your `~/.rpm
 The `.qubesbuilder` file is a YAML format file placed inside a Qubes OS source component directory, similar to what is
 `Makefile.builder` for the legacy Qubes Builder. It has top level keys:
 
+```
   PACKAGE_SET
   PACKAGE_SET-DISTRIBUTION_NAME (= Qubes OS distribution like `host-fc42` or `vm-trixie`.)
   PLUGIN_ENTRY_POINTS (= Keys providing content to be processed by plugins)
+```
 
-Inside each top level, it defines what plugins will take as input. Having both PACKAGE_SET and PACKAGE_SET-DISTRIBUTION_NAME 
-with common keys is up to the plugin to know in which order to use or consider them. It allows defining general or per distro options.
+We provide the list of available keys where examples are given in the next sections:
+
+- `host` - `host` package set content.
+- `vm` - `vm` package set content.
+- `rpm` - RPM plugins content.
+- `deb` - Debian plugins content.
+- `source` - Fetch and source plugins (`fetch`, `source`, `source_rpm` and `source_deb`) content.
+- `build` - Build plugins content (`build`, `build_rpm` and `build_deb`).
+- `create-archive` - Create source component directory archive (default: `True` unless `files` is provided and not empty).
+- `commands` - Execute commands before plugin or distribution tools (`source_deb` only).
+- `modules` - Declare submodules to be included inside source preparation (source archives creation and placeholders substitution)
+- `files` - List of external files to be downloaded. It has to be provided with combination of `url` and a verification method.
+            A verification method is either provided by a checksum file or a signature file with public GPG keys.
+- `url`   - URL of the external file to download.
+- `sha256` - Path to `sha256` checksum file relative to source directory (in combination of `url`).
+- `sha512` - Path to `sha256` checksum file relative to source directory (in combination of `url`).
+- `signature` - URL of the signature file of downloaded external file (in combination of `url` and `pubkeys`).
+- `uncompress` - Uncompress external file downloaded before verification.
+- `pubkeys` - List of public GPG keys to use for verifying the downloaded signature file (in combination of `url` and `signature`).
+
+with non-exhaustive distribution specific keys like:
+- `host-fc32` - Fedora 32 for `host` package set content only,
+- `vm-bullseye` - Bullseye for `vm` package set only.
+
+Inside each top level, it defines what plugin entry points like `rpm`, `deb` or `source` will take as input. Having both
+PACKAGE_SET and PACKAGE_SET-DISTRIBUTION_NAME with common keys is up to the plugin to know in which order to use or
+consider them. It allows defining general or per distro options.
 
 In a `.qubesbuilder` file, there exist several placeholder values that are replaced when loading `.qubesbuilder` content.
 Here is the list of currently supported placeholders by plugins:
 
-- `@VERSION@` - Replaced by component version,
-- `@REL@` - Replaced by component release,
+- `@VERSION@` - Replaced by component version (provided by `version` file inside component source directory),
+- `@REL@` - Replaced by component release (provided by `rel` file inside component source directory if exists),
 - `@BUILDER_DIR@` - Replaced by `/builder` (inside a cage),
 - `@BUILD_DIR@` - Replaced by `/builder/build`  (inside a cage),
 - `@PLUGINS_DIR@` - Replaced by `/builder/plugins`  (inside a cage),
 - `@DISTFILES_DIR@` - Replaced by `/builder/distfiles`  (inside a cage),
 - `@SOURCE_DIR@` - Replaced by `/builder/<COMPONENT_NAME>` (inside a cage where COMPONENT_NAME is the component directory name).
+
+#### Examples
 
 Here is an example for `qubes-python-qasync`:
 ```yaml
@@ -298,10 +348,31 @@ source:
 It defines builds for `host` and `vm` package sets for all supported RPM distributions like Fedora, CentOS Stream
 and soon openSUSE with `rpm` level key. This key instructs RPM plugins to take as input provided spec files in
 `build` key. For Debian related distributions, only `buster` and `bullseye` distributions have build defined with
-the level key `deb`. Similar to RPM, it instructs Debian plugins to take as input provided directories in `build` key.
-In this example, the top level key `source` instructs plugins responsible to fetch and prepare component source, 
-`fetch` and `source`, to consider the key `files` defining an array with only one element, to download the file provided
-as the given `url` and verify it against its `sha256` sum provided inside component source directory.
+the level key `deb`. Similar to RPM, it instructs Debian plugins to take as input, provided directories in `build` key.
+
+In the case where `deb` would have been defined also in `vm` like:
+```yaml
+(...)
+vm:
+  rpm:
+    build:
+    - python-qasync.spec
+  deb:
+    build:
+      - debian1
+      - debian2
+vm-buster:
+  deb:
+    build:
+    - debian
+(...)
+```
+`vm-buster` content override general content defined by `deb` in `vm` so for `buster` distribution, we would
+have still build only for `debian` directory.
+
+In this example, the top level key `source` instructs plugins responsible to fetch and prepare component source
+to consider the key `files`. It is an array, here only one dict element, for downloading the file at the given `url`
+and verify it against its `sha256` sum. The checksum file is relative to component source directory.
 
 If no external source files is needed, like an internal Qubes OS component `qubes-core-qrexec`,
 ```yaml
@@ -350,14 +421,19 @@ source:
     sha256: macbook12-spi-driver-2905d318d1a3ee1a227052490bf20eddef2592f9.tar.sha256
 ```
 
-In this example, first, `source` key provides `modules` that instructs `fetch` and `source` plugins that there exist `git` 
+First, `source` key provides `modules` that instructs `fetch` and `source` plugins that there exists `git`
 submodules that are needed for builds. In the case of RPM, the spec file has different `Source` macros depending on
-archives with submodules content. In this case, the source preparation will create an archive for each submodule and 
-render the spec file accordingly to the submodule archive names. Second, in `files` key, there is another case where
-an external file is needed but the component source dir holds only public keys associated to archive signatures and 
-not checksums. In that case, `url` and `signature` are files to be downloaded and `pubkeys` are public keys to be used
-for source files verification. Moreover, sometimes signature file is against uncompressed file. `uncompress` key instructs
-`fetch` plugins to uncompress the archive before proceeding to the verification.
+archives with submodules content. The source preparation will create an archive for each submodule and 
+render the spec file accordingly to the submodule archive names. More precisely, for `qubes-linux-kernel` commit hash 
+`b4fdd8cebf77c7d0ecee8c93bfd980a019d81e39`, it will replace placeholders inside the spec file 
+@linux-utils@, @dummy-psu@ and @dummy-backlight@ respectively by `linux-utils-97271ba.tar.gz`, `dummy-psu-97271ba.tar.gz`
+and `dummy-backlight-3342093.tar.gz` where `97271ba`, `97271ba` and `3342093` are short commit hash IDs of submodules.
+
+Second, in `files` key, there is another case where an external file is needed but the component source dir holds only
+public keys associated to archive signatures and not checksums. In that case, `url` and `signature` are files to be
+downloaded and `pubkeys` are public keys to be used for source files verification. Moreover, sometimes signature file
+is against uncompressed file. `uncompress` key instructs `fetch` plugins to uncompress the archive before proceeding to
+the verification.
 
 > Note: We remind that all these operations are performed inside several cages. For example, download is done in one
 > cage and verify is done in another cage. It allows to separate processes that may interfere intentionally or not

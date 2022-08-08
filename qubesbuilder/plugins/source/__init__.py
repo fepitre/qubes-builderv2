@@ -37,7 +37,7 @@ class SourceError(PluginError):
 
 class SourcePlugin(DistributionPlugin):
     """
-    Manage generic distribution source
+    SourcePlugin manage generic distribution source
 
     Stages:
         - prep: Check if 'fetch' artifacts info have been created.

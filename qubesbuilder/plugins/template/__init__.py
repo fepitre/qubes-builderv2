@@ -56,7 +56,7 @@ class TemplateError(PluginError):
 
 class TemplateBuilderPlugin(TemplatePlugin):
     """
-    TemplatePlugin manages distribution release.
+    TemplatePlugin manages generic distribution release.
 
     Stages:
         - prep - Create root image and qubeized image.

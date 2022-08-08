@@ -34,7 +34,7 @@ log = get_logger("sign_deb")
 
 class DEBSignPlugin(SignPlugin):
     """
-    DEBSignPlugin manages DEB distribution sign.
+    DEBSignPlugin manages Debian distribution sign.
 
     Stages:
         - sign - Sign Debian package files.

@@ -86,7 +86,7 @@ def provision_local_repository(
 
 class DEBBuildPlugin(BuildPlugin):
     """
-    Manage Debian distribution build.
+    DEBBuildPlugin manages Debian distribution build.
 
     Stages:
         - build - Build Debian packages and provision local repository.

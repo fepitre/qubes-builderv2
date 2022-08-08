@@ -40,7 +40,7 @@ log = get_logger("source_deb")
 
 class DEBSourcePlugin(SourcePlugin):
     """
-    Manage Debian distribution source.
+    DEBSourcePlugin manages Debian distribution source.
 
     Stages:
         - prep: Prepare and generate Debian source package (.orig.tar.*, .dsc and .debian.tar.xz).

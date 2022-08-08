@@ -36,7 +36,7 @@ log = get_logger("source_rpm")
 
 class RPMSourcePlugin(SourcePlugin):
     """
-    Manage RPM distribution source.
+    RPMSourcePlugin manages RPM distribution source.
 
     Stages:
         - prep: Prepare and generate source RPM.
