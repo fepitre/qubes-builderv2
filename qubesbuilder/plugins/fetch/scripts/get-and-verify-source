@@ -83,7 +83,7 @@ exit_clean() {
         if "$fresh_clone"; then
             rm -rf "$REPO"
         else
-            rm -f "$REPO/.git/FETCH_HEAD"
+            rm -f -- "$REPO/.git/FETCH_HEAD"
         fi
     fi
     exit "$exit_code"
