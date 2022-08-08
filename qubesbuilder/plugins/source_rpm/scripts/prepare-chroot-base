@@ -181,11 +181,11 @@ if ! [ -f "${INSTALL_DIR}/tmp/.prepared_base" ]; then
     echo "INFO: Verifying signatures..."
     set +x
     for file in "${DOWNLOAD_DIR}"/*; do
-        result=$(rpmkeys "${RPM_OPTS[@]}" --root="${INSTALL_DIR}" --checksig -- "${file}") || {
+        result=$(LC_ALL=C rpmkeys "${RPM_OPTS[@]}" --root="${INSTALL_DIR}" --checksig -< "${file}") || {
             echo "Filename: ${file} failed verification.  Exiting!"
             exit 1
         }
-        [[ "$result" == "$file: digests signatures OK" ]] || {
+        [[ "$result" == "-: digests signatures OK" ]] || {
             echo "Filename: ${file} is not signed.  Exiting!"
             exit 1
         }
