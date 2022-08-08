@@ -376,7 +376,7 @@ else
         else
             echo "---> Invalid commit $expected_hash"
             exit 1
-        fi
+        fi >&2
     fi
     popd >/dev/null || exit 1
 fi
