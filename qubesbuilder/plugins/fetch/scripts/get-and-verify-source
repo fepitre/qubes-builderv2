@@ -89,6 +89,10 @@ exit_clean() {
     exit "$exit_code"
 }
 
+unset GETOPT_COMPATIBLE fresh_clone GIT_CLONE_FAST GIT_BASEURL GIT_PREFIX GIT_SUFFIX GIT_URL GIT_REMOTE BRANCH \
+    COMPONENT CLEAN FETCH_ONLY IGNORE_MISSING REPO KEYS_DIR KEYRING_DIR_GIT INSECURE_SKIP_CHECKING LESS_SECURE_SIGNED_COMMITS_SUFFICIENT \
+    DO_MERGE FETCH_VERSIONS_ONLY MAINTAINERS
+
 if ! OPTS=$(getopt -o '' -l help,git-baseurl:,git-prefix:,git-suffix:,git-url:,git-remote:,git-branch:,component:,clean,fetch-only,ignore-missing,repo:,keys-dir:,keyring-dir-git:,insecure-skip-checking,less-secure-signed-commits-sufficient,do-merge,fetch-versions-only,maintainer: -n "$0" -- "$@"); then
     echo "ERROR: Failed while parsing options."
     exit 1

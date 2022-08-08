@@ -35,6 +35,8 @@ Options:
 "
 }
 
+unset OPTS GETOPT_COMPATIBLE FILE_URL FILE_CHECKSUM CHECKSUM_CMD SIGNATURE_URL PUBKEY_FILE OUTPUT_DIR FETCH_CMD
+
 if ! OPTS=$(getopt -o hf:u:s:o:x --long help,file-name:,file-url:,signature-url:,output-dir:,uncompress -n "$0" -- "$@"); then
     echo "ERROR: Failed while parsing options."
     exit 1
