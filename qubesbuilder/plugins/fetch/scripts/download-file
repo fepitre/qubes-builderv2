@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "${FILE_URL}" ]; then
-    printf "ERROR: Please provide file URL.\n"
+    echo "ERROR: Please provide file URL."
     exit 1
 fi
 FETCH_CMD=(curl --proto '=https' --proto-redir '=https' --tlsv1.2 --http1.1 -sSfL -o)
@@ -78,7 +78,7 @@ fi
 cd "${OUTPUT_DIR}"
 
 # Download file with untrusted suffix
-"${FETCH_CMD[@]}" "${UNTRUSTED_FILE_NAME}" "$FILE_URL"
+"${FETCH_CMD[@]}" "${UNTRUSTED_FILE_NAME}" -- "$FILE_URL"
 
 # Uncompress downloaded file if signature is on the TAR archive only (e.g. linux)
 if [ "$UNCOMPRESS" == 1 ]; then
