@@ -123,7 +123,7 @@ class PublishPlugin(DistributionPlugin):
         return True
 
     def run(self, stage: str):
-        if stage in ("publish", "upload"):
+        if stage == "publish":
             if not isinstance(self.executor, LocalExecutor):
                 raise PublishError("This plugin only supports local executor.")
 
