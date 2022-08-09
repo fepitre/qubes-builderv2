@@ -25,14 +25,11 @@ from pathlib import Path
 from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor, ExecutorError
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import (
-    BUILDER_DIR,
-    PLUGINS_DIR,
-    BUILD_DIR,
-    DISTFILES_DIR,
+from qubesbuilder.executors import (
+    Executor,
+    ExecutorError,
 )
+from qubesbuilder.log import get_logger
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 log = get_logger("source_deb")
@@ -132,7 +129,7 @@ class DEBSourcePlugin(SourcePlugin):
             temp_dir = Path(tempfile.mkdtemp())
 
             # Source component directory inside executors
-            source_dir = BUILDER_DIR / self.component.name
+            source_dir = self.executor.get_builder_dir() / self.component.name
 
             # directory basename will be used as prefix for some artifacts
             directory_bn = directory.mangle()
@@ -144,22 +141,24 @@ class DEBSourcePlugin(SourcePlugin):
 
             # Generate package release name
             copy_in = [
-                (self.component.source_dir, BUILDER_DIR),
-                (self.plugins_dir / "source_deb", PLUGINS_DIR),
+                (self.component.source_dir, self.executor.get_builder_dir()),
+                (self.plugins_dir / "source_deb", self.executor.get_plugins_dir()),
             ]
             for dependency in self.plugin_dependencies:
-                copy_in += [(self.plugins_dir / dependency, PLUGINS_DIR)]
+                copy_in += [
+                    (self.plugins_dir / dependency, self.executor.get_plugins_dir())
+                ]
 
             copy_out = [(source_dir / f"{directory_bn}_package_release_name", temp_dir)]
 
             # Update changelog
             cmd = [
-                f"{PLUGINS_DIR}/source_deb/scripts/modify-changelog-for-build "
+                f"{self.executor.get_plugins_dir()}/source_deb/scripts/modify-changelog-for-build "
                 f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
             ]
 
             cmd += [
-                f"{PLUGINS_DIR}/source_deb/scripts/get-source-info {source_dir} {directory}"
+                f"{self.executor.get_plugins_dir()}/source_deb/scripts/get-source-info {source_dir} {directory}"
             ]
             try:
                 self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
@@ -213,28 +212,35 @@ class DEBSourcePlugin(SourcePlugin):
 
             # Copy-in distfiles, dependencies, source and Debian directory
             copy_in = [
-                (self.component.source_dir, BUILDER_DIR),
-                (self.plugins_dir / "source_deb", PLUGINS_DIR),
-                (distfiles_dir, DISTFILES_DIR),
+                (self.component.source_dir, self.executor.get_builder_dir()),
+                (self.plugins_dir / "source_deb", self.executor.get_plugins_dir()),
+                (distfiles_dir, self.executor.get_distfiles_dir()),
             ]
             for dependency in self.plugin_dependencies:
-                copy_in += [(self.plugins_dir / dependency, PLUGINS_DIR)]
+                copy_in += [
+                    (self.plugins_dir / dependency, self.executor.get_plugins_dir())
+                ]
 
             # Copy-out Debian source package (.orig.tar.*, .dsc and .debian.tar.xz)
             copy_out = [
-                (BUILDER_DIR / source_dsc, artifacts_dir),
-                (BUILDER_DIR / source_debian, artifacts_dir),
-                (BUILDER_DIR / f"{directory_bn}_packages.list", temp_dir),
+                (self.executor.get_builder_dir() / source_dsc, artifacts_dir),
+                (self.executor.get_builder_dir() / source_debian, artifacts_dir),
+                (
+                    self.executor.get_builder_dir() / f"{directory_bn}_packages.list",
+                    temp_dir,
+                ),
             ]
             if package_type == "quilt":
-                copy_out += [(BUILDER_DIR / source_orig, artifacts_dir)]
+                copy_out += [
+                    (self.executor.get_builder_dir() / source_orig, artifacts_dir)
+                ]
 
             # Init command with .qubesbuilder command entries
             cmd = self.parameters.get("source", {}).get("commands", [])
 
             # Update changelog
             cmd += [
-                f"{PLUGINS_DIR}/source_deb/scripts/modify-changelog-for-build "
+                f"{self.executor.get_plugins_dir()}/source_deb/scripts/modify-changelog-for-build "
                 f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
             ]
 
@@ -244,10 +250,10 @@ class DEBSourcePlugin(SourcePlugin):
                         (self.plugins_dir / "source/salt/Makefile.install", source_dir)
                     ]
                     cmd += [
-                        f"{PLUGINS_DIR}/source/salt/yaml-dumper "
+                        f"{self.executor.get_plugins_dir()}/source/salt/yaml-dumper "
                         "--env VERBOSE "
                         f"--outfile {source_dir}/Makefile.vars -- "
-                        f"{PLUGINS_DIR}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
+                        f"{self.executor.get_plugins_dir()}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
                     ]
 
                 # Create archive only if no external files are provided or if explicitly requested.
@@ -255,36 +261,36 @@ class DEBSourcePlugin(SourcePlugin):
                 create_archive = self.parameters.get("create-archive", create_archive)
                 if create_archive:
                     cmd += [
-                        f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir} {source_orig}",
-                        f"mv {source_dir}/{source_orig} {BUILDER_DIR}",
+                        f"{self.executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
+                        f"mv {source_dir}/{source_orig} {self.executor.get_builder_dir()}",
                     ]
                 for file in self.parameters.get("files", []):
                     fn = os.path.basename(file["url"])
                     cmd.append(
-                        f"mv {DISTFILES_DIR / self.component.name / fn} {BUILDER_DIR}/{source_orig}"
+                        f"mv {self.executor.get_distfiles_dir() / self.component.name / fn} {self.executor.get_builder_dir()}/{source_orig}"
                     )
 
             gen_packages_list_cmd = [
-                f"{PLUGINS_DIR}/source_deb/scripts/debian-get-packages-list",
-                str(BUILDER_DIR / source_dsc),
+                f"{self.executor.get_plugins_dir()}/source_deb/scripts/debian-get-packages-list",
+                str(self.executor.get_builder_dir() / source_dsc),
                 str(self.dist.version),
-                f">{BUILDER_DIR}/{directory_bn}_packages.list",
+                f">{self.executor.get_builder_dir()}/{directory_bn}_packages.list",
             ]
 
             # Run 'dpkg-source' inside build directory
             if package_type == "quilt":
                 cmd += [
-                    f"mkdir -p {BUILD_DIR}",
-                    f"cd {BUILD_DIR}",
+                    f"mkdir -p {self.executor.get_build_dir()}",
+                    f"cd {self.executor.get_build_dir()}",
                     f"cp -r {source_dir / directory} .",
                 ]
             else:
                 # For native package, we need to match archive prefix in order
                 # to not have a different one at build stage. For example,
                 # 'build/' vs 'qubes-utils_4.1.16+deb11u1/'
-                build_dir = str(BUILDER_DIR / package_release_name_full).replace(
-                    "_", "-"
-                )
+                build_dir = str(
+                    self.executor.get_builder_dir() / package_release_name_full
+                ).replace("_", "-")
                 cmd += [
                     f"mkdir -p {build_dir}",
                     f"cd {build_dir}",

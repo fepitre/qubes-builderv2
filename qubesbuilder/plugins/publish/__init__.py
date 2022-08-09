@@ -65,6 +65,7 @@ class PublishPlugin(DistributionPlugin):
         debug: bool = False,
     ):
         super().__init__(
+            executor=executor,
             component=component,
             dist=dist,
             plugins_dir=plugins_dir,

@@ -54,6 +54,7 @@ class UploadPlugin(Plugin):
         debug: bool = False,
     ):
         super().__init__(
+            executor=executor,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,

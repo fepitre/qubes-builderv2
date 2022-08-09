@@ -121,7 +121,7 @@ class QubesComponent:
         placeholders.update({"@VERSION@": self.version, "@REL@": self.release})
 
         for key, val in placeholders.items():
-            data = data.replace(key, val)
+            data = data.replace(key, str(val))
 
         try:
             rendered_data = yaml.safe_load(data) or {}

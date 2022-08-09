@@ -31,10 +31,6 @@ from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     PluginError,
-    BUILD_DIR,
-    CACHE_DIR,
-    REPOSITORY_DIR,
-    PLUGINS_DIR,
     TemplatePlugin,
 )
 from qubesbuilder.template import QubesTemplate
@@ -87,13 +83,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
         template_root_with_partitions: bool = True,
     ):
         super().__init__(
+            executor=executor,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
             template=template,
         )
-        self.executor = executor
         self.qubes_release = qubes_release
         self.gpg_client = gpg_client
         self.sign_key = sign_key
@@ -114,13 +110,15 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "TEMPLATE_VERSION": TEMPLATE_VERSION,
                 "TEMPLATE_FLAVOR": self.template.flavor,
                 "TEMPLATE_OPTIONS": " ".join(self.template.options),
-                "INSTALL_DIR": "/builder/mnt",
-                "ARTIFACTS_DIR": str(BUILD_DIR),
-                "PLUGINS_DIR": str(PLUGINS_DIR),
-                "PACKAGES_DIR": str(REPOSITORY_DIR),
+                "INSTALL_DIR": f"{self.executor.get_builder_dir()}/mnt",
+                "ARTIFACTS_DIR": str(self.executor.get_build_dir()),
+                "PLUGINS_DIR": str(self.executor.get_plugins_dir()),
+                "PACKAGES_DIR": str(self.executor.get_repository_dir()),
                 "DISCARD_PREPARED_IMAGE": "1",
                 "BUILDER_TURBO_MODE": "1",
-                "CACHE_DIR": str(CACHE_DIR / f"cache_{self.dist.name}"),
+                "CACHE_DIR": str(
+                    self.executor.get_cache_dir() / f"cache_{self.dist.name}"
+                ),
             }
         )
         if self.template_root_size:
@@ -361,30 +359,46 @@ class TemplateBuilderPlugin(TemplatePlugin):
             self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
             copy_in = [
-                (self.plugins_dir / "template", PLUGINS_DIR),
-                (repository_dir, REPOSITORY_DIR),
+                (self.plugins_dir / "template", self.executor.get_plugins_dir()),
+                (repository_dir, self.executor.get_repository_dir()),
             ] + [
-                (self.plugins_dir / plugin, PLUGINS_DIR)
+                (self.plugins_dir / plugin, self.executor.get_plugins_dir())
                 for plugin in self.plugin_dependencies
             ]
 
             copy_out = [
                 (
-                    BUILD_DIR / "qubeized_images" / self.template.name / "root.img",
+                    self.executor.get_build_dir()
+                    / "qubeized_images"
+                    / self.template.name
+                    / "root.img",
                     qubeized_image,
                 ),
                 (
-                    BUILD_DIR / "appmenus",
+                    self.executor.get_build_dir() / "appmenus",
                     template_artifacts_dir / self.template.name,
                 ),
                 (
-                    BUILD_DIR / "template.conf",
+                    self.executor.get_build_dir() / "template.conf",
                     template_artifacts_dir / self.template.name,
                 ),
             ]
-            cmd = [f"make -C {PLUGINS_DIR}/template prepare build-rootimg"]
+
+            files_inside_executor_with_placeholders = [
+                self.executor.get_plugins_dir() / "template_rpm/04_install_qubes.sh"
+            ]
+
+            cmd = [
+                f"make -C {self.executor.get_plugins_dir()}/template prepare build-rootimg"
+            ]
             try:
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                self.executor.run(
+                    cmd,
+                    copy_in,
+                    copy_out,
+                    environment=self.environment,
+                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                )
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to prepare template."
                 raise TemplateError(msg) from e
@@ -400,35 +414,50 @@ class TemplateBuilderPlugin(TemplatePlugin):
             rpm_fn = f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
 
             copy_in = [
-                (self.plugins_dir / "template", PLUGINS_DIR),
-                (repository_dir, REPOSITORY_DIR),
+                (self.plugins_dir / "template", self.executor.get_plugins_dir()),
+                (repository_dir, self.executor.get_repository_dir()),
                 (
                     qubeized_image / "root.img",
-                    BUILD_DIR / "qubeized_images" / self.template.name,
+                    self.executor.get_build_dir()
+                    / "qubeized_images"
+                    / self.template.name,
                 ),
                 (
                     template_artifacts_dir / self.template.name / "template.conf",
-                    BUILD_DIR,
+                    self.executor.get_build_dir(),
                 ),
                 (
                     template_artifacts_dir / self.template.name / "appmenus",
-                    BUILD_DIR,
+                    self.executor.get_build_dir(),
                 ),
             ] + [
-                (self.plugins_dir / plugin, PLUGINS_DIR)
+                (self.plugins_dir / plugin, self.executor.get_plugins_dir())
                 for plugin in self.plugin_dependencies
             ]
 
             # Copy-in previously prepared base root img
             copy_out = [
                 (
-                    BUILD_DIR / f"rpmbuild/RPMS/noarch/{rpm_fn}",
+                    self.executor.get_build_dir() / f"rpmbuild/RPMS/noarch/{rpm_fn}",
                     template_artifacts_dir / "rpm",
                 ),
             ]
-            cmd = [f"make -C {PLUGINS_DIR}/template prepare build-rpm"]
+
+            files_inside_executor_with_placeholders = [
+                self.executor.get_plugins_dir() / "template_rpm/04_install_qubes.sh"
+            ]
+
+            cmd = [
+                f"make -C {self.executor.get_plugins_dir()}/template prepare build-rpm"
+            ]
             try:
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                self.executor.run(
+                    cmd,
+                    copy_in,
+                    copy_out,
+                    environment=self.environment,
+                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                )
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to build template."
                 raise TemplateError(msg) from e

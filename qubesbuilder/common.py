@@ -16,7 +16,9 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-from typing import List
+import re
+import shutil
+import tempfile
 from pathlib import Path
 from string import digits, ascii_letters
 
@@ -100,3 +102,29 @@ def deep_check(data):
         pass
     else:
         raise ValueError(f"Unexpected data type {type(data)} found")
+
+
+def sed(pattern, replace, source, destination=None):
+    """Reads a source file and writes the destination file.
+
+    Args:
+        pattern     (str): pattern to match (can be re.pattern)
+        replace     (str): replacement string
+        source      (str): input filename
+        destination (str): destination filename (if not given, source will be overwritten)
+    """
+
+    with open(source, "r") as fd:
+        data = fd.read()
+
+    p = re.compile(pattern)
+    sed_data = p.sub(replace, data)
+
+    if destination:
+        with open(destination, "w") as fd:
+            fd.write(sed_data)
+    else:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as fd:  # type: ignore
+            fd.write(sed_data)
+            fd.flush()
+        shutil.move(fd.name, source)

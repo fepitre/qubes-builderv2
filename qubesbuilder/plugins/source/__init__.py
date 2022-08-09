@@ -61,6 +61,7 @@ class SourcePlugin(DistributionPlugin):
         skip_if_exists: bool = False,
     ):
         super().__init__(
+            executor=executor,
             component=component,
             dist=dist,
             plugins_dir=plugins_dir,

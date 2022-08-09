@@ -121,6 +121,7 @@ class ContainerExecutor(Executor):
         cmd: List[str],
         copy_in: List[Tuple[Path, PurePath]] = None,
         copy_out: List[Tuple[PurePath, Path]] = None,
+        files_inside_executor_with_placeholders: List[Union[Path, str]] = None,
         environment=None,
         no_fail_copy_out=False,
     ):
@@ -131,8 +132,23 @@ class ContainerExecutor(Executor):
             with self.get_client() as client:
                 # prepare container for given image and command
                 image = client.images.get(self.attrs["Id"])
-                final_cmd = f'sudo mkdir -p /builder && sudo chown -R user:user /builder; {"&&".join(cmd)}'
+
+                # replace placeholders
+                sed_cmd = []
+                if files_inside_executor_with_placeholders:
+                    for f in files_inside_executor_with_placeholders:
+                        sed_cmd += [
+                            f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {f}"
+                        ]
+
+                # fix permissions and user group
+                permissions_cmd = [
+                    f"sudo mkdir -p {self.get_builder_dir()}",
+                    f"sudo chown -R user:user {self.get_builder_dir()}",
+                ]
+                final_cmd = "&&".join(sed_cmd + permissions_cmd + cmd)
                 container_cmd = ["bash", "-c", final_cmd]
+
                 # FIXME: Ensure podman client can parse non str value
                 #  https://github.com/containers/podman/issues/11984
                 if self._container_client == "podman":

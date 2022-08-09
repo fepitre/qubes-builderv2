@@ -56,6 +56,7 @@ class BuildPlugin(DistributionPlugin):
         use_qubes_repo: dict = None,
     ):
         super().__init__(
+            executor=executor,
             component=component,
             dist=dist,
             plugins_dir=plugins_dir,

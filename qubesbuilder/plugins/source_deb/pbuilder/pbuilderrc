@@ -28,10 +28,10 @@ case ${DISTRIBUTION} in
 esac
 
 
-BASETGZ="/builder/pbuilder/base.tgz"
+BASETGZ="@BUILDER_DIR@/pbuilder/base.tgz"
 #EXTRAPACKAGES=""
 #export DEBIAN_BUILDARCH=athlon
-BUILDPLACE=/builder/pbuilder/build
+BUILDPLACE=@BUILDER_DIR@/pbuilder/build
 # directory inside the chroot where the build happens. See #789404
 BUILDDIR=/build
 # what be used as value for HOME during builds.  See #441052
@@ -47,7 +47,7 @@ USEDEVPTS=yes
 USESYSFS=yes
 USENETWORK=no
 USERUNSHM=yes
-BUILDRESULT="/builder/pbuilder/results"
+BUILDRESULT="@BUILDER_DIR@/pbuilder/results"
 
 # specifying the distribution forces the distribution on "pbuilder update"
 #DISTRIBUTION=sid
@@ -62,7 +62,7 @@ COMPONENTS="main"
 APTCACHE="$CACHEDIR"
 APTCACHEHARDLINK="yes"
 REMOVEPACKAGES=""
-HOOKDIR="/builder/pbuilder/hooks"
+HOOKDIR="@BUILDER_DIR@/pbuilder/hooks"
 EATMYDATA=yes
 
 # make debconf not interact with user
@@ -132,13 +132,13 @@ DEBOOTSTRAPOPTS=(
 # or unset it to make it not a buildd type.
 # unset DEBOOTSTRAPOPTS
 
-DEBOOTSTRAPOPTS+=( "--keyring=/builder/plugins/source_deb/keys/${DISTRIBUTION}-${DIST_VENDOR}-archive-keyring.gpg" )
+DEBOOTSTRAPOPTS+=( "--keyring=@BUILDER_DIR@/plugins/source_deb/keys/${DISTRIBUTION}-${DIST_VENDOR}-archive-keyring.gpg" )
 
 # Keyrings to use for package verification with apt, not used for debootstrap
 # (use DEBOOTSTRAPOPTS). By default the debian-archive-keyring package inside
 # the chroot is used.
-if [ -r "/builder/pbuilder/qubes-keyring.gpg" ]; then
-    APTKEYRINGS=( "/builder/pbuilder/qubes-keyring.gpg" )
+if [ -r "@BUILDER_DIR@/pbuilder/qubes-keyring.gpg" ]; then
+    APTKEYRINGS=( "@BUILDER_DIR@/pbuilder/qubes-keyring.gpg" )
 else
     APTKEYRINGS=()
 fi
@@ -178,7 +178,7 @@ CCACHEDIR=""
 #export PATH="/usr/lib/ccache:${PATH}"
 #EXTRAPACKAGES=ccache
 #BINDMOUNTS="${BINDMOUNTS} ${CCACHE_DIR}"
-BINDMOUNTS="/builder/repository:/tmp/qubes-deb"
+BINDMOUNTS="@BUILDER_DIR@/repository:/tmp/qubes-deb"
 
 # qubes-builder is the thing building building the final packages, it doesn't
 # need to send *_source.changes to be actually built; and two .changes files

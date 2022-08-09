@@ -22,7 +22,6 @@ from pathlib import Path
 from qubesbuilder.template import QubesTemplate
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import PLUGINS_DIR
 from qubesbuilder.plugins.template import TemplateBuilderPlugin
 
 log = get_logger("template_debian")
@@ -70,7 +69,11 @@ class DEBTemplateBuilderPlugin(TemplateBuilderPlugin):
         self.plugin_dependencies += ["template_debian", "build_deb"]
 
         self.environment.update(
-            {"TEMPLATE_CONTENT_DIR": str(PLUGINS_DIR / "template_debian")}
+            {
+                "TEMPLATE_CONTENT_DIR": str(
+                    self.executor.get_plugins_dir() / "template_debian"
+                )
+            }
         )
 
     def run(

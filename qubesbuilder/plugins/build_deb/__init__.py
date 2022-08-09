@@ -26,12 +26,6 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import (
-    BUILDER_DIR,
-    BUILD_DIR,
-    PLUGINS_DIR,
-    REPOSITORY_DIR,
-)
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
 log = get_logger("build_deb")
@@ -187,21 +181,31 @@ class DEBBuildPlugin(BuildPlugin):
 
             # Copy-in plugin, repository and sources
             copy_in = [
-                (self.plugins_dir / "build_deb", PLUGINS_DIR),
-                (self.plugins_dir / "source_deb" / "pbuilder", BUILDER_DIR),
-                (repository_dir, REPOSITORY_DIR),
+                (self.plugins_dir / "build_deb", self.executor.get_plugins_dir()),
+                (
+                    self.plugins_dir / "source_deb" / "pbuilder",
+                    self.executor.get_builder_dir(),
+                ),
+                (repository_dir, self.executor.get_repository_dir()),
             ]
+
             copy_in += [
-                (prep_artifacts_dir / source_info[f], BUILD_DIR)
+                (prep_artifacts_dir / source_info[f], self.executor.get_build_dir())
                 for f in debian_source_files
             ]
+
             # Copy-in plugin dependencies
             copy_in += [
-                (self.plugins_dir / plugin, PLUGINS_DIR)
+                (self.plugins_dir / plugin, self.executor.get_plugins_dir())
                 for plugin in self.plugin_dependencies
             ]
 
-            results_dir = BUILDER_DIR / "pbuilder" / "results"
+            # Files inside executor
+            files_inside_executor_with_placeholders = [
+                self.executor.get_builder_dir() / "pbuilder/pbuilderrc"
+            ]
+
+            results_dir = self.executor.get_builder_dir() / "pbuilder" / "results"
             source_info["changes"] = source_info["dsc"].replace(
                 ".dsc", "_amd64.changes"
             )
@@ -234,7 +238,7 @@ class DEBBuildPlugin(BuildPlugin):
             )
             # extra_sources = ""
             cmd = [
-                f"{PLUGINS_DIR}/build_deb/scripts/create-local-repo {REPOSITORY_DIR} {self.dist.fullname} {self.dist.name}"
+                f"{self.executor.get_plugins_dir()}/build_deb/scripts/create-local-repo {self.executor.get_repository_dir()} {self.dist.fullname} {self.dist.name}"
             ]
 
             if self.use_qubes_repo.get("version", None):
@@ -242,8 +246,8 @@ class DEBBuildPlugin(BuildPlugin):
                 extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name} main"
                 cmd += [
                     f"gpg --dearmor "
-                    f"< {PLUGINS_DIR}/source_deb/keys/qubes-debian-r{qubes_version}.asc "
-                    f"> {BUILDER_DIR}/pbuilder/qubes-keyring.gpg"
+                    f"< {self.executor.get_plugins_dir()}/source_deb/keys/qubes-debian-r{qubes_version}.asc "
+                    f"> {self.executor.get_builder_dir()}/pbuilder/qubes-keyring.gpg"
                 ]
                 if self.use_qubes_repo.get("testing", False):
                     extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name}-testing main"
@@ -256,16 +260,16 @@ class DEBBuildPlugin(BuildPlugin):
             cmd += [
                 f"sudo -E pbuilder create "
                 f"--distribution {self.dist.name} "
-                f"--configfile {BUILDER_DIR}/pbuilder/pbuilderrc "
+                f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc "
                 f"--othermirror \"{extra_sources}\""
             ]
 
             cmd += [
                 f"sudo -E pbuilder build --override-config "
                 f"--distribution {self.dist.name} "
-                f"--configfile {BUILDER_DIR}/pbuilder/pbuilderrc "
+                f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc "
                 f"--othermirror \"{extra_sources}\" "
-                f"{str(BUILD_DIR / source_info['dsc'])}"
+                f"{str(self.executor.get_build_dir() / source_info['dsc'])}"
             ]
             # fmt: on
             try:
@@ -275,6 +279,7 @@ class DEBBuildPlugin(BuildPlugin):
                     copy_out,
                     environment=self.environment,
                     no_fail_copy_out=True,
+                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
                 )
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{directory}: Failed to build packages: {str(e)}."

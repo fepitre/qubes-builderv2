@@ -22,7 +22,6 @@ from pathlib import Path
 from qubesbuilder.template import QubesTemplate
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import PLUGINS_DIR
 from qubesbuilder.plugins.template_debian import DEBTemplateBuilderPlugin
 
 log = get_logger("template_whonix")
@@ -72,8 +71,10 @@ class WhonixTemplateBuilderPlugin(DEBTemplateBuilderPlugin):
         self.environment.update(
             {
                 "TEMPLATE_ENV_WHITELIST": "DERIVATIVE_APT_REPOSITORY_OPTS WHONIX_ENABLE_TOR WHONIX_TBB_VERSION",
-                "TEMPLATE_FLAVOR_DIR": f"+whonix-gateway:{PLUGINS_DIR}/template_whonix +whonix-workstation:{PLUGINS_DIR}/template_whonix",
-                "APPMENUS_DIR": str(PLUGINS_DIR / "template_whonix"),
+                "TEMPLATE_FLAVOR_DIR": f"+whonix-gateway:{self.executor.get_plugins_dir()}/template_whonix +whonix-workstation:{self.executor.get_plugins_dir()}/template_whonix",
+                "APPMENUS_DIR": str(
+                    self.executor.get_plugins_dir() / "template_whonix"
+                ),
                 # FIXME: Pass values with the help of plugin options
                 "DERIVATIVE_APT_REPOSITORY_OPTS": "stable",
                 "WHONIX_ENABLE_TOR": "0",

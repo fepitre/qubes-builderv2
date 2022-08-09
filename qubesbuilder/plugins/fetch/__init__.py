@@ -32,8 +32,6 @@ from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     ComponentPlugin,
     PluginError,
-    BUILDER_DIR,
-    PLUGINS_DIR,
 )
 
 log = get_logger("fetch")
@@ -69,12 +67,12 @@ class FetchPlugin(ComponentPlugin):
     ):
         super().__init__(
             component=component,
+            executor=executor,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
         )
-        self.executor = executor
         self.skip_if_exists = skip_if_exists
         self.skip_git_fetch = skip_git_fetch
         self.do_merge = do_merge
@@ -108,8 +106,8 @@ class FetchPlugin(ComponentPlugin):
         self.get_temp_dir().mkdir(exist_ok=True)
 
         # Source component directory inside executors
-        source_dir = BUILDER_DIR / self.component.name
-        copy_in = [(self.plugins_dir / "fetch", PLUGINS_DIR)]
+        source_dir = self.executor.get_builder_dir() / self.component.name
+        copy_in = [(self.plugins_dir / "fetch", self.executor.get_plugins_dir())]
 
         if local_source_dir.exists():
             # If we already fetched sources previously and have modified them,
@@ -118,12 +116,14 @@ class FetchPlugin(ComponentPlugin):
                 shutil.rmtree(str(local_source_dir))
             else:
                 log.info(f"{self.component}: source already fetched. Updating.")
-                copy_in += [(local_source_dir, BUILDER_DIR)]
+                copy_in += [(local_source_dir, self.executor.get_builder_dir())]
 
         # Get GIT source for a given Qubes OS component
         copy_out = [(source_dir, self.get_sources_dir())]
         get_sources_cmd = [
-            str(PLUGINS_DIR / "fetch/scripts/get-and-verify-source"),
+            str(
+                self.executor.get_plugins_dir() / "fetch/scripts/get-and-verify-source"
+            ),
             "--component",
             self.component.name,
             "--git-branch",
@@ -131,9 +131,9 @@ class FetchPlugin(ComponentPlugin):
             "--git-url",
             self.component.url,
             "--keyring-dir-git",
-            str(BUILDER_DIR / "keyring"),
+            str(self.executor.get_builder_dir() / "keyring"),
             "--keys-dir",
-            str(PLUGINS_DIR / "fetch/keys"),
+            str(self.executor.get_plugins_dir() / "fetch/keys"),
         ]
         for maintainer in self.component.maintainers:
             get_sources_cmd += ["--maintainer", maintainer]
@@ -148,7 +148,10 @@ class FetchPlugin(ComponentPlugin):
             if self.fetch_versions_only:
                 get_sources_cmd += ["--fetch-versions-only"]
         if not self.skip_git_fetch:
-            cmd = [f"cd {str(BUILDER_DIR)}", " ".join(get_sources_cmd)]
+            cmd = [
+                f"cd {str(self.executor.get_builder_dir())}",
+                " ".join(get_sources_cmd),
+            ]
             self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
         # Update parameters based on previously fetched sources as .qubesbuilder
@@ -186,16 +189,16 @@ class FetchPlugin(ComponentPlugin):
                     )
                     continue
             copy_in = [
-                (self.plugins_dir / "fetch", PLUGINS_DIR),
-                (self.component.source_dir, BUILDER_DIR),
+                (self.plugins_dir / "fetch", self.executor.get_plugins_dir()),
+                (self.component.source_dir, self.executor.get_builder_dir()),
             ]
             copy_out = [(source_dir / untrusted_final_fn, temp_dir)]
 
             # Construct command for "download-file".
             download_cmd = [
-                str(PLUGINS_DIR / "fetch/scripts/download-file"),
+                str(self.executor.get_plugins_dir() / "fetch/scripts/download-file"),
                 "--output-dir",
-                str(BUILDER_DIR / self.component.name),
+                str(self.executor.get_builder_dir() / self.component.name),
                 "--file-name",
                 fn,
                 "--file-url",
@@ -207,7 +210,9 @@ class FetchPlugin(ComponentPlugin):
                 untrusted_signature_fn = "untrusted_" + signature_fn
                 copy_out += [
                     (
-                        BUILDER_DIR / self.component.name / untrusted_signature_fn,
+                        self.executor.get_builder_dir()
+                        / self.component.name
+                        / untrusted_signature_fn,
                         temp_dir,
                     )
                 ]
@@ -292,7 +297,7 @@ class FetchPlugin(ComponentPlugin):
         temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
 
         # Source component directory inside executors
-        source_dir = BUILDER_DIR / self.component.name
+        source_dir = self.executor.get_builder_dir() / self.component.name
 
         # We store the fetched source hash as original reference to be compared
         # for any further modifications. Once the source is fetched, we may locally
@@ -302,7 +307,7 @@ class FetchPlugin(ComponentPlugin):
 
         # Get git hash and tags
         copy_in = [
-            (self.component.source_dir, BUILDER_DIR),
+            (self.component.source_dir, self.executor.get_builder_dir()),
         ]
         copy_out = [
             (source_dir / "hash", temp_dir),
@@ -310,7 +315,7 @@ class FetchPlugin(ComponentPlugin):
         ]
         cmd = [
             f"rm -f {source_dir}/hash {source_dir}/vtags",
-            f"cd {BUILDER_DIR}",
+            f"cd {self.executor.get_builder_dir()}",
         ]
         cmd += [f"git -C {source_dir} rev-parse 'HEAD^{{}}' >> {source_dir}/hash"]
         cmd += [
@@ -347,10 +352,13 @@ class FetchPlugin(ComponentPlugin):
         if modules:
             # Get git module hashes
             copy_in = [
-                (self.component.source_dir, BUILDER_DIR),
+                (self.component.source_dir, self.executor.get_builder_dir()),
             ]
             copy_out = [(source_dir / "modules", temp_dir)]
-            cmd = [f"rm -f {source_dir}/modules", f"cd {BUILDER_DIR}"]
+            cmd = [
+                f"rm -f {source_dir}/modules",
+                f"cd {self.executor.get_builder_dir()}",
+            ]
             for module in modules:
                 cmd += [
                     f"git -C {source_dir}/{module} rev-parse HEAD >> {source_dir}/modules"
@@ -383,8 +391,8 @@ class FetchPlugin(ComponentPlugin):
             )
 
             copy_in = [
-                (self.component.source_dir, BUILDER_DIR),
-                (self.plugins_dir / "fetch", PLUGINS_DIR),
+                (self.component.source_dir, self.executor.get_builder_dir()),
+                (self.plugins_dir / "fetch", self.executor.get_plugins_dir()),
             ]
             copy_out = []
             cmd = []
@@ -397,7 +405,7 @@ class FetchPlugin(ComponentPlugin):
                     ),
                 ]
                 cmd += [
-                    f"{PLUGINS_DIR}/fetch/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
+                    f"{self.executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
                 ]
 
             try:

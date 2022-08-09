@@ -19,11 +19,12 @@
 import shutil
 import subprocess
 import getpass
+import uuid
 
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
-from qubesbuilder.common import sanitize_line
+from qubesbuilder.common import sanitize_line, str_to_bool, sed
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 
@@ -35,7 +36,13 @@ class LocalExecutor(Executor):
     Local executor
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self, directory: Path = Path("/tmp"), clean: Union[str, bool] = True, **kwargs
+    ):
+        random_path = str(id(self)) + str(uuid.uuid4())[0:8]
+        self._temporary_dir = Path(directory).expanduser().resolve() / random_path
+        self._builder_dir = self._temporary_dir / "builder"
+        self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
 
     def copy_in(self, source_path: Path, destination_dir: Path):  # type: ignore
@@ -48,6 +55,7 @@ class LocalExecutor(Executor):
                     shutil.rmtree(str(dst))
                 shutil.copytree(str(src), str(dst))
             else:
+                dst.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src), str(dst))
         except (shutil.Error, FileExistsError, FileNotFoundError) as e:
             raise ExecutorError from e
@@ -60,58 +68,99 @@ class LocalExecutor(Executor):
         cmd: List[str],
         copy_in: List[Tuple[Path, Path]] = None,
         copy_out: List[Tuple[Path, Path]] = None,
+        files_inside_executor_with_placeholders: List[Path] = None,
         environment=None,
         no_fail_copy_out=False,
     ):
 
-        # FIXME: ensure to create /builder tree layout in all executors
+        # Create temporary builder directory. In an unlikely case of conflict,
+        # run will abort instead of using unsafe directory.
+        try:
+            self._builder_dir.mkdir(parents=True)
+        except (FileNotFoundError, OSError) as e:
+            raise ExecutorError(
+                f"Failed to create temporary builder directory: {str(e)}"
+            )
+
         if self._kwargs.get("group", None):
             chown = f"{self._kwargs.get('user', getpass.getuser())}:{self._kwargs.get('group', 'user')}"
         else:
             chown = self._kwargs.get("user", getpass.getuser())
 
         try:
-            subprocess.run(
-                [
-                    f"sudo mkdir -p /builder && sudo chown -R {chown} /builder",
-                ],
-                check=True,
-                shell=True,
-            )
-        except subprocess.CalledProcessError as e:
-            raise ExecutorError(f"Failed to prepare executor: {str(e)}")
-
-        cmd = ["bash", "-c", "&&".join(cmd)]
-        log.info(f"Executing '{' '.join(cmd)}'.")
-
-        # copy-in hook
-        for src, dst in copy_in or []:
-            self.copy_in(source_path=src, destination_dir=dst)
-
-        # stream output for command
-        process = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=environment
-        )
-        while True:
-            if not process.stdout:
-                log.error(f"No output!")
-                break
-            if process.poll() is not None:
-                break
-            for line in process.stdout:
-                line = sanitize_line(line.rstrip(b"\n")).rstrip()
-                log.info(f"output: {str(line)}")
-        rc = process.poll()
-        if rc != 0:
-            raise ExecutorError(f"Failed to run '{cmd}' (status={rc}).")
-
-        # copy-out hook
-        for src, dst in copy_out or []:
             try:
-                self.copy_out(source_path=src, destination_dir=dst)
-            except ExecutorError as e:
-                # Ignore copy-out failure if requested
-                if no_fail_copy_out:
-                    log.warning(f"File not found inside container: {src}.")
-                    continue
-                raise e
+                subprocess.run(
+                    [
+                        f"sudo chown -R {chown} {self._builder_dir}",
+                    ],
+                    check=True,
+                    shell=True,
+                )
+            except subprocess.CalledProcessError as e:
+                raise ExecutorError(f"Failed to prepare executor: {str(e)}")
+
+            # Adjust log namespace
+            log.name = f"executor:local:{self._builder_dir}"
+
+            # copy-in hook
+            for src, dst in copy_in or []:
+                self.copy_in(
+                    source_path=src,
+                    destination_dir=dst,
+                )
+
+            # replace placeholders
+            sed_cmd = []
+            if files_inside_executor_with_placeholders:
+                for f in files_inside_executor_with_placeholders:
+                    sed_cmd += [
+                        f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {f}"
+                    ]
+
+            final_cmd = ["bash", "-c", "&&".join(sed_cmd + cmd)]
+            log.info(f"Executing '{' '.join(final_cmd)}'.")
+
+            # stream output for command
+            process = subprocess.Popen(
+                final_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                env=environment,
+            )
+            while True:
+                if not process.stdout:
+                    log.error(f"No output!")
+                    break
+                if process.poll() is not None:
+                    break
+                for line in process.stdout:
+                    line = sanitize_line(line.rstrip(b"\n")).rstrip()
+                    log.info(f"output: {str(line)}")
+            rc = process.poll()
+            if rc != 0:
+                raise ExecutorError(f"Failed to run '{final_cmd}' (status={rc}).")
+
+            # copy-out hook
+            for src, dst in copy_out or []:
+                try:
+                    self.copy_out(source_path=src, destination_dir=dst)
+                except ExecutorError as e:
+                    # Ignore copy-out failure if requested
+                    if no_fail_copy_out:
+                        log.warning(f"File not found inside container: {src}.")
+                        continue
+                    raise e
+        finally:
+            if self._temporary_dir.exists() and self._clean:
+                try:
+                    subprocess.run(
+                        [
+                            f"sudo rm -rf {self._temporary_dir}",
+                        ],
+                        check=True,
+                        shell=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    raise ExecutorError(
+                        f"Failed to clean executor temporary directory: {str(e)}"
+                    )

@@ -21,9 +21,9 @@ import re
 import shutil
 import subprocess
 from pathlib import Path, PurePath
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
-from qubesbuilder.common import sanitize_line
+from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 
@@ -31,10 +31,11 @@ log = get_logger("executor:qubes")
 
 
 class QubesExecutor(Executor):
-    def __init__(self, dispvm, clean=True, **kwargs):
-        # dispvm is the template used for creating a disposable qube.
-        self.dispvm = dispvm
-        self._clean = clean
+    def __init__(self, dispvm, clean: Union[str, bool] = True, **kwargs):
+        # FIXME: dispvm is the template used for creating a disposable qube.
+        #  It is currently unused and need to be specified when calling qrexec
+        self._dispvm = dispvm
+        self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
 
     def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):  # type: ignore
@@ -44,7 +45,7 @@ class QubesExecutor(Executor):
         prepare_incoming_and_destination = [
             "/usr/bin/qvm-run-vm",
             vm,
-            f"bash -c 'rm -rf /builder/incoming/{src.name} {dst.as_posix()}/{src.name}'",
+            f"bash -c 'rm -rf {self.get_builder_dir()}/incoming/{src.name} {dst.as_posix()}/{src.name}'",
         ]
         copy_to_incoming = [
             "/usr/lib/qubes/qrexec-client-vm",
@@ -56,7 +57,7 @@ class QubesExecutor(Executor):
         move_to_destination = [
             "/usr/bin/qvm-run-vm",
             vm,
-            f"bash -c 'mkdir -p {dst.as_posix()} && mv /builder/incoming/{src.name} {dst.as_posix()}'",
+            f"bash -c 'mkdir -p {dst.as_posix()} && mv {self.get_builder_dir()}/incoming/{src.name} {dst.as_posix()}'",
         ]
         try:
             log.debug(f"copy-in (cmd): {' '.join(prepare_incoming_and_destination)}")
@@ -109,6 +110,7 @@ class QubesExecutor(Executor):
         cmd: List[str],
         copy_in: List[Tuple[Path, PurePath]] = None,
         copy_out: List[Tuple[PurePath, Path]] = None,
+        files_inside_executor_with_placeholders: List[Path] = None,
         environment: dict = None,
         no_fail_copy_out=False,
     ):
@@ -131,13 +133,28 @@ class QubesExecutor(Executor):
             start_cmd = [
                 "/usr/bin/qvm-run-vm",
                 dispvm,
-                f"bash -c 'sudo mkdir -p /builder && sudo chown -R user:user /builder'",
+                f"bash -c 'sudo mkdir -p {self.get_builder_dir()} && sudo chown -R user:user {self.get_builder_dir()}'",
             ]
             subprocess.run(start_cmd, stdin=subprocess.DEVNULL)
 
             # copy-in hook
             for src_in, dst_in in copy_in or []:
                 self.copy_in(dispvm, source_path=src_in, destination_dir=dst_in)
+
+            # replace placeholders
+            if files_inside_executor_with_placeholders:
+                sed_cmd = []
+                for f in files_inside_executor_with_placeholders:
+                    sed_cmd += [
+                        f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {f}"
+                    ]
+                if sed_cmd:
+                    sed_cmd = [
+                        "/usr/bin/qvm-run-vm",
+                        dispvm,
+                        f'bash -c \'{" && ".join(sed_cmd)}\'',
+                    ]
+                    subprocess.run(sed_cmd, stdin=subprocess.DEVNULL)
 
             bash_env = []
             if environment:

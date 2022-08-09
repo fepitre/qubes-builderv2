@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path, PurePosixPath
-from typing import List, Dict
+from typing import List, Dict, Any
 
 import dateutil.parser
 import yaml
@@ -26,15 +26,8 @@ from dateutil.parser import parse as parsedate
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.executors import Executor
 from qubesbuilder.template import QubesTemplate
-
-# Directories inside executor
-BUILDER_DIR = Path("/builder")
-BUILD_DIR = BUILDER_DIR / "build"
-PLUGINS_DIR = BUILDER_DIR / "plugins"
-DISTFILES_DIR = BUILDER_DIR / "distfiles"
-REPOSITORY_DIR = BUILDER_DIR / "repository"
-CACHE_DIR = BUILDER_DIR / "cache"
 
 
 class PackagePath(PurePosixPath):
@@ -59,11 +52,13 @@ class Plugin:
 
     def __init__(
         self,
+        executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
         verbose: bool,
         debug: bool,
     ):
+        self.executor = executor
         self.plugins_dir = plugins_dir
         self.artifacts_dir = artifacts_dir
         self.verbose = verbose
@@ -73,11 +68,11 @@ class Plugin:
         self.parameters: dict = {}
 
         # Default placeholders
-        self._placeholders = {
-            "@BUILDER_DIR@": str(BUILDER_DIR),
-            "@BUILD_DIR@": str(BUILD_DIR),
-            "@PLUGINS_DIR@": str(PLUGINS_DIR),
-            "@DISTFILES_DIR@": str(DISTFILES_DIR),
+        self._placeholders: Dict[str, Any] = {
+            "@BUILDER_DIR@": self.executor.get_builder_dir(),
+            "@BUILD_DIR@": self.executor.get_build_dir(),
+            "@PLUGINS_DIR@": self.executor.get_plugins_dir(),
+            "@DISTFILES_DIR@": self.executor.get_distfiles_dir(),
         }
 
         self.environment = {}
@@ -133,19 +128,23 @@ class ComponentPlugin(Plugin):
     def __init__(
         self,
         component: QubesComponent,
+        executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
         verbose: bool,
         debug: bool,
     ):
         super().__init__(
+            executor=executor,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,
             debug=debug,
         )
         self.component = component
-        self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
+        self._placeholders.update(
+            {"@SOURCE_DIR@": self.executor.get_builder_dir() / component.name}
+        )
         self._source_hash = ""
 
     @staticmethod
@@ -226,6 +225,7 @@ class DistributionPlugin(ComponentPlugin):
         self,
         component: QubesComponent,
         dist: QubesDistribution,
+        executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
         verbose: bool,
@@ -234,6 +234,7 @@ class DistributionPlugin(ComponentPlugin):
     ):
         super().__init__(
             component=component,
+            executor=executor,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,
@@ -242,7 +243,9 @@ class DistributionPlugin(ComponentPlugin):
         self.dist = dist
         self.backend_vmm = backend_vmm
 
-        self._placeholders.update({"@SOURCE_DIR@": str(BUILDER_DIR / component.name)})
+        self._placeholders.update(
+            {"@SOURCE_DIR@": self.executor.get_builder_dir() / component.name}
+        )
         self._placeholders.update({"@BACKEND_VMM@": backend_vmm})
 
         self.environment["BACKEND_VMM"] = backend_vmm
@@ -319,12 +322,14 @@ class TemplatePlugin(Plugin):
     def __init__(
         self,
         template: QubesTemplate,
+        executor: Executor,
         plugins_dir: Path,
         artifacts_dir: Path,
         verbose: bool = False,
         debug: bool = False,
     ):
         super().__init__(
+            executor=executor,
             plugins_dir=plugins_dir,
             artifacts_dir=artifacts_dir,
             verbose=verbose,

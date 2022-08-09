@@ -126,18 +126,18 @@ pytest:
 .component_local_job:
   stage: build
   tags:
-    - docker
+    - vm
   artifacts:
     paths:
       - artifacts
   before_script:
     - cp -r tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
-    - sudo mkdir /builder
-    - sudo chown -R gitlab-runner:gitlab-runner /builder
+    - sudo dnf install -y python3-debian dpkg-dev
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/local/' builder.yml
+    - 'sed -i ''s|image:.*|directory: "/home/gitlab-runner/tmp"|'' builder.yml'
     - ./qb -d "${CI_JOB_NAME#local-}" package all
   after_script:
     - tree artifacts
@@ -165,7 +165,7 @@ podman-host-fc32:
   extends: .component_podman_job
   allow_failure: true
 
-podman-vm-fc35:
+podman-vm-fc36:
   extends: .component_podman_job
   allow_failure: true
 
@@ -181,7 +181,7 @@ podman-vm-centos-stream8:
 docker-host-fc32:
   extends: .component_docker_job
 
-docker-vm-fc35:
+docker-vm-fc36:
   extends: .component_docker_job
 
 docker-vm-centos-stream8:
@@ -195,7 +195,7 @@ docker-vm-bullseye:
 qubes-host-fc32:
   extends: .component_qubes_job
 
-qubes-vm-fc35:
+qubes-vm-fc36:
   extends: .component_qubes_job
 
 qubes-vm-centos-stream8:
@@ -206,17 +206,17 @@ qubes-vm-bullseye:
 
 # Local executor
 
-#local-host-fc32:
-#  extends: .component_local_job
-#
-#local-vm-fc35:
-#  extends: .component_local_job
-#
-#local-vm-centos-stream8:
-#  extends: .component_local_job
-#
-#local-vm-bullseye:
-#  extends: .component_local_job
+local-host-fc32:
+  extends: .component_local_job
+
+local-vm-fc36:
+  extends: .component_local_job
+
+local-vm-centos-stream8:
+  extends: .component_local_job
+
+local-vm-bullseye:
+  extends: .component_local_job
 
 #
 # Templates

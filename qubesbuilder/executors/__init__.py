@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.log import get_logger
@@ -37,6 +38,26 @@ class Executor(ABC):
     """
     Base executor class
     """
+
+    _builder_dir = Path("/builder")
+
+    def get_builder_dir(self):
+        return self._builder_dir
+
+    def get_build_dir(self):
+        return self.get_builder_dir() / "build"
+
+    def get_plugins_dir(self):
+        return self.get_builder_dir() / "plugins"
+
+    def get_distfiles_dir(self):
+        return self.get_builder_dir() / "distfiles"
+
+    def get_repository_dir(self):
+        return self.get_builder_dir() / "repository"
+
+    def get_cache_dir(self):
+        return self.get_builder_dir() / "cache"
 
     @abstractmethod
     def copy_in(self, *args, **kwargs):

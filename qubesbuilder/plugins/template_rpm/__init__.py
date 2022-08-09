@@ -22,7 +22,6 @@ from pathlib import Path
 from qubesbuilder.template import QubesTemplate
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import PLUGINS_DIR
 from qubesbuilder.plugins.template import TemplateBuilderPlugin
 
 log = get_logger("template_rpm")
@@ -70,7 +69,11 @@ class RPMTemplateBuilderPlugin(TemplateBuilderPlugin):
         self.plugin_dependencies += ["template_rpm"]
 
         self.environment.update(
-            {"TEMPLATE_CONTENT_DIR": str(PLUGINS_DIR / "template_rpm")}
+            {
+                "TEMPLATE_CONTENT_DIR": str(
+                    self.executor.get_plugins_dir() / "template_rpm"
+                )
+            }
         )
 
     def run(
