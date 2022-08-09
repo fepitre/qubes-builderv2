@@ -54,10 +54,30 @@ You may need to `sudo su user` to get this to work in the current shell. You
 can add this group owner change to `/rw/config/rc.local`.
 
 In order to use the Docker executor, you must build the image using the
-provided Dockerfile:
+provided dockerfiles. Docker images are built from `scratch` with `mock`
+chroot cache archive. The rational is to use only built-in distribution
+tool that take care of verifying content and not third-party content
+like Docker images from external registries.
 
+First, build Mock chroot according to your own configuration or use 
+default ones provided. For example, to build a Fedora 36 x86-64 mock 
+chroot from scratch:
 ```bash
-$ docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
+$ sudo mock --init --no-bootstrap-chroot --config-opts chroot_setup_cmd='install dnf @buildsys-build' -r fedora-36-x86_64
+```
+
+By default, it creates a `config.tar.gz` located at `/var/cache/mock/fedora-36-x86_64/root_cache/`.
+Second, build the docker image:
+```bash
+$ docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora /var/cache/mock/fedora-36-x86_64/root_cache/
+```
+
+In order to ease Docker image generation, a tool `generate-docker-image.sh`
+is provided under `tools` directory to perform previous commands with proper
+clean of previous caches. It takes as input the Mock configuration file path
+or identifier. For example, to build a Fedora 36 x86-86 docker image:
+```bash
+$ tools/generate-docker-image.sh fedora-36-x86_64
 ```
 
 

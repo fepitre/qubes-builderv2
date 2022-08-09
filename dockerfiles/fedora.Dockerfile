@@ -1,5 +1,8 @@
-FROM fedora@sha256:cbf627299e327f564233aac6b97030f9023ca41d3453c497be2f5e8f7762d185
+FROM scratch
 MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
+
+# Use Mock chroot
+ADD cache.tar.gz /
 
 # Install dependencies for Qubes Builder
 RUN dnf -y update && \
@@ -8,12 +11,12 @@ RUN dnf -y update && \
         python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev \
     && dnf clean all
 
+# Create needed folders
 RUN mkdir /builder /builder/plugins /builder/build /builder/distfiles
 
-RUN useradd -m user -u 1000
-
-RUN chown -R user /builder
-
+# Create build user
+RUN useradd -m user
 RUN usermod -aG wheel user && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel
+RUN chown -R user /builder
 
 USER user
