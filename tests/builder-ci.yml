@@ -23,7 +23,7 @@ sign-key:
 distributions:
   - host-fc32
   - vm-bullseye
-  - vm-fc35
+  - vm-fc36
 
 components:
   - python-qasync:
@@ -48,8 +48,8 @@ components:
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
 
 templates:
-  - fedora-35-xfce:
-      dist: fc35
+  - fedora-36-xfce:
+      dist: fc36
       flavor: xfce
   - centos-stream-8:
       dist: centos-stream8

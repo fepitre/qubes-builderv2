@@ -1072,11 +1072,11 @@ def test_unpublish_vm_bullseye(artifacts_dir):
 
 
 #
-# Pipeline for Fedora 35 XFCE template
+# Pipeline for Fedora 36 XFCE template
 #
 
 
-def test_prep_template_fedora_35_xfce(artifacts_dir):
+def test_prep_template_fedora_36_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -1085,20 +1085,20 @@ def test_prep_template_fedora_35_xfce(artifacts_dir):
         "--executor-option",
         "dispvm=qubes-builder-dvm",
         "-t",
-        "fedora-35-xfce",
+        "fedora-36-xfce",
         "template",
         "prep",
     )
 
-    assert (artifacts_dir / "templates/build_timestamp_fedora-35-xfce").exists()
+    assert (artifacts_dir / "templates/build_timestamp_fedora-36-xfce").exists()
     assert (
-        artifacts_dir / "templates/qubeized_images/fedora-35-xfce/root.img"
+        artifacts_dir / "templates/qubeized_images/fedora-36-xfce/root.img"
     ).exists()
-    assert (artifacts_dir / "templates/fedora-35-xfce/appmenus").exists()
-    assert (artifacts_dir / "templates/fedora-35-xfce/template.conf").exists()
+    assert (artifacts_dir / "templates/fedora-36-xfce/appmenus").exists()
+    assert (artifacts_dir / "templates/fedora-36-xfce/template.conf").exists()
 
 
-def test_build_template_fedora_35_xfce(artifacts_dir):
+def test_build_template_fedora_36_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -1107,24 +1107,24 @@ def test_build_template_fedora_35_xfce(artifacts_dir):
         "--executor-option",
         "dispvm=qubes-builder-dvm",
         "-t",
-        "fedora-35-xfce",
+        "fedora-36-xfce",
         "template",
         "build",
     )
 
-    assert (artifacts_dir / "templates/build_timestamp_fedora-35-xfce").exists()
+    assert (artifacts_dir / "templates/build_timestamp_fedora-36-xfce").exists()
 
-    with open(artifacts_dir / "templates/build_timestamp_fedora-35-xfce") as f:
+    with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
         data = f.read().splitlines()
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
         artifacts_dir
-        / f"templates/rpm/qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        / f"templates/rpm/qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
     )
     assert rpm_path.exists()
 
 
-def test_sign_template_fedora_35_xfce(artifacts_dir):
+def test_sign_template_fedora_36_xfce(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1141,7 +1141,7 @@ def test_sign_template_fedora_35_xfce(artifacts_dir):
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-t",
-            "fedora-35-xfce",
+            "fedora-36-xfce",
             "template",
             "sign",
             env=env,
@@ -1154,12 +1154,12 @@ def test_sign_template_fedora_35_xfce(artifacts_dir):
     dbpath = artifacts_dir / "templates/rpmdb"
     assert dbpath.exists()
 
-    with open(artifacts_dir / "templates/build_timestamp_fedora-35-xfce") as f:
+    with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
         data = f.read().splitlines()
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
         artifacts_dir
-        / f"templates/rpm/qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        / f"templates/rpm/qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
     )
     assert rpm_path.exists()
     result = subprocess.run(
@@ -1171,7 +1171,7 @@ def test_sign_template_fedora_35_xfce(artifacts_dir):
     assert "digests signatures OK" in result.stdout.decode()
 
 
-def test_publish_template_fedora_35_xfce(artifacts_dir):
+def test_publish_template_fedora_36_xfce(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1186,17 +1186,17 @@ def test_publish_template_fedora_35_xfce(artifacts_dir):
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-t",
-            "fedora-35-xfce",
+            "fedora-36-xfce",
             "repository",
             "publish",
             "templates-itl-testing",
             env=env,
         )
 
-        with open(artifacts_dir / "templates/fedora-35-xfce.publish.yml") as f:
+        with open(artifacts_dir / "templates/fedora-36-xfce.publish.yml") as f:
             info = yaml.safe_load(f.read())
 
-        with open(artifacts_dir / "templates/build_timestamp_fedora-35-xfce") as f:
+        with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
@@ -1207,7 +1207,7 @@ def test_publish_template_fedora_35_xfce(artifacts_dir):
 
         # publish into templates-itl
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
-        publish_file = artifacts_dir / "templates/fedora-35-xfce.publish.yml"
+        publish_file = artifacts_dir / "templates/fedora-36-xfce.publish.yml"
 
         for r in info["repository-publish"]:
             if r["name"] == "templates-itl-testing":
@@ -1221,7 +1221,7 @@ def test_publish_template_fedora_35_xfce(artifacts_dir):
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-t",
-            "fedora-35-xfce",
+            "fedora-36-xfce",
             "repository",
             "publish",
             "templates-itl",
@@ -1238,7 +1238,7 @@ def test_publish_template_fedora_35_xfce(artifacts_dir):
 
     # Check that packages are in the published repository
     for repository in ["templates-itl-testing", "templates-itl"]:
-        rpm = f"qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        rpm = f"qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
         repository_dir = (
             f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}"
         )
@@ -1246,7 +1246,7 @@ def test_publish_template_fedora_35_xfce(artifacts_dir):
         assert {rpm} == set(packages)
 
 
-def test_unpublish_template_fedora_35_xfce(artifacts_dir):
+def test_unpublish_template_fedora_36_xfce(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1256,7 +1256,7 @@ def test_unpublish_template_fedora_35_xfce(artifacts_dir):
         env["GNUPGHOME"] = gnupghome
         env["HOME"] = tmpdir
 
-        with open(artifacts_dir / "templates/build_timestamp_fedora-35-xfce") as f:
+        with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
@@ -1265,14 +1265,14 @@ def test_unpublish_template_fedora_35_xfce(artifacts_dir):
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-t",
-            "fedora-35-xfce",
+            "fedora-36-xfce",
             "repository",
             "unpublish",
             "templates-itl",
             env=env,
         )
 
-        publish_file = artifacts_dir / "templates/fedora-35-xfce.publish.yml"
+        publish_file = artifacts_dir / "templates/fedora-36-xfce.publish.yml"
         with open(publish_file) as f:
             info = yaml.safe_load(f.read())
 
@@ -1283,7 +1283,7 @@ def test_unpublish_template_fedora_35_xfce(artifacts_dir):
 
     # Check that packages are in the published repository
     for repository in ["templates-itl-testing", "templates-itl"]:
-        rpm = f"qubes-template-fedora-35-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        rpm = f"qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
         repository_dir = (
             f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}"
         )
