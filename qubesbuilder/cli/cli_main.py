@@ -197,9 +197,10 @@ main.epilog = f"""Stages:
     {' '.join(STAGES)}
 
 Remark:
-    The Qubes OS components are separated in two groups: standard and template
-    components. Standard components will produce distributions packages and
-    template components will produce template packages.
+    The Qubes OS components are separated into two groups: standard components
+    and template components. Standard components will produce distribution
+    packages to be installed in TemplateVMs or StandaloneVMs, while template
+    components will produce template packages to be installed via qvm-template.
 """
 
 main.add_command(package)
