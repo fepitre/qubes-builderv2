@@ -15,7 +15,8 @@ MOCK_CONF_BN="$(basename "$MOCK_CONF")"
     exit 1
 }
 
-TOOLS_DIR="$(readlink -f "$(dirname "$0")")"
+TOOLS_DIR="$(dirname "$0")"
+TOOLS_DIR="$(readlink -f "$TOOLS_DIR")"
 
 # Remove chroot and cache
 sudo mock \
