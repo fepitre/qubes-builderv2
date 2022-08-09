@@ -63,14 +63,6 @@ if ! [ -f "${INSTALL_DIR}/tmp/.prepared_base" ]; then
     RPM_OPTS=('--define=_pkgverify_level all' '--define=_pkgverify_flags 0x0')
     # Delta RPMs and zchunk are unnecessary attack surface
     DNF_OPTS+=(--setopt=deltarpm=False --setopt=deltarpm_percentage=0 --setopt=zchunk=0)
-    # Debian by default keep rpmdb in ~/.rpmdb
-    # OpenSUSE by default keep rpmdb in /usr/lib/sysimage/rpm
-    RPM_OPTS+=("--define=_dbpath %{_var}/lib/rpm")
-    if grep -q openSUSE /etc/os-release; then
-        # Since OpenSUSE enable gpgcheck by default, make it find the keys
-        mkdir -p "${INSTALL_DIR}/usr/lib/sysimage"
-        ln -ns ../../../var/lib/rpm "${INSTALL_DIR}/usr/lib/sysimage/rpm"
-    fi
     rpm "${RPM_OPTS[@]}" --initdb --root="${INSTALL_DIR}"
 
     if [ "${DIST_NAME}" = "fedora" ]; then
