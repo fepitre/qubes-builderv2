@@ -46,6 +46,6 @@ else
    chroot_cmd="chroot"
 fi
 
-if [ -x "${INSTALLDIR}/usr/lib/anon-dist/chroot-scripts-post.d/80_cleanup" ]; then
+if [ -x "${INSTALL_DIR}/usr/lib/anon-dist/chroot-scripts-post.d/80_cleanup" ]; then
    $chroot_cmd "/usr/lib/anon-dist/chroot-scripts-post.d/80_cleanup"
 fi
