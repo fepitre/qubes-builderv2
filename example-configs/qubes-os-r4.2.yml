@@ -12,11 +12,11 @@ reuse-fetched-source: true
 distributions:
   - host-fc32
   - vm-bullseye
-  - vm-fc35
+  - vm-fc36
 
 templates:
-  - fedora-35:
-      dist: fc35
+  - fedora-36:
+      dist: fc36
   - debian-11:
       dist: bullseye
       options:

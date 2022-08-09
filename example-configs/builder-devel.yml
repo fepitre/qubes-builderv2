@@ -28,11 +28,11 @@ sign-key:
 distributions:
   - host-fc32
   - vm-bullseye
-  - vm-fc35
+  - vm-fc36
 
 templates:
-  - fedora-35-xfce:
-      dist: fc35
+  - fedora-36-xfce:
+      dist: fc36
       flavor: xfce
   - debian-11:
       dist: bullseye
