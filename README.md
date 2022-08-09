@@ -1,24 +1,15 @@
-Qubes OS Builder
-===
+# Qubes OS Builder
 
-This is the next generation of Qubes OS builder.
+This is the second generation of the Qubes OS builder.
+This new builder leverages container or disposable qube isolation to perform every stage of the build and release process. 
+From fetching sources to building them, everything is executed inside of a "cage" (either a disposable or a container) with
+the help of what we call an "executor." For every command that needs to perform an action on sources, 
+like cloning and verifying Git repos, rendering a SPEC file, generating SRPM or Debian source packages,
+a new cage is used. Only the signing, publishing, and uploading processes are executed locally outside of
+a cage. (This will be improved in the future.) For now, only Docker, Podman, Local, and Qubes executors are available.
 
-The new Qubes OS builder leverage container or DispVM isolation to perform every stage of a build and release process. 
-From fetching sources and actually building them, everything will be executed inside a `cage` (either DispVM or container) with
-the help of what we call an `executor`. For every single command that needs to perform an action on sources for example, 
-like cloning and verifying Git sources, rendering a SPEC file, generating SRPM or Debian source packages, etc.,
-a fresh and new cage will be used. It remains only the signing, publishing and uploading processes being executed locally and not
-inside a cage. This is to be improved in the future. For now, only Docker, Podman, Local and Qubes executors are available.
 
-> **Remark**: Only Docker, Local (`sign`, `publish` and `upload` stages only) and Qubes executors inside a Fedora AppVM have been used by the author for validating the current development.
-
-## Work in progress
-
-We provide brief instructions in order to help people who want to start contributing to this work in progress.
-
-## How-to
-
-### Dependencies
+## Dependencies
 
 Fedora:
 ```bash
@@ -32,7 +23,7 @@ $ sudo apt install python3-packaging createrepo-c devscripts gpg qubes-gpg-split
 
 Install `mkmetalink`:
 
-Install https://github.com/QubesOS/qubes-infrastructure-mirrors:
+Install <https://github.com/QubesOS/qubes-infrastructure-mirrors>:
 ```bash
 $ git clone https://github.com/QubesOS/qubes-infrastructure-mirrors
 $ cd qubes-infrastructure-mirrors
@@ -40,44 +31,46 @@ $ sudo python3 setup.py build
 $ sudo python3 setup.py install
 ```
 
-> Remark: Verify commit signature before building it.
+**Note:** [Verify commit PGP signatures](https://www.qubes-os.org/security/verifying-signatures/#how-to-verify-signatures-on-git-repository-tags-and-commits) before building.
 
-### Docker executor
 
-You need to add `user` to `docker` group in order to avoid using `sudo`:
+## Docker executor
+
+Add `user` to the `docker` group if you wish to avoid using `sudo`:
 ```
 $ usermod -aG docker user
 ```
-You may need to `sudo su user` to have this working in the current shell. You may add this group owner change into
+You may need to `sudo su user` to get this to work in the current shell. You can add this group owner change to
 `/rw/config/rc.local`.
 
-In order to use the Docker executor, you need to build the image using the provided Dockerfile:
+In order to use the Docker executor, you must build the image using the provided Dockerfile:
 ```bash
 $ docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora .
 ```
 
-### Qubes executor
+## Qubes executor
 
-We assume that the default template chosen for building components inside a DispVM will be `fedora-35`. For that, install
-in the template the following dependencies:
+We assume that the [template](https://www.qubes-os.org/doc/templates/) chosen for building components inside a disposable qube is `fedora-35`.
+Install the following dependencies inside the template:
 
 ```bash
 $ sudo dnf install -y createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev
 ```
 
-Then, clone default DispVM based on Fedora 35 `fedora-35-dvm` as `qubes-builder-dvm`. Set at least `30GB` for its
-private volume.You need to install `rpc/qubesbuilder.FileCopyIn` and `rpc/qubesbuilder.FileCopyOut` in
-`qubes-builder-dvm` at location `/usr/local/etc/qubes-rpc`.
+Then, clone the disposable template based on Fedora 35, `fedora-35-dvm`, to `qubes-builder-dvm`.
+Set its private volume storage space to at least 30 GB.
+You must install `rpc/qubesbuilder.FileCopyIn` and `rpc/qubesbuilder.FileCopyOut` in
+`qubes-builder-dvm` in `/usr/local/etc/qubes-rpc`.
 
-Assuming that your qube hosting `qubes-builder` is called `work-qubesos` (else you need to adjust policies), in `dom0`,
-copy `rpc/policy/50-qubesbuilder.policy` to `/etc/qubes/policy.d`.
+Let's assume that the qube hosting `qubes-builder` is called `work-qubesos`. (If you're using a different name, make sure to adjust your policies.)
+In `dom0`, copy `rpc/policy/50-qubesbuilder.policy` to `/etc/qubes/policy.d`.
 
 Now, start the disposable template `qubes-builder-dvm` and create the following directories:
 ```bash
 $ sudo mkdir -p /rw/bind-dirs/builder /rw/config/qubes-bind-dirs.d
 ```
 
-Create the file `/rw/config/qubes-bind-dirs.d/builder.conf` with content:
+Create the file `/rw/config/qubes-bind-dirs.d/builder.conf` with the contents:
 ```
 binds+=('/builder')
 ```
@@ -87,14 +80,15 @@ Append to `/rw/config/rc.local` the following:
 mount /builder -o dev,suid,remount
 ```
 
-Set default DispVM of `work-qubesos` being `qubes-builder-dvm`:
+Set `qubes-builder-dvm` as the default disposable template for `work-qubesos`:
 ```bash
 $ qvm-prefs work-qubesos default_dispvm qubes-builder-dvm
 ```
 
-### Build stages
 
-The whole build process occurs during those ordered stages:
+## Build stages
+
+The build process consists of the following stages:
 
 - fetch
 - prep
@@ -105,37 +99,39 @@ The whole build process occurs during those ordered stages:
 - publish
 - upload
 
-Currently, only those are used:
+Currently, only these are used:
 
-- fetch (downloading and verify sources)
-- prep (creating source packages)
-- build (building source packages)
-- sign (signing built packages)
-- publish (publishing signed packages)
-- upload (upload publish repository to a remote mirror)
+- fetch (download and verify sources)
+- prep (create source packages)
+- build (build source packages)
+- sign (sign built packages)
+- publish (publish signed packages)
+- upload (upload published repository to a remote server)
 
-### Plugins
 
-- `fetch` - Manages generic fetch source,
-- `source` - Manages generic distribution source,
-- `source_rpm` - Manages RPM distribution source,
-- `source_deb` - Manages Debian distribution source,
-- `build` - Manages generic distribution build,
-- `build_rpm` - Manages RPM distribution build,
-- `build_deb` - Manages Debian distribution build,
-- `sign` - Manages generic distribution sign,
-- `sign_rpm` - Manages RPM distribution sign,
-- `sign_deb` - Manages Debian distribution sign,
-- `publish` - Manages generic distribution publication,
-- `publish_rpm` - Manages RPM distribution publication,
-- `publish_deb` - Manages Debian distribution publication,
-- `upload` - Manages generic distribution upload,
-- `template` - Manages generic distribution release,
-- `template_rpm` - Manages RPM distribution release,
-- `template_deb` - Manages Debian distribution release,
-- `template_whonix` - Manages Whonix distribution release.
+## Plugins
 
-### CLI
+- `fetch` --- Manages the general fetching of sources
+- `source` --- Manages general distribution sources
+- `source_rpm` --- Manages RPM distribution sources
+- `source_deb` --- Manages Debian distribution sources
+- `build` --- Manages general distribution building
+- `build_rpm` --- Manages RPM distribution building
+- `build_deb` --- Manages Debian distribution building
+- `sign` --- Manages general distribution signing
+- `sign_rpm` --- Manages RPM distribution signing
+- `sign_deb` --- Manages Debian distribution signing
+- `publish` --- Manages general distribution publishing
+- `publish_rpm` --- Manages RPM distribution publishing
+- `publish_deb` --- Manages Debian distribution publishing
+- `upload` --- Manages general distribution uploading
+- `template` --- Manages general distribution releases
+- `template_rpm` --- Manages RPM distribution releases
+- `template_deb` --- Manages Debian distribution releases
+- `template_whonix` --- Manages Whonix distribution releases
+
+
+## CLI
 
 ```bash
 Usage: qb [OPTIONS] COMMAND [ARGS]...
@@ -177,7 +173,7 @@ Remark:
     template components will produce template packages.
 ```
 
-You may use the provided development `builder-devel.yml` configuration file under `example-configs` located as
+You can use the provided development `builder-devel.yml` configuration file under `example-configs` named
 `builder.yml` in the root of `qubes-builderv2` (like the legacy `qubes-builder`).
 
 Artifacts can be found under `artifacts` directory:
@@ -191,72 +187,75 @@ artifacts/
 └── templates           <- Template artifacts.
 ```
 
-#### Package
 
-You can start building the components defined in this devel configuration as:
+### Package
+
+You can start building the components defined in this development configuration with:
 ```bash
 $ ./qb package fetch prep build
 ```
 
-If GPG is set up on your host, specify key and client to be used inside `builder.yml`. Then, you can test sign and
+If GPG is set up on your host, specify the key and client to be used inside `builder.yml`. Then, you can test the sign and
 publish stages:
 ```bash
 $ ./qb package sign publish
 ```
 
-In this case, you may run simply
+You can trigger the whole build process as follows:
 ```bash
 $ ./qb package all
 ```
-for triggering the whole build process.
 
-#### Template
 
-Similarly, you can start building the templates defined in this devel configuration as:
+### Template
+
+Similarly, you can start building the templates defined in this development configuration with:
 ```bash
 $ ./qb template all
 ```
 
-#### Repository
 
-In order to publish to a specific repository or if you ignored publish stage, you can use repository command to create
-a local repository tha is usable by distributions. For example, to publish only the `whonix-gateway-16` template:
+### Repository
+
+In order to publish to a specific repository, or if you ignored the publish stage, you can use the `repository` command to create
+a local repository that is usable by distributions. For example, to publish only the `whonix-gateway-16` template:
 
 ```bash
 ./qb -t whonix-gateway-16 repository publish templates-community-testing
 ```
 
-or simply, all templates provided in `builder.yml` into `templates-itl-testing`:
+Or publish all the templates provided in `builder.yml` in `templates-itl-testing`:
 
 ```bash
 ./qb repository publish templates-itl-testing
 ```
 
-Similar commands are available for packages, for example
+Similar commands are available for packages, for example:
 ```bash
 ./qb -d host-fc32 -c core-qrexec repository publish current-testing
 ```
 
-or
+and
 
 ```bash
 ./qb repository publish unstable
 ```
 
-It's not possible to publish packages into template repositories `templates-itl`, `templates-itl-testing`, 
-`templates-community`, and `templates-community-testing`. The same stands for templates not being publishable into 
-`current`, `current-testing`, `security-testing` and `unstable`. A built-in filter is made to enforce this behavior.
+It is not possible to publish packages in template repositories or vice versa.
+In particular, you cannot publish packages in the template repositories `templates-itl`, `templates-itl-testing`, 
+`templates-community`, or `templates-community-testing`; and you cannot publish templates in the package repositories 
+`current`, `current-testing`, `security-testing`, or `unstable`. A built-in filter enforces this behavior.
 
-If you try to publish into a stable repository like `current`, `templates-itl` or `templates-community`, packages or
-templates should have been pushed to a testing repository first for a minimum of five days. You can ignore this rule
-by providing `--ignore-min-age` to `publish` command.
+Normally, everything published in a stable repository, like `current`, `templates-itl`, or `templates-community`, should first wait in a testing repository for a minimum of five days. For exceptions in which skipping the testing period is warranted, you can ignore this rule
+by using the `--ignore-min-age` option with the `publish` command.
 
-Please note that `publish` plugin will not allow publishing into a stable repository. This is only possible with
+Please note that the `publish` plugin will not allow publishing to a stable repository. This is only possible with
 the `repository` command.
 
-### Signing with Split GPG
 
-If you plan to sign packages with Split GPG, don't forget to add to your `~/.rpmmacros`:
+## Signing with Split GPG
+
+If you plan to sign packages with [Split GPG](https://www.qubes-os.org/doc/split-gpg/), add the following to your `~/.rpmmacros`:
 ```
 %__gpg /usr/bin/qubes-gpg-client-wrapper
 
@@ -269,57 +268,58 @@ If you plan to sign packages with Split GPG, don't forget to add to your `~/.rpm
         -u "%{_gpg_name}" -sb %{__plaintext_filename} >%{__signature_filename}'
 ```
 
-### .qubesbuilder
 
-The `.qubesbuilder` file is a YAML format file placed inside a Qubes OS source component directory, similar to what is
-`Makefile.builder` for the legacy Qubes Builder. It has top level keys:
+## .qubesbuilder
+
+The `.qubesbuilder` file is a YAML file placed inside a Qubes OS source component directory, similar to
+`Makefile.builder` for the legacy Qubes Builder. It has the following top-level keys:
 
 ```
   PACKAGE_SET
-  PACKAGE_SET-DISTRIBUTION_NAME (= Qubes OS distribution like `host-fc42` or `vm-trixie`.)
+  PACKAGE_SET-DISTRIBUTION_NAME (= Qubes OS distribution like `host-fc42` or `vm-trixie`)
   PLUGIN_ENTRY_POINTS (= Keys providing content to be processed by plugins)
 ```
 
-We provide the list of available keys where examples are given in the next sections:
+We provide the following list of available keys:
 
-- `host` - `host` package set content.
-- `vm` - `vm` package set content.
-- `rpm` - RPM plugins content.
-- `deb` - Debian plugins content.
-- `source` - Fetch and source plugins (`fetch`, `source`, `source_rpm` and `source_deb`) content.
-- `build` - Build plugins content (`build`, `build_rpm` and `build_deb`).
-- `create-archive` - Create source component directory archive (default: `True` unless `files` is provided and not empty).
-- `commands` - Execute commands before plugin or distribution tools (`source_deb` only).
-- `modules` - Declare submodules to be included inside source preparation (source archives creation and placeholders substitution)
-- `files` - List of external files to be downloaded. It has to be provided with combination of `url` and a verification method.
-            A verification method is either provided by a checksum file or a signature file with public GPG keys.
-- `url`   - URL of the external file to download.
-- `sha256` - Path to `sha256` checksum file relative to source directory (in combination of `url`).
-- `sha512` - Path to `sha256` checksum file relative to source directory (in combination of `url`).
-- `signature` - URL of the signature file of downloaded external file (in combination of `url` and `pubkeys`).
-- `uncompress` - Uncompress external file downloaded before verification.
-- `pubkeys` - List of public GPG keys to use for verifying the downloaded signature file (in combination of `url` and `signature`).
+- `host` --- `host` package set content.
+- `vm` --- `vm` package set content.
+- `rpm` --- RPM plugins content.
+- `deb` --- Debian plugins content.
+- `source` --- Fetch and source plugins (`fetch`, `source`, `source_rpm`, and `source_deb`) content.
+- `build` --- Build plugins content (`build`, `build_rpm`, and `build_deb`).
+- `create-archive` --- Create source component directory archive (default: `True` unless `files` is provided and not empty).
+- `commands` --- Execute commands before plugin or distribution tools (`source_deb` only).
+- `modules` --- Declare submodules to be included inside source preparation (source archives creation and placeholders substitution)
+- `files` --- List of external files to be downloaded. It has to be provided with the combination of a `url` and a verification method. A verification method is either a checksum file or a signature file with public GPG keys.
+- `url` --- URL of the external file to download.
+- `sha256` --- Path to `sha256` checksum file relative to source directory (in combination with `url`).
+- `sha512` --- Path to `sha256` checksum file relative to source directory (in combination with `url`).
+- `signature` --- URL of the signature file of downloaded external file (in combination with `url` and `pubkeys`).
+- `uncompress` --- Uncompress external file downloaded before verification.
+- `pubkeys` --- List of public GPG keys to use for verifying the downloaded signature file (in combination with `url` and `signature`).
 
-with non-exhaustive distribution specific keys like:
-- `host-fc32` - Fedora 32 for `host` package set content only,
-- `vm-bullseye` - Bullseye for `vm` package set only.
+Here is a non-exhaustive list of distribution-specific keys:
+- `host-fc32` --- Fedora 32 for the `host` package set content only
+- `vm-bullseye` --- Bullseye for the `vm` package set only
 
-Inside each top level, it defines what plugin entry points like `rpm`, `deb` or `source` will take as input. Having both
-PACKAGE_SET and PACKAGE_SET-DISTRIBUTION_NAME with common keys is up to the plugin to know in which order to use or
-consider them. It allows defining general or per distro options.
+Inside each top level, it defines what plugin entry points like `rpm`, `deb`, and `source` will take as input. Having both
+`PACKAGE_SET` and `PACKAGE_SET-DISTRIBUTION_NAME` with common keys means that it is up to the plugin to know in which order to use or
+consider them. It allows for defining general or distro-specific options.
 
 In a `.qubesbuilder` file, there exist several placeholder values that are replaced when loading `.qubesbuilder` content.
-Here is the list of currently supported placeholders by plugins:
+Here is the list of currently-supported placeholders:
 
-- `@VERSION@` - Replaced by component version (provided by `version` file inside component source directory),
-- `@REL@` - Replaced by component release (provided by `rel` file inside component source directory if exists),
-- `@BUILDER_DIR@` - Replaced by `/builder` (inside a cage),
-- `@BUILD_DIR@` - Replaced by `/builder/build`  (inside a cage),
-- `@PLUGINS_DIR@` - Replaced by `/builder/plugins`  (inside a cage),
-- `@DISTFILES_DIR@` - Replaced by `/builder/distfiles`  (inside a cage),
-- `@SOURCE_DIR@` - Replaced by `/builder/<COMPONENT_NAME>` (inside a cage where COMPONENT_NAME is the component directory name).
+- `@VERSION@` --- Replaced by component version (provided by the `version` file inside the component source directory)
+- `@REL@` --- Replaced by component release (provided by the `rel` file inside the component source directory, if it exists)
+- `@BUILDER_DIR@` --- Replaced by `/builder` (inside a cage)
+- `@BUILD_DIR@` --- Replaced by `/builder/build`  (inside a cage)
+- `@PLUGINS_DIR@` --- Replaced by `/builder/plugins`  (inside a cage)
+- `@DISTFILES_DIR@` --- Replaced by `/builder/distfiles`  (inside a cage)
+- `@SOURCE_DIR@` --- Replaced by `/builder/<COMPONENT_NAME>` (inside a cage where, `<COMPONENT_NAME>` is the component directory name)
 
-#### Examples
+
+### Examples
 
 Here is an example for `qubes-python-qasync`:
 ```yaml
@@ -345,10 +345,10 @@ source:
     sha256: qasync-0.9.4.tar.gz.sha256
 ```
 
-It defines builds for `host` and `vm` package sets for all supported RPM distributions like Fedora, CentOS Stream
-and soon openSUSE with `rpm` level key. This key instructs RPM plugins to take as input provided spec files in
-`build` key. For Debian related distributions, only `buster` and `bullseye` distributions have build defined with
-the level key `deb`. Similar to RPM, it instructs Debian plugins to take as input, provided directories in `build` key.
+It defines builds for the `host` and `vm` package sets for all supported RPM distributions, like Fedora, CentOS Stream,
+and soon openSUSE with the `rpm` level key. This key instructs RPM plugins to take as input provided spec files in the
+`build` key. For Debian-related distributions, only the `buster` and `bullseye` distributions have builds defined with
+the level key `deb`. Similar to RPM, it instructs Debian plugins to take as input directories provided in the `build` key.
 
 In the case where `deb` would have been defined also in `vm` like:
 ```yaml
@@ -370,11 +370,11 @@ vm-buster:
 `vm-buster` content override general content defined by `deb` in `vm` so for `buster` distribution, we would
 have still build only for `debian` directory.
 
-In this example, the top level key `source` instructs plugins responsible to fetch and prepare component source
+In this example, the top level key `source` instructs plugins responsible for fetching and preparing the component source
 to consider the key `files`. It is an array, here only one dict element, for downloading the file at the given `url`
-and verify it against its `sha256` sum. The checksum file is relative to component source directory.
+and verifying it against its `sha256` sum. The checksum file is relative to the component source directory.
 
-If no external source files is needed, like an internal Qubes OS component `qubes-core-qrexec`,
+If no external source files are needed, like an internal Qubes OS component `qubes-core-qrexec`,
 ```yaml
 host:
   rpm:
@@ -394,8 +394,8 @@ vm:
     - archlinux
 ```
 
-we would have no `source` key instructing to perform something else than standard source preparation steps and creation 
-(SRPM, dsc file, etc.). In this case, we have global defined builds for RPM, Debian related distributions and ArchLinux
+we would have no `source` key instructing to perform something else other than standard source preparation steps and creation 
+(SRPM, dsc file, etc.). In this case, we have globally-defined builds for RPM, Debian-related distributions, and ArchLinux
 (`archlinux` key providing directories as input similar to Debian).
 
 Some components need more source preparation and processes like `qubes-linux-kernel`:
@@ -421,29 +421,27 @@ source:
     sha256: macbook12-spi-driver-2905d318d1a3ee1a227052490bf20eddef2592f9.tar.sha256
 ```
 
-First, `source` key provides `modules` that instructs `fetch` and `source` plugins that there exists `git`
+First, the `source` key provides `modules` that instructs the `fetch` and `source` plugins that there exist `git`
 submodules that are needed for builds. In the case of RPM, the spec file has different `Source` macros depending on
-archives with submodules content. The source preparation will create an archive for each submodule and 
-render the spec file accordingly to the submodule archive names. More precisely, for `qubes-linux-kernel` commit hash 
+archives with submodule content. The source preparation will create an archive for each submodule and 
+render the spec file according to the submodule archive names. More precisely, for `qubes-linux-kernel` commit hash 
 `b4fdd8cebf77c7d0ecee8c93bfd980a019d81e39`, it will replace placeholders inside the spec file 
-@linux-utils@, @dummy-psu@ and @dummy-backlight@ respectively by `linux-utils-97271ba.tar.gz`, `dummy-psu-97271ba.tar.gz`
-and `dummy-backlight-3342093.tar.gz` where `97271ba`, `97271ba` and `3342093` are short commit hash IDs of submodules.
+`@linux-utils@`, `@dummy-psu@`, and `@dummy-backlight@` with `linux-utils-97271ba.tar.gz`, `dummy-psu-97271ba.tar.gz`,
+and `dummy-backlight-3342093.tar.gz`  respectively, where `97271ba`, `97271ba`, and `3342093` are short commit hash IDs of submodules.
 
-Second, in `files` key, there is another case where an external file is needed but the component source dir holds only
-public keys associated to archive signatures and not checksums. In that case, `url` and `signature` are files to be
-downloaded and `pubkeys` are public keys to be used for source files verification. Moreover, sometimes signature file
-is against uncompressed file. `uncompress` key instructs `fetch` plugins to uncompress the archive before proceeding to
-the verification.
+Second, in the `files` key, there is another case where an external file is needed but the component source directory holds only
+public keys associated with archive signatures and not checksums. In that case, `url` and `signature` are files to be
+downloaded and `pubkeys` are public keys to be used for source file verification. Moreover, sometimes the signature file contains the
+signature of an uncompressed file. The `uncompress` key instructs `fetch` plugins to uncompress the archive before proceeding to verification.
 
-> Note: We remind that all these operations are performed inside several cages. For example, download is done in one
-> cage and verify is done in another cage. It allows to separate processes that may interfere intentionally or not
-> between them.
+**Reminder:** These operations are performed inside several cages. For example, the download is done in one
+cage, and the verification is done in another cage. This allows for separating processes that may interfere with each other, whether intentionally or not.
 
-For an internal Qubes OS component like `qubes-core-qrexec`, the `source` plugin handles to create a source archive
+For an internal Qubes OS component like `qubes-core-qrexec`, the `source` plugin handles creating a source archive
 that will be put side to the packaging files (spec file, Debian directory, etc.) to build packages. For an external
-Qubes OS component like `qubes-python-qasync` (same for `xen`, `linux`, `grub2`, etc.) it uses the external file 
+Qubes OS component like `qubes-python-qasync` (same for `xen`, `linux`, `grub2`, etc.), it uses the external file 
 downloaded (and verified) side to the packaging files to build packages. Indeed, the original source component is 
-provided by the archive downloaded and only packaging files are inside Qubes source directory. Packaging includes 
+provided by the archive downloaded and only packaging files are inside the Qubes source directory. Packaging includes 
 additional content like patches, configuration files, etc. In very rare cases, the packaging needs both a source 
 archive of the Qubes OS component directory and external files. This is the case `qubes-vmm-xen-stubdom-linux`:
 
@@ -475,14 +473,14 @@ source:
     sha512: checksums/libusb-1.0.23.tar.bz2.sha512
 ```
 
-By default, if files are provided, plugins treat component as external Qubes OS component which means that archive for
-component source directory is not performed because it's useless to package the packaging itself. For this particular
-component in Qubes OS, there is several directories needed from source component directories. In consequence, packaging
-has been made in order to extract from source archive only these needed directories. In order to force archive creation,
-(or disable it), `create-archive` is a boolean to be set in `source` keys at the wanted value, here `true`.
+By default, if files are provided, plugins treat components as external Qubes OS components, which means that archiving the
+component source directory is not performed, because it's useless to package the packaging itself. For this particular
+component in Qubes OS, there are several directories needed from source component directories. Consequently, the packaging
+has been made in such a way so as to extract from the source archive only these needed directories. In order to force archive creation,
+(or disable it), the `create-archive` boolean can be set in the `source` keys at the desired value, here `true`.
 
-For Debian distributions, it is needed sometimes to execute a custom command before source preparation. This is
-the case for example for `i3`:
+For Debian distributions, it is sometimes necessary to execute a custom command before source preparation. This is
+the case, for example, for `i3`:
 
 ```yaml
 host:
@@ -505,9 +503,9 @@ source:
     sha512: i3-4.18.2.tar.bz2.sha512
 ```
 
-Inside `deb` key, it is provided a command inside `commands` array to execute `debian-quilt` script provided by the
-`source_deb` plugin with a series of patches file located in source directory (path inside a cage) to the prepared source
-directory, here build directory (path inside a cage).
+Inside the `deb` key, there is a command inside the `commands` array to execute the `debian-quilt` script provided by the
+`source_deb` plugin with a series of patch files located in the source directory (path inside a cage) to the prepared source
+directory, here the build directory (path inside a cage).
 
-> Note: All commands provided are executed before any plugins tools or distribution tools like `dpkg-*`. This is only
-> available for Debian distributions and not RPM distributions as similar processing is currently not needed.
+**Note:** All commands provided are executed before any plugin tools or distribution tools like `dpkg-*`. This is only
+available for Debian distributions and not RPM distributions, as similar processing is currently not needed.
