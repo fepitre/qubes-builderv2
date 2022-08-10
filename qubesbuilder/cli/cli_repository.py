@@ -255,7 +255,11 @@ def _check_release_status_for_component(config, components, distributions):
                         "repo", []
                     )
                     release_status[component.name][dist.distribution]["repo"].append(
-                        {"name": repo_name, "days": days}
+                        {
+                            "name": repo_name,
+                            "days": days,
+                            "min-age-days": config.get("min-age-days", 5),
+                        }
                     )
                     found = True
             except (PluginError, ValueError, TypeError) as e:
@@ -330,7 +334,11 @@ def _check_release_status_for_template(config, templates):
                     release_status[template.name]["status"] = "released"
                     release_status[template.name].setdefault("repo", [])
                     release_status[template.name]["repo"].append(
-                        {"name": repo_name, "days": days}
+                        {
+                            "name": repo_name,
+                            "days": days,
+                            "min-age-days": config.get("min-age-days", 5),
+                        }
                     )
                     found = True
                     set_template_tag = True

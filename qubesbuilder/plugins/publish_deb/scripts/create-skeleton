@@ -43,7 +43,7 @@ output_dir="$2"
 
 mkdir -p "${output_dir}"
 
-if [[ $release =~ r[1-9].[0-9] ]]; then
+if [[ $release =~ ^r[1-9]\.[0-9]$ ]]; then
     mkdir -p "${output_dir}/$release/vm/"{conf,db,dists,pool}
 
     rm -f "${output_dir}/$release/vm/conf/distributions"

@@ -58,8 +58,9 @@ def is_filename_valid(
         p = Path(filename)
         if p.suffix != allowed_ext:
             return False
+    authorized_chars = digits + ascii_letters + "-_.+"
     for c in filename:
-        if c not in digits + ascii_letters + "-_.+":
+        if c not in authorized_chars:
             return False
     return True
 

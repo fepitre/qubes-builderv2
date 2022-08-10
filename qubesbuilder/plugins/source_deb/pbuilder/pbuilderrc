@@ -16,11 +16,11 @@ USECOLORS=auto
 case ${DISTRIBUTION} in
     stretch|buster|bullseye|bookworm|sid|experimental)
         DIST_VENDOR=debian
-        MIRRORSITE=http://deb.debian.org/debian
+        MIRRORSITE=https://deb.debian.org/debian
         ;;
     trusty|xenial|bionic|focal)
         DIST_VENDOR=qubuntu
-        MIRRORSITE=http://archive.ubuntu.com/ubuntu
+        MIRRORSITE=https://archive.ubuntu.com/ubuntu
         ;;
     *)
         echo "Unknown distribution: ${DISTRIBUTION}" >&2

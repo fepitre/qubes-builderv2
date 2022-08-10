@@ -34,7 +34,11 @@ export DNF_OPTS
 # rpmdb --rebuilddb doesn't work anymore. Export using rpm from outside
 # chroot and import using rpm from within chroot
 rpmdb "${RPM_OPTS[@]}" --root="${INSTALL_DIR}" --exportdb > "${CACHE_DIR}/rpmdb.export" || exit 1
-rm -rf "${INSTALL_DIR}/var/lib/rpm"
+dbpath=$(rpm --eval '%{_dbpath}') || exit 1
+new_dbpath=$(chroot "${INSTALL_DIR}" rpm --eval '%{_dbpath}') || exit 1
+rm -rf "${INSTALL_DIR}${dbpath}"
+rm -rf "${INSTALL_DIR}${new_dbpath}"
+chroot "${INSTALL_DIR}" rpmdb --initdb || exit 1
 chroot "${INSTALL_DIR}" rpmdb --importdb < "${CACHE_DIR}/rpmdb.export" || exit 1
 
 # remove systemd-resolved symlink

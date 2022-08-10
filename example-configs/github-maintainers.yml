@@ -3,9 +3,9 @@ github:
     9FA64B92F95E706BF28E2CA6484010B5CDC576E2:
       distributions:
         - host-fc32
-        - vm-fc35
+        - vm-fc36
       templates:
-        - fedora-35
-        - fedora-35-xfce
+        - fedora-36
+        - fedora-36-xfce
         - debian-11
         - debian-12

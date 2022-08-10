@@ -165,8 +165,8 @@ if [ "$DIST_NAME" = "centos-stream" ]; then
     fi
 fi
 
-# shellcheck disable=SC2086,SC2046
-dnf "${DNF_OPTS[@]}" install -y $(cat ${PKG_LIST_FILE})
+readarray -t PKG_LIST < "${PKG_LIST_FILE}"
+dnf "${DNF_OPTS[@]}" install -y -- "${PKG_LIST[@]}"
 
 if [ -n "$CHROOT_CACHE_FILE" ]; then
     tar cf "$CHROOT_CACHE_FILE" --one-file-system "$INSTALL_DIR"
