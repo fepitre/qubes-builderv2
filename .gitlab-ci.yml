@@ -224,7 +224,7 @@ qubes-vm-bullseye:
 # Templates
 #
 
-qubes-template-fedora-35-xfce:
+qubes-template-fedora-36-xfce:
   extends: .template_qubes_job
 
 qubes-template-centos-stream-8:
