@@ -11,7 +11,7 @@ from qubesbuilder.executors.qubes import QubesExecutor
 
 
 def test_container_simple():
-    executor = ContainerExecutor("docker", "fedora:latest")
+    executor = ContainerExecutor("docker", "fedora:latest", user="root", group="root")
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a local file with some content
         hello = Path(temp_dir) / "hello.md"

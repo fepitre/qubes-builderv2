@@ -44,10 +44,18 @@ except ImportError:
 
 class ContainerExecutor(Executor):
     def __init__(
-        self, container_client, image, clean: Union[str, bool] = True, **kwargs
+        self,
+        container_client,
+        image,
+        clean: Union[str, bool] = True,
+        user: str = "user",
+        group: str = "user",
+        **kwargs,
     ):
         self._container_client = container_client
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
+        self._user = user
+        self._group = group
         self._kwargs = kwargs
         if self._container_client == "podman":
             if PodmanClient is None:
@@ -144,9 +152,9 @@ class ContainerExecutor(Executor):
                 # fix permissions and user group
                 permissions_cmd = [
                     f"sudo mkdir -p {self.get_builder_dir()}",
-                    f"sudo chown -R user:user {self.get_builder_dir()}",
+                    f"sudo chown -R {self._user}:{self._group} {self.get_builder_dir()}",
                 ]
-                final_cmd = "&&".join(sed_cmd + permissions_cmd + cmd)
+                final_cmd = "&&".join(permissions_cmd + sed_cmd + cmd)
                 container_cmd = ["bash", "-c", final_cmd]
 
                 # FIXME: Ensure podman client can parse non str value
