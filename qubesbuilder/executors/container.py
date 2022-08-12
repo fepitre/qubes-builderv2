@@ -88,6 +88,12 @@ class ContainerExecutor(Executor):
         except (PodmanError, DockerException, ValueError) as e:
             raise ExecutorError("Cannot connect to container client.") from e
 
+    def get_user(self):
+        return self._user
+
+    def get_group(self):
+        return self._group
+
     def copy_in(self, container, source_path: Path, destination_dir: PurePath):  # type: ignore
         src = source_path.resolve()
         dst = destination_dir.as_posix()
@@ -141,6 +147,12 @@ class ContainerExecutor(Executor):
                 # prepare container for given image and command
                 image = client.images.get(self.attrs["Id"])
 
+                # fix permissions and user group
+                permissions_cmd = [
+                    f"sudo mkdir -p {self.get_builder_dir()}",
+                    f"sudo chown -R {self._user}:{self._group} {self.get_builder_dir()}",
+                ]
+
                 # replace placeholders
                 sed_cmd = []
                 if files_inside_executor_with_placeholders:
@@ -149,11 +161,6 @@ class ContainerExecutor(Executor):
                             f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {f}"
                         ]
 
-                # fix permissions and user group
-                permissions_cmd = [
-                    f"sudo mkdir -p {self.get_builder_dir()}",
-                    f"sudo chown -R {self._user}:{self._group} {self.get_builder_dir()}",
-                ]
                 final_cmd = "&&".join(permissions_cmd + sed_cmd + cmd)
                 container_cmd = ["bash", "-c", final_cmd]
 

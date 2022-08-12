@@ -224,7 +224,7 @@ class RPMBuildPlugin(BuildPlugin):
             cmd = [
                 f"cd {self.executor.get_repository_dir()}",
                 "createrepo_c .",
-                f"sudo chown -R user:mock {self.executor.get_build_dir()}",
+                f"sudo chown -R {self.executor.get_user()}:mock {self.executor.get_build_dir()}",
             ]
 
             # Run 'mock' to build source RPM

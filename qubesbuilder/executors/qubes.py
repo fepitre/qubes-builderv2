@@ -38,6 +38,12 @@ class QubesExecutor(Executor):
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
 
+    def get_user(self):
+        return "user"
+
+    def get_group(self):
+        return "user"
+
     def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):  # type: ignore
         src = source_path.expanduser().resolve()
         dst = destination_dir
@@ -133,7 +139,7 @@ class QubesExecutor(Executor):
             start_cmd = [
                 "/usr/bin/qvm-run-vm",
                 dispvm,
-                f"bash -c 'sudo mkdir -p {self.get_builder_dir()} && sudo chown -R user:user {self.get_builder_dir()}'",
+                f"bash -c 'sudo mkdir -p {self.get_builder_dir()} && sudo chown -R {self.get_user()}:{self.get_group()} {self.get_builder_dir()}'",
             ]
             subprocess.run(start_cmd, stdin=subprocess.DEVNULL)
 

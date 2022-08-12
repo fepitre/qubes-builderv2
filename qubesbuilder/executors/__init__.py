@@ -70,3 +70,9 @@ class Executor(ABC):
     @abstractmethod
     def run(self, *args, **kwargs):
         pass
+
+    def get_user(self):
+        raise NotImplemented
+
+    def get_group(self):
+        raise NotImplemented

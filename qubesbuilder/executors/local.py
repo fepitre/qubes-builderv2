@@ -20,6 +20,8 @@ import shutil
 import subprocess
 import getpass
 import uuid
+import pwd
+import grp
 
 from pathlib import Path
 from typing import List, Tuple, Union
@@ -44,6 +46,14 @@ class LocalExecutor(Executor):
         self._builder_dir = self._temporary_dir / "builder"
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
+
+    def get_user(self):
+        return self._kwargs.get("user", getpass.getuser())
+
+    def get_group(self):
+        gid = pwd.getpwnam(self.get_user()).pw_gid
+        group = grp.getgrgid(gid).gr_name
+        return self._kwargs.get("group", group)
 
     def copy_in(self, source_path: Path, destination_dir: Path):  # type: ignore
         src = source_path.resolve()
@@ -82,16 +92,11 @@ class LocalExecutor(Executor):
                 f"Failed to create temporary builder directory: {str(e)}"
             )
 
-        if self._kwargs.get("group", None):
-            chown = f"{self._kwargs.get('user', getpass.getuser())}:{self._kwargs.get('group', 'user')}"
-        else:
-            chown = self._kwargs.get("user", getpass.getuser())
-
         try:
             try:
                 subprocess.run(
                     [
-                        f"sudo chown -R {chown} {self._builder_dir}",
+                        f"sudo chown -R {self.get_user()}:{self.get_group()} {self._builder_dir}",
                     ],
                     check=True,
                     shell=True,

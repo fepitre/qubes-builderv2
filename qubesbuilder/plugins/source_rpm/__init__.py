@@ -255,7 +255,7 @@ class RPMSourcePlugin(SourcePlugin):
             cmd += [
                 f"{self.executor.get_plugins_dir()}/source_rpm/scripts/generate-spec {source_dir} {source_dir / build}.in {source_dir / build}",
                 f"mkdir -p {self.executor.get_build_dir()}",
-                f"sudo chown -R user:mock {self.executor.get_build_dir()}",
+                f"sudo chown -R {self.executor.get_user()}:mock {self.executor.get_build_dir()}",
             ]
             # Run 'mock' to generate source RPM
             mock_conf = (
