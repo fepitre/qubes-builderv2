@@ -232,7 +232,13 @@ class FetchPlugin(ComponentPlugin):
             # Keep executor workflow if we move verification of files in another
             # cage type (copy-in, copy-out and cmd would need adjustments).
 
-            local_executor = LocalExecutor()
+            if isinstance(self.executor, LocalExecutor):
+                # If executor is a LocalExecutor, use the same base
+                # directory for temporary directory
+                local_executor = LocalExecutor(directory=self.executor.get_directory())
+            else:
+                local_executor = LocalExecutor()
+
             copy_in = []
             copy_out = [(temp_dir / final_fn, distfiles_dir)]
 
