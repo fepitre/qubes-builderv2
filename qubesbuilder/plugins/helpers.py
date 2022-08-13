@@ -13,6 +13,9 @@ from qubesbuilder.plugins.sign_deb import DEBSignPlugin
 from qubesbuilder.plugins.sign_rpm import RPMSignPlugin
 from qubesbuilder.plugins.source_deb import DEBSourcePlugin
 from qubesbuilder.plugins.source_rpm import RPMSourcePlugin
+from qubesbuilder.plugins.chroot_deb import DEBChrootPlugin
+from qubesbuilder.plugins.chroot_rpm import RPMChrootPlugin
+
 
 from qubesbuilder.plugins.template_rpm import RPMTemplateBuilderPlugin
 from qubesbuilder.plugins.template_debian import DEBTemplateBuilderPlugin
@@ -127,3 +130,23 @@ def getTemplatePlugin(
     else:
         raise PluginError(f"{template.distribution}: unsupported dist.")
     return template_plugin
+
+
+def getChrootPlugin(
+    dist: QubesDistribution,
+    plugins_dir: Path,
+    executor: Executor,
+    artifacts_dir: Path,
+    **kwargs,
+):
+    if dist.is_deb():
+        chroot_plugin = DEBChrootPlugin(  # type: ignore
+            dist, executor, plugins_dir, artifacts_dir, **kwargs
+        )
+    elif dist.is_rpm():
+        chroot_plugin = RPMChrootPlugin(  # type: ignore
+            dist, executor, plugins_dir, artifacts_dir, **kwargs
+        )
+    else:
+        raise PluginError(f"{dist}: unsupported dist.")
+    return chroot_plugin

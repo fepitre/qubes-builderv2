@@ -13,9 +13,9 @@ from qubesbuilder.plugins.helpers import (
     getBuildPlugin,
     getSignPlugin,
     getPublishPlugin,
+    getChrootPlugin,
 )
 from qubesbuilder.plugins.upload import UploadPlugin
-from qubesbuilder.plugins.chroot import ChrootPlugin
 
 
 @aliased_group("package", chain=True)
@@ -36,7 +36,7 @@ def _component_stage(
     Generic function to trigger stage for a standard component
     """
     click.echo(f"Running stage: {stage_name}")
-    executor = config.get_stages()[stage_name]["executor"]
+    executor = config.get_executor_from_config(stage_name=stage_name)
 
     for component in components:
         # Component plugins
@@ -228,10 +228,10 @@ def upload(obj: ContextObj):
 
 @package.command()
 @click.pass_obj
-def chroot(obj: ContextObj):
-    executor = obj.config.parse_stage_from_config("chroot").get("executor")
+def init_cache(obj: ContextObj):
+    executor = obj.config.get_executor_from_config("init-cache")
     for dist in obj.distributions:
-        plugin = ChrootPlugin(
+        plugin = getChrootPlugin(
             dist=dist,
             executor=executor,
             plugins_dir=obj.config.get_plugins_dir(),
@@ -239,11 +239,11 @@ def chroot(obj: ContextObj):
             verbose=obj.config.verbose,
             debug=obj.config.debug,
         )
-        plugin.run(stage="chroot")
+        plugin.run(stage="init-cache")
 
 
-package.add_command(chroot)
-package.add_command(fetch)
+package.add_command(init_cache, name="init-cache")
+package.add_command(init_cache)
 package.add_command(prep)
 package.add_command(build)
 package.add_command(post)

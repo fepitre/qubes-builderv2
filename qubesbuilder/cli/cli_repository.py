@@ -35,7 +35,7 @@ def _publish(
     ignore_min_age: bool = False,
     unpublish: bool = False,
 ):
-    executor = config.get_stages()["publish"]["executor"]
+    executor = config.get_executor_from_config("publish")
     if repository_publish in COMPONENT_REPOSITORIES:
         for component in components:
             for dist in distributions:
@@ -166,7 +166,7 @@ def _check_release_status_for_component(config, components, distributions):
                     component=component,
                     dist=dist,
                     plugins_dir=config.get_plugins_dir(),
-                    executor=config.get_stages()["publish"]["executor"],
+                    executor=config.get_executor_from_config("publish"),
                     artifacts_dir=config.get_artifacts_dir(),
                     verbose=config.verbose,
                     debug=config.debug,
@@ -303,7 +303,7 @@ def _check_release_status_for_template(config, templates):
         plugin = getTemplatePlugin(
             template=template,
             plugins_dir=config.get_plugins_dir(),
-            executor=config.get_stages()["publish"]["executor"],
+            executor=config.get_executor_from_config("publish"),
             artifacts_dir=config.get_artifacts_dir(),
             verbose=config.verbose,
             debug=config.debug,
@@ -382,7 +382,7 @@ def _upload(
     templates: List[QubesTemplate],
     repository_publish: str,
 ):
-    executor = config.get_stages()["publish"]["executor"]
+    executor = config.get_executor_from_config("publish")
     if repository_publish in COMPONENT_REPOSITORIES:
         for dist in distributions:
             upload_plugin = UploadPlugin(

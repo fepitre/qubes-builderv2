@@ -211,20 +211,12 @@ class Config:
             self._templates = [QubesTemplate(template) for template in templates]
         return self._templates
 
-    def get_stages(self):
-        if not self._stages:
-            for stage_name in STAGES:
-                self._stages[stage_name] = self.parse_stage_from_config(stage_name)
-        return self._stages
-
     def get_components(self, filtered_components=None):
         if not self._components:
             # Load available component information from config
             components_from_config = []
             for c in self._conf.get("components", []):
-                components_from_config.append(
-                    self.parse_component_from_dict_or_string(c)
-                )
+                components_from_config.append(self.get_component_from_dict_or_string(c))
 
             # Find if components requested would have been found from config file with
             # non default values for url, maintainer, etc.
@@ -236,9 +228,7 @@ class Config:
                             filtered_component = c
                             break
                     if not filtered_component:
-                        filtered_component = self.parse_component_from_dict_or_string(
-                            fc
-                        )
+                        filtered_component = self.get_component_from_dict_or_string(fc)
                     self._components.append(filtered_component)
             else:
                 self._components = components_from_config
@@ -258,7 +248,7 @@ class Config:
     def get_plugins_dir():
         return PROJECT_PATH / "qubesbuilder" / "plugins"
 
-    def parse_stage_from_config(self, stage_name: str):
+    def get_executor_from_config(self, stage_name: str):
         executor = None
         default_executor = self._conf.get("executor", {})
         executor_type = default_executor.get("type", "docker")
@@ -282,10 +272,9 @@ class Config:
         if not executor:
             # FIXME: Review and enhance default executor definition
             executor = getExecutor(executor_type, executor_options)
-        stage = {"executor": executor}
-        return stage
+        return executor
 
-    def parse_component_from_dict_or_string(
+    def get_component_from_dict_or_string(
         self, component_name: Union[str, Dict]
     ) -> QubesComponent:
         baseurl = self.get("git", {}).get("baseurl", "https://github.com")

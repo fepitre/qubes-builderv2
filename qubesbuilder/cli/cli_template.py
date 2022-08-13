@@ -26,7 +26,7 @@ def _template_stage(
     Generic function to trigger stage for a template component
     """
     click.echo(f"Running template stage: {stage_name}")
-    executor = config.get_stages()[stage_name]["executor"]
+    executor = config.get_executor_from_config(stage_name=stage_name)
 
     # Qubes templates
     for tmpl in templates:
