@@ -282,7 +282,7 @@ class DEBSourcePlugin(SourcePlugin):
                 cmd += [
                     f"mkdir -p {self.executor.get_build_dir()}",
                     f"cd {self.executor.get_build_dir()}",
-                    f"cp -r {source_dir / directory} .",
+                    f"cp -a {source_dir / directory} .",
                 ]
             else:
                 # For native package, we need to match archive prefix in order
@@ -294,7 +294,7 @@ class DEBSourcePlugin(SourcePlugin):
                 cmd += [
                     f"mkdir -p {build_dir}",
                     f"cd {build_dir}",
-                    f"cp -r {source_dir}/* .",
+                    f"cp -a {source_dir}/* .",
                 ]
             cmd += [
                 "dpkg-source -b .",
