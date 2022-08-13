@@ -265,6 +265,16 @@ class RPMBuildPlugin(BuildPlugin):
                 f'--chroot /plugins/build_rpm/scripts/rpmbuildinfo /builddir/build/SRPMS/{source_info["srpm"]} > {self.executor.get_build_dir()}/{buildinfo_file}',
             ]
 
+            # Add prepared chroot cache
+            chroot_cache = (
+                self.get_cache_dir()
+                / "chroot"
+                / self.dist.name
+                / mock_conf.replace(".cfg", "")
+            )
+            if chroot_cache.exists():
+                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
+
             cmd += [" ".join(mock_cmd), " ".join(buildinfo_cmd)]
 
             # Move RPMs into a separate dir and generate packages list based on given

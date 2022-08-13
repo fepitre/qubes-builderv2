@@ -15,6 +15,7 @@ from qubesbuilder.plugins.helpers import (
     getPublishPlugin,
 )
 from qubesbuilder.plugins.upload import UploadPlugin
+from qubesbuilder.plugins.chroot import ChrootPlugin
 
 
 @aliased_group("package", chain=True)
@@ -225,6 +226,23 @@ def upload(obj: ContextObj):
     )
 
 
+@package.command()
+@click.pass_obj
+def chroot(obj: ContextObj):
+    executor = obj.config.parse_stage_from_config("chroot").get("executor")
+    for dist in obj.distributions:
+        plugin = ChrootPlugin(
+            dist=dist,
+            executor=executor,
+            plugins_dir=obj.config.get_plugins_dir(),
+            artifacts_dir=obj.config.get_artifacts_dir(),
+            verbose=obj.config.verbose,
+            debug=obj.config.debug,
+        )
+        plugin.run(stage="chroot")
+
+
+package.add_command(chroot)
 package.add_command(fetch)
 package.add_command(prep)
 package.add_command(build)

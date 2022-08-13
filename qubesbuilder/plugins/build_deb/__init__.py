@@ -256,13 +256,25 @@ class DEBBuildPlugin(BuildPlugin):
             # FIXME: We disable black here because it removes escaped quotes.
             #  This is until we use shlex.quote.
 
-            # FIXME: Allow to pass a prebuilt pbuilder base.tgz.
-            cmd += [
-                f"sudo -E pbuilder create "
-                f"--distribution {self.dist.name} "
-                f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc "
-                f"--othermirror \"{extra_sources}\""
-            ]
+            # Add prepared chroot cache
+            base_tgz = self.get_cache_dir() / "chroot" / self.dist.name / "base.tgz"
+            if base_tgz.exists():
+                copy_in += [
+                    (base_tgz, self.executor.get_builder_dir() / "pbuilder")
+                ]
+                cmd += [
+                    f"sudo -E pbuilder update "
+                    f"--distribution {self.dist.name} "
+                    f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc "
+                    f"--othermirror \"{extra_sources}\""
+                ]
+            else:
+                cmd += [
+                    f"sudo -E pbuilder create "
+                    f"--distribution {self.dist.name} "
+                    f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc "
+                    f"--othermirror \"{extra_sources}\""
+                ]
 
             cmd += [
                 f"sudo -E pbuilder build --override-config "

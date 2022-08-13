@@ -97,6 +97,10 @@ class Plugin:
         path = self.artifacts_dir / "tmp"
         return path.resolve()
 
+    def get_cache_dir(self):
+        path = self.artifacts_dir / "cache"
+        return path.resolve()
+
     def get_sources_dir(self):
         path = self.artifacts_dir / "sources"
         return path.resolve()

@@ -284,6 +284,16 @@ class RPMSourcePlugin(SourcePlugin):
                 f"{self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
             ]
 
+            # Add prepared chroot cache
+            chroot_cache = (
+                self.get_cache_dir()
+                / "chroot"
+                / self.dist.name
+                / mock_conf.replace(".cfg", "")
+            )
+            if chroot_cache.exists():
+                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
+
             cmd += [" ".join(mock_cmd)]
             try:
                 self.executor.run(
