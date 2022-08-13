@@ -42,10 +42,14 @@ class LocalExecutor(Executor):
         self, directory: Path = Path("/tmp"), clean: Union[str, bool] = True, **kwargs
     ):
         random_path = str(id(self)) + str(uuid.uuid4())[0:8]
-        self._temporary_dir = Path(directory).expanduser().resolve() / random_path
+        self._directory = directory
+        self._temporary_dir = Path(self._directory).expanduser().resolve() / random_path
         self._builder_dir = self._temporary_dir / "builder"
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
+
+    def get_directory(self):
+        return self._directory
 
     def get_user(self):
         return self._kwargs.get("user", getpass.getuser())
