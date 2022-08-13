@@ -34,8 +34,13 @@ fi
 SPEC_FILE="$1"
 DIST_TAG="$2"
 
+RPM_OPS=(--define "dist .${DIST_TAG}" --nodebuginfo)
+if [ "${DIST_TAG}" == "el8" ]; then
+    RPM_OPS+=(--define "python3_pkgversion 38")
+fi
+
 # Get builtrpms from rpmspec without debuginfo
 # see https://github.com/rpm-software-management/rpm/issues/1878
-rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}"
-rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-debuginfo-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel' 2>/dev/null || true
-rpmspec --builtrpms --define "dist .${DIST_TAG}" --nodebuginfo -q --qf '%{name}-debugsource-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel' 2>/dev/null || true
+rpmspec --builtrpms "${RPM_OPS[@]}" -q --qf '%{name}-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}"
+rpmspec --builtrpms "${RPM_OPS[@]}" -q --qf '%{name}-debuginfo-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel' 2>/dev/null || true
+rpmspec --builtrpms "${RPM_OPS[@]}" -q --qf '%{name}-debugsource-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel' 2>/dev/null || true
