@@ -27,13 +27,13 @@ from debian.deb822 import Dsc
 
 def main(dsc, debian_release):
     if not os.path.exists(dsc):
-        print(f"Cannot find '{dsc}'.")
+        print(f"Cannot find '{dsc}'.", file=sys.stderr)
         return 1
 
     try:
         debian_release = int(debian_release)
     except ValueError:
-        print(f"Cannot parse Debian release number '{debian_release}'.")
+        print(f"Cannot parse Debian release number '{debian_release}'.", file=sys.stderr)
         return 1
 
     with open(dsc) as f:
@@ -54,7 +54,7 @@ def main(dsc, debian_release):
                 optional_keys["essential"] = val.split("=")[1]
         architectures = optional_keys.get("arch", None)
         if not architectures:
-            print(f"Cannot find arch.")
+            print(f"Cannot find arch.", file=sys.stderr)
             return
         # Take the first architecture found
         architectures = architectures.replace("any", "amd64").split(",")
@@ -70,6 +70,6 @@ def main(dsc, debian_release):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print(f"usage: {sys.argv[0]} dsc debian_release_number")
+        print(f"usage: {sys.argv[0]} dsc debian_release_number", file=sys.stderr)
         sys.exit(1)
     sys.exit(main(sys.argv[1], sys.argv[2]))
