@@ -137,7 +137,7 @@ class ContainerExecutor(Executor):
         copy_out: List[Tuple[PurePath, Path]] = None,
         files_inside_executor_with_placeholders: List[Union[Path, str]] = None,
         environment=None,
-        no_fail_copy_out=False,
+        no_fail_copy_out_allowed_patterns=None,
     ):
 
         container = None
@@ -219,7 +219,12 @@ class ContainerExecutor(Executor):
                         )
                     except ExecutorError as e:
                         # Ignore copy-out failure if requested
-                        if no_fail_copy_out:
+                        if isinstance(no_fail_copy_out_allowed_patterns, list) and any(
+                            [
+                                p in src_out.name
+                                for p in no_fail_copy_out_allowed_patterns
+                            ]
+                        ):
                             log.warning(f"File not found inside container: {src_out}.")
                             continue
                         raise e

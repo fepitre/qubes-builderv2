@@ -84,7 +84,7 @@ class LocalExecutor(Executor):
         copy_out: List[Tuple[Path, Path]] = None,
         files_inside_executor_with_placeholders: List[Path] = None,
         environment=None,
-        no_fail_copy_out=False,
+        no_fail_copy_out_allowed_patterns=None,
     ):
 
         # Create temporary builder directory. In an unlikely case of conflict,
@@ -155,7 +155,9 @@ class LocalExecutor(Executor):
                     self.copy_out(source_path=src, destination_dir=dst)
                 except ExecutorError as e:
                     # Ignore copy-out failure if requested
-                    if no_fail_copy_out:
+                    if isinstance(no_fail_copy_out_allowed_patterns, list) and any(
+                        [p in src.name for p in no_fail_copy_out_allowed_patterns]
+                    ):
                         log.warning(f"File not found inside container: {src}.")
                         continue
                     raise e

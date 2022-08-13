@@ -295,7 +295,7 @@ class RPMBuildPlugin(BuildPlugin):
                     copy_in,
                     copy_out,
                     environment=self.environment,
-                    no_fail_copy_out=True,
+                    no_fail_copy_out_allowed_patterns=["-debugsource", "-debuginfo"],
                     files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
                 )
             except ExecutorError as e:
