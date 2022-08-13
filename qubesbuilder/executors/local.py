@@ -67,7 +67,7 @@ class LocalExecutor(Executor):
                 dst = dst / src.name
                 if dst.exists():
                     shutil.rmtree(str(dst))
-                shutil.copytree(str(src), str(dst))
+                shutil.copytree(str(src), str(dst), symlinks=True)
             else:
                 dst.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src), str(dst))
