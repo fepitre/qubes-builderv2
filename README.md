@@ -72,14 +72,17 @@ Second, build the docker image:
 $ docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora /var/cache/mock/fedora-36-x86_64/root_cache/
 ```
 
-In order to ease Docker image generation, a tool `generate-docker-image.sh`
+In order to ease Docker or Podman image generation, a tool `generate-container-image.sh`
 is provided under `tools` directory to perform previous commands with proper
 clean of previous caches. It takes as input the Mock configuration file path
-or identifier. For example, to build a Fedora 36 x86-86 docker image:
+or identifier. For example, to build a Fedora 36 x86-64 docker image:
 ```bash
-$ tools/generate-docker-image.sh fedora-36-x86_64
+$ tools/generate-container-image.sh docker fedora-36-x86_64
 ```
-
+or a Podman image:
+```bash
+$ tools/generate-container-image.sh podman fedora-36-x86_64
+```
 
 ## Qubes executor
 

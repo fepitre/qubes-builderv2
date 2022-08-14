@@ -2,13 +2,30 @@
 
 set -ex
 
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <MOCK_CONFIGURATION_FILE>" >&2
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <CONTAINER_ENGINE> <MOCK_CONFIGURATION_FILE>" >&2
     exit 1
 fi
 
-MOCK_CONF="$1"
+CONTAINER_ENGINE="$1"
+MOCK_CONF="$2"
 MOCK_CONF_BN="$(basename "$MOCK_CONF")"
+
+[ -n "$CONTAINER_ENGINE" ] || {
+    echo "Please provide container engine: 'docker' or 'podman'."
+    exit 1
+}
+
+if [ "$CONTAINER_ENGINE" != "docker" ] && [ "$CONTAINER_ENGINE" != "podman" ]; then
+    echo "Only 'docker' and 'podman' are supported."
+    exit 1
+fi
+
+if [ "$CONTAINER_ENGINE" == "docker" ]; then
+    CONTAINER_CMD="sudo docker"
+else
+    CONTAINER_CMD="podman"
+fi
 
 [ -n "$MOCK_CONF" ] || {
     echo "Please provide non empty mock configuration file."
@@ -34,7 +51,7 @@ sudo mock \
 # FIXME: The trim of .cfg extension does not work if rawhide is provided implicitly
 #  like at the time of writing 'fedora-37-x86_64'. We need to find a more reliable way
 #  to obtain mock chroot name.
-sudo docker build \
+$CONTAINER_CMD build \
     -f "${TOOLS_DIR}/../dockerfiles/fedora.Dockerfile" \
     -t qubes-builder-fedora \
     "/var/cache/mock/${MOCK_CONF_BN%.cfg}/root_cache/"
