@@ -99,6 +99,10 @@ pytest:
   before_script:
     - cp -r tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
+    - sudo sed -i "/$(id -u -n)/d" /etc/subuid
+    - sudo sed -i "/$(id -g -n)/d" /etc/subgid
+    - echo $(id -u -n):$(( $(id -u)*65536 )):65536 | sudo tee -a /etc/subuid
+    - echo $(id -g -n):$(( $(id -g)*65536 )):65536 | sudo tee -a /etc/subgid
     - systemctl --user start podman
     - podman pull docker.io/fepitre/qubes-builder-fedora:latest
     - podman tag docker.io/fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
