@@ -149,7 +149,7 @@ class ContainerExecutor(Executor):
 
                 # fix permissions and user group
                 permissions_cmd = [
-                    f"sudo mkdir -p {self.get_builder_dir()}",
+                    f"sudo mkdir -p {self.get_builder_dir()} {self.get_builder_dir()/'build'} {self.get_builder_dir()/'plugins'} {self.get_builder_dir()/'distfiles'}",
                     f"sudo chown -R {self._user}:{self._group} {self.get_builder_dir()}",
                 ]
 

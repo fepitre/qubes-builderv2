@@ -11,12 +11,13 @@ RUN dnf -y update && \
         python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev \
     && dnf clean all
 
-# Create needed folders
-RUN mkdir /builder /builder/plugins /builder/build /builder/distfiles
 
 # Create build user
 RUN useradd -m user
 RUN usermod -aG wheel user && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel
+
+# Create needed folders
+RUN mkdir /builder /builder/plugins /builder/build /builder/distfiles
 RUN chown -R user /builder
 
 USER user

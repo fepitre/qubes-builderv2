@@ -139,7 +139,10 @@ class QubesExecutor(Executor):
             start_cmd = [
                 "/usr/bin/qvm-run-vm",
                 dispvm,
-                f"bash -c 'sudo mkdir -p {self.get_builder_dir()} && sudo chown -R {self.get_user()}:{self.get_group()} {self.get_builder_dir()}'",
+                f"bash -c 'sudo mkdir -p {self.get_builder_dir()} {self.get_builder_dir()} "
+                f"{self.get_builder_dir()/'build'} {self.get_builder_dir()/'plugins'} "
+                f"{self.get_builder_dir()/'distfiles'} "
+                f"&& sudo chown -R {self.get_user()}:{self.get_group()} {self.get_builder_dir()}'",
             ]
             subprocess.run(start_cmd, stdin=subprocess.DEVNULL)
 
