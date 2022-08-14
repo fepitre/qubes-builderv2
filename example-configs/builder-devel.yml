@@ -24,6 +24,11 @@ gpg-client: qubes-gpg-client-wrapper
 sign-key:
   rpm: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
   deb: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+  iso: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+
+# Path relative to qubesbuilder/plugins/installer
+iso:
+  kickstart: conf/iso-full-online.ks
 
 distributions:
   - host-fc32
@@ -224,8 +229,9 @@ repository-publish:
   templates: templates-itl-testing
 
 repository-upload-remote-host:
-  rpm: user@qubes.notset.fr/repo/notset/rpm/
-  deb: user@qubes.notset.fr/repo/notset/deb/
+  rpm: user@qubes.notset.fr:/repo/notset/rpm/
+  deb: user@qubes.notset.fr:/repo/notset/deb/
+  iso: user@qubes.notset.fr:/iso/
 
 executor:
   type: docker

@@ -31,6 +31,7 @@ from qubesbuilder.cli.cli_base import ContextObj, aliased_group
 from qubesbuilder.cli.cli_package import package
 from qubesbuilder.cli.cli_repository import repository
 from qubesbuilder.cli.cli_template import template
+from qubesbuilder.cli.cli_installer import installer
 from qubesbuilder.cli.cli_config import config
 from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.config import Config
@@ -206,4 +207,5 @@ Remark:
 main.add_command(package)
 main.add_command(template)
 main.add_command(repository)
+main.add_command(installer)
 main.add_command(config)

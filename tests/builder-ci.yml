@@ -19,6 +19,10 @@ gpg-client: gpg
 sign-key:
   rpm: 632F8C69E01B25C9E0C3ADF2F360C0D259FB650C
   deb: 632F8C69E01B25C9E0C3ADF2F360C0D259FB650C
+  iso: 632F8C69E01B25C9E0C3ADF2F360C0D259FB650C
+
+iso:
+  kickstart: conf/iso-full-online.ks
 
 distributions:
   - host-fc32

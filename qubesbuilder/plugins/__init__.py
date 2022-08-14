@@ -121,6 +121,14 @@ class Plugin:
         path = self.artifacts_dir / "templates"
         return path.resolve()
 
+    def get_installer_dir(self):
+        path = self.artifacts_dir / "installer"
+        return path.resolve()
+
+    def get_iso_dir(self):
+        path = self.artifacts_dir / "iso"
+        return path.resolve()
+
 
 class ComponentPlugin(Plugin):
     """

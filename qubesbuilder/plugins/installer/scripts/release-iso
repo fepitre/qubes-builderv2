@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# This script is used to postprocess Qubes OS release ISO. This include:
+# - renaming file
+# - creating all required signatures and hashes
+# - creating torrent file
+
+set -e
+[ "$DEBUG" = "1" ] && set -x
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 ISO_NAME"
+    echo " ISO_NAME is iso filename"
+    echo " Script will take care of renaming the file from old naming convention (with DVD)"
+    exit 1
+fi
+
+LOCALDIR="$(readlink -f "$(dirname "$0")")"
+ISO="$(readlink -f "$1")"
+ISO_DIR="$(dirname "$ISO")"
+ISO_NAME="$(basename "$ISO")"
+ISO_BASE="${ISO_NAME%%.iso}"
+
+GPG_CLIENT="$2"
+if [ -z "${GPG_CLIENT}" ]; then
+    echo "ERROR: Please provide GPG client to use."
+    exit 1
+fi
+
+GPG_SIGN_KEY="$3"
+if [ -z "${GPG_SIGN_KEY}" ]; then
+    echo "ERROR: Please provide GPG key fingerprint to use."
+    exit 1
+fi
+
+# make sure we're in qubes-builder iso root directory
+cd "$ISO_DIR"
+
+printf "Checking for iso presence... "
+if [ ! -r "${ISO_BASE}.iso" ]; then
+    # maybe name not yet normalized?
+    OLD_BASE="Qubes-DVD-x86_64-${ISO_BASE#Qubes-}"
+    OLD_BASE="${OLD_BASE%-x86_64}"
+    if [ -r "${OLD_BASE}.iso" ]; then
+        printf "renaming from %s.iso " "${OLD_BASE}"
+        mv "${OLD_BASE}.iso" "${ISO_BASE}.iso"
+    else
+        printf "ERROR: no ISO file found: %s.iso, %s.iso\n" "$ISO_BASE" "$OLD_BASE"
+        exit 1
+    fi
+fi
+printf "ok\n"
+
+printf "Signing ISO... "
+
+if [ "${ISO_BASE}.iso" -nt "${ISO_BASE}.iso.asc" ]; then
+    rm -f "${ISO_BASE}.iso.asc"
+fi
+
+if [ ! -e "${ISO_BASE}.iso.asc" ]; then
+    $GPG_CLIENT --local-user "$GPG_SIGN_KEY" -asb --output "${ISO_BASE}.iso.asc" "${ISO_BASE}.iso"
+fi
+printf "ok\n"
+
+printf "Generating digests... "
+ALGOS="md5 sha1 sha256 sha512"
+
+if [ "${ISO_BASE}.iso" -nt "${ISO_BASE}.iso.DIGESTS" ]; then
+    rm -f "${ISO_BASE}.iso.DIGESTS"
+fi
+
+if [ ! -e "${ISO_BASE}.iso.DIGESTS" ]; then
+    echo > "${ISO_BASE}.iso.DIGESTS"
+    for algo in $ALGOS;
+    do
+        dgst="$(openssl dgst -"$algo" -r "${ISO_BASE}.iso")"
+        printf "%s " "$algo"
+        echo "$dgst" >> "${ISO_BASE}.iso.DIGESTS"
+    done
+fi
+printf "ok\n"
+
+printf "Signing digests... "
+
+$GPG_CLIENT --local-user "$GPG_SIGN_KEY" -a --clearsign --output "${ISO_BASE}.iso.DIGESTS.signed" "${ISO_BASE}.iso.DIGESTS"
+mv "${ISO_BASE}.iso.DIGESTS.signed" "${ISO_BASE}.iso.DIGESTS"
+
+printf "ok\n"
+
+printf "Creating torrent file...\n"
+if [ "${ISO_BASE}.iso" -nt "${ISO_BASE}.torrent" ]; then
+    rm -f "${ISO_BASE}.torrent"
+fi
+
+if [ ! -e "${ISO_BASE}.torrent" ]; then
+    "$LOCALDIR/create-torrent" "$ISO"
+fi
+
+printf "ok\n"
+
+printf "Done:\n"
+ls -l "${ISO_BASE}.iso" \
+    "${ISO_BASE}.iso.asc" \
+    "${ISO_BASE}.iso.DIGESTS" \
+    "${ISO_BASE}.torrent"

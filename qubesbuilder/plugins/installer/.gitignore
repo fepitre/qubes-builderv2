@@ -1,0 +1,9 @@
+po/*.mo
+src/*.pyc
+src/modules/*.pyc
+pkgs/
+installer
+*~
+build/
+anaconda/widgets/src/gettext.h
+**repodata

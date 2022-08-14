@@ -1,0 +1,139 @@
+#!/usr/bin/python3
+
+import argparse
+import fnmatch
+import pathlib
+import sys
+import tempfile
+
+import dnf
+import dnf.subject
+import dnf.exceptions
+
+from pylorax.ltmpl import LoraxTemplate
+from pylorax.dnfbase import get_dnf_base_object
+
+variables = {
+    "arch": {
+        "buildarch": "x86_64",
+        "basearch": "x86_64",
+        "libdir": "lib64",
+        "bcj": "x86",
+    },
+    "product": {
+        "name": "qubes os",
+        "version": "r4.1",
+        "release": "Qubes OS r4.1",
+        "variant": "qubes",
+        "bugurl": "your distribution provided bug reporting tool",
+        "isfinal": True,
+    },
+    "root": "/tmp/work/work/x86_64/installtree",
+    "basearch": "x86_64",
+    "libdir": "lib64",
+}
+
+
+def parse_installpkg(dbo, pkgs):
+    if pkgs[0] == "--optional":
+        pkgs = pkgs[1:]
+    elif pkgs[0] == "--required":
+        pkgs = pkgs[1:]
+
+    excludes = []
+    while "--except" in pkgs:
+        idx = pkgs.index("--except")
+        if len(pkgs) == idx + 1:
+            raise ValueError("installpkg needs an argument after --except")
+
+        excludes.append(pkgs[idx + 1])
+        pkgs = pkgs[:idx] + pkgs[idx + 2 :]
+
+    packages = []
+    for p in pkgs:
+        print(f"requested: {p}")
+        pkgnames = [
+            pkg.name
+            for pkg in dnf.subject.Subject(p).get_best_query(dbo.sack).filter(latest=True)
+        ]
+        if not pkgnames:
+            print(f"no package matched: {p}", file=sys.stderr)
+            continue
+
+        packages += pkgnames
+
+        # Apply excludes to the name only
+        for exclude in excludes:
+            packages += [
+                pkg for pkg in pkgnames if not fnmatch.fnmatch(pkg, exclude)
+            ]
+
+    return packages
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo", metavar="PATH", required=True, nargs="+")
+    parser.add_argument(
+        "--tmpl",
+        metavar="PATH",
+        default="/usr/share/lorax-qubes/runtime-install.tmpl",
+    )
+    parser.add_argument("--extract-packages-to", metavar="PATH", required=False)
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
+
+    templates = LoraxTemplate()
+    result = templates.parse(args.tmpl, variables)
+    print(f"Parsing Lorax template file: {args.tmpl}")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        basedir = pathlib.Path(tmpdir)
+        installroot = basedir / "installroot"
+        tempdir = basedir / "tmp"
+        cachedir = basedir / "cache"
+        logdir = basedir / "log"
+
+        installroot.mkdir(parents=True)
+        tempdir.mkdir(parents=True)
+        cachedir.mkdir(parents=True)
+        logdir.mkdir(parents=True)
+
+        dnfbase = get_dnf_base_object(
+            installroot=str(installroot),
+            sources=[],
+            repos=args.repo,
+            tempdir=str(tempdir),
+            cachedir=str(cachedir),
+            logdir=str(logdir),
+            enablerepos=[],
+            disablerepos=[],
+        )
+
+        if dnfbase is None:
+            print("Unable to create the dnf base object", file=sys.stderr)
+            return 1
+
+        packages = []
+        for r in result:
+            if r[0] == "installpkg":
+                packages += parse_installpkg(dnfbase, r[1:])
+
+    if args.extract_packages_to:
+        try:
+            with open(args.extract_packages_to, "w") as pkgs_fd:
+                pkgs_fd.write(" ".join(packages))
+        except EnvironmentError:
+            print(
+                f"Cannot write packages list to {args.extract_packages_to}",
+                file=sys.stderr,
+            )
+            return 1
+    else:
+        print(" ".join(packages))
+
+
+if __name__ == "__main__":
+    sys.exit(main())

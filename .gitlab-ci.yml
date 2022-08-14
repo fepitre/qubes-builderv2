@@ -9,6 +9,7 @@ stages:
 
 variables:
   DEBUG: "1"
+  GIT_SUBMODULE_STRATEGY: recursive
 
 #
 # test
@@ -312,3 +313,26 @@ qubes-template-whonix-gateway-16:
 qubes-template-whonix-workstation-16:
   extends: .template_qubes_job
   allow_failure: true
+
+#
+# ISO
+#
+
+installer-iso-full-online:
+  stage: build
+  tags:
+    - vm
+  artifacts:
+    paths:
+      - artifacts/installer
+  before_script:
+    - cp -r tests/gnupg ~/.gnupg
+    - chmod 700 ~/.gnupg
+    - docker pull fepitre/qubes-builder-fedora:latest
+    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+  script:
+    - cp tests/builder-ci.yml builder.yml
+    - ./qb installer init-cache all
+  after_script:
+    - rm -rf artifacts/cache
+    - tree artifacts

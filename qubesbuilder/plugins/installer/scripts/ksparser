@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+
+import argparse
+
+from pykickstart.parser import *
+from pykickstart.version import makeVersion
+
+from jinja2 import Environment
+
+REPO_TEMPLATE = """
+[{{ks_repo.name}}]
+name={{ks_repo.name}}
+enabled=1
+{%- if ks_repo.baseurl %}
+baseurl={{ks_repo.baseurl}}
+{%- endif -%}
+{%- if ks_repo.metalink %}
+metalink={{ks_repo.metalink}}
+{%- endif -%}
+{%- if ks_repo.gpgkey %}
+gpgcheck=1
+gpgkey={{ks_repo.gpgkey}}
+{% else %}
+gpgcheck=0
+{%- endif -%}
+{%- if ks_repo.ignoregroups %}
+enablegroups=0
+{% endif -%}
+"""
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--ks",
+        metavar='PATH',
+        required=True
+    )
+    parser.add_argument(
+        "--extract-repo-conf-to",
+        metavar='PATH',
+        required=False
+    )
+    parser.add_argument(
+        "--extract-packages-to",
+        metavar='PATH',
+        required=False
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
+    if args.ks:
+        handler = makeVersion()
+        ksparser = KickstartParser(handler)
+        ksparser.readKickstart(args.ks)
+
+        repo_content = ''
+
+        if args.extract_repo_conf_to:
+            for ks_repo in ksparser.handler.repo.repoList:
+                repo_content += Environment().from_string(REPO_TEMPLATE).render(
+                    ks_repo=ks_repo.__dict__)
+
+            try:
+                with open(args.extract_repo_conf_to, 'w') as repo_fd:
+                    repo_fd.write(repo_content)
+            except EnvironmentError:
+                print("Cannot write repo file to %s" % args.extract_repo_conf_to)
+                return 1
+
+        if args.extract_packages_to:
+            packages = []
+            for group in ksparser.handler.packages.groupList:
+                packages.append('@%s' % group.name)
+
+            for pkg in ksparser.handler.packages.packageList:
+                packages.append('%s' % pkg)
+
+            # for group in ksparser.handler.packages.excludedGroupList:
+            #     packages.append('--exclude=@%s' % group.name)
+
+            for pkg in ksparser.handler.packages.excludedList:
+                packages.append('--exclude=%s' % pkg)
+
+            try:
+                with open(args.extract_packages_to, 'w') as pkgs_fd:
+                    pkgs_fd.write(' '.join(packages))
+            except EnvironmentError:
+                print("Cannot write packages list to %s" % args.extract_packages_to)
+                return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())

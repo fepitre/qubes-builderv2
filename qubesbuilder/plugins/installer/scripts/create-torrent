@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+[ "$DEBUG" = "1" ] && set -x
+
+if [ -z "$1" ]; then
+	echo "Usage: $0 ISO_NAME"
+	echo " ISO_NAME is iso filename"
+	exit 1
+fi
+
+ISO="$(readlink -f "$1")"
+ISO_DIR="$(dirname "$ISO")"
+ISO_NAME="$(basename "$ISO")"
+ISO_BASE="${ISO_NAME%%.iso}"
+
+# rely on set -e
+ls "$ISO" >/dev/null
+ls "$ISO.asc" >/dev/null
+ls "$ISO.DIGESTS" >/dev/null
+
+mkdir "$ISO_BASE"
+ln "$ISO" "$ISO_BASE"
+ln "$ISO.asc" "$ISO_BASE"
+ln "$ISO.DIGESTS" "$ISO_BASE"
+
+mktorrent -a udp://tracker.openbittorrent.com:80 \
+	-a udp://tracker.coppersurfer.tk:6969 \
+	-a udp://tracker.torrent.eu.org:451 \
+	-d -l 20 -v "$ISO_BASE" \
+	-w https://mirrors.kernel.org/qubes/iso/ \
+	-w https://ftp.qubes-os.org/iso/ \
+	-o "$ISO_DIR/$ISO_BASE.torrent"
+
+rm -r "$ISO_BASE"
