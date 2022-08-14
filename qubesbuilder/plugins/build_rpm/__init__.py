@@ -228,11 +228,21 @@ class RPMBuildPlugin(BuildPlugin):
             ]
 
             # Run 'mock' to build source RPM
-            # On Fedora /usr/bin/mock is a (consolehelper) wrapper,
-            # which among other things, strips environment variables"
             mock_conf = (
                 f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
             )
+            # Add prepared chroot cache
+            chroot_cache = (
+                self.get_cache_dir()
+                / "chroot"
+                / self.dist.name
+                / mock_conf.replace(".cfg", "")
+            )
+            if chroot_cache.exists():
+                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
+
+            # On Fedora /usr/bin/mock is a (consolehelper) wrapper,
+            # which among other things, strips environment variables"
             mock_cmd = [
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                 "/usr/libexec/mock/mock --no-cleanup-after",
@@ -252,6 +262,8 @@ class RPMBuildPlugin(BuildPlugin):
                 mock_cmd.append("--enablerepo=qubes-current")
             if self.use_qubes_repo and self.use_qubes_repo.get("testing"):
                 mock_cmd.append("--enablerepo=qubes-current-testing")
+            if chroot_cache.exists():
+                mock_cmd.append("--plugin-option=root_cache:age_check=False")
 
             files_inside_executor_with_placeholders = [
                 f"{self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
@@ -264,16 +276,6 @@ class RPMBuildPlugin(BuildPlugin):
                 f"--root {self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
                 f'--chroot /plugins/build_rpm/scripts/rpmbuildinfo /builddir/build/SRPMS/{source_info["srpm"]} > {self.executor.get_build_dir()}/{buildinfo_file}',
             ]
-
-            # Add prepared chroot cache
-            chroot_cache = (
-                self.get_cache_dir()
-                / "chroot"
-                / self.dist.name
-                / mock_conf.replace(".cfg", "")
-            )
-            if chroot_cache.exists():
-                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
 
             cmd += [" ".join(mock_cmd), " ".join(buildinfo_cmd)]
 

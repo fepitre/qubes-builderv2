@@ -209,7 +209,24 @@ class RPMSourcePlugin(SourcePlugin):
                 (self.executor.get_build_dir() / source_rpm, artifacts_dir),
             ]
 
+            # Run 'mock' to generate source RPM
             cmd = []
+
+            mock_conf = (
+                f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
+            )
+
+            # Add prepared chroot cache
+            chroot_cache = (
+                self.get_cache_dir()
+                / "chroot"
+                / self.dist.name
+                / mock_conf.replace(".cfg", "")
+            )
+            if chroot_cache.exists():
+                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
+                cmd += ["sudo chown -R root:mock /var/cache/mock"]
+
             if self.component.is_salt():
                 copy_in += [
                     (self.plugins_dir / "source/salt/Makefile.install", source_dir)
@@ -257,10 +274,7 @@ class RPMSourcePlugin(SourcePlugin):
                 f"mkdir -p {self.executor.get_build_dir()}",
                 f"sudo chown -R {self.executor.get_user()}:mock {self.executor.get_build_dir()}",
             ]
-            # Run 'mock' to generate source RPM
-            mock_conf = (
-                f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
-            )
+
             mock_cmd = [
                 f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                 f"/usr/libexec/mock/mock",
@@ -279,20 +293,12 @@ class RPMSourcePlugin(SourcePlugin):
                 mock_cmd.append("--isolation=nspawn")
             if self.verbose:
                 mock_cmd.append("--verbose")
+            if chroot_cache.exists():
+                mock_cmd.append("--plugin-option=root_cache:age_check=False")
 
             files_inside_executor_with_placeholders = [
                 f"{self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
             ]
-
-            # Add prepared chroot cache
-            chroot_cache = (
-                self.get_cache_dir()
-                / "chroot"
-                / self.dist.name
-                / mock_conf.replace(".cfg", "")
-            )
-            if chroot_cache.exists():
-                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
 
             cmd += [" ".join(mock_cmd)]
             try:
