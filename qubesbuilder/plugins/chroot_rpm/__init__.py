@@ -16,7 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import shutil
 from pathlib import Path
 
 from qubesbuilder.distribution import QubesDistribution
@@ -64,8 +64,17 @@ class RPMChrootPlugin(ChrootPlugin):
         if stage != "init-cache":
             return
 
+        mock_conf = (
+            f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
+        )
+
         chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
         chroot_dir.mkdir(exist_ok=True, parents=True)
+
+        # FIXME: Parse from mock cfg?
+        mock_chroot_name = mock_conf.replace(".cfg", "")
+        if (chroot_dir / mock_chroot_name).exists():
+            shutil.rmtree(chroot_dir / mock_chroot_name)
 
         copy_in = [
             (self.plugins_dir / dependency, self.executor.get_plugins_dir())
@@ -78,14 +87,10 @@ class RPMChrootPlugin(ChrootPlugin):
                 "PACKAGE_SET": self.dist.package_set,
             }
         )
-        mock_conf = (
-            f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
-        )
+
         copy_out = [
             (
-                Path(
-                    f"{self.executor.get_builder_dir()}/mock/{mock_conf.replace('.cfg', '')}"
-                ),  # FIXME: Parse from mock cfg?
+                Path(f"{self.executor.get_builder_dir()}/mock/{mock_chroot_name}"),
                 chroot_dir,
             )
         ]

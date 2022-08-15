@@ -16,7 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import os
 from pathlib import Path
 
 from qubesbuilder.distribution import QubesDistribution
@@ -65,6 +65,9 @@ class DEBChrootPlugin(ChrootPlugin):
 
         chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
         chroot_dir.mkdir(exist_ok=True, parents=True)
+
+        if (chroot_dir / "base.tgz").exists():
+            os.remove(chroot_dir / "base.tgz")
 
         copy_in = [
             (self.plugins_dir / dependency, self.executor.get_plugins_dir())
