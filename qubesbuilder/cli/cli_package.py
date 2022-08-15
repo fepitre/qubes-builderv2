@@ -243,7 +243,6 @@ def init_cache(obj: ContextObj):
 
 
 package.add_command(init_cache, name="init-cache")
-package.add_command(init_cache)
 package.add_command(prep)
 package.add_command(build)
 package.add_command(post)
