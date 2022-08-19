@@ -66,7 +66,7 @@ pytest:
   before_script:
     - sudo dnf install -y python3-pathspec mock
   script:
-    - tools/generate-docker-image.sh fedora-36-x86_64
+    - tools/generate-container-image.sh docker fedora-36-x86_64
     - pytest-3 -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml tests/
 
 #
