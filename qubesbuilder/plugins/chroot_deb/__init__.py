@@ -60,7 +60,7 @@ class DEBChrootPlugin(ChrootPlugin):
         Run plugin for given stage.
         """
 
-        if stage != "chroot":
+        if stage != "init-cache":
             return
 
         chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
