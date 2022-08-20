@@ -124,11 +124,13 @@ class LocalExecutor(Executor):
 
             # replace placeholders
             sed_cmd = []
-            if files_inside_executor_with_placeholders:
-                for f in files_inside_executor_with_placeholders:
-                    sed_cmd += [
-                        f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {f}"
-                    ]
+            if files_inside_executor_with_placeholders and isinstance(
+                files_inside_executor_with_placeholders, list
+            ):
+                files = [str(f) for f in files_inside_executor_with_placeholders]
+                sed_cmd = [
+                    f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {' '.join(files)}"
+                ]
 
             final_cmd = ["bash", "-c", "&&".join(sed_cmd + cmd)]
             log.info(f"Executing '{' '.join(final_cmd)}'.")
