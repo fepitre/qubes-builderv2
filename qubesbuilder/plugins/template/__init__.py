@@ -19,6 +19,7 @@
 
 import os
 import shutil
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict
@@ -494,7 +495,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 shutil.rmtree(db_path)
 
             sign_key = self.get_sign_key()
-            sign_key_asc = template_artifacts_dir / f"{sign_key}.asc"
+
+            temp_dir = Path(tempfile.mkdtemp())
+            sign_key_asc = temp_dir / f"{sign_key}.asc"
             cmd = [
                 f"mkdir -p {db_path}",
                 f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
@@ -505,6 +508,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to create RPM dbpath."
                 raise TemplateError(msg) from e
+            finally:
+                # Clear temporary dir
+                shutil.rmtree(temp_dir)
 
             template_timestamp = self.get_template_timestamp()
 

@@ -1147,10 +1147,6 @@ def test_sign_template_fedora_36_xfce(artifacts_dir):
             env=env,
         )
 
-    assert (
-        artifacts_dir / "templates/632F8C69E01B25C9E0C3ADF2F360C0D259FB650C.asc"
-    ).exists()
-
     dbpath = artifacts_dir / "templates/rpmdb"
     assert dbpath.exists()
 
