@@ -202,11 +202,11 @@ class ContainerExecutor(Executor):
                     if not process.stdout:
                         log.error(f"No output!")
                         break
-                    if process.poll() is not None:
-                        break
                     for line in process.stdout:
                         line = sanitize_line(line.rstrip(b"\n")).rstrip()
                         log.info(f"output: {str(line)}")
+                    if process.poll() is not None:
+                        break
                 rc = process.poll()
                 if rc != 0:
                     raise ExecutorError(f"Failed to run '{final_cmd}' (status={rc}).")
