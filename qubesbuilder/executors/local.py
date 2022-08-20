@@ -100,10 +100,14 @@ class LocalExecutor(Executor):
             try:
                 subprocess.run(
                     [
-                        f"sudo chown -R {self.get_user()}:{self.get_group()} {self._builder_dir}",
+                        "sudo",
+                        "chown",
+                        "-R",
+                        "--",
+                        f"{self.get_user()}:{self.get_group()}",
+                        self._builder_dir,
                     ],
                     check=True,
-                    shell=True,
                 )
             except subprocess.CalledProcessError as e:
                 raise ExecutorError(f"Failed to prepare executor: {str(e)}")
@@ -165,11 +169,8 @@ class LocalExecutor(Executor):
             if self._temporary_dir.exists() and self._clean:
                 try:
                     subprocess.run(
-                        [
-                            f"sudo rm -rf {self._temporary_dir}",
-                        ],
+                        ["sudo", "rm", "-rf", "--", self._temporary_dir],
                         check=True,
-                        shell=True,
                     )
                 except subprocess.CalledProcessError as e:
                     raise ExecutorError(
