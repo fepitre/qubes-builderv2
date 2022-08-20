@@ -4,6 +4,7 @@
 
 stages:
   - test
+  - prep
   - build
 
 variables:
@@ -73,6 +74,21 @@ pytest:
 # build job skeleton
 #
 
+.init_cache_job:
+  stage: prep
+  tags:
+    - vm
+  artifacts:
+    paths:
+      - artifacts.tar.xz
+  before_script:
+    - docker pull fepitre/qubes-builder-fedora:latest
+    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+  script:
+    - cp tests/builder-ci.yml builder.yml
+    - ./qb -d "${CI_JOB_NAME#cache-}" package init-cache
+    - tar cJf artifacts.tar.xz --strip-components=1 artifacts
+
 .component_docker_job:
   stage: build
   tags:
@@ -85,9 +101,13 @@ pytest:
     - chmod 700 ~/.gnupg
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+    - tar xf artifacts.tar.xz
   script:
     - cp tests/builder-ci.yml builder.yml
     - ./qb -d "${CI_JOB_NAME#docker-}" package all
+  after_script:
+    - rm -rf artifacts/cache
+    - tree artifacts
 
 .component_podman_job:
   stage: build
@@ -106,10 +126,14 @@ pytest:
     - systemctl --user start podman
     - podman pull docker.io/fepitre/qubes-builder-fedora:latest
     - podman tag docker.io/fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+    - tar xf artifacts.tar.xz
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/podman/' builder.yml
     - ./qb -d "${CI_JOB_NAME#podman-}" package all
+  after_script:
+    - rm -rf artifacts/cache
+    - tree artifacts
 
 .component_qubes_job:
   stage: build
@@ -121,11 +145,15 @@ pytest:
   before_script:
     - cp -r tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
+    - tar xf artifacts.tar.xz
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/qubes/' builder.yml
     - 'sed -i ''s|image:.*|dispvm: "qubes-builder-dvm"|'' builder.yml'
     - ./qb -d "${CI_JOB_NAME#qubes-}" package all
+  after_script:
+    - rm -rf artifacts/cache
+    - tree artifacts
 
 .component_local_job:
   stage: build
@@ -138,12 +166,14 @@ pytest:
     - cp -r tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - sudo dnf install -y python3-debian dpkg-dev
+    - tar xf artifacts.tar.xz
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/local/' builder.yml
     - 'sed -i ''s|image:.*|directory: "/home/gitlab-runner/tmp"|'' builder.yml'
     - ./qb -d "${CI_JOB_NAME#local-}" package all
   after_script:
+    - rm -rf artifacts/cache
     - tree artifacts
 
 .template_qubes_job:
@@ -163,19 +193,36 @@ pytest:
 # Components
 #
 
+# Cache
+
+cache-host-fc32:
+  extends: .init_cache_job
+
+cache-vm-fc36:
+  extends: .init_cache_job
+
+cache-vm-centos-stream8:
+  extends: .init_cache_job
+
+cache-vm-bullseye:
+  extends: .init_cache_job
+
 # Podman executor
 
 podman-host-fc32:
   extends: .component_podman_job
-  allow_failure: true
+  needs:
+    - cache-host-fc32
 
 podman-vm-fc36:
   extends: .component_podman_job
-  allow_failure: true
+  needs:
+    - cache-vm-fc36
 
 podman-vm-centos-stream8:
   extends: .component_podman_job
-  allow_failure: true
+  needs:
+    - cache-vm-centos-stream8
 
 #podman-vm-bullseye:
 #  extends: .component_podman_job
@@ -184,43 +231,67 @@ podman-vm-centos-stream8:
 
 docker-host-fc32:
   extends: .component_docker_job
+  needs:
+    - cache-host-fc32
 
 docker-vm-fc36:
   extends: .component_docker_job
+  needs:
+    - cache-vm-fc36
 
 docker-vm-centos-stream8:
   extends: .component_docker_job
+  needs:
+    - cache-vm-centos-stream8
 
 docker-vm-bullseye:
   extends: .component_docker_job
+  needs:
+    - cache-vm-bullseye
 
 # Qubes executor
 
 qubes-host-fc32:
   extends: .component_qubes_job
+  needs:
+    - cache-host-fc32
 
 qubes-vm-fc36:
   extends: .component_qubes_job
+  needs:
+    - cache-vm-fc36
 
 qubes-vm-centos-stream8:
   extends: .component_qubes_job
+  needs:
+    - cache-vm-centos-stream8
 
 qubes-vm-bullseye:
   extends: .component_qubes_job
+  needs:
+    - cache-vm-bullseye
 
 # Local executor
 
 local-host-fc32:
   extends: .component_local_job
+  needs:
+    - cache-host-fc32
 
 local-vm-fc36:
   extends: .component_local_job
+  needs:
+    - cache-vm-fc36
 
 local-vm-centos-stream8:
   extends: .component_local_job
+  needs:
+    - cache-vm-centos-stream8
 
 local-vm-bullseye:
   extends: .component_local_job
+  needs:
+    - cache-vm-bullseye
 
 #
 # Templates
