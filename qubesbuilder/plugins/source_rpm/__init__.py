@@ -224,8 +224,12 @@ class RPMSourcePlugin(SourcePlugin):
                 / mock_conf.replace(".cfg", "")
             )
             if chroot_cache.exists():
-                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
-                cmd += ["sudo chown -R root:mock /var/cache/mock"]
+                copy_in += [
+                    (chroot_cache, Path(f"{self.executor.get_builder_dir()}/mock"))
+                ]
+                cmd += [
+                    f"sudo chown -R root:mock {self.executor.get_builder_dir()}/mock"
+                ]
 
             if self.component.is_salt():
                 copy_in += [

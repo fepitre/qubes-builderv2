@@ -84,7 +84,7 @@ class RPMChrootPlugin(ChrootPlugin):
         copy_out = [
             (
                 Path(
-                    f"/var/cache/mock/{mock_conf.replace('.cfg', '')}"
+                    f"{self.executor.get_builder_dir()}/mock/{mock_conf.replace('.cfg', '')}"
                 ),  # FIXME: Parse from mock cfg?
                 chroot_dir,
             )

@@ -239,7 +239,9 @@ class RPMBuildPlugin(BuildPlugin):
                 / mock_conf.replace(".cfg", "")
             )
             if chroot_cache.exists():
-                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
+                copy_in += [
+                    (chroot_cache, Path(f"{self.executor.get_builder_dir()}/mock"))
+                ]
 
             # On Fedora /usr/bin/mock is a (consolehelper) wrapper,
             # which among other things, strips environment variables"
