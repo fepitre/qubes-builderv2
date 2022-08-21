@@ -215,7 +215,7 @@ class InstallerPlugin(Plugin):
 
             copy_out = [
                 (
-                    Path(f"/var/cache/mock/{mock_chroot_name}"),
+                    Path(f"{self.executor.get_builder_dir()}/mock/{mock_chroot_name}"),
                     chroot_dir,
                 )
             ]
@@ -284,7 +284,7 @@ class InstallerPlugin(Plugin):
 
             # Add prepared chroot cache
             if chroot_cache.exists():
-                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
+                copy_in += [(chroot_cache, self.executor.get_builder_dir() / "mock")]
 
             # Keep packages needed for generating the ISO in a fresh cache
             if iso_cache.exists():
@@ -393,7 +393,7 @@ class InstallerPlugin(Plugin):
 
             # Add prepared chroot cache
             if chroot_cache.exists():
-                copy_in += [(chroot_cache, Path("/var/cache/mock"))]
+                copy_in += [(chroot_cache, self.executor.get_builder_dir() / "mock")]
 
             copy_out = [
                 (
