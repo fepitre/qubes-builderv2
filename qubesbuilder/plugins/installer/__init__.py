@@ -79,7 +79,7 @@ class InstallerPlugin(Plugin):
         self.sign_key = sign_key
         self.use_qubes_repo = use_qubes_repo or {}
         self.repository_upload_remote_host = repository_upload_remote_host or {}
-        self.installer_kickstart = self.plugins_dir / f"installer/{installer_kickstart}"
+        self.installer_kickstart = installer_kickstart
         self.iso_flavor = iso_flavor
         self.iso_user_kernel_latest = iso_use_kernel_latest
         self.environment.update(
@@ -123,7 +123,7 @@ class InstallerPlugin(Plugin):
             {"ISO_VERSION": self.iso_version, "ISO_NAME": self.iso_name}
         )
 
-        if not self.installer_kickstart.exists():
+        if not (self.plugins_dir / "installer" / self.installer_kickstart).exists():
             raise InstallerError(f"Cannot find kickstart: '{self.installer_kickstart}'")
 
         # Kickstart will be copied under builder directory
