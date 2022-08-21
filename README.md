@@ -206,15 +206,19 @@ Commands:
   package     Package CLI
   template    Template CLI
   repository  Repository CLI
+  installer   Installer CLI
   config      Config CLI
 
 Stages:
     fetch prep build post verify sign publish upload
 
 Remark:
-    The Qubes OS components are separated in two groups: standard and template
-    components. Standard components will produce distributions packages and
-    template components will produce template packages.
+    The Qubes OS components are separated into two groups: standard components
+    and template components. Standard components will produce distribution
+    packages to be installed in TemplateVMs or StandaloneVMs, while template
+    components will produce template packages to be installed via qvm-
+    template.
+
 ```
 
 You can use the provided development `builder-devel.yml` configuration file
@@ -256,6 +260,12 @@ You can trigger the whole build process as follows:
 $ ./qb package all
 ```
 
+It is possible to initialize a chroot cache, e.g. for Mock and pbuilder, by calling
+Package CLI with stage `init-cache`. This particular stage is not included in
+the `all` alias. Indeed, if a cache is detected at `prep` ou `build` stages, it
+will be used. As cache could be provided either by using `init-cache` or any
+other method that a user would use, we keep it as dedicated call.
+
 
 ### Template
 
@@ -265,6 +275,25 @@ configuration with:
 ```bash
 $ ./qb template all
 ```
+
+
+### Installer
+
+The build of an ISO is done in several steps. First, it downloads necessary packages
+for Anaconda that will be used for Qubes OS installation. Second, it does the same
+for Lorax, that is responsible to create the installation runtime. Finally, the step
+of creating the ISO is done without network and uses only the downloaded packages.
+Download steps are done inside a cage and creating the ISO is done inside a Mock chroot
+itself inside a cage. As the ISO creation is done offline, it is important to create
+a cache first for Mock. To perform all these simply do:
+
+```bash
+$ ./qb installer init-cache all
+```
+
+The builder supports only one host distribution at a time. If multiple
+is provided in configuration file (e.g. for development purpose), simply call
+the builder with the wanted host distribution associated to the ISO.
 
 
 ### Repository
