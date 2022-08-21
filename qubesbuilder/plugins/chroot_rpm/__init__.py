@@ -68,7 +68,7 @@ class RPMChrootPlugin(ChrootPlugin):
             f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
         )
 
-        chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
+        chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name / "mock"
         chroot_dir.mkdir(exist_ok=True, parents=True)
 
         # FIXME: Parse from mock cfg?
@@ -90,7 +90,7 @@ class RPMChrootPlugin(ChrootPlugin):
 
         copy_out = [
             (
-                Path(f"{self.executor.get_builder_dir()}/mock/{mock_chroot_name}"),
+                self.executor.get_cache_dir() / f"mock/{mock_chroot_name}",
                 chroot_dir,
             )
         ]

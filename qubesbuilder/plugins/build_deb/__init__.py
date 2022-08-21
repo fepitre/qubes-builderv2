@@ -257,7 +257,7 @@ class DEBBuildPlugin(BuildPlugin):
             #  This is until we use shlex.quote.
 
             # Add prepared chroot cache
-            base_tgz = self.get_cache_dir() / "chroot" / self.dist.name / "base.tgz"
+            base_tgz = self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder/base.tgz"
             if base_tgz.exists():
                 copy_in += [
                     (base_tgz, self.executor.get_builder_dir() / "pbuilder")

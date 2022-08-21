@@ -177,7 +177,9 @@ class InstallerPlugin(Plugin):
 
         cache_dir = self.get_cache_dir() / "installer"
         chroot_cache = (
-            self.get_cache_dir() / "installer/chroot" / mock_conf.replace(".cfg", "")
+            self.get_cache_dir()
+            / "installer/chroot/mock"
+            / mock_conf.replace(".cfg", "")
         )
         iso_cache = cache_dir / self.iso_name
 
@@ -194,7 +196,7 @@ class InstallerPlugin(Plugin):
             raise InstallerError(msg)
 
         if stage == "init-cache":
-            chroot_dir = cache_dir / "chroot"
+            chroot_dir = cache_dir / "chroot/mock"
             chroot_dir.mkdir(exist_ok=True, parents=True)
 
             # FIXME: Parse from mock cfg?
@@ -215,7 +217,7 @@ class InstallerPlugin(Plugin):
 
             copy_out = [
                 (
-                    Path(f"{self.executor.get_builder_dir()}/mock/{mock_chroot_name}"),
+                    self.executor.get_cache_dir() / f"mock/{mock_chroot_name}",
                     chroot_dir,
                 )
             ]
@@ -282,9 +284,15 @@ class InstallerPlugin(Plugin):
             if repository_dir.exists():
                 copy_in += [(repository_dir, self.executor.get_repository_dir())]
 
+            # Prepare cmd
+            cmd = []
+
             # Add prepared chroot cache
             if chroot_cache.exists():
-                copy_in += [(chroot_cache, self.executor.get_builder_dir() / "mock")]
+                copy_in += [(chroot_cache.parent, self.executor.get_cache_dir())]
+                cmd += [
+                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
+                ]
 
             # Keep packages needed for generating the ISO in a fresh cache
             if iso_cache.exists():
@@ -306,9 +314,6 @@ class InstallerPlugin(Plugin):
                     cache_dir / self.iso_name,
                 ),
             ]
-
-            # Prepare cmd
-            cmd = []
 
             #
             # Inside mock chroot to generate our packages list (qubes-pykickstart)
@@ -391,9 +396,15 @@ class InstallerPlugin(Plugin):
             if repository_dir.exists():
                 copy_in += [(repository_dir, self.executor.get_repository_dir())]
 
+            # Prepare installer cmd
+            cmd = []
+
             # Add prepared chroot cache
             if chroot_cache.exists():
-                copy_in += [(chroot_cache, self.executor.get_builder_dir() / "mock")]
+                copy_in += [(chroot_cache.parent, self.executor.get_cache_dir())]
+                cmd += [
+                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
+                ]
 
             copy_out = [
                 (
@@ -402,9 +413,6 @@ class InstallerPlugin(Plugin):
                     iso_dir,
                 )
             ]
-
-            # Prepare installer cmd
-            cmd = []
 
             # Create builder-local repository (could be empty) inside the cage
             cmd += [

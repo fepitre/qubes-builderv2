@@ -17,13 +17,13 @@ Local, and Qubes executors are available.
 Fedora:
 
 ```bash
-$ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec rpm-sign mktorrent openssl
+$ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec rpm-sign mktorrent openssl tree
 ```
 
 Debian:
 
 ```bash
-$ sudo apt install python3-packaging createrepo-c devscripts gpg qubes-gpg-split python3-yaml rpm docker python3-docker reprepro python3-pathspec mktorrent openssl
+$ sudo apt install python3-packaging createrepo-c devscripts gpg qubes-gpg-split python3-yaml rpm docker python3-docker reprepro python3-pathspec mktorrent openssl tree
 ```
 
 Install `mkmetalink`:

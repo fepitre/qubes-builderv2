@@ -217,16 +217,14 @@ class RPMSourcePlugin(SourcePlugin):
             )
 
             # Add prepared chroot cache
-            chroot_cache = (
-                self.get_cache_dir()
-                / "chroot"
-                / self.dist.name
-                / mock_conf.replace(".cfg", "")
+            chroot_cache_topdir = (
+                self.get_cache_dir() / "chroot" / self.dist.name / "mock"
             )
+            chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():
-                copy_in += [(chroot_cache, self.executor.get_builder_dir() / "mock")]
+                copy_in += [(chroot_cache_topdir, self.executor.get_cache_dir())]
                 cmd += [
-                    f"sudo chown -R root:mock {self.executor.get_builder_dir()}/mock"
+                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
                 ]
 
             if self.component.is_salt():

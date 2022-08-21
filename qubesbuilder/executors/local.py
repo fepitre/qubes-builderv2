@@ -132,7 +132,11 @@ class LocalExecutor(Executor):
                     f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {' '.join(files)}"
                 ]
 
-            final_cmd = ["bash", "-c", "&&".join(sed_cmd + cmd)]
+            final_cmd = [
+                "bash",
+                "-c",
+                "&&".join(sed_cmd + cmd),
+            ]
             log.info(f"Executing '{' '.join(final_cmd)}'.")
 
             # stream output for command

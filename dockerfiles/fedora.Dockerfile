@@ -18,7 +18,7 @@ RUN useradd -m user
 RUN usermod -aG wheel user && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/wheel
 
 # Create needed folders
-RUN mkdir /builder /builder/plugins /builder/build /builder/distfiles
+RUN mkdir /builder /builder/plugins /builder/build /builder/distfiles /builder/cache /builder/repository
 RUN chown -R user /builder
 
 USER user

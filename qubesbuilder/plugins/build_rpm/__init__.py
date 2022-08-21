@@ -232,17 +232,18 @@ class RPMBuildPlugin(BuildPlugin):
                 f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
             )
             # Add prepared chroot cache
-            chroot_cache = (
-                self.get_cache_dir()
-                / "chroot"
-                / self.dist.name
-                / mock_conf.replace(".cfg", "")
+            chroot_cache_topdir = (
+                self.get_cache_dir() / "chroot" / self.dist.name / "mock"
             )
+            chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():
-                copy_in += [(chroot_cache, self.executor.get_builder_dir() / "mock")]
+                copy_in += [(chroot_cache_topdir, self.executor.get_cache_dir())]
+                cmd += [
+                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
+                ]
 
             # On Fedora /usr/bin/mock is a (consolehelper) wrapper,
-            # which among other things, strips environment variables"
+            # which among other things, strips environment variables
             mock_cmd = [
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                 "/usr/libexec/mock/mock --no-cleanup-after",

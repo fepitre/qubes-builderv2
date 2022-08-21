@@ -63,7 +63,7 @@ class DEBChrootPlugin(ChrootPlugin):
         if stage != "init-cache":
             return
 
-        chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
+        chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder"
         chroot_dir.mkdir(exist_ok=True, parents=True)
 
         if (chroot_dir / "base.tgz").exists():
