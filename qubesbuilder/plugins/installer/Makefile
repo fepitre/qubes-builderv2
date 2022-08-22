@@ -91,10 +91,11 @@ iso-prepare:
 	mkdir /tmp/qubes-installer
 	mount --bind $(INSTALLER_DIR) /tmp/qubes-installer
 
+	mkdir -p /tmp/qubes-installer/yum/installer/rpm
 	rm -rf $(INSTALLER_DIR)/yum/installer/repodata
 	$(CREATEREPO) -q -g $(TMP_DIR)/comps.xml /tmp/qubes-installer/yum/installer
 
-	mkdir -p $(BUILDER_DIR)/repository
+	mkdir -p $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-dom0
 	rm -rf $(BUILDER_DIR)/repository/repodata
 	$(CREATEREPO) -q -g $(TMP_DIR)/comps.xml $(BUILDER_DIR)/repository
 	mount --bind $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-dom0

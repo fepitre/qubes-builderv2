@@ -375,6 +375,14 @@ class InstallerPlugin(Plugin):
                 msg = f"{self.dist}: Failed to prepare installer: {str(e)}."
                 raise InstallerError(msg) from e
 
+            # Check we have only RPMs in installer (Lorax) and work (Anaconda) repositories
+            for f in (cache_dir / self.iso_name / "rpm").glob("*") + (
+                cache_dir
+                / f"{self.iso_name}/work/{self.iso_version}/{self.dist.architecture}/os/Packages"
+            ).glob("*"):
+                if f.suffix != ".rpm":
+                    raise InstallerError(f"File with forbidden extension detected: '{f}'.")
+
         if stage == "build":
             copy_in = [
                 (self.plugins_dir / "installer", self.executor.get_plugins_dir()),
