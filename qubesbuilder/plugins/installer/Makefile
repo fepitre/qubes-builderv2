@@ -83,7 +83,7 @@ iso-prepare:
 
 	# Copy the comps file
 	mkdir -p $(TMP_DIR)
-	cp $(INSTALLER_DIR)/conf/comps-dom0.xml $(TMP_DIR)/comps.xml
+	cp $(INSTALLER_DIR)/meta-packages/comps/comps-dom0.xml $(TMP_DIR)/comps.xml
 	if [ "$(ISO_USE_KERNEL_LATEST)" == 1 ]; then \
 		sed -i 's#optional">kernel-latest#mandatory">kernel-latest#g' $(TMP_DIR)/comps.xml; \
 	fi;
