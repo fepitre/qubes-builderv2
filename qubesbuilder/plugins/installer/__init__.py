@@ -323,7 +323,6 @@ class InstallerPlugin(Plugin):
                 f"sudo --preserve-env={','.join(self.environment.keys())}",
                 f"/usr/libexec/mock/mock",
                 f"--root {self.executor.get_plugins_dir()}/installer/mock/{mock_conf}",
-                "--enable-network",
                 f"--chroot 'env {self.get_env()} make -C {self.executor.get_plugins_dir()}/installer iso-prepare iso-parse-kickstart iso-parse-tmpl'",
             ]
             if isinstance(self.executor, ContainerExecutor):

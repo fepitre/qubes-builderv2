@@ -1,17 +1,17 @@
 #!/usr/bin/python3
 
 import argparse
-import fnmatch
 import pathlib
+import re
 import sys
 import tempfile
 
 import dnf
-import dnf.subject
 import dnf.exceptions
+import dnf.subject
 
-from pylorax.ltmpl import LoraxTemplate
 from pylorax.dnfbase import get_dnf_base_object
+from pylorax.ltmpl import LoraxTemplate
 
 variables = {
     "arch": {
@@ -33,8 +33,40 @@ variables = {
     "libdir": "lib64",
 }
 
+# From https://github.com/weldr/lorax/blob/77226abf3a34a5aa378ee64a78425ccfdbb4fda6/src/pylorax/ltmpl.py#L190
+def find_pkgspec(dbo, pkg_spec):
+    if not any(g for g in ["=", "<", ">", "!"] if g in pkg_spec):
+        query = dnf.subject.Subject(pkg_spec).get_best_query(dbo.sack)
+    else:
+        pcv = re.split(r"([!<>=]+)", pkg_spec)
+        if not pcv[0]:
+            raise RuntimeError("Missing package name")
+        if not pcv[-1]:
+            raise RuntimeError("Missing version")
+        if len(pcv) != 3:
+            raise RuntimeError("Too many comparisons")
 
-def parse_installpkg(dbo, pkgs):
+        query = dnf.subject.Subject(pcv[0]).get_best_query(dbo.sack)
+
+        # Parse the comparison operators
+        if pcv[1] == "=" or pcv[1] == "==":
+            query.filterm(evr__eq=pcv[2])
+        elif pcv[1] == "!=" or pcv[1] == "<>":
+            query.filterm(evr__neq=pcv[2])
+        elif pcv[1] == ">":
+            query.filterm(evr__gt=pcv[2])
+        elif pcv[1] == ">=" or pcv[1] == "=>":
+            query.filterm(evr__gte=pcv[2])
+        elif pcv[1] == "<":
+            query.filterm(evr__lt=pcv[2])
+        elif pcv[1] == "<=" or pcv[1] == "=<":
+            query.filterm(evr__lte=pcv[2])
+
+    query.filterm(latest=True)
+    return [pkg.name for pkg in query.apply()]
+
+
+def parse_installpkg(pkgs, dbo=None):
     if pkgs[0] == "--optional":
         pkgs = pkgs[1:]
     elif pkgs[0] == "--required":
@@ -45,35 +77,33 @@ def parse_installpkg(dbo, pkgs):
         idx = pkgs.index("--except")
         if len(pkgs) == idx + 1:
             raise ValueError("installpkg needs an argument after --except")
-
-        excludes.append(pkgs[idx + 1])
+        excludes.append(f"--exclude={pkgs[idx + 1]}")
         pkgs = pkgs[:idx] + pkgs[idx + 2 :]
 
-    packages = []
-    for p in pkgs:
-        print(f"requested: {p}")
-        pkgnames = [
-            pkg.name
-            for pkg in dnf.subject.Subject(p).get_best_query(dbo.sack).filter(latest=True)
-        ]
-        if not pkgnames:
-            print(f"no package matched: {p}", file=sys.stderr)
-            continue
+    if dbo:
+        packages = []
+        for pkg_spec in pkgs:
+            print(f"requested: {pkg_spec}")
+            pkgnames = find_pkgspec(dbo, pkg_spec)
+            if not pkgnames:
+                print(f"no package matched: {pkg_spec}", file=sys.stderr)
+                continue
+            packages += pkgnames
+    else:
+        packages = pkgs
 
-        packages += pkgnames
-
-        # Apply excludes to the name only
-        for exclude in excludes:
-            packages += [
-                pkg for pkg in pkgnames if not fnmatch.fnmatch(pkg, exclude)
-            ]
-
-    return packages
+    return packages + excludes
 
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", metavar="PATH", required=True, nargs="+")
+    parser.add_argument(
+        "--check",
+        required=False,
+        action="store_true",
+        help="Check that requested packages exist. It uses DNF api and needs network.",
+    )
     parser.add_argument(
         "--tmpl",
         metavar="PATH",
@@ -101,25 +131,27 @@ def main():
         cachedir.mkdir(parents=True)
         logdir.mkdir(parents=True)
 
-        dnfbase = get_dnf_base_object(
-            installroot=str(installroot),
-            sources=[],
-            repos=args.repo,
-            tempdir=str(tempdir),
-            cachedir=str(cachedir),
-            logdir=str(logdir),
-            enablerepos=[],
-            disablerepos=[],
-        )
+        dnfbase = None
+        if args.check:
+            dnfbase = get_dnf_base_object(
+                installroot=str(installroot),
+                sources=[],
+                repos=args.repo,
+                tempdir=str(tempdir),
+                cachedir=str(cachedir),
+                logdir=str(logdir),
+                enablerepos=[],
+                disablerepos=[],
+            )
 
-        if dnfbase is None:
-            print("Unable to create the dnf base object", file=sys.stderr)
-            return 1
+            if dnfbase is None:
+                print("Unable to create the dnf base object", file=sys.stderr)
+                return 1
 
         packages = []
         for r in result:
             if r[0] == "installpkg":
-                packages += parse_installpkg(dnfbase, r[1:])
+                packages += parse_installpkg(pkgs=r[1:], dbo=dnfbase)
 
     if args.extract_packages_to:
         try:
