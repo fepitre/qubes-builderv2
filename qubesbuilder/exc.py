@@ -26,6 +26,12 @@ class ComponentError(QubesBuilderError):
     pass
 
 
+class NoQubesBuilderFileError(ComponentError):
+    """Component does not have .qubesbuilder file"""
+
+    pass
+
+
 class DistributionError(QubesBuilderError):
     pass
 

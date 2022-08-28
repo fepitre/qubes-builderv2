@@ -28,6 +28,7 @@ from typing import Any
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
+from qubesbuilder.exc import NoQubesBuilderFileError
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     ComponentPlugin,
@@ -83,7 +84,10 @@ class FetchPlugin(ComponentPlugin):
         Update plugin parameters based on component .qubesbuilder.
         """
         # Set and update parameters based on top-level "source"
-        parameters = self.component.get_parameters(self._placeholders)
+        try:
+            parameters = self.component.get_parameters(self._placeholders)
+        except NoQubesBuilderFileError:
+            return
         self.parameters.update(parameters.get("source", {}))
 
     def run(self, stage: str):

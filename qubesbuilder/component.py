@@ -30,7 +30,7 @@ import yaml
 from packaging.version import Version, InvalidVersion
 
 from qubesbuilder.common import sanitize_line, deep_check
-from qubesbuilder.exc import ComponentError
+from qubesbuilder.exc import ComponentError, NoQubesBuilderFileError
 
 
 class QubesComponent:
@@ -111,7 +111,9 @@ class QubesComponent:
 
         build_file = self.source_dir / ".qubesbuilder"
         if not build_file.exists():
-            raise ComponentError(f"Cannot find '.qubesbuilder' in {self.source_dir}.")
+            raise NoQubesBuilderFileError(
+                f"Cannot find '.qubesbuilder' in {self.source_dir}."
+            )
 
         with open(build_file) as f:
             data = f.read()
