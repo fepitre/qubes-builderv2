@@ -84,6 +84,39 @@ def rpm_packages_list(repository_dir):
 
 
 #
+# config
+#
+
+def test_config(artifacts_dir):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        include_path = os.path.join(tmpdir, 'include.yml')
+        with open(include_path, 'w') as f:
+            f.write("+components:\n")
+            f.write("- component2\n")
+            f.write("- component3\n")
+            f.write("distributions:\n")
+            f.write("- vm-fc36\n")
+            f.write("- vm-fc37\n")
+        config_path = os.path.join(tmpdir, 'builder.yml')
+        with open(config_path, 'w') as f:
+            f.write("include:\n")
+            f.write("- include.yml\n")
+            f.write("components:\n")
+            f.write("- component1\n")
+            f.write("- component2\n")
+            f.write("distributions:\n")
+            f.write("- vm-fc33\n")
+            f.write("- vm-fc34\n")
+
+        output = qb_call_output(config_path, artifacts_dir,
+                                "config", "get-components")
+        assert output == b"component1\ncomponent2\ncomponent3\n"
+
+        output = qb_call_output(config_path, artifacts_dir,
+                                "config", "get-distributions")
+        assert output == b"vm-fc33\nvm-fc34\n"
+
+#
 # Fetch
 #
 
