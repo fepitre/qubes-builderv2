@@ -47,7 +47,19 @@ class RPMSourcePlugin(SourcePlugin):
         - source
     """
 
-    plugin_dependencies = ["fetch", "source"]
+    stages = ["prep"]
+    dependencies = ["fetch", "source"]
+
+    @classmethod
+    def from_args(cls, stage, components, distributions, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for component in components:
+                for dist in distributions:
+                    if not dist.is_rpm():
+                        continue
+                    instances.append(cls(component=component, dist=dist, **kwargs))
+        return instances
 
     def __init__(
         self,
@@ -60,6 +72,7 @@ class RPMSourcePlugin(SourcePlugin):
         verbose: bool = False,
         debug: bool = False,
         skip_if_exists: bool = False,
+        **kwargs,
     ):
         super().__init__(
             component=component,
@@ -145,7 +158,7 @@ class RPMSourcePlugin(SourcePlugin):
                 (self.plugins_dir / "source_rpm", self.executor.get_plugins_dir()),
             ] + [
                 (self.plugins_dir / dependency, self.executor.get_plugins_dir())
-                for dependency in self.plugin_dependencies
+                for dependency in self.dependencies
             ]
 
             copy_out = [
@@ -201,7 +214,7 @@ class RPMSourcePlugin(SourcePlugin):
                 (self.plugins_dir / "source_rpm", self.executor.get_plugins_dir()),
             ] + [
                 (self.plugins_dir / dependency, self.executor.get_plugins_dir())
-                for dependency in self.plugin_dependencies
+                for dependency in self.dependencies
             ]
 
             # Copy-out source RPM
@@ -330,3 +343,6 @@ class RPMSourcePlugin(SourcePlugin):
             except OSError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to clean artifacts: {str(e)}."
                 raise SourceError(msg) from e
+
+
+PLUGINS = [RPMSourcePlugin]

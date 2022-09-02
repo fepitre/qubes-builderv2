@@ -17,8 +17,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from qubesbuilder.exc import TemplateError
 from qubesbuilder.distribution import QubesDistribution, DistributionError
+from qubesbuilder.exc import TemplateError
 
 
 class QubesTemplate:

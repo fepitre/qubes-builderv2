@@ -1,7 +1,6 @@
-import pathlib
+import json
 
 import click
-import json
 import yaml
 
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj

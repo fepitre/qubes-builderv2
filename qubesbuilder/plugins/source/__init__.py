@@ -46,7 +46,7 @@ class SourcePlugin(DistributionPlugin):
         - source
     """
 
-    plugin_dependencies = ["fetch"]
+    dependencies = ["fetch"]
 
     def __init__(
         self,

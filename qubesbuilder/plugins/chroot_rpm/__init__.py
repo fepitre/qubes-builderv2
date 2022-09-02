@@ -36,7 +36,18 @@ class RPMChrootPlugin(ChrootPlugin):
         - chroot - Create Mock cache chroot.
     """
 
-    plugin_dependencies = ["source_rpm"]
+    stages = ["init-cache"]
+    dependencies = ["source_rpm"]
+
+    @classmethod
+    def from_args(cls, stage, distributions, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for dist in distributions:
+                if not dist.is_rpm():
+                    continue
+                instances.append(cls(dist=dist, **kwargs))
+        return instances
 
     def __init__(
         self,
@@ -46,6 +57,7 @@ class RPMChrootPlugin(ChrootPlugin):
         artifacts_dir: Path,
         verbose: bool = False,
         debug: bool = False,
+        **kwargs,
     ):
         super().__init__(
             dist=dist,
@@ -78,7 +90,7 @@ class RPMChrootPlugin(ChrootPlugin):
 
         copy_in = [
             (self.plugins_dir / dependency, self.executor.get_plugins_dir())
-            for dependency in self.plugin_dependencies
+            for dependency in self.dependencies
         ]
 
         self.environment.update(
@@ -130,3 +142,6 @@ class RPMChrootPlugin(ChrootPlugin):
         except ExecutorError as e:
             msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
             raise ChrootError(msg) from e
+
+
+PLUGINS = [RPMChrootPlugin]

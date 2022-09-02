@@ -19,13 +19,12 @@
 
 import hashlib
 import re
-
-import pathspec
 import subprocess
 from _sha512 import sha512
 from pathlib import Path
 from typing import Union, List
 
+import pathspec
 import yaml
 from packaging.version import Version, InvalidVersion
 

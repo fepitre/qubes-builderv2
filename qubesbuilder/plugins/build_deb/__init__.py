@@ -89,7 +89,19 @@ class DEBBuildPlugin(BuildPlugin):
         - build
     """
 
-    plugin_dependencies = ["source_deb", "build"]
+    stages = ["build"]
+    dependencies = ["source_deb", "build"]
+
+    @classmethod
+    def from_args(cls, stage, components, distributions, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for component in components:
+                for dist in distributions:
+                    if not dist.is_deb():
+                        continue
+                    instances.append(cls(component=component, dist=dist, **kwargs))
+        return instances
 
     def __init__(
         self,
@@ -102,6 +114,7 @@ class DEBBuildPlugin(BuildPlugin):
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
+        **kwargs,
     ):
         super().__init__(
             component=component,
@@ -197,7 +210,7 @@ class DEBBuildPlugin(BuildPlugin):
             # Copy-in plugin dependencies
             copy_in += [
                 (self.plugins_dir / plugin, self.executor.get_plugins_dir())
-                for plugin in self.plugin_dependencies
+                for plugin in self.dependencies
             ]
 
             # Files inside executor
@@ -326,3 +339,6 @@ class DEBBuildPlugin(BuildPlugin):
             info["packages"] = packages_list
             info["source-hash"] = self.component.get_source_hash()
             self.save_dist_artifacts_info(stage=stage, basename=directory_bn, info=info)
+
+
+PLUGINS = [DEBBuildPlugin]

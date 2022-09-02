@@ -28,8 +28,8 @@ import argparse
 import collections
 import os
 import sys
-import yaml
 
+import yaml
 from yaml.parser import ParserError
 from yaml.reader import ReaderError
 

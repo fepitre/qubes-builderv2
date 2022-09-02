@@ -43,7 +43,8 @@ class DEBSignPlugin(SignPlugin):
         - build
     """
 
-    plugin_dependencies = ["sign", "build_deb"]
+    stages = ["sign"]
+    dependencies = ["sign", "build_deb"]
 
     def __init__(
         self,
@@ -57,6 +58,7 @@ class DEBSignPlugin(SignPlugin):
         backend_vmm: str,
         verbose: bool = False,
         debug: bool = False,
+        **kwargs,
     ):
         super().__init__(
             component=component,
@@ -70,6 +72,17 @@ class DEBSignPlugin(SignPlugin):
             debug=debug,
             backend_vmm=backend_vmm,
         )
+
+    @classmethod
+    def from_args(cls, stage, components, distributions, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for component in components:
+                for dist in distributions:
+                    if not dist.is_deb():
+                        continue
+                    instances.append(cls(component=component, dist=dist, **kwargs))
+        return instances
 
     def run(self, stage: str):
         """
@@ -162,3 +175,6 @@ class DEBSignPlugin(SignPlugin):
             except BuildError as e:
                 msg = f"{self.component}:{self.dist}:{directory}: Failed to re-provision local repository."
                 raise SignError(msg) from e
+
+
+PLUGINS = [DEBSignPlugin]
