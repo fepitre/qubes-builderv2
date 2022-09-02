@@ -52,6 +52,16 @@ class FetchPlugin(ComponentPlugin):
         - source
     """
 
+    stages = ["fetch"]
+
+    @classmethod
+    def from_args(cls, stage, components, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for component in components:
+                instances.append(cls(component=component, **kwargs))
+        return instances
+
     def __init__(
         self,
         component: QubesComponent,
@@ -64,6 +74,7 @@ class FetchPlugin(ComponentPlugin):
         skip_git_fetch: bool = False,
         do_merge: bool = False,
         fetch_versions_only: bool = False,
+        **kwargs,
     ):
         super().__init__(
             component=component,
@@ -427,3 +438,6 @@ class FetchPlugin(ComponentPlugin):
         except OSError as e:
             msg = f"{self.component}: Failed to clean artifacts: {str(e)}."
             raise FetchError(msg) from e
+
+
+PLUGINS = [FetchPlugin]

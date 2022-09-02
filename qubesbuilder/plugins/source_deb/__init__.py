@@ -46,7 +46,19 @@ class DEBSourcePlugin(SourcePlugin):
         - source
     """
 
-    plugin_dependencies = ["fetch", "source"]
+    stages = ["prep"]
+    dependencies = ["fetch", "source"]
+
+    @classmethod
+    def from_args(cls, stage, components, distributions, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for component in components:
+                for dist in distributions:
+                    if not dist.is_deb():
+                        continue
+                    instances.append(cls(component=component, dist=dist, **kwargs))
+        return instances
 
     def __init__(
         self,
@@ -59,6 +71,7 @@ class DEBSourcePlugin(SourcePlugin):
         verbose: bool = False,
         debug: bool = False,
         skip_if_exists: bool = False,
+        **kwargs,
     ):
         super().__init__(
             component=component,
@@ -144,7 +157,7 @@ class DEBSourcePlugin(SourcePlugin):
                 (self.component.source_dir, self.executor.get_builder_dir()),
                 (self.plugins_dir / "source_deb", self.executor.get_plugins_dir()),
             ]
-            for dependency in self.plugin_dependencies:
+            for dependency in self.dependencies:
                 copy_in += [
                     (self.plugins_dir / dependency, self.executor.get_plugins_dir())
                 ]
@@ -216,7 +229,7 @@ class DEBSourcePlugin(SourcePlugin):
                 (self.plugins_dir / "source_deb", self.executor.get_plugins_dir()),
                 (distfiles_dir, self.executor.get_distfiles_dir()),
             ]
-            for dependency in self.plugin_dependencies:
+            for dependency in self.dependencies:
                 copy_in += [
                     (self.plugins_dir / dependency, self.executor.get_plugins_dir())
                 ]
@@ -342,3 +355,6 @@ class DEBSourcePlugin(SourcePlugin):
             except OSError as e:
                 msg = f"{self.component}:{self.dist}:{directory}: Failed to clean artifacts: {str(e)}."
                 raise SourceError(msg) from e
+
+
+PLUGINS = [DEBSourcePlugin]

@@ -21,8 +21,8 @@
 
 import logging
 import logging.config
-import os
 from pathlib import Path
+
 from qubesbuilder.exc import QubesBuilderError
 
 RootStreamHandler = logging.StreamHandler()

@@ -1,21 +1,19 @@
 import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 
 import click
 import yaml
 
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.cli.cli_exc import CliError
-from qubesbuilder.plugins.helpers import getPublishPlugin, getTemplatePlugin
-from qubesbuilder.plugins.publish import (
-    COMPONENT_REPOSITORIES,
-    PluginError,
-)
-from qubesbuilder.plugins.template import TEMPLATE_REPOSITORIES
-from qubesbuilder.plugins.upload import UploadPlugin
+from qubesbuilder.component import QubesComponent, ComponentError
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.component import QubesComponent, ComponentError
+from qubesbuilder.helpers import get_plugins, get_template_plugins
+from qubesbuilder.plugins import PluginError
+from qubesbuilder.plugins.publish import PublishPlugin, COMPONENT_REPOSITORIES
+from qubesbuilder.plugins.template import TemplateBuilderPlugin, TEMPLATE_REPOSITORIES
+from qubesbuilder.plugins.upload import UploadPlugin
 from qubesbuilder.template import QubesTemplate
 
 
@@ -35,55 +33,50 @@ def _publish(
     ignore_min_age: bool = False,
     unpublish: bool = False,
 ):
-    executor = config.get_executor_from_config("publish")
+    kwargs = {
+        "plugins_dir": config.get_plugins_dir(),
+        "executor": config.get_executor_from_config(stage_name="publish"),
+        "artifacts_dir": config.get_artifacts_dir(),
+        "verbose": config.verbose,
+        "debug": config.debug,
+        "skip_if_exists": config.get("reuse-fetched-source", False),
+        "skip_git_fetch": config.get("skip-git-fetch", False),
+        "do_merge": config.get("do-merge", False),
+        "fetch_versions_only": config.get("fetch-versions-only", False),
+        "backend_vmm": config.get("backend-vmm", "xen"),
+        "use_qubes_repo": config.get("use-qubes-repo", {}),
+        "gpg_client": config.get("gpg-client", "gpg"),
+        "sign_key": config.get("sign-key", {}),
+        "min_age_days": config.get("min-age-days", 5),
+        "qubes_release": config.get("qubes-release", {}),
+        "repository_publish": config.get("repository-publish", {}),
+        "repository_upload_remote_host": config.get(
+            "repository-upload-remote-host", {}
+        ),
+    }
+
     if repository_publish in COMPONENT_REPOSITORIES:
-        for component in components:
-            for dist in distributions:
-                publish_plugin = getPublishPlugin(
-                    component=component,
-                    dist=dist,
-                    plugins_dir=config.get_plugins_dir(),
-                    executor=executor,
-                    artifacts_dir=config.get_artifacts_dir(),
-                    verbose=config.verbose,
-                    debug=config.debug,
-                    gpg_client=config.get("gpg-client", "gpg"),
-                    sign_key=config.get("sign-key"),
-                    qubes_release=config.get("qubes-release"),
-                    repository_publish=config.get("repository-publish"),
-                    backend_vmm=config.get("backend-vmm", "xen"),
-                    min_age_days=config.get("min-age-days", 5),
-                )
-                publish_plugin.run(
-                    stage="publish",
-                    repository_publish=repository_publish,
-                    ignore_min_age=ignore_min_age,
-                    unpublish=unpublish,
-                )
+        plugins = get_plugins(
+            stage="publish",
+            components=components,
+            distributions=distributions,
+            **kwargs,
+        )
     elif repository_publish in TEMPLATE_REPOSITORIES:
-        for tmpl in templates:
-            publish_plugin = getTemplatePlugin(
-                template=tmpl,
-                plugins_dir=config.get_plugins_dir(),
-                executor=executor,
-                artifacts_dir=config.get_artifacts_dir(),
-                verbose=config.verbose,
-                debug=config.debug,
-                gpg_client=config.get("gpg-client", "gpg"),
-                sign_key=config.get("sign-key"),
-                qubes_release=config.get("qubes-release"),
-                repository_publish=config.get("repository-publish"),
-                repository_upload_remote_host=config.get(
-                    "repository-upload-remote-host", {}
-                ),
-                min_age_days=config.get("min-age-days", 5),
-            )
-            publish_plugin.run(
-                stage="publish",
-                repository_publish=repository_publish,
-                ignore_min_age=ignore_min_age,
-                unpublish=unpublish,
-            )
+        plugins = get_template_plugins(
+            templates=templates,
+            **kwargs,
+        )
+    else:
+        raise CliError(f"Unknown repository '{repository_publish}'")
+
+    for p in plugins:
+        p.run(
+            stage="publish",
+            repository_publish=repository_publish,
+            ignore_min_age=ignore_min_age,
+            unpublish=unpublish,
+        )
 
 
 #
@@ -162,21 +155,20 @@ def _check_release_status_for_component(config, components, distributions):
         for dist in distributions:
             release_status[component.name].setdefault(dist.distribution, {})
             try:
-                plugin = getPublishPlugin(
-                    component=component,
-                    dist=dist,
-                    plugins_dir=config.get_plugins_dir(),
-                    executor=config.get_executor_from_config("publish"),
-                    artifacts_dir=config.get_artifacts_dir(),
-                    verbose=config.verbose,
-                    debug=config.debug,
-                    gpg_client=config.get("gpg-client", "gpg"),
-                    sign_key=config.get("sign-key"),
-                    qubes_release=config.get("qubes-release"),
-                    repository_publish=config.get("repository-publish"),
-                    backend_vmm=config.get("backend-vmm", "xen"),
-                    min_age_days=config.get("min-age-days", 5),
-                )
+                kwargs = {
+                    "plugins_dir": config.get_plugins_dir(),
+                    "executor": config.get_executor_from_config(stage_name="publish"),
+                    "artifacts_dir": config.get_artifacts_dir(),
+                    "verbose": config.verbose,
+                    "debug": config.debug,
+                    "qubes_release": config.get("qubes-release", {}),
+                    "backend_vmm": config.get("backend-vmm", "xen"),
+                    "gpg_client": config.get("gpg-client", "gpg"),
+                    "sign_key": config.get("sign-key", {}),
+                    "min_age_days": config.get("min-age-days", 5),
+                    "repository_publish": config.get("repository-publish", {}),
+                }
+                plugin = PublishPlugin(component=component, dist=dist, **kwargs)
             except ComponentError:
                 release_status[component.name][dist.distribution][
                     "status"
@@ -300,23 +292,23 @@ def _check_release_status_for_template(config, templates):
     release_status: Dict[str, Any] = {}
     for template in templates:
         release_status.setdefault(template.name, {})
-        plugin = getTemplatePlugin(
-            template=template,
-            plugins_dir=config.get_plugins_dir(),
-            executor=config.get_executor_from_config("publish"),
-            artifacts_dir=config.get_artifacts_dir(),
-            verbose=config.verbose,
-            debug=config.debug,
-            gpg_client=config.get("gpg-client", "gpg"),
-            sign_key=config.get("sign-key"),
-            qubes_release=config.get("qubes-release"),
-            repository_publish=config.get("repository-publish"),
-            repository_upload_remote_host=config.get(
+        kwargs = {
+            "plugins_dir": config.get_plugins_dir(),
+            "executor": config.get_executor_from_config(stage_name="publish"),
+            "artifacts_dir": config.get_artifacts_dir(),
+            "verbose": config.verbose,
+            "debug": config.debug,
+            "qubes_release": config.get("qubes-release", {}),
+            "backend_vmm": config.get("backend-vmm", "xen"),
+            "gpg_client": config.get("gpg-client", "gpg"),
+            "sign_key": config.get("sign-key", {}),
+            "min_age_days": config.get("min-age-days", 5),
+            "repository_publish": config.get("repository-publish", {}),
+            "repository_upload_remote_host": config.get(
                 "repository-upload-remote-host", {}
             ),
-            min_age_days=config.get("min-age-days", 5),
-        )
-
+        }
+        plugin = TemplateBuilderPlugin(template=template, **kwargs)
         try:
             found = False
             set_template_tag = False
@@ -382,42 +374,29 @@ def _upload(
     templates: List[QubesTemplate],
     repository_publish: str,
 ):
-    executor = config.get_executor_from_config("publish")
+    kwargs = {
+        "plugins_dir": config.get_plugins_dir(),
+        "executor": config.get_executor_from_config(stage_name="publish"),
+        "artifacts_dir": config.get_artifacts_dir(),
+        "verbose": config.verbose,
+        "debug": config.debug,
+        "qubes_release": config.get("qubes-release", {}),
+        "backend_vmm": config.get("backend-vmm", "xen"),
+        "gpg_client": config.get("gpg-client", "gpg"),
+        "sign_key": config.get("sign-key", {}),
+        "min_age_days": config.get("min-age-days", 5),
+        "repository_publish": config.get("repository-publish", {}),
+    }
+
+    plugins: List[Union[UploadPlugin, TemplateBuilderPlugin]] = []
     if repository_publish in COMPONENT_REPOSITORIES:
         for dist in distributions:
-            upload_plugin = UploadPlugin(
-                dist=dist,
-                plugins_dir=config.get_plugins_dir(),
-                executor=executor,
-                artifacts_dir=config.get_artifacts_dir(),
-                verbose=config.verbose,
-                debug=config.debug,
-                qubes_release=config.get("qubes-release", {}),
-                repository_publish=config.get("repository-publish"),
-                repository_upload_remote_host=config.get(
-                    "repository-upload-remote-host", {}
-                ),
-            )
-            upload_plugin.run(stage="upload", repository_publish=repository_publish)
+            plugins += UploadPlugin(dist=dist, **kwargs)  # type: ignore
     elif repository_publish in TEMPLATE_REPOSITORIES:
         for tmpl in templates:
-            upload_plugin = getTemplatePlugin(
-                template=tmpl,
-                plugins_dir=config.get_plugins_dir(),
-                executor=executor,
-                artifacts_dir=config.get_artifacts_dir(),
-                verbose=config.verbose,
-                debug=config.debug,
-                gpg_client=config.get("gpg-client", "gpg"),
-                sign_key=config.get("sign-key"),
-                qubes_release=config.get("qubes-release"),
-                repository_publish=config.get("repository-publish"),
-                repository_upload_remote_host=config.get(
-                    "repository-upload-remote-host", {}
-                ),
-                min_age_days=config.get("min-age-days", 5),
-            )
-            upload_plugin.run(stage="upload", repository_publish=repository_publish)
+            plugins += TemplateBuilderPlugin(template=tmpl, **kwargs)  # type: ignore
+    for p in plugins:
+        p.run(stage="upload", repository_publish=repository_publish)
 
 
 repository.add_command(publish)

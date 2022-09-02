@@ -48,7 +48,13 @@ class Plugin:
     Generic plugin
     """
 
-    plugin_dependencies: List[str] = []
+    stages: List[str] = []
+    priority: int = 10
+    dependencies: List[str] = []
+
+    @classmethod
+    def from_args(cls, **kwargs):
+        return []
 
     def __init__(
         self,
@@ -135,7 +141,7 @@ class ComponentPlugin(Plugin):
     Component plugin
     """
 
-    plugin_dependencies: List[str] = []
+    dependencies: List[str] = []
 
     def __init__(
         self,
@@ -231,7 +237,7 @@ class DistributionPlugin(ComponentPlugin):
         - PACKAGE_SET-DISTRIBUTION_NAME
     """
 
-    plugin_dependencies: List[str] = []
+    dependencies: List[str] = []
 
     def __init__(
         self,

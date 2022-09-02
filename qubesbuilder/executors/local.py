@@ -16,17 +16,16 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import getpass
+import grp
+import pwd
 import shutil
 import subprocess
-import getpass
 import uuid
-import pwd
-import grp
-
 from pathlib import Path
 from typing import List, Tuple, Union
 
-from qubesbuilder.common import sanitize_line, str_to_bool, sed
+from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 

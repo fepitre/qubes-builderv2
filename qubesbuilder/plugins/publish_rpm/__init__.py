@@ -41,7 +41,19 @@ class RPMPublishPlugin(PublishPlugin):
         - build
     """
 
-    plugin_dependencies = ["publish", "sign_rpm"]
+    stages = ["publish"]
+    dependencies = ["publish", "sign_rpm"]
+
+    @classmethod
+    def from_args(cls, stage, components, distributions, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for component in components:
+                for dist in distributions:
+                    if not dist.is_rpm():
+                        continue
+                    instances.append(cls(component=component, dist=dist, **kwargs))
+        return instances
 
     def __init__(
         self,
@@ -58,6 +70,7 @@ class RPMPublishPlugin(PublishPlugin):
         min_age_days: int,
         verbose: bool = False,
         debug: bool = False,
+        **kwargs,
     ):
         super().__init__(
             component=component,
@@ -426,3 +439,6 @@ class RPMPublishPlugin(PublishPlugin):
                         f"{self.component}:{self.dist}:{build_bn}: Not published anywhere else, deleting publish info."
                     )
                     self.delete_dist_artifacts_info(stage="publish", basename=build_bn)
+
+
+PLUGINS = [RPMPublishPlugin]

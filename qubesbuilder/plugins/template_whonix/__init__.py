@@ -19,10 +19,10 @@
 
 from pathlib import Path
 
-from qubesbuilder.template import QubesTemplate
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins.template_debian import DEBTemplateBuilderPlugin
+from qubesbuilder.template import QubesTemplate
 
 log = get_logger("template_whonix")
 
@@ -31,6 +31,15 @@ class WhonixTemplateBuilderPlugin(DEBTemplateBuilderPlugin):
     """
     RPMTemplatePlugin manages RPM distributions build.
     """
+
+    @classmethod
+    def from_args(cls, templates, **kwargs):
+        instances = []
+        for template in templates:
+            if template.flavor not in ("whonix-gateway", "whonix-workstation"):
+                continue
+            instances.append(cls(template=template, **kwargs))
+        return instances
 
     def __init__(
         self,
@@ -47,6 +56,7 @@ class WhonixTemplateBuilderPlugin(DEBTemplateBuilderPlugin):
         verbose: bool = False,
         debug: bool = False,
         use_qubes_repo: dict = None,
+        **kwargs,
     ):
         super().__init__(
             template=template,
@@ -66,7 +76,7 @@ class WhonixTemplateBuilderPlugin(DEBTemplateBuilderPlugin):
 
         # The parent class will automatically copy-in all its plugin dependencies. Calling parent
         # class method (for generic steps), we need to have access to this plugin dependencies.
-        self.plugin_dependencies += ["template_whonix", "template_debian", "build_deb"]
+        self.dependencies += ["template_whonix", "template_debian", "build_deb"]
 
         self.environment.update(
             {
@@ -97,3 +107,6 @@ class WhonixTemplateBuilderPlugin(DEBTemplateBuilderPlugin):
             unpublish=unpublish,
             **kwargs,
         )
+
+
+TEMPLATE_PLUGINS = [WhonixTemplateBuilderPlugin]

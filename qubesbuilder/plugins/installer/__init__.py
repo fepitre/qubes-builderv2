@@ -17,9 +17,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 import itertools
-import os
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
@@ -34,7 +33,6 @@ from qubesbuilder.plugins import (
     Plugin,
 )
 
-
 log = get_logger("installer")
 
 
@@ -47,7 +45,7 @@ class InstallerPlugin(Plugin):
     InstallerPlugin creates Qubes OS ISO
     """
 
-    plugin_dependencies = ["source_rpm"]
+    dependencies = ["source_rpm"]
 
     def __init__(
         self,
@@ -208,7 +206,7 @@ class InstallerPlugin(Plugin):
                 (self.plugins_dir / "installer", self.executor.get_plugins_dir()),
             ] + [
                 (self.plugins_dir / plugin, self.executor.get_plugins_dir())
-                for plugin in self.plugin_dependencies
+                for plugin in self.dependencies
             ]
 
             # Copy-in builder local repository
@@ -277,7 +275,7 @@ class InstallerPlugin(Plugin):
                 (self.plugins_dir / "installer", self.executor.get_plugins_dir())
             ] + [
                 (self.plugins_dir / plugin, self.executor.get_plugins_dir())
-                for plugin in self.plugin_dependencies
+                for plugin in self.dependencies
             ]
 
             # Copy-in builder local repository
@@ -401,7 +399,7 @@ class InstallerPlugin(Plugin):
                 ),
             ] + [
                 (self.plugins_dir / plugin, self.executor.get_plugins_dir())
-                for plugin in self.plugin_dependencies
+                for plugin in self.dependencies
             ]
 
             # Copy-in builder local repository

@@ -41,6 +41,16 @@ class UploadPlugin(Plugin):
         - upload - Upload published repository for given distribution to remote mirror.
     """
 
+    stages = ["upload"]
+
+    @classmethod
+    def from_args(cls, stage, distributions, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for dist in distributions:
+                instances.append(cls(dist=dist, **kwargs))
+        return instances
+
     def __init__(
         self,
         dist: QubesDistribution,
@@ -52,6 +62,7 @@ class UploadPlugin(Plugin):
         repository_upload_remote_host: dict,
         verbose: bool = False,
         debug: bool = False,
+        **kwargs,
     ):
         super().__init__(
             executor=executor,
@@ -118,3 +129,6 @@ class UploadPlugin(Plugin):
             raise UploadError(
                 f"{self.dist}: Failed to upload to remote host: {str(e)}"
             ) from e
+
+
+PLUGINS = [UploadPlugin]

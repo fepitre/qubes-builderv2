@@ -23,7 +23,7 @@ from pathlib import Path
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import Executor
-from qubesbuilder.executors.local import LocalExecutor, ExecutorError
+from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import DistributionPlugin, PluginError
 

@@ -23,11 +23,11 @@ from typing import Union, List, Dict, Any
 
 import yaml
 
-from qubesbuilder.common import PROJECT_PATH, STAGES
+from qubesbuilder.common import PROJECT_PATH
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.exc import ConfigError
-from qubesbuilder.executors.helpers import getExecutor
+from qubesbuilder.helpers import get_executor
 from qubesbuilder.log import get_logger
 from qubesbuilder.template import QubesTemplate
 
@@ -267,11 +267,11 @@ class Config:
             ):
                 executor_type = stage_options["executor"]["type"]
                 executor_options = stage_options["executor"].get("options", {})
-                executor = getExecutor(executor_type, executor_options)
+                executor = get_executor(executor_type, executor_options)
                 break
         if not executor:
             # FIXME: Review and enhance default executor definition
-            executor = getExecutor(executor_type, executor_options)
+            executor = get_executor(executor_type, executor_options)
         return executor
 
     def get_component_from_dict_or_string(

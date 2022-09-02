@@ -63,7 +63,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         - upload - Upload published repository for given distribution to remote mirror.
     """
 
-    plugin_dependencies = ["source_rpm", "source_deb"]
+    dependencies = ["source_rpm", "source_deb"]
 
     def __init__(
         self,
@@ -82,6 +82,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         use_qubes_repo: dict = None,
         template_root_size: str = None,
         template_root_with_partitions: bool = True,
+        **kwargs,
     ):
         super().__init__(
             executor=executor,
@@ -364,7 +365,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 (repository_dir, self.executor.get_repository_dir()),
             ] + [
                 (self.plugins_dir / plugin, self.executor.get_plugins_dir())
-                for plugin in self.plugin_dependencies
+                for plugin in self.dependencies
             ]
 
             copy_out = [
@@ -433,7 +434,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ),
             ] + [
                 (self.plugins_dir / plugin, self.executor.get_plugins_dir())
-                for plugin in self.plugin_dependencies
+                for plugin in self.dependencies
             ]
 
             # Copy-in previously prepared base root img

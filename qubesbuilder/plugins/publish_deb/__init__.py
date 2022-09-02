@@ -39,7 +39,19 @@ class DEBPublishPlugin(PublishPlugin):
         - build
     """
 
-    plugin_dependencies = ["publish"]
+    stages = ["publish"]
+    dependencies = ["publish"]
+
+    @classmethod
+    def from_args(cls, stage, components, distributions, **kwargs):
+        instances = []
+        if stage in cls.stages:
+            for component in components:
+                for dist in distributions:
+                    if not dist.is_deb():
+                        continue
+                    instances.append(cls(component=component, dist=dist, **kwargs))
+        return instances
 
     def __init__(
         self,
@@ -56,6 +68,7 @@ class DEBPublishPlugin(PublishPlugin):
         min_age_days: int,
         verbose: bool = False,
         debug: bool = False,
+        **kwargs,
     ):
         super().__init__(
             component=component,
@@ -396,3 +409,6 @@ class DEBPublishPlugin(PublishPlugin):
                             repository_publish=repository_publish,
                         )
                         break
+
+
+PLUGINS = [DEBPublishPlugin]
