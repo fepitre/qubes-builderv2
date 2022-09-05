@@ -43,10 +43,8 @@ components:
   - core-qubesdb
   - core-qrexec
   - linux-utils
-  - python-cffi
   - python-xcffib
   - python-objgraph
-  - python-hid
   - python-u2flib-host
   - python-qasync
   - python-panflute
@@ -68,7 +66,6 @@ components:
   - gui-common
   - gui-daemon
   - gui-agent-linux
-  - gui-agent-xen-hvm-stubdom
   - seabios
   - vmm-xen-stubdom-legacy
   - vmm-xen-stubdom-linux
