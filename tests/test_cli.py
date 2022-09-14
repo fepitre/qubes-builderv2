@@ -262,6 +262,11 @@ def test_component_build_host_fc32(artifacts_dir):
     }
     srpm = "qubes-core-qrexec-4.1.18-1.fc32.src.rpm"
 
+    for rpm in rpms.union({srpm}):
+        assert (
+            artifacts_dir / "repository/host-fc32/core-qrexec_4.1.18" / rpm
+        ).exists()
+
     assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("srpm", None) == srpm
@@ -278,6 +283,11 @@ def test_component_build_host_fc32(artifacts_dir):
         "qubes-core-qrexec-dom0-debugsource-4.1.18-1.fc32.x86_64.rpm",
     }
     srpm = "qubes-core-qrexec-dom0-4.1.18-1.fc32.src.rpm"
+
+    for rpm in rpms.union({srpm}):
+        assert (
+            artifacts_dir / "repository/host-fc32/core-qrexec_4.1.18" / rpm
+        ).exists()
 
     assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))

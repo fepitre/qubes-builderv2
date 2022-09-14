@@ -28,7 +28,10 @@ from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import RPMDistributionPlugin
 from qubesbuilder.plugins.build import BuildError
-from qubesbuilder.plugins.build_rpm import provision_local_repository
+from qubesbuilder.plugins.build_rpm import (
+    provision_local_repository,
+    clean_local_repository,
+)
 from qubesbuilder.plugins.sign import SignPlugin, SignError
 
 log = get_logger("sign_rpm")
@@ -110,6 +113,10 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             # Clear temporary dir
             shutil.rmtree(temp_dir)
 
+        # Prepare for re-provisioning local directory
+        repository_dir = self.get_repository_dir() / self.dist.distribution
+        clean_local_repository(repository_dir, self.component, self.dist, False)
+
         for build in parameters["build"]:
             # spec file basename will be used as prefix for some artifacts
             build_bn = build.mangle()
@@ -155,7 +162,6 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
                 raise SignError(msg) from e
 
             # Re-provision builder local repository with signatures
-            repository_dir = self.get_repository_dir() / self.dist.distribution
             try:
                 provision_local_repository(
                     build=build,

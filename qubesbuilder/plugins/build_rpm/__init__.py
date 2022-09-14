@@ -36,6 +36,28 @@ from qubesbuilder.plugins.build import BuildPlugin, BuildError
 log = get_logger("build_rpm")
 
 
+def clean_local_repository(
+    repository_dir: Path,
+    component: QubesComponent,
+    dist: QubesDistribution,
+    all_versions: bool = False,
+):
+    """
+    Remove package from local repository.
+    """
+    log.info(
+        f"{component}:{dist}: Cleaning local repository '{repository_dir}'"
+        f"{' (all versions)' if all_versions else ''}."
+    )
+    if all_versions:
+        for version_dir in repository_dir.glob(f"{component.name}_*"):
+            shutil.rmtree(version_dir.as_posix())
+    else:
+        target_dir = repository_dir / f"{component.name}_{component.version}"
+        if target_dir.exists():
+            shutil.rmtree(target_dir.as_posix())
+
+
 def provision_local_repository(
     build: str,
     repository_dir: Path,
@@ -55,9 +77,7 @@ def provision_local_repository(
 
     # Create target directory that will have hardlinks to SRPM and built RPMs
     target_dir = repository_dir / f"{component.name}_{component.version}"
-    if target_dir.exists():
-        shutil.rmtree(target_dir.as_posix())
-    target_dir.mkdir(parents=True)
+    target_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         # srpm
@@ -170,8 +190,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         repository_dir.mkdir(parents=True, exist_ok=True)
 
         # Remove previous versions in order to keep the latest one only
-        for build in repository_dir.glob(f"{self.component.name}_*"):
-            shutil.rmtree(build.as_posix())
+        clean_local_repository(repository_dir, self.component, self.dist, True)
 
         for build in parameters["build"]:
             # spec file basename will be used as prefix for some artifacts
