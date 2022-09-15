@@ -49,7 +49,7 @@ shellcheck:
   script:
     - shellcheck -x -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
 
-pytest:
+.pytest:
   stage: test
   tags:
     - qubes
@@ -65,11 +65,20 @@ pytest:
   variables:
     PYTHONPATH: .
     TMPDIR: /home/user
+    PYTEST_ARGS: -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
   before_script:
     - sudo dnf install -y python3-pathspec mock
-  script:
     - tools/generate-container-image.sh docker fedora-36-x86_64
-    - pytest-3 -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml tests/
+
+pytest:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py
+
+pytest-cli:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py
 
 #
 # build job skeleton
