@@ -75,10 +75,15 @@ pytest:
   script:
     - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py
 
-pytest-cli:
+pytest-cli-component:
   extends: .pytest
   script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_
+
+pytest-cli-template:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_
 
 #
 # build job skeleton
