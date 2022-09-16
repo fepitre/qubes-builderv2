@@ -159,6 +159,7 @@ class QubesExecutor(Executor):
                     f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {' '.join(files)}"
                 ]
                 if sed_cmd:
+                    sed_cmd = [c.replace("'", "'\\''") for c in sed_cmd]
                     sed_cmd = [
                         "/usr/bin/qvm-run-vm",
                         dispvm,
@@ -171,6 +172,7 @@ class QubesExecutor(Executor):
                 for key, val in environment.items():
                     bash_env.append(f"{str(key)}='{str(val)}'")
 
+            cmd = [c.replace("'", "'\\''") for c in cmd]
             qvm_run_cmd = [
                 "/usr/bin/qvm-run-vm",
                 dispvm,
