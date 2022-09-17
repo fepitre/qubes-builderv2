@@ -18,14 +18,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime
-from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor
 from qubesbuilder.executors.local import LocalExecutor
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DistributionPlugin, PluginError
+from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
 
 log = get_logger("publish")
 
@@ -37,7 +37,7 @@ class PublishError(PluginError):
     pass
 
 
-class PublishPlugin(DistributionPlugin):
+class PublishPlugin(DistributionComponentPlugin):
     """
     PublishPlugin manages generic distribution publication.
 
@@ -52,35 +52,11 @@ class PublishPlugin(DistributionPlugin):
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        qubes_release: str,
-        gpg_client: str,
-        sign_key: dict,
-        repository_publish: dict,
-        backend_vmm: str,
-        min_age_days: int,
-        verbose: bool = False,
-        debug: bool = False,
+        config: Config,
+        manager: PluginManager,
+        **kwargs,
     ):
-        super().__init__(
-            executor=executor,
-            component=component,
-            dist=dist,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-            backend_vmm=backend_vmm,
-        )
-
-        self.executor = executor
-        self.qubes_release = qubes_release
-        self.repository_publish = repository_publish
-        self.gpg_client = gpg_client
-        self.sign_key = sign_key
-        self.min_age_days = min_age_days
+        super().__init__(component=component, dist=dist, config=config, manager=manager)
 
     def validate_repository_publish(self, repository_publish):
         if repository_publish not in (
@@ -122,7 +98,7 @@ class PublishPlugin(DistributionPlugin):
 
         # Check that packages have been published before threshold_date
         threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
-            days=self.min_age_days
+            days=self.config.min_age_days
         )
         if not ignore_min_age and publish_date > threshold_date:
             return False
@@ -130,11 +106,17 @@ class PublishPlugin(DistributionPlugin):
         return True
 
     def run(self, stage: str):
-        if stage == "publish":
-            if not isinstance(self.executor, LocalExecutor):
-                raise PublishError("This plugin only supports local executor.")
+        self.update_parameters(stage)
 
-            # Check if we have Debian related content defined
-            if not self.parameters.get("build", []):
-                log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-                return
+        if stage != "publish":
+            return
+
+        executor = self.config.get_executor_from_config(stage)
+
+        if not isinstance(executor, LocalExecutor):
+            raise PublishError("This plugin only supports local executor.")
+
+        # Check if we have Debian related content defined
+        if not self.parameters.get("build", []):
+            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
+            return

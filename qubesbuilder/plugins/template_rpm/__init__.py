@@ -17,9 +17,8 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
-
-from qubesbuilder.executors import Executor
+from qubesbuilder.config import Config
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins.template import TemplateBuilderPlugin
 from qubesbuilder.template import QubesTemplate
@@ -33,57 +32,24 @@ class RPMTemplateBuilderPlugin(TemplateBuilderPlugin):
     """
 
     @classmethod
-    def from_args(cls, templates, **kwargs):
-        instances = []
-        for template in templates:
-            if not template.distribution.is_rpm():
-                continue
-            instances.append(cls(template=template, **kwargs))
-        return instances
+    def supported_template(cls, template: QubesTemplate):
+        return template.distribution.is_rpm()
 
     def __init__(
-        self,
-        template: QubesTemplate,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        qubes_release: str,
-        gpg_client: str,
-        sign_key: dict,
-        repository_publish: dict,
-        repository_upload_remote_host: dict,
-        min_age_days: int,
-        verbose: bool = False,
-        debug: bool = False,
-        use_qubes_repo: dict = None,
-        **kwargs,
+        self, template: QubesTemplate, config: Config, manager: PluginManager, **kwargs
     ):
-        super().__init__(
-            template=template,
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            qubes_release=qubes_release,
-            gpg_client=gpg_client,
-            sign_key=sign_key,
-            repository_publish=repository_publish,
-            repository_upload_remote_host=repository_upload_remote_host,
-            use_qubes_repo=use_qubes_repo,
-            verbose=verbose,
-            debug=debug,
-            min_age_days=min_age_days,
-        )
+        super().__init__(template=template, config=config, manager=manager)
 
         # The parent class will automatically copy-in all its plugin dependencies. Calling parent
         # class method (for generic steps), we need to have access to this plugin dependencies.
         self.dependencies += ["template_rpm"]
 
+    def update_parameters(self, stage: str):
+        super().update_parameters(stage)
+        executor = self.config.get_executor_from_config(stage_name=stage)
+
         self.environment.update(
-            {
-                "TEMPLATE_CONTENT_DIR": str(
-                    self.executor.get_plugins_dir() / "template_rpm"
-                )
-            }
+            {"TEMPLATE_CONTENT_DIR": str(executor.get_plugins_dir() / "template_rpm")}
         )
 
     def run(

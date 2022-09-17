@@ -73,8 +73,24 @@ class Config:
 
         # log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
 
-        self.verbose = self._conf.get("verbose", False)
-        self.debug = self._conf.get("debug", False)
+    # fmt: off
+    verbose: bool                       = property(lambda self: self.get("verbose", False))
+    debug: bool                         = property(lambda self: self.get("debug", False))
+    skip_if_exists: bool                = property(lambda self: self.get("skip-if-exists", False))
+    skip_git_fetch: bool                = property(lambda self: self.get("skip-git-fetch", False))
+    do_merge: bool                      = property(lambda self: self.get("do-merge", False))
+    fetch_versions_only: bool           = property(lambda self: self.get("fetch-versions-only", False))
+    backend_vmm: str                    = property(lambda self: self.get("backend-vmm", ""))
+    use_qubes_repo: Dict                = property(lambda self: self.get("use-qubes-repo", {}))
+    gpg_client: str                     = property(lambda self: self.get("gpg-client", "gpg"))
+    sign_key: dict                      = property(lambda self: self.get("sign-key", {}))
+    min_age_days: int                   = property(lambda self: self.get("min-age-days", 5))
+    qubes_release: str                  = property(lambda self: self.get("qubes-release", ""))
+    repository_publish: Dict            = property(lambda self: self.get("repository-publish", {}))
+    repository_upload_remote_host: Dict = property(lambda self: self.get("repository-upload-remote-host", {}))
+    template_root_size: str             = property(lambda self: self.get("template-root-size", "20G"))
+    template_root_with_partitions: bool = property(lambda self: self.get("template-root-with-partitions", True))
+    # fmt: on
 
     def __repr__(self):
         return f"<Config {str(self._conf_file)}>"
@@ -244,9 +260,12 @@ class Config:
     def get_logs_dir(self):
         return self._artifacts_dir / "logs"
 
-    @staticmethod
-    def get_plugins_dir():
-        return PROJECT_PATH / "qubesbuilder" / "plugins"
+    def get_plugins_dirs(self):
+        default_plugins_dir = PROJECT_PATH / "qubesbuilder" / "plugins"
+        plugins_dirs = self._conf.get("plugins-dirs", [])
+        if default_plugins_dir not in plugins_dirs:
+            plugins_dirs = [default_plugins_dir] + plugins_dirs
+        return plugins_dirs
 
     def get_executor_from_config(self, stage_name: str):
         executor = None

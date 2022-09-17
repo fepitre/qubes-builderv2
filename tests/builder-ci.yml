@@ -8,7 +8,7 @@ debug: true
 verbose: true
 qubes-release: r4.2
 
-reuse-fetched-source: true
+skip-if-exists: true
 
 use-qubes-repo:
   version: 4.1

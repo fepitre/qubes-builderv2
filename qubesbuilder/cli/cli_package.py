@@ -7,7 +7,7 @@ from qubesbuilder.common import STAGES, STAGES_ALIAS
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.helpers import get_plugins
+from qubesbuilder.helpers import PluginManager
 
 
 @aliased_group("package", chain=True)
@@ -27,34 +27,12 @@ def _component_stage(
     Generic function to trigger stage for a standard component
     """
     click.echo(f"Running stage: {stage_name}")
-
-    kwargs = {
-        "plugins_dir": config.get_plugins_dir(),
-        "executor": config.get_executor_from_config(stage_name=stage_name),
-        "artifacts_dir": config.get_artifacts_dir(),
-        "verbose": config.verbose,
-        "debug": config.debug,
-        "skip_if_exists": config.get("reuse-fetched-source", False),
-        "skip_git_fetch": config.get("skip-git-fetch", False),
-        "do_merge": config.get("do-merge", False),
-        "fetch_versions_only": config.get("fetch-versions-only", False),
-        "backend_vmm": config.get("backend-vmm", "xen"),
-        "use_qubes_repo": config.get("use-qubes-repo", {}),
-        "gpg_client": config.get("gpg-client", "gpg"),
-        "sign_key": config.get("sign-key", {}),
-        "min_age_days": config.get("min-age-days", 5),
-        "qubes_release": config.get("qubes-release", {}),
-        "repository_publish": config.get("repository-publish", {}),
-        "repository_upload_remote_host": config.get(
-            "repository-upload-remote-host", {}
-        ),
-    }
-
-    plugins = get_plugins(
+    manager = PluginManager(config.get_plugins_dirs())
+    plugins = manager.get_component_instances(
         stage=stage_name,
         components=components,
         distributions=distributions,
-        **kwargs,
+        config=config,
     )
     for p in plugins:
         p.run(stage=stage_name)

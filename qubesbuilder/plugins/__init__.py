@@ -26,8 +26,11 @@ from dateutil.parser import parse as parsedate
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.template import QubesTemplate
+
+
+# from qubesbuilder.config import Config
 
 
 class PackagePath(PurePosixPath):
@@ -56,83 +59,85 @@ class Plugin:
     def from_args(cls, **kwargs):
         return []
 
-    def __init__(
-        self,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        verbose: bool,
-        debug: bool,
-    ):
-        self.executor = executor
-        self.plugins_dir = plugins_dir
-        self.artifacts_dir = artifacts_dir
-        self.verbose = verbose
-        self.debug = debug
+    def __init__(self, config, manager, **kwargs):
+        # Qubes builder config
+        self.config = config
+
+        # Plugin manager
+        self.manager = manager
+
+        # Default placeholders
+        self._placeholders: Dict[str, Any] = {}
 
         # Plugin parameters
         self.parameters: dict = {}
 
-        # Default placeholders
-        self._placeholders: Dict[str, Any] = {
-            "@BUILDER_DIR@": self.executor.get_builder_dir(),
-            "@BUILD_DIR@": self.executor.get_build_dir(),
-            "@PLUGINS_DIR@": self.executor.get_plugins_dir(),
-            "@DISTFILES_DIR@": self.executor.get_distfiles_dir(),
-        }
-
         self.environment = {}
-        if self.verbose:
+        if self.config.verbose:
             self.environment["VERBOSE"] = "1"
-        if self.debug:
+        if self.config.debug:
             self.environment["DEBUG"] = "1"
 
-    def before(self, stage: str):
-        pass
+        self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
     def run(self, stage: str):
         pass
 
-    def after(self, stage: str):
+    def update_parameters(self, stage: str):
         pass
 
-    def update_parameters(self):
-        pass
+    def update_placeholders(self, stage: str):
+        # Executor
+        executor = self.config.get_executor_from_config(stage)
+
+        # Default placeholders
+        self._placeholders.update(
+            {
+                "@BUILDER_DIR@": executor.get_builder_dir(),
+                "@BUILD_DIR@": executor.get_build_dir(),
+                "@PLUGINS_DIR@": executor.get_plugins_dir(),
+                "@DISTFILES_DIR@": executor.get_distfiles_dir(),
+            }
+        )
+
+    def get_placeholders(self, stage: str):
+        self.update_placeholders(stage)
+        return self._placeholders
 
     def get_temp_dir(self):
-        path = self.artifacts_dir / "tmp"
+        path = self.config.get_artifacts_dir() / "tmp"
         return path.resolve()
 
     def get_cache_dir(self):
-        path = self.artifacts_dir / "cache"
+        path = self.config.get_artifacts_dir() / "cache"
         return path.resolve()
 
     def get_sources_dir(self):
-        path = self.artifacts_dir / "sources"
+        path = self.config.get_artifacts_dir() / "sources"
         return path.resolve()
 
     def get_repository_dir(self):
-        path = self.artifacts_dir / "repository"
+        path = self.config.get_artifacts_dir() / "repository"
         return path.resolve()
 
     def get_repository_publish_dir(self):
-        path = self.artifacts_dir / "repository-publish"
+        path = self.config.get_artifacts_dir() / "repository-publish"
         return path.resolve()
 
     def get_distfiles_dir(self):
-        path = self.artifacts_dir / "distfiles"
+        path = self.config.get_artifacts_dir() / "distfiles"
         return path.resolve()
 
     def get_templates_dir(self):
-        path = self.artifacts_dir / "templates"
+        path = self.config.get_artifacts_dir() / "templates"
         return path.resolve()
 
     def get_installer_dir(self):
-        path = self.artifacts_dir / "installer"
+        path = self.config.get_artifacts_dir() / "installer"
         return path.resolve()
 
     def get_iso_dir(self):
-        path = self.artifacts_dir / "iso"
+        path = self.config.get_artifacts_dir() / "iso"
         return path.resolve()
 
 
@@ -143,27 +148,31 @@ class ComponentPlugin(Plugin):
 
     dependencies: List[str] = []
 
+    @classmethod
+    def from_args(cls, **kwargs):
+        instances = []
+        if kwargs.get("stage") in cls.stages:
+            for component in kwargs.get("components", []):
+                instances.append(cls(component=component, **kwargs))
+        return instances
+
     def __init__(
-        self,
-        component: QubesComponent,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        verbose: bool,
-        debug: bool,
+        self, component: QubesComponent, config, manager: PluginManager, **kwargs
     ):
-        super().__init__(
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-        )
+        super().__init__(config=config, manager=manager, **kwargs)
         self.component = component
-        self._placeholders.update(
-            {"@SOURCE_DIR@": self.executor.get_builder_dir() / component.name}
-        )
         self._source_hash = ""
+
+    def update_placeholders(self, stage: str):
+        super().update_placeholders(stage)
+
+        executor = self.config.get_executor_from_config(stage)
+        self._placeholders.update(
+            {
+                "@SOURCE_DIR@": executor.get_builder_dir() / self.component.name,
+                "@BACKEND_VMM@": self.config.backend_vmm,
+            }
+        )
 
     @staticmethod
     def get_artifacts_info_filename(stage: str, basename: str):
@@ -174,7 +183,7 @@ class ComponentPlugin(Plugin):
         return path
 
     def get_component_artifacts_dir(self, stage: str):
-        path = self.artifacts_dir / "components" / self.component.name
+        path = self.config.get_artifacts_dir() / "components" / self.component.name
         path = path / f"{self.component.version}-{self.component.release}"
         path = path / "nodist" / stage
         return path.resolve()
@@ -228,7 +237,27 @@ class ComponentPlugin(Plugin):
                 raise PluginError(msg)
 
 
-class DistributionPlugin(ComponentPlugin):
+class DistributionPlugin(Plugin):
+    def __init__(self, dist, config, manager, **kwargs):
+        super().__init__(config=config, manager=manager, **kwargs)
+        self.dist = dist
+
+    @classmethod
+    def supported_distribution(cls, distribution: QubesDistribution):
+        raise NotImplementedError
+
+    @classmethod
+    def from_args(cls, **kwargs):
+        instances = []
+        if kwargs.get("stage") in cls.stages:
+            for dist in kwargs.get("distributions"):
+                if not cls.supported_distribution(dist):
+                    continue
+                instances.append(cls(dist=dist, **kwargs))
+        return instances
+
+
+class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
     """
     Distribution Component plugin
 
@@ -239,37 +268,31 @@ class DistributionPlugin(ComponentPlugin):
 
     dependencies: List[str] = []
 
+    @classmethod
+    def from_args(cls, **kwargs):
+        instances = []
+        if kwargs.get("stage") in cls.stages:
+            for component in kwargs.get("components"):
+                for dist in kwargs.get("distributions"):
+                    if not cls.supported_distribution(dist):
+                        continue
+                    instances.append(cls(component=component, dist=dist, **kwargs))
+        return instances
+
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        verbose: bool,
-        debug: bool,
-        backend_vmm: str,
+        config,
+        manager: PluginManager,
     ):
-        super().__init__(
-            component=component,
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-        )
-        self.dist = dist
-        self.backend_vmm = backend_vmm
+        super().__init__(dist=dist, component=component, config=config, manager=manager)
 
-        self._placeholders.update(
-            {"@SOURCE_DIR@": self.executor.get_builder_dir() / component.name}
-        )
-        self._placeholders.update({"@BACKEND_VMM@": backend_vmm})
-
-        self.environment["BACKEND_VMM"] = backend_vmm
+    def update_parameters(self, stage: str):
+        super().update_parameters(stage)
 
         # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
-        parameters = self.component.get_parameters(self._placeholders)
+        parameters = self.component.get_parameters(self.get_placeholders(stage))
 
         self.parameters.update(
             parameters.get(self.dist.package_set, {}).get(self.dist.type, {})
@@ -289,14 +312,16 @@ class DistributionPlugin(ComponentPlugin):
         # Check conflicts when mangle paths
         mangle_builds = [build.mangle() for build in self.parameters.get("build", [])]
         if len(set(mangle_builds)) != len(self.parameters["build"]):
-            raise PluginError(f"{component}:{dist}: Conflicting build paths")
+            raise PluginError(f"{self.component}:{self.dist}: Conflicting build paths")
 
     def get_dist_component_artifacts_dir_history(self, stage: str):
-        path = (self.artifacts_dir / "components" / self.component.name).resolve()
+        path = (
+            self.config.get_artifacts_dir() / "components" / self.component.name
+        ).resolve()
         return list(path.glob(f"*/{self.dist.distribution}/{stage}"))
 
     def get_dist_component_artifacts_dir(self, stage: str):
-        path = self.artifacts_dir / "components" / self.component.name
+        path = self.config.get_artifacts_dir() / "components" / self.component.name
         path = path / f"{self.component.version}-{self.component.release}"
         path = path / self.dist.distribution / stage
         return path.resolve()
@@ -336,25 +361,23 @@ class DistributionPlugin(ComponentPlugin):
         )
 
 
-class TemplatePlugin(Plugin):
-    def __init__(
-        self,
-        template: QubesTemplate,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        verbose: bool = False,
-        debug: bool = False,
-    ):
-        super().__init__(
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-        )
-        self.dist = template.distribution
+class TemplatePlugin(DistributionPlugin):
+    def __init__(self, template: QubesTemplate, config, manager: PluginManager):
+        super().__init__(config=config, manager=manager, dist=template.distribution)
         self.template = template
+
+    @classmethod
+    def supported_template(cls, template: QubesTemplate):
+        raise NotImplementedError
+
+    @classmethod
+    def from_args(cls, templates, **kwargs):
+        instances = []
+        for template in templates:
+            if not cls.supported_template(template):
+                continue
+            instances.append(cls(template=template, **kwargs))
+        return instances
 
     def get_artifacts_info(self, stage: str) -> Dict:
         fileinfo = self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
@@ -402,3 +425,15 @@ class TemplatePlugin(Plugin):
                 msg = f"{self.template}: Failed to parse build timestamp format."
                 raise PluginError(msg) from e
         return self.template.timestamp
+
+
+class RPMDistributionPlugin(DistributionPlugin):
+    @classmethod
+    def supported_distribution(cls, distribution: QubesDistribution):
+        return distribution.is_rpm()
+
+
+class DEBDistributionPlugin(DistributionPlugin):
+    @classmethod
+    def supported_distribution(cls, distribution: QubesDistribution):
+        return distribution.is_deb()

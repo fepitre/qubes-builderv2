@@ -9,6 +9,7 @@ import tempfile
 import dnf
 import dnf.exceptions
 import dnf.subject
+
 from pylorax.dnfbase import get_dnf_base_object
 from pylorax.ltmpl import LoraxTemplate
 

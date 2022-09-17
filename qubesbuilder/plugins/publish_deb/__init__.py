@@ -17,18 +17,20 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 from datetime import datetime
-from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors import ExecutorError
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 log = get_logger("publish_deb")
 
 
-class DEBPublishPlugin(PublishPlugin):
+class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
     """
     DEBPublishPlugin manages Debian distribution publication.
 
@@ -42,49 +44,15 @@ class DEBPublishPlugin(PublishPlugin):
     stages = ["publish"]
     dependencies = ["publish"]
 
-    @classmethod
-    def from_args(cls, stage, components, distributions, **kwargs):
-        instances = []
-        if stage in cls.stages:
-            for component in components:
-                for dist in distributions:
-                    if not dist.is_deb():
-                        continue
-                    instances.append(cls(component=component, dist=dist, **kwargs))
-        return instances
-
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        qubes_release: str,
-        gpg_client: str,
-        sign_key: dict,
-        repository_publish: dict,
-        backend_vmm: str,
-        min_age_days: int,
-        verbose: bool = False,
-        debug: bool = False,
+        config: Config,
+        manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(
-            component=component,
-            dist=dist,
-            plugins_dir=plugins_dir,
-            executor=executor,
-            artifacts_dir=artifacts_dir,
-            qubes_release=qubes_release,
-            gpg_client=gpg_client,
-            sign_key=sign_key,
-            repository_publish=repository_publish,
-            verbose=verbose,
-            debug=debug,
-            backend_vmm=backend_vmm,
-            min_age_days=min_age_days,
-        )
+        super().__init__(component=component, dist=dist, config=config, manager=manager)
 
     @classmethod
     def get_debian_suite_from_repository_publish(cls, dist, repository_publish):
@@ -98,7 +66,7 @@ class DEBPublishPlugin(PublishPlugin):
             debian_suite += "-unstable"
         return debian_suite
 
-    def publish(self, directory, keyring_dir, repository_publish):
+    def publish(self, executor, directory, keyring_dir, repository_publish):
         # directory basename will be used as prefix for some artifacts
         directory_bn = directory.mangle()
 
@@ -124,7 +92,7 @@ class DEBPublishPlugin(PublishPlugin):
             for file in ("dsc", "changes", "buildinfo"):
                 fname = build_artifacts_dir / build_info[file]
                 cmd += [f"gpg2 -q --homedir {keyring_dir} --verify {fname}"]
-            self.executor.run(cmd)
+            executor.run(cmd)
         except ExecutorError as e:
             msg = (
                 f"{self.component}:{self.dist}:{directory}: Failed to check signatures."
@@ -134,7 +102,9 @@ class DEBPublishPlugin(PublishPlugin):
         # Publishing packages
         try:
             changes_file = build_artifacts_dir / build_info["changes"]
-            target_dir = artifacts_dir / f"{self.qubes_release}/{self.dist.package_set}"
+            target_dir = (
+                artifacts_dir / f"{self.config.qubes_release}/{self.dist.package_set}"
+            )
 
             # reprepro options to ignore surprising binary and arch
             reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch --keepunreferencedfiles -b {target_dir}"
@@ -145,7 +115,7 @@ class DEBPublishPlugin(PublishPlugin):
 
             # reprepro command
             cmd = [f"reprepro {reprepro_options} include {debian_suite} {changes_file}"]
-            self.executor.run(cmd)
+            executor.run(cmd)
         except ExecutorError as e:
             msg = (
                 f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
@@ -154,6 +124,7 @@ class DEBPublishPlugin(PublishPlugin):
 
     def unpublish(
         self,
+        executor,
         directory,
         repository_publish,
     ):
@@ -174,7 +145,9 @@ class DEBPublishPlugin(PublishPlugin):
 
         # Unpublishing packages
         try:
-            target_dir = artifacts_dir / f"{self.qubes_release}/{self.dist.package_set}"
+            target_dir = (
+                artifacts_dir / f"{self.config.qubes_release}/{self.dist.package_set}"
+            )
 
             # reprepro options to ignore surprising binary and arch
             reprepro_options = (
@@ -197,7 +170,7 @@ class DEBPublishPlugin(PublishPlugin):
             cmd = [
                 f"reprepro {reprepro_options} removesrc {debian_suite} {source_name} {source_version}"
             ]
-            self.executor.run(cmd)
+            executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}:{directory}: Failed to unpublish packages."
             raise PublishError(msg) from e
@@ -219,16 +192,18 @@ class DEBPublishPlugin(PublishPlugin):
         if stage != "publish":
             return
 
+        executor = self.config.get_executor_from_config(stage)
+
         # Check if we have a signing key provided
-        sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
-            "deb", None
-        )
+        sign_key = self.config.sign_key.get(
+            self.dist.distribution, None
+        ) or self.config.sign_key.get("deb", None)
         if not sign_key:
             log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
-        if not self.gpg_client:
+        if not self.config.gpg_client:
             log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
@@ -238,7 +213,7 @@ class DEBPublishPlugin(PublishPlugin):
         # Keyring used for signing
         keyring_dir = sign_artifacts_dir / "keyring"
 
-        repository_publish = repository_publish or self.repository_publish.get(
+        repository_publish = repository_publish or self.config.repository_publish.get(
             "components"
         )
         if not repository_publish:
@@ -254,13 +229,13 @@ class DEBPublishPlugin(PublishPlugin):
 
             # Create publish repository skeleton
             create_skeleton_cmd = [
-                f"{self.plugins_dir}/publish_deb/scripts/create-skeleton",
-                self.qubes_release,
+                f"{self.manager.entities['publish_deb'].directory}/scripts/create-skeleton",
+                self.config.qubes_release,
                 str(artifacts_dir),
             ]
             cmd = [" ".join(create_skeleton_cmd)]
             try:
-                self.executor.run(cmd)
+                executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
                 raise PublishError(msg) from e
@@ -292,7 +267,7 @@ class DEBPublishPlugin(PublishPlugin):
                     f"{self.component}:{self.dist}: "
                     f"Refusing to publish to 'current' as packages are not "
                     f"uploaded to 'current-testing' or 'security-testing' "
-                    f"for at least {self.min_age_days} days."
+                    f"for at least {self.config.min_age_days} days."
                 )
                 raise PublishError(failure_msg)
 
@@ -323,6 +298,7 @@ class DEBPublishPlugin(PublishPlugin):
                         )
                         for repository in publish_info.get("repository-publish", []):
                             self.unpublish(
+                                executor=executor,
                                 directory=directory,
                                 repository_publish=repository,
                             )
@@ -330,6 +306,7 @@ class DEBPublishPlugin(PublishPlugin):
                         info = publish_info
 
                 self.publish(
+                    executor=executor,
                     directory=directory,
                     keyring_dir=keyring_dir,
                     repository_publish=repository_publish,
@@ -368,6 +345,7 @@ class DEBPublishPlugin(PublishPlugin):
                 )
 
                 self.unpublish(
+                    executor=executor,
                     directory=directory,
                     repository_publish=repository_publish,
                 )
@@ -404,6 +382,7 @@ class DEBPublishPlugin(PublishPlugin):
                             f"{self.component}:{self.dist}:{directory}: Updating repository."
                         )
                         self.publish(
+                            executor=executor,
                             directory=directory,
                             keyring_dir=keyring_dir,
                             repository_publish=repository_publish,

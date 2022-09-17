@@ -26,13 +26,12 @@ from pathlib import Path
 from typing import Any
 
 from qubesbuilder.component import QubesComponent
-from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.config import Config
+from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import (
-    ComponentPlugin,
-    PluginError,
-)
+from qubesbuilder.plugins import ComponentPlugin, PluginError
 
 log = get_logger("fetch")
 
@@ -54,47 +53,23 @@ class FetchPlugin(ComponentPlugin):
 
     stages = ["fetch"]
 
-    @classmethod
-    def from_args(cls, stage, components, **kwargs):
-        instances = []
-        if stage in cls.stages:
-            for component in components:
-                instances.append(cls(component=component, **kwargs))
-        return instances
-
     def __init__(
         self,
         component: QubesComponent,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        verbose: bool = False,
-        debug: bool = False,
-        skip_if_exists: bool = False,
-        skip_git_fetch: bool = False,
-        do_merge: bool = False,
-        fetch_versions_only: bool = False,
+        config: Config,
+        manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(
-            component=component,
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-        )
-        self.skip_if_exists = skip_if_exists
-        self.skip_git_fetch = skip_git_fetch
-        self.do_merge = do_merge
-        self.fetch_versions_only = fetch_versions_only
+        super().__init__(component=component, config=config, manager=manager)
 
-    def update_parameters(self):
+    def update_parameters(self, stage: str):
         """
         Update plugin parameters based on component .qubesbuilder.
         """
+        super().update_parameters(stage)
+
         # Set and update parameters based on top-level "source"
-        parameters = self.component.get_parameters(self._placeholders)
+        parameters = self.component.get_parameters(self.get_placeholders(stage))
         self.parameters.update(parameters.get("source", {}))
 
     def run(self, stage: str):
@@ -107,6 +82,8 @@ class FetchPlugin(ComponentPlugin):
         if stage != "fetch":
             return
 
+        executor = self.config.get_executor_from_config(stage)
+
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name
 
@@ -117,24 +94,24 @@ class FetchPlugin(ComponentPlugin):
         self.get_temp_dir().mkdir(exist_ok=True)
 
         # Source component directory inside executors
-        source_dir = self.executor.get_builder_dir() / self.component.name
-        copy_in = [(self.plugins_dir / "fetch", self.executor.get_plugins_dir())]
+        source_dir = executor.get_builder_dir() / self.component.name
+        copy_in = [
+            (self.manager.entities["fetch"].directory, executor.get_plugins_dir())
+        ]
 
         if local_source_dir.exists():
             # If we already fetched sources previously and have modified them,
             # we may want to keep local modifications.
-            if not self.skip_if_exists:
+            if not self.config.skip_if_exists:
                 shutil.rmtree(str(local_source_dir))
             else:
                 log.info(f"{self.component}: source already fetched. Updating.")
-                copy_in += [(local_source_dir, self.executor.get_builder_dir())]
+                copy_in += [(local_source_dir, executor.get_builder_dir())]
 
         # Get GIT source for a given Qubes OS component
         copy_out = [(source_dir, self.get_sources_dir())]
         get_sources_cmd = [
-            str(
-                self.executor.get_plugins_dir() / "fetch/scripts/get-and-verify-source"
-            ),
+            str(executor.get_plugins_dir() / "fetch/scripts/get-and-verify-source"),
             "--component",
             self.component.name,
             "--git-branch",
@@ -142,9 +119,9 @@ class FetchPlugin(ComponentPlugin):
             "--git-url",
             self.component.url,
             "--keyring-dir-git",
-            str(self.executor.get_builder_dir() / "keyring"),
+            str(executor.get_builder_dir() / "keyring"),
             "--keys-dir",
-            str(self.executor.get_plugins_dir() / "fetch/keys"),
+            str(executor.get_plugins_dir() / "fetch/keys"),
         ]
         for maintainer in self.component.maintainers:
             get_sources_cmd += ["--maintainer", maintainer]
@@ -154,20 +131,20 @@ class FetchPlugin(ComponentPlugin):
             get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
 
         # We prioritize do merge versions first
-        if local_source_dir.exists() and self.do_merge:
+        if local_source_dir.exists() and self.config.do_merge:
             get_sources_cmd += ["--do-merge"]
-            if self.fetch_versions_only:
+            if self.config.fetch_versions_only:
                 get_sources_cmd += ["--fetch-versions-only"]
-        if not self.skip_git_fetch:
+        if not self.config.skip_git_fetch:
             cmd = [
-                f"cd {str(self.executor.get_builder_dir())}",
+                f"cd {str(executor.get_builder_dir())}",
                 " ".join(get_sources_cmd),
             ]
-            self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            executor.run(cmd, copy_in, copy_out, environment=self.environment)
 
         # Update parameters based on previously fetched sources as .qubesbuilder
         # is now available.
-        self.update_parameters()
+        self.update_parameters(stage)
 
         distfiles_dir = self.get_component_distfiles_dir()
         distfiles_dir.mkdir(parents=True, exist_ok=True)
@@ -192,7 +169,7 @@ class FetchPlugin(ComponentPlugin):
             untrusted_final_fn = "untrusted_" + final_fn
 
             if (distfiles_dir / final_fn).exists():
-                if not self.skip_if_exists:
+                if not self.config.skip_if_exists:
                     os.remove(distfiles_dir / final_fn)
                 else:
                     log.info(
@@ -200,16 +177,16 @@ class FetchPlugin(ComponentPlugin):
                     )
                     continue
             copy_in = [
-                (self.plugins_dir / "fetch", self.executor.get_plugins_dir()),
-                (self.component.source_dir, self.executor.get_builder_dir()),
+                (self.manager.entities["fetch"].directory, executor.get_plugins_dir()),
+                (self.component.source_dir, executor.get_builder_dir()),
             ]
             copy_out = [(source_dir / untrusted_final_fn, temp_dir)]
 
             # Construct command for "download-file".
             download_cmd = [
-                str(self.executor.get_plugins_dir() / "fetch/scripts/download-file"),
+                str(executor.get_plugins_dir() / "fetch/scripts/download-file"),
                 "--output-dir",
-                str(self.executor.get_builder_dir() / self.component.name),
+                str(executor.get_builder_dir() / self.component.name),
                 "--file-name",
                 fn,
                 "--file-url",
@@ -221,7 +198,7 @@ class FetchPlugin(ComponentPlugin):
                 untrusted_signature_fn = "untrusted_" + signature_fn
                 copy_out += [
                     (
-                        self.executor.get_builder_dir()
+                        executor.get_builder_dir()
                         / self.component.name
                         / untrusted_signature_fn,
                         temp_dir,
@@ -231,7 +208,7 @@ class FetchPlugin(ComponentPlugin):
                 download_cmd += ["--uncompress"]
             cmd = [" ".join(download_cmd)]
             try:
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
                 shutil.rmtree(temp_dir)
                 raise FetchError(f"Failed to download file '{file}': {str(e)}.")
@@ -243,10 +220,10 @@ class FetchPlugin(ComponentPlugin):
             # Keep executor workflow if we move verification of files in another
             # cage type (copy-in, copy-out and cmd would need adjustments).
 
-            if isinstance(self.executor, LocalExecutor):
+            if isinstance(executor, LocalExecutor):
                 # If executor is a LocalExecutor, use the same base
                 # directory for temporary directory
-                local_executor = LocalExecutor(directory=self.executor.get_directory())
+                local_executor = LocalExecutor(directory=executor.get_directory())
             else:
                 local_executor = LocalExecutor()
 
@@ -255,7 +232,7 @@ class FetchPlugin(ComponentPlugin):
 
             # Construct command for "verify-file".
             verify_cmd = [
-                str(self.plugins_dir / "fetch/scripts/verify-file"),
+                str(self.manager.entities["fetch"].directory / "scripts/verify-file"),
                 "--output-dir",
                 str(temp_dir),
                 "--untrusted-file",
@@ -314,7 +291,7 @@ class FetchPlugin(ComponentPlugin):
         temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
 
         # Source component directory inside executors
-        source_dir = self.executor.get_builder_dir() / self.component.name
+        source_dir = executor.get_builder_dir() / self.component.name
 
         # We store the fetched source hash as original reference to be compared
         # for any further modifications. Once the source is fetched, we may locally
@@ -324,7 +301,7 @@ class FetchPlugin(ComponentPlugin):
 
         # Get git hash and tags
         copy_in = [
-            (self.component.source_dir, self.executor.get_builder_dir()),
+            (self.component.source_dir, executor.get_builder_dir()),
         ]
         copy_out = [
             (source_dir / "hash", temp_dir),
@@ -332,14 +309,14 @@ class FetchPlugin(ComponentPlugin):
         ]
         cmd = [
             f"rm -f {source_dir}/hash {source_dir}/vtags",
-            f"cd {self.executor.get_builder_dir()}",
+            f"cd {executor.get_builder_dir()}",
         ]
         cmd += [f"git -C {source_dir} rev-parse 'HEAD^{{}}' >> {source_dir}/hash"]
         cmd += [
             f"git -C {source_dir} tag --points-at HEAD --list 'v*' >> {source_dir}/vtags"
         ]
         try:
-            self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+            executor.run(cmd, copy_in, copy_out, environment=self.environment)
         except ExecutorError as e:
             msg = f"{self.component}: Failed to get source hash information: {e}."
             raise FetchError(msg) from e
@@ -369,19 +346,19 @@ class FetchPlugin(ComponentPlugin):
         if modules:
             # Get git module hashes
             copy_in = [
-                (self.component.source_dir, self.executor.get_builder_dir()),
+                (self.component.source_dir, executor.get_builder_dir()),
             ]
             copy_out = [(source_dir / "modules", temp_dir)]
             cmd = [
                 f"rm -f {source_dir}/modules",
-                f"cd {self.executor.get_builder_dir()}",
+                f"cd {executor.get_builder_dir()}",
             ]
             for module in modules:
                 cmd += [
                     f"git -C {source_dir}/{module} rev-parse HEAD >> {source_dir}/modules"
                 ]
             try:
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
                 msg = f"{self.component}: Failed to get source module information: {str(e)}."
                 raise FetchError(msg) from e
@@ -408,8 +385,8 @@ class FetchPlugin(ComponentPlugin):
             )
 
             copy_in = [
-                (self.component.source_dir, self.executor.get_builder_dir()),
-                (self.plugins_dir / "fetch", self.executor.get_plugins_dir()),
+                (self.component.source_dir, executor.get_builder_dir()),
+                (self.manager.entities["fetch"].directory, executor.get_plugins_dir()),
             ]
             copy_out = []
             cmd = []
@@ -422,11 +399,11 @@ class FetchPlugin(ComponentPlugin):
                     ),
                 ]
                 cmd += [
-                    f"{self.executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
+                    f"{executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir}/{module['name']} {module['archive']} {module['name']}/",
                 ]
 
             try:
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
                 msg = f"{self.component}: Failed to generate module archives: {str(e)}."
                 raise FetchError(msg) from e

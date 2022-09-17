@@ -17,16 +17,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
-
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import (
-    DistributionPlugin,
-    PluginError,
-)
+from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
 
 log = get_logger("source")
 
@@ -35,7 +31,7 @@ class SourceError(PluginError):
     pass
 
 
-class SourcePlugin(DistributionPlugin):
+class SourcePlugin(DistributionComponentPlugin):
     """
     SourcePlugin manage generic distribution source
 
@@ -52,26 +48,13 @@ class SourcePlugin(DistributionPlugin):
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        backend_vmm: str,
-        verbose: bool = False,
-        debug: bool = False,
-        skip_if_exists: bool = False,
+        config: Config,
+        manager: PluginManager,
     ):
-        super().__init__(
-            executor=executor,
-            component=component,
-            dist=dist,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-            backend_vmm=backend_vmm,
-        )
-        self.executor = executor
-        self.skip_if_exists = skip_if_exists
+        super().__init__(component=component, dist=dist, config=config, manager=manager)
+
+    def update_parameters(self, stage: str):
+        super().update_parameters(stage)
 
         # Set and update parameters based on top-level "source",
         # per package set and per distribution.
@@ -86,6 +69,8 @@ class SourcePlugin(DistributionPlugin):
         )
 
     def run(self, stage: str):
+        self.update_parameters(stage)
+
         if stage != "prep":
             return
 

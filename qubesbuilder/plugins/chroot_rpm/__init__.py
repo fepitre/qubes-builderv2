@@ -17,18 +17,20 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 import shutil
-from pathlib import Path
 
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import RPMDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootError, ChrootPlugin
 
 log = get_logger("chroot_rpm")
 
 
-class RPMChrootPlugin(ChrootPlugin):
+class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
     """
     ChrootPlugin manages RPM chroot creation
 
@@ -39,34 +41,14 @@ class RPMChrootPlugin(ChrootPlugin):
     stages = ["init-cache"]
     dependencies = ["source_rpm"]
 
-    @classmethod
-    def from_args(cls, stage, distributions, **kwargs):
-        instances = []
-        if stage in cls.stages:
-            for dist in distributions:
-                if not dist.is_rpm():
-                    continue
-                instances.append(cls(dist=dist, **kwargs))
-        return instances
-
     def __init__(
         self,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        verbose: bool = False,
-        debug: bool = False,
+        config: Config,
+        manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(
-            dist=dist,
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-        )
+        super().__init__(dist=dist, config=config, manager=manager)
 
     def run(self, stage: str):
         """
@@ -75,6 +57,8 @@ class RPMChrootPlugin(ChrootPlugin):
 
         if stage != "init-cache":
             return
+
+        executor = self.config.get_executor_from_config(stage)
 
         mock_conf = (
             f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
@@ -89,7 +73,7 @@ class RPMChrootPlugin(ChrootPlugin):
             shutil.rmtree(chroot_dir / mock_chroot_name)
 
         copy_in = [
-            (self.plugins_dir / dependency, self.executor.get_plugins_dir())
+            (self.manager.entities[dependency].directory, executor.get_plugins_dir())
             for dependency in self.dependencies
         ]
 
@@ -102,7 +86,7 @@ class RPMChrootPlugin(ChrootPlugin):
 
         copy_out = [
             (
-                self.executor.get_cache_dir() / f"mock/{mock_chroot_name}",
+                executor.get_cache_dir() / f"mock/{mock_chroot_name}",
                 chroot_dir,
             )
         ]
@@ -110,11 +94,11 @@ class RPMChrootPlugin(ChrootPlugin):
         mock_cmd = [
             f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
             f"/usr/libexec/mock/mock",
-            f"--root {self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
+            f"--root {executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
             "--disablerepo=builder-local",
             "--init",
         ]
-        if isinstance(self.executor, ContainerExecutor):
+        if isinstance(executor, ContainerExecutor):
             msg = (
                 f"{self.dist}: Mock isolation set to 'simple', build has full network "
                 f"access. Use 'qubes' executor for network-isolated build."
@@ -123,16 +107,16 @@ class RPMChrootPlugin(ChrootPlugin):
             mock_cmd.append("--isolation=simple")
         else:
             mock_cmd.append("--isolation=nspawn")
-        if self.verbose:
+        if self.config.verbose:
             mock_cmd.append("--verbose")
 
         files_inside_executor_with_placeholders = [
-            f"{self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
+            f"{executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
         ]
         cmd = [" ".join(mock_cmd)]
 
         try:
-            self.executor.run(
+            executor.run(
                 cmd,
                 copy_in,
                 copy_out,

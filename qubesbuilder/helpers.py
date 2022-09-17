@@ -1,11 +1,12 @@
-import sys
+import importlib.util
 from pathlib import Path
+from typing import List
 
+from qubesbuilder.exc import EntityError, PluginManagerError
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.executors.qubes import QubesExecutor
-from qubesbuilder.plugins import PluginError
 
 
 def get_executor(executor_type, executor_options):
@@ -20,52 +21,79 @@ def get_executor(executor_type, executor_options):
     return executor
 
 
-def _load_modules(path):
-    loaded_modules = []
-    modules = Path(path).iterdir()
-    module_pattern = "qubesbuilder.plugins.%s"
-
-    for directory in modules:
-        if not (directory / "__init__.py").exists():
-            continue
-        mod_name = directory.name
-        if mod_name == "plugins":
-            continue
+class PluginEntity:
+    def __init__(self, path: Path):
+        self.directory = path.parent
+        if path.name == "__init__.py":
+            self.name = self.directory.name
+        else:
+            self.name = path.name.replace(".py", "")
+        self.fullname = f"qubesbuilder.plugins.{self.name}"
         try:
-            module = sys.modules.get(module_pattern % mod_name)
-            if not module:
-                __import__(module_pattern % mod_name)
-                module = sys.modules[module_pattern % mod_name]
-            loaded_modules.append(module)
+            spec = importlib.util.spec_from_file_location(self.fullname, path)
+            self.module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(self.module)
         except ImportError as e:
-            raise PluginError(str(e)) from e
-
-    return loaded_modules
+            raise EntityError(str(e)) from e
 
 
-def _get_plugins(attr, **kwargs):
-    if not kwargs.get("plugins_dir", None):
-        raise PluginError("Please provide plugins directory.")
-    modules = _load_modules(kwargs.get("plugins_dir"))
-    plugins = []
-    for m in modules:
-        if not hasattr(m, attr):
-            continue
-        for p in getattr(m, attr):
-            plugins.append(p)
+class PluginManager:
+    def __init__(self, directories: List[Path]):
+        self._directories = directories
+        self._entities = {}
 
-    instances = []
-    for p in plugins:
-        instances += p.from_args(
-            **kwargs,
-        )
+    def _get_plugin_entities(self):
+        entities = {}
+        for directory in self._directories:
+            modules = Path(directory).iterdir()
+            for module in modules:
+                if module.is_dir():
+                    module_path = module / "__init__.py"
+                    if not module_path.exists():
+                        continue
+                    entity = PluginEntity(module_path)
+                elif module.name.endswith(".py"):
+                    entity = PluginEntity(module)
+                else:
+                    continue
+                # Ensure module name are uniq
+                if entity.name in entities:
+                    raise PluginManagerError(
+                        f"Conflicting module name detected: '{entity.name}'."
+                    )
+                entities[entity.name] = entity
 
-    return sorted(instances, key=lambda x: x.priority)
+        return entities
 
+    def _get_instances_with_attr(self, module_attr, **kwargs):
+        # Ensure plugin class name are uniq
+        plugin_names = []
+        for entity in self.entities.values():
+            if not hasattr(entity.module, module_attr):
+                continue
+            plugin_names += [c.__name__ for c in getattr(entity.module, module_attr)]
 
-def get_plugins(**kwargs):
-    return _get_plugins("PLUGINS", **kwargs)
+        if len(set(plugin_names)) != len(plugin_names):
+            raise PluginManagerError(f"Conflicting plugin name detected.")
 
+        instances = []
+        for entity in self.entities.values():
+            if not hasattr(entity.module, module_attr):
+                continue
+            for plugin in getattr(entity.module, module_attr):
+                instances += plugin.from_args(
+                    **kwargs,
+                )
+        return instances
 
-def get_template_plugins(**kwargs):
-    return _get_plugins("TEMPLATE_PLUGINS", **kwargs)
+    @property
+    def entities(self):
+        if not self._entities:
+            self._entities = self._get_plugin_entities()
+        return self._entities
+
+    def get_component_instances(self, **kwargs):
+        return self._get_instances_with_attr("PLUGINS", manager=self, **kwargs)
+
+    def get_template_instances(self, **kwargs):
+        return self._get_instances_with_attr("TEMPLATE_PLUGINS", manager=self, **kwargs)

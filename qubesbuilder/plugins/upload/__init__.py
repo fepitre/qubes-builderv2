@@ -17,13 +17,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
-
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor
 from qubesbuilder.executors.local import LocalExecutor, ExecutorError
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import Plugin, PluginError
+from qubesbuilder.plugins import DistributionPlugin, PluginError
 from qubesbuilder.plugins.publish_deb import DEBPublishPlugin
 
 log = get_logger("upload")
@@ -33,7 +32,7 @@ class UploadError(PluginError):
     pass
 
 
-class UploadPlugin(Plugin):
+class UploadPlugin(DistributionPlugin):
     """
     UploadPlugin manages generic distribution upload.
 
@@ -43,60 +42,40 @@ class UploadPlugin(Plugin):
 
     stages = ["upload"]
 
-    @classmethod
-    def from_args(cls, stage, distributions, **kwargs):
-        instances = []
-        if stage in cls.stages:
-            for dist in distributions:
-                instances.append(cls(dist=dist, **kwargs))
-        return instances
-
     def __init__(
         self,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        qubes_release: str,
-        repository_publish: dict,
-        repository_upload_remote_host: dict,
-        verbose: bool = False,
-        debug: bool = False,
+        config: Config,
+        manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-        )
-
-        self.executor = executor
-        self.dist = dist
-        self.qubes_release = qubes_release
-        self.repository_publish = repository_publish
-        self.repository_upload_remote_host = repository_upload_remote_host
+        super().__init__(config=config, manager=manager, dist=dist)
 
     def run(self, stage: str, repository_publish: str = None):
         if stage != "upload":
             return
 
-        if not isinstance(self.executor, LocalExecutor):
+        executor = self.config.get_executor_from_config(stage)
+
+        if not isinstance(executor, LocalExecutor):
             raise UploadError("This plugin only supports local executor.")
 
-        remote_path = self.repository_upload_remote_host.get(self.dist.type, None)
+        remote_path = self.config.repository_upload_remote_host.get(
+            self.dist.type, None
+        )
         if not remote_path:
             log.info(f"{self.dist}: No remote location defined. Skipping.")
             return
 
-        repository_publish = repository_publish or self.repository_publish.get(
+        repository_publish = repository_publish or self.config.repository_publish.get(
             "components", "current-testing"
         )
 
         try:
             local_path = (
-                self.get_repository_publish_dir() / self.dist.type / self.qubes_release
+                self.get_repository_publish_dir()
+                / self.dist.type
+                / self.config.qubes_release
             )
             # Repository dir relative to local path that will be the same on remote host
             directories_to_upload = []
@@ -124,7 +103,7 @@ class UploadPlugin(Plugin):
                 cmd = [
                     f"rsync --partial --progress --hard-links -air --mkpath -- {local_path / relative_dir}/ {remote_path}/{relative_dir}/"
                 ]
-                self.executor.run(cmd)
+                executor.run(cmd)
         except ExecutorError as e:
             raise UploadError(
                 f"{self.dist}: Failed to upload to remote host: {str(e)}"

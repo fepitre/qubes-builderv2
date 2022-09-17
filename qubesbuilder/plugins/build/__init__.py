@@ -17,13 +17,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
-
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DistributionPlugin, PluginError
+from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
 
 log = get_logger("build")
 
@@ -32,7 +31,7 @@ class BuildError(PluginError):
     pass
 
 
-class BuildPlugin(DistributionPlugin):
+class BuildPlugin(DistributionComponentPlugin):
     """
     BuildPlugin manages generic distribution build.
 
@@ -47,28 +46,19 @@ class BuildPlugin(DistributionPlugin):
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        backend_vmm: str,
-        verbose: bool = False,
-        debug: bool = False,
-        use_qubes_repo: dict = None,
+        config: Config,
+        manager: PluginManager,
     ):
         super().__init__(
-            executor=executor,
             component=component,
             dist=dist,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-            backend_vmm=backend_vmm,
+            config=config,
+            manager=manager
         )
-        self.executor = executor
-        self.use_qubes_repo = use_qubes_repo or {}
 
     def run(self, stage: str):
+        self.update_parameters(stage)
+
         if stage != "build":
             return
 

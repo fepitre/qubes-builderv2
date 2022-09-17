@@ -36,3 +36,11 @@ class TemplateError(QubesBuilderError):
 
 class ConfigError(QubesBuilderError):
     pass
+
+
+class EntityError(QubesBuilderError):
+    pass
+
+
+class PluginManagerError(QubesBuilderError):
+    pass

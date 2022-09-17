@@ -35,7 +35,7 @@ def _installer_stage(
 
     installer_plugin = InstallerPlugin(
         dist=dist,
-        plugins_dir=config.get_plugins_dir(),
+        plugins_dirs=config.get_plugins_dirs(),
         executor=executor,
         artifacts_dir=config.get_artifacts_dir(),
         verbose=config.verbose,

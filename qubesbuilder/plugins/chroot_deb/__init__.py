@@ -17,17 +17,19 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 import os
-from pathlib import Path
 
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors import ExecutorError
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootPlugin, ChrootError
 
 log = get_logger("chroot_deb")
 
 
-class DEBChrootPlugin(ChrootPlugin):
+class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
     """
     ChrootPlugin manages Debian chroot creation
 
@@ -38,34 +40,14 @@ class DEBChrootPlugin(ChrootPlugin):
     stages = ["init-cache"]
     dependencies = ["source_deb"]
 
-    @classmethod
-    def from_args(cls, stage, distributions, **kwargs):
-        instances = []
-        if stage in cls.stages:
-            for dist in distributions:
-                if not dist.is_deb():
-                    continue
-                instances.append(cls(dist=dist, **kwargs))
-        return instances
-
     def __init__(
         self,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        verbose: bool = False,
-        debug: bool = False,
+        config: Config,
+        manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(
-            dist=dist,
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-        )
+        super().__init__(dist=dist, config=config, manager=manager)
 
     def run(self, stage: str):
         """
@@ -75,6 +57,8 @@ class DEBChrootPlugin(ChrootPlugin):
         if stage != "init-cache":
             return
 
+        executor = self.config.get_executor_from_config(stage)
+
         chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder"
         chroot_dir.mkdir(exist_ok=True, parents=True)
 
@@ -82,33 +66,33 @@ class DEBChrootPlugin(ChrootPlugin):
             os.remove(chroot_dir / "base.tgz")
 
         copy_in = [
-            (self.plugins_dir / dependency, self.executor.get_plugins_dir())
+            (self.manager.entities[dependency].directory, executor.get_plugins_dir())
             for dependency in self.dependencies
         ]
 
         copy_in += [
             (
-                self.plugins_dir / "source_deb" / "pbuilder",
-                self.executor.get_builder_dir(),
+                self.manager.entities["source_deb"].directory / "pbuilder",
+                executor.get_builder_dir(),
             ),
         ]
         copy_out = [
             (
-                self.executor.get_builder_dir() / "pbuilder/base.tgz",
+                executor.get_builder_dir() / "pbuilder/base.tgz",
                 chroot_dir,
             )
         ]
         files_inside_executor_with_placeholders = [
-            self.executor.get_builder_dir() / "pbuilder/pbuilderrc"
+            executor.get_builder_dir() / "pbuilder/pbuilderrc"
         ]
         cmd = [
-            f"sed -i '\#/tmp/qubes-deb#d' {self.executor.get_builder_dir()}/pbuilder/pbuilderrc",
+            f"sed -i '\#/tmp/qubes-deb#d' {executor.get_builder_dir()}/pbuilder/pbuilderrc",
             f"sudo -E pbuilder create --distribution {self.dist.name} "
-            f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc",
+            f"--configfile {executor.get_builder_dir()}/pbuilder/pbuilderrc",
         ]
 
         try:
-            self.executor.run(
+            executor.run(
                 cmd,
                 copy_in,
                 copy_out,

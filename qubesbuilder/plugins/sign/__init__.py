@@ -17,14 +17,13 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from pathlib import Path
-
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor
 from qubesbuilder.executors.local import LocalExecutor
+from qubesbuilder.helpers import PluginManager
 from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DistributionPlugin, PluginError
+from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
 
 log = get_logger("sign")
 
@@ -33,7 +32,7 @@ class SignError(PluginError):
     pass
 
 
-class SignPlugin(DistributionPlugin):
+class SignPlugin(DistributionComponentPlugin):
     """
     SignPlugin manages generic distribution sign.
 
@@ -48,40 +47,26 @@ class SignPlugin(DistributionPlugin):
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        gpg_client: str,
-        sign_key: dict,
-        backend_vmm: str,
-        verbose: bool = False,
-        debug: bool = False,
+        config: Config,
+        manager: PluginManager,
+        **kwargs,
     ):
-        super().__init__(
-            executor=executor,
-            component=component,
-            dist=dist,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-            backend_vmm=backend_vmm,
-        )
-
-        self.executor = executor
-        self.gpg_client = gpg_client
-        self.sign_key = sign_key
+        super().__init__(component=component, dist=dist, config=config, manager=manager)
 
     def run(self, stage: str):
+        self.update_parameters(stage)
+
         if stage != "sign":
             return
+
+        executor = self.config.get_executor_from_config(stage)
 
         # Check if we have Debian related content defined
         if not self.parameters.get("build", []):
             log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 
-        if not isinstance(self.executor, LocalExecutor):
+        if not isinstance(executor, LocalExecutor):
             raise SignError("This plugin only supports local executor.")
 
         # Ensure all build targets artifacts exist from previous required stage
