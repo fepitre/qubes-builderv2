@@ -5,6 +5,7 @@ from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.common import STAGES, STAGES_ALIAS
 from qubesbuilder.config import Config
 from qubesbuilder.plugins.installer import InstallerPlugin
+from qubesbuilder.pluginmanager import PluginManager
 
 
 @aliased_group("installer", chain=True)
@@ -32,25 +33,8 @@ def _installer_stage(
         raise CliError("One and only one host distribution must be provided.")
 
     dist = host_distributions[0]
-
-    installer_plugin = InstallerPlugin(
-        dist=dist,
-        plugins_dir=config.get_plugins_dir(),
-        executor=executor,
-        artifacts_dir=config.get_artifacts_dir(),
-        verbose=config.verbose,
-        debug=config.debug,
-        use_qubes_repo=config.get("use-qubes-repo"),
-        repository_upload_remote_host=config.get("repository-upload-remote-host", {}),
-        gpg_client=config.get("gpg-client", "gpg"),
-        sign_key=config.get("sign-key", {}),
-        qubes_release=config.get("qubes-release"),
-        installer_kickstart=config.get("iso", {}).get(
-            "kickstart", "conf/qubes-kickstart.cfg"
-        ),
-        iso_flavor=config.get("iso", {}).get("flavor", None),
-        iso_use_kernel_latest=config.get("iso", {}).get("use-kernel-latest", False),
-    )
+    manager = PluginManager(config.get_plugins_dirs())
+    installer_plugin = InstallerPlugin(dist=dist, config=config, manager=manager)
     installer_plugin.run(stage=stage_name)
 
 

@@ -27,7 +27,10 @@ from qubesbuilder.common import PROJECT_PATH
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.exc import ConfigError
-from qubesbuilder.helpers import get_executor
+from qubesbuilder.executors import ExecutorError
+from qubesbuilder.executors.container import ContainerExecutor
+from qubesbuilder.executors.local import LocalExecutor
+from qubesbuilder.executors.qubes import QubesExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.template import QubesTemplate
 
@@ -73,8 +76,28 @@ class Config:
 
         # log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
 
-        self.verbose = self._conf.get("verbose", False)
-        self.debug = self._conf.get("debug", False)
+    # fmt: off
+    # Mypy does not support this form yet (see https://github.com/python/mypy/issues/8083).
+    verbose: bool                       = property(lambda self: self.get("verbose", False))  # type: ignore
+    debug: bool                         = property(lambda self: self.get("debug", False))  # type: ignore
+    skip_if_exists: bool                = property(lambda self: self.get("skip-if-exists", False))  # type: ignore
+    skip_git_fetch: bool                = property(lambda self: self.get("skip-git-fetch", False))  # type: ignore
+    do_merge: bool                      = property(lambda self: self.get("do-merge", False))  # type: ignore
+    fetch_versions_only: bool           = property(lambda self: self.get("fetch-versions-only", False))  # type: ignore
+    backend_vmm: str                    = property(lambda self: self.get("backend-vmm", ""))  # type: ignore
+    use_qubes_repo: Dict                = property(lambda self: self.get("use-qubes-repo", {}))  # type: ignore
+    gpg_client: str                     = property(lambda self: self.get("gpg-client", "gpg"))  # type: ignore
+    sign_key: dict                      = property(lambda self: self.get("sign-key", {}))  # type: ignore
+    min_age_days: int                   = property(lambda self: self.get("min-age-days", 5))  # type: ignore
+    qubes_release: str                  = property(lambda self: self.get("qubes-release", ""))  # type: ignore
+    repository_publish: Dict            = property(lambda self: self.get("repository-publish", {}))  # type: ignore
+    repository_upload_remote_host: Dict = property(lambda self: self.get("repository-upload-remote-host", {}))  # type: ignore
+    template_root_size: str             = property(lambda self: self.get("template-root-size", "20G"))  # type: ignore
+    template_root_with_partitions: bool = property(lambda self: self.get("template-root-with-partitions", True))  # type: ignore
+    installer_kickstart: str            = property(lambda self: self.get("iso", {}).get("kickstart", "conf/qubes-kickstart.cfg"))  # type: ignore
+    iso_flavor: str                     = property(lambda self: self.get("iso", {}).get("flavor", ""))  # type: ignore
+    iso_use_kernel_latest: bool         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))  # type: ignore
+    # fmt: on
 
     def __repr__(self):
         return f"<Config {str(self._conf_file)}>"
@@ -236,9 +259,12 @@ class Config:
     def get_logs_dir(self):
         return self._artifacts_dir / "logs"
 
-    @staticmethod
-    def get_plugins_dir():
-        return PROJECT_PATH / "qubesbuilder" / "plugins"
+    def get_plugins_dirs(self):
+        default_plugins_dir = PROJECT_PATH / "qubesbuilder" / "plugins"
+        plugins_dirs = self._conf.get("plugins-dirs", [])
+        if default_plugins_dir not in plugins_dirs:
+            plugins_dirs = [default_plugins_dir] + plugins_dirs
+        return plugins_dirs
 
     def get_executor_from_config(self, stage_name: str):
         executor = None
@@ -259,11 +285,11 @@ class Config:
             ):
                 executor_type = stage_options["executor"]["type"]
                 executor_options = stage_options["executor"].get("options", {})
-                executor = get_executor(executor_type, executor_options)
+                executor = self.get_executor(executor_type, executor_options)
                 break
         if not executor:
             # FIXME: Review and enhance default executor definition
-            executor = get_executor(executor_type, executor_options)
+            executor = self.get_executor(executor_type, executor_options)
         return executor
 
     def get_component_from_dict_or_string(
@@ -294,3 +320,15 @@ class Config:
             timeout=options.get("timeout", timeout),
         )
         return component
+
+    @staticmethod
+    def get_executor(executor_type, executor_options):
+        if executor_type in ("podman", "docker"):
+            executor = ContainerExecutor(executor_type, **executor_options)
+        elif executor_type == "local":
+            executor = LocalExecutor(**executor_options)  # type: ignore
+        elif executor_type == "qubes":
+            executor = QubesExecutor(**executor_options)  # type: ignore
+        else:
+            raise ExecutorError("Cannot determine which executor to use.")
+        return executor

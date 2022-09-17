@@ -71,10 +71,10 @@ def init_context_obj(
 
     # verbose or debug is overridden by cli options
     if verbose is not None:
-        obj.config.verbose = verbose
+        obj.config.set("verbose", verbose)
 
     if debug is not None:
-        obj.config.debug = debug
+        obj.config.set("debug", debug)
 
     if log_file:
         file_path = Path(log_file).resolve()

@@ -5,7 +5,7 @@ import click
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.common import STAGES, STAGES_ALIAS
 from qubesbuilder.config import Config
-from qubesbuilder.helpers import get_template_plugins
+from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
 
 
@@ -27,30 +27,11 @@ def _template_stage(
     """
     click.echo(f"Running template stage: {stage_name}")
 
-    kwargs = {
-        "plugins_dir": config.get_plugins_dir(),
-        "executor": config.get_executor_from_config(stage_name=stage_name),
-        "artifacts_dir": config.get_artifacts_dir(),
-        "verbose": config.verbose,
-        "debug": config.debug,
-        "skip_if_exists": config.get("reuse-fetched-source", False),
-        "skip_git_fetch": config.get("skip-git-fetch", False),
-        "do_merge": config.get("do-merge", False),
-        "fetch_versions_only": config.get("fetch-versions-only", False),
-        "backend_vmm": config.get("backend-vmm", "xen"),
-        "use_qubes_repo": config.get("use-qubes-repo", {}),
-        "gpg_client": config.get("gpg-client", "gpg"),
-        "sign_key": config.get("sign-key", {}),
-        "min_age_days": config.get("min-age-days", 5),
-        "qubes_release": config.get("qubes-release", {}),
-        "repository_publish": config.get("repository-publish", {}),
-        "repository_upload_remote_host": config.get(
-            "repository-upload-remote-host", {}
-        ),
-    }
-
     # Qubes templates
-    plugins = get_template_plugins(templates=templates, **kwargs)
+    manager = PluginManager(directories=config.get_plugins_dirs())
+    plugins = manager.get_template_instances(
+        stage=stage_name, config=config, templates=templates
+    )
     for p in plugins:
         p.run(stage=stage_name, template_timestamp=template_timestamp)
 

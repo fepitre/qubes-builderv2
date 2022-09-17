@@ -22,9 +22,12 @@ import tempfile
 from pathlib import Path
 
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors import ExecutorError
+from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_deb import provision_local_repository
 from qubesbuilder.plugins.sign import SignPlugin, SignError
@@ -32,7 +35,7 @@ from qubesbuilder.plugins.sign import SignPlugin, SignError
 log = get_logger("sign_deb")
 
 
-class DEBSignPlugin(SignPlugin):
+class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
     """
     DEBSignPlugin manages Debian distribution sign.
 
@@ -50,39 +53,11 @@ class DEBSignPlugin(SignPlugin):
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        gpg_client: str,
-        sign_key: dict,
-        backend_vmm: str,
-        verbose: bool = False,
-        debug: bool = False,
+        config: Config,
+        manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(
-            component=component,
-            dist=dist,
-            plugins_dir=plugins_dir,
-            executor=executor,
-            artifacts_dir=artifacts_dir,
-            gpg_client=gpg_client,
-            sign_key=sign_key,
-            verbose=verbose,
-            debug=debug,
-            backend_vmm=backend_vmm,
-        )
-
-    @classmethod
-    def from_args(cls, stage, components, distributions, **kwargs):
-        instances = []
-        if stage in cls.stages:
-            for component in components:
-                for dist in distributions:
-                    if not dist.is_deb():
-                        continue
-                    instances.append(cls(component=component, dist=dist, **kwargs))
-        return instances
+        super().__init__(component=component, dist=dist, config=config, manager=manager)
 
     def run(self, stage: str):
         """
@@ -94,16 +69,18 @@ class DEBSignPlugin(SignPlugin):
         if stage != "sign":
             return
 
+        executor = self.config.get_executor_from_config(stage)
+
         # Check if we have a signing key provided
-        sign_key = self.sign_key.get(self.dist.distribution, None) or self.sign_key.get(
-            "deb", None
-        )
+        sign_key = self.config.sign_key.get(
+            self.dist.distribution, None
+        ) or self.config.sign_key.get("deb", None)
         if not sign_key:
             log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
-        if not self.gpg_client:
+        if not self.config.gpg_client:
             log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
@@ -123,11 +100,11 @@ class DEBSignPlugin(SignPlugin):
         temp_dir = Path(tempfile.mkdtemp())
         sign_key_asc = temp_dir / f"{sign_key}.asc"
         cmd = [
-            f"{self.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
+            f"{self.config.gpg_client} --armor --export {sign_key} > {sign_key_asc}",
             f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}",
         ]
         try:
-            self.executor.run(cmd)
+            executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}: Failed to export public signing key."
             raise SignError(msg) from e
@@ -151,9 +128,9 @@ class DEBSignPlugin(SignPlugin):
                     f"{self.component}:{self.dist}:{directory}: Signing from '{build_info['changes']}' info."
                 )
                 cmd = [
-                    f"debsign -k{sign_key} -p{self.gpg_client} --no-re-sign {build_artifacts_dir / build_info['changes']}"
+                    f"debsign -k{sign_key} -p{self.config.gpg_client} --no-re-sign {build_artifacts_dir / build_info['changes']}"
                 ]
-                self.executor.run(cmd)
+                executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{directory}: Failed to sign Debian packages."
                 raise SignError(msg) from e

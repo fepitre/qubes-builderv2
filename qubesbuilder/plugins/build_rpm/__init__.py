@@ -24,10 +24,13 @@ from pathlib import Path
 from typing import List
 
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
+from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import RPMDistributionPlugin
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
 log = get_logger("build_rpm")
@@ -79,7 +82,7 @@ def provision_local_repository(
         raise BuildError(msg) from e
 
 
-class RPMBuildPlugin(BuildPlugin):
+class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
     """
     RPMBuildPlugin manages RPM distribution build.
 
@@ -93,41 +96,15 @@ class RPMBuildPlugin(BuildPlugin):
     stages = ["build"]
     dependencies = ["source_rpm", "build"]
 
-    @classmethod
-    def from_args(cls, stage, components, distributions, **kwargs):
-        instances = []
-        if stage in cls.stages:
-            for component in components:
-                for dist in distributions:
-                    if not dist.is_rpm():
-                        continue
-                    instances.append(cls(component=component, dist=dist, **kwargs))
-        return instances
-
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        backend_vmm: str,
-        verbose: bool = False,
-        debug: bool = False,
-        use_qubes_repo: dict = None,
+        config: Config,
+        manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(
-            component=component,
-            dist=dist,
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-            use_qubes_repo=use_qubes_repo,
-            backend_vmm=backend_vmm,
-        )
+        super().__init__(component=component, dist=dist, config=config, manager=manager)
 
         # Add some environment variables needed to render mock root configuration
         self.environment.update(
@@ -136,14 +113,14 @@ class RPMBuildPlugin(BuildPlugin):
                 "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
             }
         )
-        if self.use_qubes_repo:
+        if self.config.use_qubes_repo:
             self.environment.update(
                 {
                     "USE_QUBES_REPO_VERSION": str(
-                        self.use_qubes_repo.get("version", None)
+                        self.config.use_qubes_repo.get("version", None)
                     ),
                     "USE_QUBES_REPO_TESTING": "1"
-                    if self.use_qubes_repo.get("testing", None)
+                    if self.config.use_qubes_repo.get("testing", None)
                     else "0",
                 }
             )
@@ -157,6 +134,9 @@ class RPMBuildPlugin(BuildPlugin):
 
         if stage != "build":
             return
+
+        executor = self.config.get_executor_from_config(stage)
+
         distfiles_dir = self.get_component_distfiles_dir()
         artifacts_dir = self.get_dist_component_artifacts_dir(stage)
         rpms_dir = artifacts_dir / "rpm"
@@ -215,29 +195,35 @@ class RPMBuildPlugin(BuildPlugin):
 
             # Copy-in distfiles, content and source RPM
             copy_in = [
-                (self.plugins_dir / "build_rpm", self.executor.get_plugins_dir()),
-                (repository_dir, self.executor.get_repository_dir()),
+                (repository_dir, executor.get_repository_dir()),
                 (
                     prep_artifacts_dir / source_info["srpm"],
-                    self.executor.get_build_dir(),
+                    executor.get_build_dir(),
+                ),
+                (
+                    self.manager.entities["build_rpm"].directory,
+                    executor.get_plugins_dir(),
                 ),
             ] + [
-                (self.plugins_dir / plugin, self.executor.get_plugins_dir())
-                for plugin in self.dependencies
+                (
+                    self.manager.entities[dependency].directory,
+                    executor.get_plugins_dir(),
+                )
+                for dependency in self.dependencies
             ]
 
             copy_out = [
-                (self.executor.get_build_dir() / "rpm" / rpm, rpms_dir)
+                (executor.get_build_dir() / "rpm" / rpm, rpms_dir)
                 for rpm in source_info["rpms"]
             ]
-            copy_out += [(self.executor.get_build_dir() / buildinfo_file, rpms_dir)]
+            copy_out += [(executor.get_build_dir() / buildinfo_file, rpms_dir)]
 
             # Createrepo of local builder repository and ensure 'mock' group can access
             # build directory
             cmd = [
-                f"cd {self.executor.get_repository_dir()}",
+                f"cd {executor.get_repository_dir()}",
                 "createrepo_c .",
-                f"sudo chown -R {self.executor.get_user()}:mock {self.executor.get_build_dir()}",
+                f"sudo chown -R {executor.get_user()}:mock {executor.get_build_dir()}",
             ]
 
             # Run 'mock' to build source RPM
@@ -250,45 +236,43 @@ class RPMBuildPlugin(BuildPlugin):
             )
             chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():
-                copy_in += [(chroot_cache_topdir, self.executor.get_cache_dir())]
-                cmd += [
-                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
-                ]
+                copy_in += [(chroot_cache_topdir, executor.get_cache_dir())]
+                cmd += [f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"]
 
             # On Fedora /usr/bin/mock is a (consolehelper) wrapper,
             # which among other things, strips environment variables
             mock_cmd = [
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                 "/usr/libexec/mock/mock --no-cleanup-after",
-                f"--rebuild {self.executor.get_build_dir() / source_info['srpm']}",
-                f"--root {self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
-                f"--resultdir={self.executor.get_build_dir()}",
+                f"--rebuild {executor.get_build_dir() / source_info['srpm']}",
+                f"--root {executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
+                f"--resultdir={executor.get_build_dir()}",
             ]
-            if isinstance(self.executor, ContainerExecutor):
+            if isinstance(executor, ContainerExecutor):
                 msg = f"{self.component}:{self.dist}:{build}: Mock isolation set to 'simple', build has full network access. Use 'qubes' executor for network-isolated build."
                 log.warning(msg)
                 mock_cmd.append("--isolation=simple")
             else:
                 mock_cmd.append("--isolation=nspawn")
-            if self.verbose:
+            if self.config.verbose:
                 mock_cmd.append("--verbose")
-            if self.use_qubes_repo and self.use_qubes_repo.get("version"):
+            if self.config.use_qubes_repo and self.config.use_qubes_repo.get("version"):
                 mock_cmd.append("--enablerepo=qubes-current")
-            if self.use_qubes_repo and self.use_qubes_repo.get("testing"):
+            if self.config.use_qubes_repo and self.config.use_qubes_repo.get("testing"):
                 mock_cmd.append("--enablerepo=qubes-current-testing")
             if chroot_cache.exists():
                 mock_cmd.append("--plugin-option=root_cache:age_check=False")
 
             files_inside_executor_with_placeholders = [
-                f"{self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
+                f"{executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
             ]
 
             self.environment["BIND_MOUNT_ENABLE"] = "True"
             buildinfo_cmd = [
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION,BIND_MOUNT_ENABLE",
                 "/usr/libexec/mock/mock",
-                f"--root {self.executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
-                f'--chroot /plugins/build_rpm/scripts/rpmbuildinfo /builddir/build/SRPMS/{source_info["srpm"]} > {self.executor.get_build_dir()}/{buildinfo_file}',
+                f"--root {executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
+                f'--chroot /plugins/build_rpm/scripts/rpmbuildinfo /builddir/build/SRPMS/{source_info["srpm"]} > {executor.get_build_dir()}/{buildinfo_file}',
             ]
 
             cmd += [" ".join(mock_cmd), " ".join(buildinfo_cmd)]
@@ -302,11 +286,11 @@ class RPMBuildPlugin(BuildPlugin):
             else:
                 dist_tag = self.dist.tag
             cmd += [
-                f"{self.executor.get_plugins_dir()}/build_rpm/scripts/filter-packages-by-dist-arch "
-                f"{self.executor.get_build_dir()} {self.executor.get_build_dir()}/rpm {dist_tag} {self.dist.architecture}"
+                f"{executor.get_plugins_dir()}/build_rpm/scripts/filter-packages-by-dist-arch "
+                f"{executor.get_build_dir()} {executor.get_build_dir()}/rpm {dist_tag} {self.dist.architecture}"
             ]
             try:
-                self.executor.run(
+                executor.run(
                     cmd,
                     copy_in,
                     copy_out,

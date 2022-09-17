@@ -24,18 +24,18 @@ from pathlib import Path
 
 from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import (
-    Executor,
-    ExecutorError,
-)
+from qubesbuilder.executors import ExecutorError
+from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.log import get_logger
+from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 log = get_logger("source_deb")
 
 
-class DEBSourcePlugin(SourcePlugin):
+class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
     """
     DEBSourcePlugin manages Debian distribution source.
 
@@ -49,41 +49,15 @@ class DEBSourcePlugin(SourcePlugin):
     stages = ["prep"]
     dependencies = ["fetch", "source"]
 
-    @classmethod
-    def from_args(cls, stage, components, distributions, **kwargs):
-        instances = []
-        if stage in cls.stages:
-            for component in components:
-                for dist in distributions:
-                    if not dist.is_deb():
-                        continue
-                    instances.append(cls(component=component, dist=dist, **kwargs))
-        return instances
-
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        executor: Executor,
-        plugins_dir: Path,
-        artifacts_dir: Path,
-        backend_vmm: str,
-        verbose: bool = False,
-        debug: bool = False,
-        skip_if_exists: bool = False,
+        config: Config,
+        manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(
-            component=component,
-            dist=dist,
-            executor=executor,
-            plugins_dir=plugins_dir,
-            artifacts_dir=artifacts_dir,
-            verbose=verbose,
-            debug=debug,
-            skip_if_exists=skip_if_exists,
-            backend_vmm=backend_vmm,
-        )
+        super().__init__(component=component, dist=dist, config=config, manager=manager)
 
         self.environment.update(
             {
@@ -103,6 +77,8 @@ class DEBSourcePlugin(SourcePlugin):
 
         if stage != "prep":
             return
+
+        executor = self.config.get_executor_from_config(stage)
 
         # Check if we have Debian related content defined
         if not self.parameters.get("build", None):
@@ -142,7 +118,7 @@ class DEBSourcePlugin(SourcePlugin):
             temp_dir = Path(tempfile.mkdtemp())
 
             # Source component directory inside executors
-            source_dir = self.executor.get_builder_dir() / self.component.name
+            source_dir = executor.get_builder_dir() / self.component.name
 
             # directory basename will be used as prefix for some artifacts
             directory_bn = directory.mangle()
@@ -154,27 +130,32 @@ class DEBSourcePlugin(SourcePlugin):
 
             # Generate package release name
             copy_in = [
-                (self.component.source_dir, self.executor.get_builder_dir()),
-                (self.plugins_dir / "source_deb", self.executor.get_plugins_dir()),
+                (self.component.source_dir, executor.get_builder_dir()),
+                (
+                    self.manager.entities["source_deb"].directory,
+                    executor.get_plugins_dir(),
+                ),
+            ] + [
+                (
+                    self.manager.entities[dependency].directory,
+                    executor.get_plugins_dir(),
+                )
+                for dependency in self.dependencies
             ]
-            for dependency in self.dependencies:
-                copy_in += [
-                    (self.plugins_dir / dependency, self.executor.get_plugins_dir())
-                ]
 
             copy_out = [(source_dir / f"{directory_bn}_package_release_name", temp_dir)]
 
             # Update changelog
             cmd = [
-                f"{self.executor.get_plugins_dir()}/source_deb/scripts/modify-changelog-for-build "
+                f"{executor.get_plugins_dir()}/source_deb/scripts/modify-changelog-for-build "
                 f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
             ]
 
             cmd += [
-                f"{self.executor.get_plugins_dir()}/source_deb/scripts/get-source-info {source_dir} {directory}"
+                f"{executor.get_plugins_dir()}/source_deb/scripts/get-source-info {source_dir} {directory}"
             ]
             try:
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
                 msg = (
                     f"{self.component}:{self.dist}:{directory}: "
@@ -225,48 +206,55 @@ class DEBSourcePlugin(SourcePlugin):
 
             # Copy-in distfiles, dependencies, source and Debian directory
             copy_in = [
-                (self.component.source_dir, self.executor.get_builder_dir()),
-                (self.plugins_dir / "source_deb", self.executor.get_plugins_dir()),
-                (distfiles_dir, self.executor.get_distfiles_dir()),
+                (self.component.source_dir, executor.get_builder_dir()),
+                (distfiles_dir, executor.get_distfiles_dir()),
+                (
+                    self.manager.entities["source_deb"].directory,
+                    executor.get_plugins_dir(),
+                ),
+            ] + [
+                (
+                    self.manager.entities[dependency].directory,
+                    executor.get_plugins_dir(),
+                )
+                for dependency in self.dependencies
             ]
-            for dependency in self.dependencies:
-                copy_in += [
-                    (self.plugins_dir / dependency, self.executor.get_plugins_dir())
-                ]
 
             # Copy-out Debian source package (.orig.tar.*, .dsc and .debian.tar.xz)
             copy_out = [
-                (self.executor.get_builder_dir() / source_dsc, artifacts_dir),
-                (self.executor.get_builder_dir() / source_debian, artifacts_dir),
+                (executor.get_builder_dir() / source_dsc, artifacts_dir),
+                (executor.get_builder_dir() / source_debian, artifacts_dir),
                 (
-                    self.executor.get_builder_dir() / f"{directory_bn}_packages.list",
+                    executor.get_builder_dir() / f"{directory_bn}_packages.list",
                     temp_dir,
                 ),
             ]
             if package_type == "quilt":
-                copy_out += [
-                    (self.executor.get_builder_dir() / source_orig, artifacts_dir)
-                ]
+                copy_out += [(executor.get_builder_dir() / source_orig, artifacts_dir)]
 
             # Init command with .qubesbuilder command entries
             cmd = self.parameters.get("source", {}).get("commands", [])
 
             # Update changelog
             cmd += [
-                f"{self.executor.get_plugins_dir()}/source_deb/scripts/modify-changelog-for-build "
+                f"{executor.get_plugins_dir()}/source_deb/scripts/modify-changelog-for-build "
                 f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
             ]
 
             if package_type == "quilt":
                 if self.component.is_salt():
                     copy_in += [
-                        (self.plugins_dir / "source/salt/Makefile.install", source_dir)
+                        (
+                            self.manager.entities["source"].directory
+                            / "salt/Makefile.install",
+                            source_dir,
+                        )
                     ]
                     cmd += [
-                        f"{self.executor.get_plugins_dir()}/source/salt/yaml-dumper "
+                        f"{executor.get_plugins_dir()}/source/salt/yaml-dumper "
                         "--env VERBOSE "
                         f"--outfile {source_dir}/Makefile.vars -- "
-                        f"{self.executor.get_plugins_dir()}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
+                        f"{executor.get_plugins_dir()}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
                     ]
 
                 # Create archive only if no external files are provided or if explicitly requested.
@@ -274,27 +262,27 @@ class DEBSourcePlugin(SourcePlugin):
                 create_archive = self.parameters.get("create-archive", create_archive)
                 if create_archive:
                     cmd += [
-                        f"{self.executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
-                        f"mv {source_dir}/{source_orig} {self.executor.get_builder_dir()}",
+                        f"{executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
+                        f"mv {source_dir}/{source_orig} {executor.get_builder_dir()}",
                     ]
                 for file in self.parameters.get("files", []):
                     fn = os.path.basename(file["url"])
                     cmd.append(
-                        f"mv {self.executor.get_distfiles_dir() / self.component.name / fn} {self.executor.get_builder_dir()}/{source_orig}"
+                        f"mv {executor.get_distfiles_dir() / self.component.name / fn} {executor.get_builder_dir()}/{source_orig}"
                     )
 
             gen_packages_list_cmd = [
-                f"{self.executor.get_plugins_dir()}/source_deb/scripts/debian-get-packages-list",
-                str(self.executor.get_builder_dir() / source_dsc),
+                f"{executor.get_plugins_dir()}/source_deb/scripts/debian-get-packages-list",
+                str(executor.get_builder_dir() / source_dsc),
                 str(self.dist.version),
-                f">{self.executor.get_builder_dir()}/{directory_bn}_packages.list",
+                f">{executor.get_builder_dir()}/{directory_bn}_packages.list",
             ]
 
             # Run 'dpkg-source' inside build directory
             if package_type == "quilt":
                 cmd += [
-                    f"mkdir -p {self.executor.get_build_dir()}",
-                    f"cd {self.executor.get_build_dir()}",
+                    f"mkdir -p {executor.get_build_dir()}",
+                    f"cd {executor.get_build_dir()}",
                     f"cp -a {source_dir / directory} .",
                 ]
             else:
@@ -302,7 +290,7 @@ class DEBSourcePlugin(SourcePlugin):
                 # to not have a different one at build stage. For example,
                 # 'build/' vs 'qubes-utils_4.1.16+deb11u1/'
                 build_dir = str(
-                    self.executor.get_builder_dir() / package_release_name_full
+                    executor.get_builder_dir() / package_release_name_full
                 ).replace("_", "-")
                 cmd += [
                     f"mkdir -p {build_dir}",
@@ -314,7 +302,7 @@ class DEBSourcePlugin(SourcePlugin):
                 " ".join(gen_packages_list_cmd),
             ]
             try:
-                self.executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(cmd, copy_in, copy_out, environment=self.environment)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{directory}: Failed to generate source: {str(e)}."
                 raise SourceError(msg) from e
