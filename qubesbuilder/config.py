@@ -82,7 +82,6 @@ class Config:
     debug: Union[bool, property]                         = property(lambda self: self.get("debug", False))
     force_fetch: Union[bool, property]                   = property(lambda self: self.get("force-fetch", False))
     skip_git_fetch: Union[bool, property]                = property(lambda self: self.get("skip-git-fetch", True))
-    do_merge: Union[bool, property]                      = property(lambda self: self.get("do-merge", False))
     fetch_versions_only: Union[bool, property]           = property(lambda self: self.get("fetch-versions-only", False))
     backend_vmm: Union[str, property]                    = property(lambda self: self.get("backend-vmm", ""))
     use_qubes_repo: Union[Dict, property]                = property(lambda self: self.get("use-qubes-repo", {}))
