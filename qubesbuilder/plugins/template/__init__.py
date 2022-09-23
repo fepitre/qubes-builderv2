@@ -562,7 +562,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             # template distribution
             comps = (
                 self.manager.entities["publish_rpm"].directory
-                / "comps/comps-{self.dist.package_set}.xml"
+                / f"comps/comps-{self.dist.package_set}.xml"
             )
             create_skeleton_cmd = [
                 f"{self.manager.entities['publish_rpm'].directory}//scripts/create-skeleton",

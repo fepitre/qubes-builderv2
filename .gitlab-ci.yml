@@ -49,6 +49,15 @@ shellcheck:
   script:
     - shellcheck -x -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
 
+# 'qubes' is a shell executor so docker image will be stored in local docker system
+generate-container-image:
+  stage: test
+  tags:
+    - qubes
+  script:
+    - sudo dnf install -y mock
+    - tools/generate-container-image.sh docker fedora-36-x86_64
+
 .pytest:
   stage: test
   tags:
@@ -62,13 +71,12 @@ shellcheck:
         coverage_format: cobertura
         path: artifacts/coverage.xml
   coverage: '/TOTAL.*\s(\d+)%/'
+  needs:
+    - generate-container-image
   variables:
     PYTHONPATH: .
     TMPDIR: /home/user
     PYTEST_ARGS: -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
-  before_script:
-    - sudo dnf install -y python3-pathspec mock
-    - tools/generate-container-image.sh docker fedora-36-x86_64
 
 pytest:
   extends: .pytest
