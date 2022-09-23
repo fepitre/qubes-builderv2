@@ -78,25 +78,25 @@ class Config:
 
     # fmt: off
     # Mypy does not support this form yet (see https://github.com/python/mypy/issues/8083).
-    verbose: bool                       = property(lambda self: self.get("verbose", False))  # type: ignore
-    debug: bool                         = property(lambda self: self.get("debug", False))  # type: ignore
-    skip_if_exists: bool                = property(lambda self: self.get("skip-if-exists", False))  # type: ignore
-    skip_git_fetch: bool                = property(lambda self: self.get("skip-git-fetch", False))  # type: ignore
-    do_merge: bool                      = property(lambda self: self.get("do-merge", False))  # type: ignore
-    fetch_versions_only: bool           = property(lambda self: self.get("fetch-versions-only", False))  # type: ignore
-    backend_vmm: str                    = property(lambda self: self.get("backend-vmm", ""))  # type: ignore
-    use_qubes_repo: Dict                = property(lambda self: self.get("use-qubes-repo", {}))  # type: ignore
-    gpg_client: str                     = property(lambda self: self.get("gpg-client", "gpg"))  # type: ignore
-    sign_key: dict                      = property(lambda self: self.get("sign-key", {}))  # type: ignore
-    min_age_days: int                   = property(lambda self: self.get("min-age-days", 5))  # type: ignore
-    qubes_release: str                  = property(lambda self: self.get("qubes-release", ""))  # type: ignore
-    repository_publish: Dict            = property(lambda self: self.get("repository-publish", {}))  # type: ignore
-    repository_upload_remote_host: Dict = property(lambda self: self.get("repository-upload-remote-host", {}))  # type: ignore
-    template_root_size: str             = property(lambda self: self.get("template-root-size", "20G"))  # type: ignore
-    template_root_with_partitions: bool = property(lambda self: self.get("template-root-with-partitions", True))  # type: ignore
-    installer_kickstart: str            = property(lambda self: self.get("iso", {}).get("kickstart", "conf/qubes-kickstart.cfg"))  # type: ignore
-    iso_flavor: str                     = property(lambda self: self.get("iso", {}).get("flavor", ""))  # type: ignore
-    iso_use_kernel_latest: bool         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))  # type: ignore
+    verbose: Union[bool, property]                       = property(lambda self: self.get("verbose", False))
+    debug: Union[bool, property]                         = property(lambda self: self.get("debug", False))
+    skip_if_exists: Union[bool, property]                = property(lambda self: self.get("skip-if-exists", False))
+    skip_git_fetch: Union[bool, property]                = property(lambda self: self.get("skip-git-fetch", False))
+    do_merge: Union[bool, property]                      = property(lambda self: self.get("do-merge", False))
+    fetch_versions_only: Union[bool, property]           = property(lambda self: self.get("fetch-versions-only", False))
+    backend_vmm: Union[str, property]                    = property(lambda self: self.get("backend-vmm", ""))
+    use_qubes_repo: Union[Dict, property]                = property(lambda self: self.get("use-qubes-repo", {}))
+    gpg_client: Union[str, property]                     = property(lambda self: self.get("gpg-client", "gpg"))
+    sign_key: Union[Dict, property]                      = property(lambda self: self.get("sign-key", {}))
+    min_age_days: Union[int, property]                   = property(lambda self: self.get("min-age-days", 5))
+    qubes_release: Union[str, property]                  = property(lambda self: self.get("qubes-release", ""))
+    repository_publish: Union[Dict, property]            = property(lambda self: self.get("repository-publish", {}))
+    repository_upload_remote_host: Union[Dict, property] = property(lambda self: self.get("repository-upload-remote-host", {}))
+    template_root_size: Union[str, property]             = property(lambda self: self.get("template-root-size", "20G"))
+    template_root_with_partitions: Union[bool, property] = property(lambda self: self.get("template-root-with-partitions", True))
+    installer_kickstart: Union[str, property]            = property(lambda self: self.get("iso", {}).get("kickstart", "conf/qubes-kickstart.cfg"))
+    iso_flavor: Union[str, property]                     = property(lambda self: self.get("iso", {}).get("flavor", ""))
+    iso_use_kernel_latest: Union[bool, property]         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))
     # fmt: on
 
     def __repr__(self):
