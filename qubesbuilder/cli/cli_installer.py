@@ -17,6 +17,7 @@ def installer():
 
 def _installer_stage(
     config: Config,
+    manager: PluginManager,
     stage_name: str,
 ):
     """
@@ -33,7 +34,6 @@ def _installer_stage(
         raise CliError("One and only one host distribution must be provided.")
 
     dist = host_distributions[0]
-    manager = PluginManager(config.get_plugins_dirs())
     installer_plugin = InstallerPlugin(dist=dist, config=config, manager=manager)
     installer_plugin.run(stage=stage_name)
 
@@ -42,13 +42,13 @@ def _installer_stage(
 @click.pass_obj
 def _all_installer_stage(obj: ContextObj):
     for s in STAGES:
-        _installer_stage(config=obj.config, stage_name=s)
+        _installer_stage(config=obj.config, manager=obj.manager, stage_name=s)
 
 
 @installer.command()
 @click.pass_obj
 def fetch(obj: ContextObj):
-    _installer_stage(config=obj.config, stage_name="fetch")
+    _installer_stage(config=obj.config, manager=obj.manager, stage_name="fetch")
 
 
 @installer.command()
@@ -61,6 +61,7 @@ def fetch(obj: ContextObj):
 def prep(obj: ContextObj, template_timestamp: str):
     _installer_stage(
         config=obj.config,
+        manager=obj.manager,
         stage_name="prep",
     )
 
@@ -68,43 +69,43 @@ def prep(obj: ContextObj, template_timestamp: str):
 @installer.command()
 @click.pass_obj
 def build(obj: ContextObj):
-    _installer_stage(config=obj.config, stage_name="build")
+    _installer_stage(config=obj.config, manager=obj.manager, stage_name="build")
 
 
 @installer.command()
 @click.pass_obj
 def post(obj: ContextObj):
-    _installer_stage(config=obj.config, stage_name="post")
+    _installer_stage(config=obj.config, manager=obj.manager, stage_name="post")
 
 
 @installer.command()
 @click.pass_obj
 def verify(obj: ContextObj):
-    _installer_stage(config=obj.config, stage_name="verify")
+    _installer_stage(config=obj.config, manager=obj.manager, stage_name="verify")
 
 
 @installer.command()
 @click.pass_obj
 def sign(obj: ContextObj):
-    _installer_stage(config=obj.config, stage_name="sign")
+    _installer_stage(config=obj.config, manager=obj.manager, stage_name="sign")
 
 
 @installer.command()
 @click.pass_obj
 def publish(obj: ContextObj):
-    _installer_stage(config=obj.config, stage_name="publish")
+    _installer_stage(config=obj.config, manager=obj.manager, stage_name="publish")
 
 
 @installer.command()
 @click.pass_obj
 def upload(obj: ContextObj):
-    _installer_stage(config=obj.config, stage_name="upload")
+    _installer_stage(config=obj.config, manager=obj.manager, stage_name="upload")
 
 
 @installer.command()
 @click.pass_obj
 def init_cache(obj: ContextObj):
-    _installer_stage(config=obj.config, stage_name="init-cache")
+    _installer_stage(config=obj.config, manager=obj.manager, stage_name="init-cache")
 
 
 installer.add_command(init_cache, name="init-cache")

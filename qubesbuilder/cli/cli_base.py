@@ -28,6 +28,7 @@ from typing import Callable
 import click
 
 from qubesbuilder.config import Config
+from qubesbuilder.pluginmanager import PluginManager
 
 
 class ContextObj:
@@ -37,6 +38,7 @@ class ContextObj:
 
     def __init__(self, config: Config):
         self.config = config
+        self.manager = PluginManager(config.get_plugins_dirs())
         self.components = None
         self.distributions = None
         self.templates = None

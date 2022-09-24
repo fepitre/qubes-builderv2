@@ -18,6 +18,7 @@ def template():
 
 def _template_stage(
     config: Config,
+    manager: PluginManager,
     templates: List[QubesTemplate],
     stage_name: str,
     template_timestamp: str = None,
@@ -28,7 +29,6 @@ def _template_stage(
     click.echo(f"Running template stage: {stage_name}")
 
     # Qubes templates
-    manager = PluginManager(directories=config.get_plugins_dirs())
     plugins = manager.get_template_instances(
         stage=stage_name, config=config, templates=templates
     )
@@ -40,13 +40,23 @@ def _template_stage(
 @click.pass_obj
 def _all_template_stage(obj: ContextObj):
     for s in STAGES:
-        _template_stage(config=obj.config, templates=obj.templates, stage_name=s)
+        _template_stage(
+            config=obj.config,
+            manager=obj.manager,
+            templates=obj.templates,
+            stage_name=s,
+        )
 
 
 @template.command()
 @click.pass_obj
 def fetch(obj: ContextObj):
-    _template_stage(config=obj.config, templates=obj.templates, stage_name="fetch")
+    _template_stage(
+        config=obj.config,
+        manager=obj.manager,
+        templates=obj.templates,
+        stage_name="fetch",
+    )
 
 
 @template.command()
@@ -59,6 +69,7 @@ def fetch(obj: ContextObj):
 def prep(obj: ContextObj, template_timestamp: str):
     _template_stage(
         config=obj.config,
+        manager=obj.manager,
         templates=obj.templates,
         stage_name="prep",
         template_timestamp=template_timestamp,
@@ -68,37 +79,67 @@ def prep(obj: ContextObj, template_timestamp: str):
 @template.command()
 @click.pass_obj
 def build(obj: ContextObj):
-    _template_stage(config=obj.config, templates=obj.templates, stage_name="build")
+    _template_stage(
+        config=obj.config,
+        manager=obj.manager,
+        templates=obj.templates,
+        stage_name="build",
+    )
 
 
 @template.command()
 @click.pass_obj
 def post(obj: ContextObj):
-    _template_stage(config=obj.config, templates=obj.templates, stage_name="post")
+    _template_stage(
+        config=obj.config,
+        manager=obj.manager,
+        templates=obj.templates,
+        stage_name="post",
+    )
 
 
 @template.command()
 @click.pass_obj
 def verify(obj: ContextObj):
-    _template_stage(config=obj.config, templates=obj.templates, stage_name="verify")
+    _template_stage(
+        config=obj.config,
+        manager=obj.manager,
+        templates=obj.templates,
+        stage_name="verify",
+    )
 
 
 @template.command()
 @click.pass_obj
 def sign(obj: ContextObj):
-    _template_stage(config=obj.config, templates=obj.templates, stage_name="sign")
+    _template_stage(
+        config=obj.config,
+        manager=obj.manager,
+        templates=obj.templates,
+        stage_name="sign",
+    )
 
 
 @template.command()
 @click.pass_obj
 def publish(obj: ContextObj):
-    _template_stage(config=obj.config, templates=obj.templates, stage_name="publish")
+    _template_stage(
+        config=obj.config,
+        manager=obj.manager,
+        templates=obj.templates,
+        stage_name="publish",
+    )
 
 
 @template.command()
 @click.pass_obj
 def upload(obj: ContextObj):
-    _template_stage(config=obj.config, templates=obj.templates, stage_name="upload")
+    _template_stage(
+        config=obj.config,
+        manager=obj.manager,
+        templates=obj.templates,
+        stage_name="upload",
+    )
 
 
 template.add_command(fetch)

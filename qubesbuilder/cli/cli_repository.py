@@ -26,6 +26,7 @@ def repository():
 
 def _publish(
     config: Config,
+    manager: PluginManager,
     components: List[QubesComponent],
     distributions: List[QubesDistribution],
     templates: List[QubesTemplate],
@@ -33,7 +34,6 @@ def _publish(
     ignore_min_age: bool = False,
     unpublish: bool = False,
 ):
-    manager = PluginManager(config.get_plugins_dirs())
     if repository_publish in COMPONENT_REPOSITORIES:
         plugins = manager.get_component_instances(
             stage="publish",
@@ -77,6 +77,7 @@ def _publish(
 def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = False):
     _publish(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         templates=obj.templates,
@@ -99,6 +100,7 @@ def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = Fal
 def unpublish(obj: ContextObj, repository_publish: str):
     _publish(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         templates=obj.templates,
@@ -120,33 +122,23 @@ def unpublish(obj: ContextObj, repository_publish: str):
 def check_release_status_for_component(obj: ContextObj):
     release_status = _check_release_status_for_component(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
     )
     click.secho(yaml.dump(release_status))
 
 
-def _check_release_status_for_component(config, components, distributions):
+def _check_release_status_for_component(config, manager, components, distributions):
     release_status: Dict[str, Any] = {}
     for component in components:
         release_status.setdefault(component.name, {})
         for dist in distributions:
             release_status[component.name].setdefault(dist.distribution, {})
             try:
-                kwargs = {
-                    "plugins_dirs": config.get_plugins_dirs(),
-                    "executor": config.get_executor_from_config(stage_name="publish"),
-                    "artifacts_dir": config.get_artifacts_dir(),
-                    "verbose": config.verbose,
-                    "debug": config.debug,
-                    "qubes_release": config.get("qubes-release", {}),
-                    "backend_vmm": config.get("backend-vmm", "xen"),
-                    "gpg_client": config.get("gpg-client", "gpg"),
-                    "sign_key": config.get("sign-key", {}),
-                    "min_age_days": config.get("min-age-days", 5),
-                    "repository_publish": config.get("repository-publish", {}),
-                }
-                plugin = PublishPlugin(component=component, dist=dist, **kwargs)
+                plugin = PublishPlugin(
+                    config=config, manager=manager, component=component, dist=dist
+                )
             except ComponentError:
                 release_status[component.name][dist.distribution][
                     "status"
@@ -261,32 +253,18 @@ def check_release_status_for_template(
     obj: ContextObj,
 ):
     release_status = _check_release_status_for_template(
-        config=obj.config, templates=obj.templates
+        config=obj.config, manager=obj.manager, templates=obj.templates
     )
     click.secho(yaml.dump(release_status))
 
 
-def _check_release_status_for_template(config, templates):
+def _check_release_status_for_template(config, manager, templates):
     release_status: Dict[str, Any] = {}
     for template in templates:
         release_status.setdefault(template.name, {})
-        kwargs = {
-            "plugins_dirs": config.get_plugins_dirs(),
-            "executor": config.get_executor_from_config(stage_name="publish"),
-            "artifacts_dir": config.get_artifacts_dir(),
-            "verbose": config.verbose,
-            "debug": config.debug,
-            "qubes_release": config.get("qubes-release", {}),
-            "backend_vmm": config.get("backend-vmm", "xen"),
-            "gpg_client": config.get("gpg-client", "gpg"),
-            "sign_key": config.get("sign-key", {}),
-            "min_age_days": config.get("min-age-days", 5),
-            "repository_publish": config.get("repository-publish", {}),
-            "repository_upload_remote_host": config.get(
-                "repository-upload-remote-host", {}
-            ),
-        }
-        plugin = TemplateBuilderPlugin(template=template, **kwargs)
+        plugin = TemplateBuilderPlugin(
+            template=template, config=config, manager=manager
+        )
         try:
             found = False
             set_template_tag = False

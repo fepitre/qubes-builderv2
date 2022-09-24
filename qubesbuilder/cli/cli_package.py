@@ -19,6 +19,7 @@ def package():
 
 def _component_stage(
     config: Config,
+    manager: PluginManager,
     components: List[QubesComponent],
     distributions: List[QubesDistribution],
     stage_name: str,
@@ -27,7 +28,6 @@ def _component_stage(
     Generic function to trigger stage for a standard component
     """
     click.echo(f"Running stage: {stage_name}")
-    manager = PluginManager(config.get_plugins_dirs())
     plugins = manager.get_component_instances(
         stage=stage_name,
         components=components,
@@ -44,6 +44,7 @@ def _all_package_stage(obj: ContextObj):
     for s in STAGES:
         _component_stage(
             config=obj.config,
+            manager=obj.manager,
             components=obj.components,
             distributions=obj.distributions,
             stage_name=s,
@@ -55,6 +56,7 @@ def _all_package_stage(obj: ContextObj):
 def fetch(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="fetch",
@@ -66,6 +68,7 @@ def fetch(obj: ContextObj):
 def prep(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="prep",
@@ -77,6 +80,7 @@ def prep(obj: ContextObj):
 def build(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="build",
@@ -88,6 +92,7 @@ def build(obj: ContextObj):
 def post(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="post",
@@ -99,6 +104,7 @@ def post(obj: ContextObj):
 def verify(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="verify",
@@ -110,6 +116,7 @@ def verify(obj: ContextObj):
 def sign(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="sign",
@@ -121,6 +128,7 @@ def sign(obj: ContextObj):
 def publish(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="publish",
@@ -132,6 +140,7 @@ def publish(obj: ContextObj):
 def upload(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="upload",
@@ -143,6 +152,7 @@ def upload(obj: ContextObj):
 def init_cache(obj: ContextObj):
     _component_stage(
         config=obj.config,
+        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         stage_name="init-cache",

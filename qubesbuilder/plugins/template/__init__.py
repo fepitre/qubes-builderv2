@@ -243,7 +243,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         sign_key = self.get_sign_key()
         try:
             cmd = [
-                f"{self.config.plugins_dir}/sign_rpm/scripts/sign-rpm "
+                f"{self.manager.entities['sign_rpm'].directory}/scripts/sign-rpm "
                 f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm} --check-only"
             ]
             executor.run(cmd)
