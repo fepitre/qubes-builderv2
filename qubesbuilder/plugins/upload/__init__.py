@@ -51,6 +51,10 @@ class UploadPlugin(DistributionPlugin):
     ):
         super().__init__(config=config, manager=manager, dist=dist)
 
+    @classmethod
+    def supported_distribution(cls, distribution: QubesDistribution):
+        return distribution.is_rpm() or distribution.is_deb()
+
     def run(self, stage: str, repository_publish: str = None):
         if stage != "upload":
             return
