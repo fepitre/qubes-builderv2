@@ -11,8 +11,6 @@ debug: true
 verbose: true
 qubes-release: r4.2
 
-reuse-fetched-source: true
-
 min-age-days: 3
 
 use-qubes-repo:

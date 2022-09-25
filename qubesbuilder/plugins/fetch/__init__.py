@@ -87,7 +87,6 @@ class FetchPlugin(ComponentPlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
 
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name
@@ -103,15 +102,6 @@ class FetchPlugin(ComponentPlugin):
         copy_in = [
             (self.manager.entities["fetch"].directory, executor.get_plugins_dir())
         ]
-
-        if local_source_dir.exists():
-            # If we already fetched sources previously and have modified them,
-            # we may want to keep local modifications.
-            if not self.config.skip_if_exists:
-                shutil.rmtree(str(local_source_dir))
-            else:
-                log.info(f"{self.component}: source already fetched. Updating.")
-                copy_in += [(local_source_dir, executor.get_builder_dir())]
 
         # Get GIT source for a given Qubes OS component
         copy_out = [(source_dir, self.get_sources_dir())]
@@ -140,7 +130,20 @@ class FetchPlugin(ComponentPlugin):
             get_sources_cmd += ["--do-merge"]
             if self.config.fetch_versions_only:
                 get_sources_cmd += ["--fetch-versions-only"]
-        if not self.config.skip_git_fetch:
+
+        do_fetch = True
+        if local_source_dir.exists():
+            # If we already fetched sources previously and have modified them,
+            # we may want to keep local modifications.
+            if self.config.force_fetch:
+                shutil.rmtree(str(local_source_dir))
+            elif self.config.skip_git_fetch:
+                do_fetch = False
+            else:
+                log.info(f"{self.component}: source already fetched. Updating.")
+                copy_in += [(local_source_dir, executor.get_builder_dir())]
+
+        if do_fetch:
             cmd = [
                 f"cd {str(executor.get_builder_dir())}",
                 " ".join(get_sources_cmd),
@@ -149,7 +152,7 @@ class FetchPlugin(ComponentPlugin):
 
         # Update parameters based on previously fetched sources as .qubesbuilder
         # is now available.
-        self.update_parameters(stage)
+        parameters = self.get_parameters(stage)
 
         distfiles_dir = self.get_component_distfiles_dir()
         distfiles_dir.mkdir(parents=True, exist_ok=True)
@@ -174,7 +177,7 @@ class FetchPlugin(ComponentPlugin):
             untrusted_final_fn = "untrusted_" + final_fn
 
             if (distfiles_dir / final_fn).exists():
-                if not self.config.skip_if_exists:
+                if self.config.force_fetch:
                     os.remove(distfiles_dir / final_fn)
                 else:
                     log.info(

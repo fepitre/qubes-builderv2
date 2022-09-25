@@ -80,8 +80,8 @@ class Config:
     # Mypy does not support this form yet (see https://github.com/python/mypy/issues/8083).
     verbose: Union[bool, property]                       = property(lambda self: self.get("verbose", False))
     debug: Union[bool, property]                         = property(lambda self: self.get("debug", False))
-    skip_if_exists: Union[bool, property]                = property(lambda self: self.get("skip-if-exists", False))
-    skip_git_fetch: Union[bool, property]                = property(lambda self: self.get("skip-git-fetch", False))
+    force_fetch: Union[bool, property]                   = property(lambda self: self.get("force-fetch", False))
+    skip_git_fetch: Union[bool, property]                = property(lambda self: self.get("skip-git-fetch", True))
     do_merge: Union[bool, property]                      = property(lambda self: self.get("do-merge", False))
     fetch_versions_only: Union[bool, property]           = property(lambda self: self.get("fetch-versions-only", False))
     backend_vmm: Union[str, property]                    = property(lambda self: self.get("backend-vmm", ""))

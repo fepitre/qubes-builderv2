@@ -7,7 +7,6 @@ backend-vmm: xen
 debug: true
 verbose: true
 qubes-release: r4.2
-reuse-fetched-source: true
 
 distributions:
   - host-fc32
