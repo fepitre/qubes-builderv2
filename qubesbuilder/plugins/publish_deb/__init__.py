@@ -193,6 +193,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
+        parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -248,7 +249,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     basename=directory.mangle(),
                     repository=repository_publish,
                 )
-                for directory in self.parameters["build"]
+                for directory in parameters["build"]
             ):
                 log.info(
                     f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
@@ -261,7 +262,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     basename=directory.mangle(),
                     ignore_min_age=ignore_min_age,
                 )
-                for directory in self.parameters["build"]
+                for directory in parameters["build"]
             ):
                 failure_msg = (
                     f"{self.component}:{self.dist}: "
@@ -271,7 +272,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 )
                 raise PublishError(failure_msg)
 
-            for directory in self.parameters["build"]:
+            for directory in parameters["build"]:
                 # directory basename will be used as prefix for some artifacts
                 directory_bn = directory.mangle()
 
@@ -329,14 +330,14 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     basename=directory.mangle(),
                     repository=repository_publish,
                 )
-                for directory in self.parameters["build"]
+                for directory in parameters["build"]
             ):
                 log.info(
                     f"{self.component}:{self.dist}: Not published to '{repository_publish}'."
                 )
                 return
 
-            for directory in self.parameters["build"]:
+            for directory in parameters["build"]:
                 # directory basename will be used as prefix for some artifacts
                 directory_bn = directory.mangle()
 

@@ -74,7 +74,7 @@ class FetchPlugin(ComponentPlugin):
             parameters = self.component.get_parameters(self.get_placeholders(stage))
         except NoQubesBuilderFileError:
             return
-        self.parameters.update(parameters.get("source", {}))
+        self._parameters.update(parameters.get("source", {}))
 
     def run(self, stage: str):
         """
@@ -87,6 +87,7 @@ class FetchPlugin(ComponentPlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
+        parameters = self.get_parameters(stage)
 
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name
@@ -154,7 +155,7 @@ class FetchPlugin(ComponentPlugin):
         distfiles_dir.mkdir(parents=True, exist_ok=True)
 
         # Download and verify files given in .qubesbuilder
-        for file in self.parameters.get("files", []):
+        for file in parameters.get("files", []):
             # Temporary dir for downloaded file
             temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
 
@@ -346,7 +347,7 @@ class FetchPlugin(ComponentPlugin):
             info["git-version-tags"].append(tag)
 
         # Modules (formerly known as INCLUDED_SOURCES in Makefile.builder)
-        modules = self.parameters.get("modules", [])
+        modules = parameters.get("modules", [])
         if modules:
             # Get git module hashes
             copy_in = [

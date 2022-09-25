@@ -136,7 +136,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
-
+        parameters = self.get_parameters(stage)
         distfiles_dir = self.get_component_distfiles_dir()
         artifacts_dir = self.get_dist_component_artifacts_dir(stage)
         rpms_dir = artifacts_dir / "rpm"
@@ -147,7 +147,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             == self.get_dist_artifacts_info(stage, build.mangle()).get(
                 "source-hash", None
             )
-            for build in self.parameters["build"]
+            for build in parameters["build"]
         ):
             log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
@@ -173,7 +173,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         for build in repository_dir.glob(f"{self.component.name}_*"):
             shutil.rmtree(build.as_posix())
 
-        for build in self.parameters["build"]:
+        for build in parameters["build"]:
             # spec file basename will be used as prefix for some artifacts
             build_bn = build.mangle()
 

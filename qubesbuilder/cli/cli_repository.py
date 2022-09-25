@@ -139,6 +139,7 @@ def _check_release_status_for_component(config, manager, components, distributio
                 plugin = PublishPlugin(
                     config=config, manager=manager, component=component, dist=dist
                 )
+                parameters = plugin.get_parameters("publish")
             except ComponentError:
                 release_status[component.name][dist.distribution][
                     "status"
@@ -157,7 +158,7 @@ def _check_release_status_for_component(config, manager, components, distributio
                 continue
 
             # we may have nothing to be done for this distribution
-            if not plugin.parameters.get("build", []):
+            if not parameters.get("build", []):
                 release_status[component.name][dist.distribution][
                     "status"
                 ] = "no packages defined"
@@ -181,13 +182,13 @@ def _check_release_status_for_component(config, manager, components, distributio
                 continue
 
             # We may have nothing to do for this component-distribution
-            if not plugin.parameters["build"]:
+            if not parameters["build"]:
                 continue
 
             # FIXME: we pick the first build target found as we have checks
             #  for all being processed for all stages
             publish_info = plugin.get_dist_artifacts_info(
-                stage="publish", basename=plugin.parameters["build"][0].mangle()
+                stage="publish", basename=parameters["build"][0].mangle()
             )
 
             try:
@@ -198,7 +199,7 @@ def _check_release_status_for_component(config, manager, components, distributio
                         plugin.is_published(
                             basename=build.mangle(), repository=repo_name
                         )
-                        for build in plugin.parameters["build"]
+                        for build in parameters["build"]
                     ):
                         continue
                     # Find the publish repository timestamp
@@ -234,7 +235,7 @@ def _check_release_status_for_component(config, manager, components, distributio
                     plugin.get_dist_artifacts_info(
                         stage="build", basename=build.mangle()
                     )
-                    for build in plugin.parameters["build"]
+                    for build in parameters["build"]
                 ):
                     status = "built, not released"
                 else:

@@ -60,7 +60,7 @@ class Config:
         self._dists: List = []
 
         # Default Qubes OS build pipeline stages
-        self._stages: dict = {}
+        self._stages: Dict = {}
 
         # Qubes OS components
         self._components: List[QubesComponent] = []
@@ -267,7 +267,10 @@ class Config:
         return plugins_dirs
 
     def get_executor_from_config(self, stage_name: str):
-        executor = None
+        if self._stages.get(stage_name, {}).get("executor", None):
+            return self._stages[stage_name]["executor"]
+
+        self._stages.setdefault(stage_name, {}).setdefault("executor", None)
         default_executor = self._conf.get("executor", {})
         executor_type = default_executor.get("type", "docker")
         executor_options = default_executor.get(
@@ -285,12 +288,17 @@ class Config:
             ):
                 executor_type = stage_options["executor"]["type"]
                 executor_options = stage_options["executor"].get("options", {})
-                executor = self.get_executor(executor_type, executor_options)
+                self._stages[stage_name]["executor"] = self.get_executor(
+                    executor_type, executor_options
+                )
                 break
-        if not executor:
+        if not self._stages[stage_name]["executor"]:
             # FIXME: Review and enhance default executor definition
-            executor = self.get_executor(executor_type, executor_options)
-        return executor
+            self._stages[stage_name]["executor"] = self.get_executor(
+                executor_type, executor_options
+            )
+
+        return self._stages[stage_name]["executor"]
 
     def get_component_from_dict_or_string(
         self, component_name: Union[str, Dict]

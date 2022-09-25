@@ -235,6 +235,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
+        parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -298,7 +299,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 self.is_published(
                     basename=build.mangle(), repository=repository_publish
                 )
-                for build in self.parameters["build"]
+                for build in parameters["build"]
             ):
                 log.info(
                     f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
@@ -314,7 +315,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 self.can_be_published_in_stable(
                     basename=build.mangle(), ignore_min_age=ignore_min_age
                 )
-                for build in self.parameters["build"]
+                for build in parameters["build"]
             ):
                 failure_msg = (
                     f"{self.component}:{self.dist}: "
@@ -324,7 +325,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 )
                 raise PublishError(failure_msg)
 
-            for build in self.parameters["build"]:
+            for build in parameters["build"]:
                 build_bn = build.mangle()
                 build_info = self.get_dist_artifacts_info(
                     stage="build", basename=build_bn
@@ -382,14 +383,14 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 self.is_published(
                     basename=build.mangle(), repository=repository_publish
                 )
-                for build in self.parameters["build"]
+                for build in parameters["build"]
             ):
                 log.info(
                     f"{self.component}:{self.dist}: Not published to '{repository_publish}'."
                 )
                 return
 
-            for build in self.parameters["build"]:
+            for build in parameters["build"]:
                 build_bn = build.mangle()
                 publish_info = self.get_dist_artifacts_info(
                     stage=stage, basename=build_bn

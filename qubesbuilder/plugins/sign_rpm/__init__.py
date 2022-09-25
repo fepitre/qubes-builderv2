@@ -69,6 +69,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
+        parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -109,7 +110,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             # Clear temporary dir
             shutil.rmtree(temp_dir)
 
-        for build in self.parameters["build"]:
+        for build in parameters["build"]:
             # spec file basename will be used as prefix for some artifacts
             build_bn = build.mangle()
 

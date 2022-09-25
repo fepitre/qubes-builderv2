@@ -62,7 +62,7 @@ class BuildPlugin(DistributionComponentPlugin):
         if stage != "build":
             return
 
-        if not self.parameters.get("build", []):
+        if not self.get_parameters(stage).get("build", []):
             log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 

@@ -81,9 +81,10 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
+        parameters = self.get_parameters(stage)
 
         # Check if we have RPM related content defined
-        if not self.parameters.get("build", []):
+        if not parameters.get("build", []):
             log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 
@@ -93,7 +94,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             == self.get_dist_artifacts_info(stage, build.mangle()).get(
                 "source-hash", None
             )
-            for build in self.parameters["build"]
+            for build in parameters["build"]
         ):
             log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
@@ -115,7 +116,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             shutil.rmtree(artifacts_dir.as_posix())
         artifacts_dir.mkdir(parents=True)
 
-        for build in self.parameters["build"]:
+        for build in parameters["build"]:
             # Temporary dir for temporary copied-out files
             temp_dir = Path(tempfile.mkdtemp())
 
@@ -241,8 +242,8 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                     f"{executor.get_plugins_dir()}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
                 ]
             # Create archive only if no external files are provided or if explicitly requested.
-            create_archive = not self.parameters.get("files", [])
-            create_archive = self.parameters.get("create-archive", create_archive)
+            create_archive = not parameters.get("files", [])
+            create_archive = parameters.get("create-archive", create_archive)
             if create_archive:
                 # If no Source0 is provided, we expect 'source' from query-spec.
                 if source_orig != "source":
@@ -250,7 +251,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                         f"{executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
                     ]
 
-            for file in self.parameters.get("files", []):
+            for file in parameters.get("files", []):
                 fn = os.path.basename(file["url"])
                 if file.get("uncompress", False):
                     fn = Path(fn).with_suffix("").name

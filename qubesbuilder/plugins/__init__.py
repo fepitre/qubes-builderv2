@@ -70,7 +70,7 @@ class Plugin:
         self._placeholders: Dict[str, Any] = {}
 
         # Plugin parameters
-        self.parameters: dict = {}
+        self._parameters: dict = {}
 
         self.environment = {}
         if self.config.verbose:
@@ -99,6 +99,10 @@ class Plugin:
                 "@DISTFILES_DIR@": executor.get_distfiles_dir(),
             }
         )
+
+    def get_parameters(self, stage: str):
+        self.update_parameters(stage)
+        return self._parameters
 
     def get_placeholders(self, stage: str):
         self.update_placeholders(stage)
@@ -228,7 +232,7 @@ class ComponentPlugin(Plugin):
             info_path.unlink()
 
     def check_stage_artifacts(self, stage: str, artifacts_dir: Path = None):
-        for build in self.parameters.get("build", []):
+        for build in self.get_parameters(stage).get("build", []):
             build_bn = build.mangle()
             if not self.get_artifacts_info(
                 stage=stage, basename=build_bn, artifacts_dir=artifacts_dir
@@ -294,24 +298,24 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
         parameters = self.component.get_parameters(self.get_placeholders(stage))
 
-        self.parameters.update(
+        self._parameters.update(
             parameters.get(self.dist.package_set, {}).get(self.dist.type, {})
         )
-        self.parameters.update(
+        self._parameters.update(
             parameters.get(self.dist.distribution, {}).get(self.dist.type, {})
         )
 
-        self.parameters["build"] = [
-            PackagePath(build) for build in self.parameters.get("build", [])
+        self._parameters["build"] = [
+            PackagePath(build) for build in self._parameters.get("build", [])
         ]
         # For retro-compatibility
         if self.dist.type == "rpm":
-            self.parameters["build"] += [
-                PackagePath(spec) for spec in self.parameters.get("spec", [])
+            self._parameters["build"] += [
+                PackagePath(spec) for spec in self._parameters.get("spec", [])
             ]
         # Check conflicts when mangle paths
-        mangle_builds = [build.mangle() for build in self.parameters.get("build", [])]
-        if len(set(mangle_builds)) != len(self.parameters["build"]):
+        mangle_builds = [build.mangle() for build in self._parameters.get("build", [])]
+        if len(set(mangle_builds)) != len(self._parameters["build"]):
             raise PluginError(f"{self.component}:{self.dist}: Conflicting build paths")
 
     def get_dist_component_artifacts_dir_history(self, stage: str):

@@ -116,7 +116,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
-
+        parameters = self.get_parameters(stage)
         artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
         # Compare previous artifacts hash with current source hash
@@ -125,7 +125,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             == self.get_dist_artifacts_info(
                 stage=stage, basename=directory.mangle()
             ).get("source-hash", None)
-            for directory in self.parameters["build"]
+            for directory in parameters["build"]
         ):
             log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
@@ -147,7 +147,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
         for build in repository_dir.glob(f"{self.component.name}_*"):
             shutil.rmtree(build.as_posix())
 
-        for directory in self.parameters["build"]:
+        for directory in parameters["build"]:
             # directory basename will be used as prefix for some artifacts
             directory_bn = directory.mangle()
 

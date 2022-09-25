@@ -79,9 +79,10 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
+        parameters = self.get_parameters(stage)
 
         # Check if we have Debian related content defined
-        if not self.parameters.get("build", None):
+        if not parameters.get("build", None):
             log.info(f"{self.component}: nothing to be done for {self.dist}")
             return
 
@@ -94,7 +95,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             == self.get_dist_artifacts_info(
                 stage=stage, basename=directory.mangle()
             ).get("source-hash", None)
-            for directory in self.parameters["build"]
+            for directory in parameters["build"]
         ):
             log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
@@ -113,7 +114,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             artifacts_dir=self.get_component_artifacts_dir("fetch"),
         )
 
-        for directory in self.parameters["build"]:
+        for directory in parameters["build"]:
             # Temporary dir for temporary copied-out files
             temp_dir = Path(tempfile.mkdtemp())
 
@@ -190,9 +191,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 source_debian = f"{package_release_name_full}.tar.xz"
             else:
                 source_debian = f"{package_release_name_full}.debian.tar.xz"
-            if self.parameters.get("files", []):
+            if parameters.get("files", []):
                 # FIXME: The first file is the source archive. Is it valid for all the cases?
-                ext = Path(self.parameters["files"][0]["url"]).suffix
+                ext = Path(parameters["files"][0]["url"]).suffix
                 msg = f"{self.component}:{self.dist}:{directory}: Invalid extension '{ext}'."
                 if ext not in (".gz", ".bz2", ".xz", ".lzma2"):
                     raise SourceError(msg)
@@ -233,7 +234,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 copy_out += [(executor.get_builder_dir() / source_orig, artifacts_dir)]
 
             # Init command with .qubesbuilder command entries
-            cmd = self.parameters.get("source", {}).get("commands", [])
+            cmd = parameters.get("source", {}).get("commands", [])
 
             # Update changelog
             cmd += [
@@ -258,14 +259,14 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                     ]
 
                 # Create archive only if no external files are provided or if explicitly requested.
-                create_archive = not self.parameters.get("files", [])
-                create_archive = self.parameters.get("create-archive", create_archive)
+                create_archive = not parameters.get("files", [])
+                create_archive = parameters.get("create-archive", create_archive)
                 if create_archive:
                     cmd += [
                         f"{executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
                         f"mv {source_dir}/{source_orig} {executor.get_builder_dir()}",
                     ]
-                for file in self.parameters.get("files", []):
+                for file in parameters.get("files", []):
                     fn = os.path.basename(file["url"])
                     cmd.append(
                         f"mv {executor.get_distfiles_dir() / self.component.name / fn} {executor.get_builder_dir()}/{source_orig}"

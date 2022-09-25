@@ -58,13 +58,13 @@ class SourcePlugin(DistributionComponentPlugin):
 
         # Set and update parameters based on top-level "source",
         # per package set and per distribution.
-        parameters = self.component.get_parameters(self._placeholders)
+        parameters = self.component.get_parameters(self.get_placeholders(stage))
 
-        self.parameters.update(parameters.get("source", {}))
-        self.parameters.update(
+        self._parameters.update(parameters.get("source", {}))
+        self._parameters.update(
             parameters.get(self.dist.package_set, {}).get("source", {})
         )
-        self.parameters.update(
+        self._parameters.update(
             parameters.get(self.dist.distribution, {}).get("source", {})
         )
 

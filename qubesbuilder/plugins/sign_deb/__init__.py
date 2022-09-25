@@ -70,6 +70,7 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
             return
 
         executor = self.config.get_executor_from_config(stage)
+        parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -111,7 +112,7 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
         finally:
             shutil.rmtree(temp_dir)
 
-        for directory in self.parameters["build"]:
+        for directory in parameters["build"]:
             # directory basename will be used as prefix for some artifacts
             directory_bn = directory.mangle()
 
