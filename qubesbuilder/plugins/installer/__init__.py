@@ -79,7 +79,7 @@ class InstallerPlugin(DistributionPlugin):
                 "PACKAGES_DIR": str(executor.get_repository_dir()),
                 "CACHE_DIR": str(executor.get_cache_dir()),
                 "ISO_USE_KERNEL_LATEST": "1"
-                if self.config.iso_user_kernel_latest
+                if self.config.iso_use_kernel_latest
                 else "0",
             }
         )
