@@ -1,6 +1,7 @@
 import pytest
 
 from qubesbuilder.common import is_filename_valid, deep_check
+from qubesbuilder.cli.cli_main import parse_config_entry_from_array
 
 
 def test_filename():
@@ -83,3 +84,32 @@ def test_qubesbuilder_data():
     with pytest.raises(ValueError) as e:
         deep_check(data)
     assert ".fetch.yaml" in e.value.args[0]
+
+
+def test_parse_config_entry_from_array_01():
+    array = [
+        "executor:type=qubes",
+        "executor:options:dispvm=qubes-builder-dvm",
+        "backend-vmm=kvm",
+        "force-fetch"
+    ]
+    parsed_dict = parse_config_entry_from_array(array)
+    expected_dict = {
+        "executor": {"type": "qubes", "options": {"dispvm": "qubes-builder-dvm"}},
+        "backend-vmm": "kvm",
+        "force-fetch": True,
+    }
+
+    assert parsed_dict == expected_dict
+
+
+def test_parse_config_entry_from_array_02():
+    array = [" =wrongkey"]
+    with pytest.raises(ValueError) as e:
+        parse_config_entry_from_array(array)
+    assert " " in e.value.args[0]
+
+    array = ["_=wrongkey"]
+    with pytest.raises(ValueError) as e:
+        parse_config_entry_from_array(array)
+    assert "_" in e.value.args[0]
