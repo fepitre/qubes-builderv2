@@ -95,7 +95,9 @@ class InstallerPlugin(DistributionPlugin):
                 }
             )
 
-        if self.config.qubes_release:
+        if self.config.iso_version:
+            self.iso_version = self.config.iso_version
+        elif self.config.qubes_release:
             self.iso_version = self.config.qubes_release.upper()
             self.environment["QUBES_RELEASE"] = self.config.qubes_release
         else:

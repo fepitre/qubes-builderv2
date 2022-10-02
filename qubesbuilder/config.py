@@ -94,6 +94,7 @@ class Config:
     template_root_size: Union[str, property]             = property(lambda self: self.get("template-root-size", "20G"))
     template_root_with_partitions: Union[bool, property] = property(lambda self: self.get("template-root-with-partitions", True))
     installer_kickstart: Union[str, property]            = property(lambda self: self.get("iso", {}).get("kickstart", "conf/qubes-kickstart.cfg"))
+    iso_version: Union[str, property]                    = property(lambda self: self.get("iso", {}).get("version", ""))
     iso_flavor: Union[str, property]                     = property(lambda self: self.get("iso", {}).get("flavor", ""))
     iso_use_kernel_latest: Union[bool, property]         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))
     # fmt: on
@@ -317,6 +318,7 @@ class Config:
     ) -> QubesComponent:
         baseurl = self.get("git", {}).get("baseurl", "https://github.com")
         prefix = self.get("git", {}).get("prefix", "QubesOS/qubes-")
+        suffix = self.get("git", {}).get("suffix", ".git")
         branch = self.get("git", {}).get("branch", "master")
         maintainers = self.get("git", {}).get("maintainers", [])
         timeout = self.get("timeout", 3600)
@@ -325,7 +327,7 @@ class Config:
             component_name = {component_name: {}}
 
         name, options = next(iter(component_name.items()))
-        url = f"{baseurl}/{options.get('prefix', prefix)}{name}"
+        url = f"{baseurl}/{options.get('prefix', prefix)}{name}{options.get('suffix', suffix)}"
         verification_mode = VerificationMode.SignedTag
         if name in self._conf.get("insecure-skip-checking", []):
             verification_mode = VerificationMode.Insecure
