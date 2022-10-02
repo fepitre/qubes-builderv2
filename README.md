@@ -3,11 +3,11 @@
 This is the second generation of the Qubes OS builder. This new builder
 leverages container or disposable qube isolation to perform every stage of the
 build and release process. From fetching sources to building them, everything
-is executed inside of a "cage" (either a disposable or a container) with the
+is executed inside a "cage" (either a disposable or a container) with the
 help of what we call an "executor." For every command that needs to perform an
 action on sources, like cloning and verifying Git repos, rendering a SPEC file,
 generating SRPM or Debian source packages, a new cage is used. Only the
-signing, publishing, and uploading processes are executed locally outside of a
+signing, publishing, and uploading processes are executed locally outside a
 cage. (This will be improved in the future.) For now, only Docker, Podman,
 Local, and Qubes executors are available.
 
@@ -652,3 +652,86 @@ prepared source directory, here the build directory (path inside a cage).
 distribution tools like `dpkg-*`. This is only available for Debian
 distributions and not RPM distributions, as similar processing is currently not
 needed.
+
+## Qubes builder configuration
+
+Options available in `builder.yml`:
+
+- `git`:
+  - `baseurl: str` --- Base url of git repos (default: https://github.com).
+  - `prefix: str` --- Which repository to clone (default: QubesOS/qubes-).
+  - `suffix: str` --- git suffix (default: .git).
+  - `branch: str` --- git branch (default: master).
+  - `maintainers: List[str]` --- List of extra fingerprint allowed for signature verification of git commit and tag.
+
+- `artifacts-dir: str` --- Path to artifacts directory.
+
+- `plugins-dirs: List[str]` --- List of path to plugin directory. By default, the local plugins directory is prepended to the list.
+
+- `backend-vmm: str` --- Backend Virtual Machine (default and only supported value: xen).
+
+- `debug: bool` --- Print full traceback on exception (default: False).
+
+- `verbose: bool` --- Increase log verbosity (default: False).
+
+- `qubes-release: str` --- Qubes OS release e.g. r4.2.
+
+- `min-age-days: int` --- Minimum days for testing component or template allowed to reach stable repositories (default: 5).
+
+- `gpg-client: str`: GPG client to use, either `gpg` or `qubes-gpg-client-wrapper`.
+
+- `iso: Dict`:
+  - `kickstart: str` --- Image installer kickstart.
+  - `iso-flavor: str` --- Image name will be named as `Qubes-<iso-version>-<iso-flavor>-<arch>.iso`.
+  - `use-kernel-latest: bool` --- If True, use `kernel-latest` when building installer runtime and superseed `kernel` in the installation. It allows to boot installer and QubesOS with the latest drivers provided by stable kernels and not only long term supported ones by default.
+
+- `use-qubes-repo: Dict`:
+  `version: str` --- Use Qubes packages repository to satisfy build dependents. Set to target version of Qubes you are building packages for (like "4.1", "4.2" etc.).
+  `testing: bool` --- When used with `use-qubes-repo:version`, enable testing repository for that version (in addition to stable).
+
+- `sign-key: Dict` --- Fingerprint for signing content.
+  - `rpm: str` --- RPM content.
+  - `deb: str` --- Debian content.
+  - `iso: str` --- ISO content.
+
+- `less-secure-signed-commits-sufficient: list` --- List of component names where signed commits is allowed instead of requiring signed tags. This is less secure because only commits that have been reviewed are tagged.
+
+- `timeout: int`: Abort build after given timeout, in seconds.
+
+- `repository-publish: Dict` ---  Testing repository to use at publish stage.
+  - `components: str` --- Components . This is either `current-testing`, `security-testing` or `unstable`.
+  - `templates: str` --- Testing repository for templates at publish stage. This is either `templates-itl-testing` or `templates-community-testing`.
+
+- `distributions: List[str]` --- Distribution for packages provided as <package-set>-<distribution>.<architecture>. Default architecture is `x86_64` and can be ommited. Some examples: host-fc32, host-fc42.ppc64 or vm-trixie.
+
+- `components: List[Union[str, Dict]]` -- List of components you want to build. See example configs for sensible lists. The order of components is important - it should reflect build dependencies, otherwise build would fail.
+  - `<component_name>` --- Component name provided as string
+  - `<component_name>`: --- Component name provided as dict to pass or override values
+    - `branch: str` --- override default git branch.
+    - `url: str` --- provide the full url of the component.
+    - `maintainers: List[str]` --- List of extra fingerprint allowed for signature verification of git commit and tag.
+    - `timeout: int` --- Abort build after given timeout, in seconds.
+
+- `templates: List[Dict]` -- List of templates you want to build. See example configs for sensible lists.
+  - `<template_name>`: --- Template name
+    - `dist: str` --- Underlying distribution, e.g. fc42, bullseye, etc.
+    - `flavor: str` --- If applies, specify template flavor, e.g. minimal, xfce, whonix-gateway, whonix-workstation, etc.
+    - `options: List[str]` --- Provides template build options, e.g. minimal, no-recommends, firmware, etc.
+
+- `repository-upload-remote-host: Dict` --- Rsync URL for uploading local repository content
+  - `rpm: str` --- RPM content
+  - `deb: str` --- Debian content
+  - `iso: str` --- ISO content
+
+- `executor: Dict` --- Specify default executor to use
+  - `type: str` --- Executor type: qubes, docker, podman or local.
+  - `options: Dict`:
+    - `image: str` --- Container image to use. Specific to docker or podman type.
+    - `dispvm: str` --- Disposable template VM to use (NOT IMPLEMENTED YET. HARDCODED TO 'qubes-builder-dvm').
+    - `directory: str` --- Base directory for local executor to create temporary directories.
+    - `clean: bool` --- Do not clean container, disposible qube or temporary local folder.
+
+- `stages: List[str, Dict]` --- List of stages to trigger.
+  - `<stage_name>: str` --- Stage name
+  - `<stage_name>: Dict` --- Stage name provided as dict to override executor to use.
+    - `executor: Dict` --- Specify executor to use for this stage
