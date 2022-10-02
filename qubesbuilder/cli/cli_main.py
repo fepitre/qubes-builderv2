@@ -132,7 +132,7 @@ def init_context_obj(
 
 
 @aliased_group("qb")
-@click.option("--verbose/--no-verbose", default=None, is_flag=True, help="Output logs.")
+@click.option("--verbose/--no-verbose", default=None, is_flag=True, help="Increase log verbosity.")
 @click.option(
     "--debug/--no-debug",
     default=None,
