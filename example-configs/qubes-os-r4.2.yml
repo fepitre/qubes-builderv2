@@ -35,7 +35,6 @@ templates:
         - no-recommends
 
 components:
-  - lvm2
   - vmm-xen:
       branch: xen-4.14
   - core-libvirt
@@ -43,10 +42,8 @@ components:
   - core-qubesdb
   - core-qrexec
   - linux-utils
-  - python-cffi
   - python-xcffib
   - python-objgraph
-  - python-hid
   - python-u2flib-host
   - python-qasync
   - python-panflute
@@ -60,7 +57,7 @@ components:
   - intel-microcode
   - linux-firmware
   - linux-kernel:
-      branch: stable-5.10
+      branch: stable-5.15
       timeout: 21600
   - artwork
   - grub2
@@ -68,11 +65,11 @@ components:
   - gui-common
   - gui-daemon
   - gui-agent-linux
-  - gui-agent-xen-hvm-stubdom
   - seabios
   - vmm-xen-stubdom-legacy
   - vmm-xen-stubdom-linux
   - app-linux-split-gpg
+  - app-linux-split-gpg2
   - app-thunderbird
   - app-linux-pdf-converter
   - app-linux-img-converter
@@ -83,6 +80,14 @@ components:
   - app-yubikey
   - app-u2f
   - screenshot-helper
+  - mgmt-salt
+  - mgmt-salt-base
+  - mgmt-salt-base-topd
+  - mgmt-salt-base-config
+  - mgmt-salt-dom0-qvm
+  - mgmt-salt-dom0-virtual-machines
+  - mgmt-salt-dom0-update
+  - infrastructure
   - repo-templates
   - meta-packages
   - manager
@@ -98,8 +103,19 @@ components:
   - dummy-psu
   - dummy-backlight
   - xorg-x11-drv-intel
+  - xorg-x11-drv-amdgpu:
+      branch: main
+  - linux-pvgrub2
   - linux-gbulb
   - linux-scrypt
+  - xdotool
+  - alsa-lib:
+      branch: main
+  - alsa-utils:
+      branch: main
+  - alsa-sof-firmware:
+      branch: main
+  - lvm2
   - qubes-release
   - pykickstart
   - blivet
@@ -107,19 +123,20 @@ components:
   - lorax-templates
   - anaconda
   - anaconda-addon
+  - efitools:
+      branch: main
+  - sbsigntools:
+      branch: main
+  - tpm2-tss:
+      branch: main
+  - tpm2-tools:
+      branch: main
   - tpm-extra
   - trousers-changer
   - antievilmaid
   - xscreensaver
   - remote-support
-  - xdotool
-  - mgmt-salt
-  - mgmt-salt-base
-  - mgmt-salt-base-topd
-  - mgmt-salt-base-config
-  - mgmt-salt-dom0-qvm
-  - mgmt-salt-dom0-virtual-machines
-  - mgmt-salt-dom0-update
+  - windows-tools-cross
 
 
 #executor:
@@ -133,11 +150,7 @@ executor:
     dispvm: "qubes-builder-dvm"
 
 stages:
-  - fetch:
-      executor:
-        type: docker
-        options:
-          image: "qubes-builder-fedora:latest"
+  - fetch
   - prep
   - build
   - post
