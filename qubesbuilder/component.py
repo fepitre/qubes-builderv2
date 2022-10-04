@@ -28,7 +28,7 @@ import pathspec
 import yaml
 from packaging.version import Version, InvalidVersion
 
-from qubesbuilder.common import sanitize_line, deep_check
+from qubesbuilder.common import sanitize_line, deep_check, VerificationMode
 from qubesbuilder.exc import ComponentError, NoQubesBuilderFileError
 
 
@@ -39,8 +39,7 @@ class QubesComponent:
         name: str = None,
         url: str = None,
         branch: str = "master",
-        insecure_skip_checking: bool = False,
-        less_secure_signed_commits_sufficient: bool = False,
+        verification_mode: VerificationMode = VerificationMode.SignedCommit,
         maintainers: List = None,
         timeout: int = None,
     ):
@@ -53,10 +52,7 @@ class QubesComponent:
         self.url = url or f"https://github.com/QubesOS/qubes-{self.name}"
         self.branch = branch
         self.maintainers = maintainers or []
-        self.insecure_skip_checking = insecure_skip_checking
-        self.less_secure_signed_commits_sufficient = (
-            less_secure_signed_commits_sufficient
-        )
+        self.verification_mode = verification_mode
         self.timeout = timeout
         self._source_hash = ""
 

@@ -19,6 +19,7 @@
 import re
 import shutil
 import tempfile
+from enum import Enum
 from pathlib import Path
 from string import digits, ascii_letters
 
@@ -44,6 +45,13 @@ STAGES_ALIAS = {
     "u": "upload",
 }
 FORBIDDEN_PATTERNS = [".."]
+
+
+class VerificationMode(Enum):
+    SignedTag = "signed-tag"
+    SignedCommit = "less-secure-signed-commits-sufficient"
+    Insecure = "insecure-skip-checking"
+
 
 for s in STAGES:
     FORBIDDEN_PATTERNS += [f".{s}.yml", f".{s}.yaml"]

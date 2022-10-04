@@ -3,7 +3,9 @@ import tempfile
 
 import pytest
 
+from qubesbuilder.common import VerificationMode
 from qubesbuilder.component import QubesComponent
+from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.template import QubesTemplate
 from qubesbuilder.exc import ComponentError, DistributionError
@@ -191,3 +193,47 @@ def test_template():
     assert template.to_str() == "fedora-42-xfce"
     assert str(template) == "fedora-42-xfce"
     assert repr(template) == repr_str
+
+
+def test_config_verification():
+    with tempfile.NamedTemporaryFile('w') as config_file:
+        config_file.write("""components:
+ - example:
+     verification-mode: less-secure-signed-commits-sufficient
+""")
+        config_file.flush()
+        config = Config(config_file.name)
+        component = config.get_components(['example'])[0]
+        assert component.verification_mode == VerificationMode.SignedCommit
+
+    with tempfile.NamedTemporaryFile('w') as config_file:
+        config_file.write("""components:
+ - example:
+     verification-mode: insecure-skip-checking
+""")
+        config_file.flush()
+        config = Config(config_file.name)
+        component = config.get_components(['example'])[0]
+        assert component.verification_mode == VerificationMode.Insecure
+
+    with tempfile.NamedTemporaryFile('w') as config_file:
+        config_file.write("""
+less-secure-signed-commits-sufficient:
+ - example
+components:
+ - example
+""")
+        config_file.flush()
+        config = Config(config_file.name)
+        component = config.get_components(['example'])[0]
+        assert component.verification_mode == VerificationMode.SignedCommit
+
+    with tempfile.NamedTemporaryFile('w') as config_file:
+        config_file.write("""
+components:
+ - example
+""")
+        config_file.flush()
+        config = Config(config_file.name)
+        component = config.get_components(['example'])[0]
+        assert component.verification_mode == VerificationMode.SignedTag

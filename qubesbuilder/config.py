@@ -23,7 +23,7 @@ from typing import Union, List, Dict, Any
 
 import yaml
 
-from qubesbuilder.common import PROJECT_PATH
+from qubesbuilder.common import PROJECT_PATH, VerificationMode
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.exc import ConfigError
@@ -313,17 +313,19 @@ class Config:
 
         name, options = next(iter(component_name.items()))
         url = f"{baseurl}/{options.get('prefix', prefix)}{name}"
-        insecure_skip_checking = name in self._conf.get("insecure-skip-checking", [])
-        less_secure_signed_commits_sufficient = name in self._conf.get(
-            "less-secure-signed-commits-sufficient", []
-        )
+        verification_mode = VerificationMode.SignedTag
+        if name in self._conf.get("insecure-skip-checking", []):
+            verification_mode = VerificationMode.Insecure
+        if name in self._conf.get("less-secure-signed-commits-sufficient", []):
+            verification_mode = VerificationMode.SignedCommit
+        if "verification-mode" in options:
+            verification_mode = VerificationMode(options["verification-mode"])
         component = QubesComponent(
             source_dir=self._artifacts_dir / "sources" / name,
             url=options.get("url", url),
             branch=options.get("branch", branch),
             maintainers=options.get("maintainers", maintainers),
-            insecure_skip_checking=insecure_skip_checking,
-            less_secure_signed_commits_sufficient=less_secure_signed_commits_sufficient,
+            verification_mode=verification_mode,
             timeout=options.get("timeout", timeout),
         )
         return component

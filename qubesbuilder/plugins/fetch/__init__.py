@@ -25,6 +25,7 @@ import urllib.parse
 from pathlib import Path
 from typing import Any
 
+from qubesbuilder.common import VerificationMode
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.exc import NoQubesBuilderFileError
@@ -120,9 +121,9 @@ class FetchPlugin(ComponentPlugin):
         ]
         for maintainer in self.component.maintainers:
             get_sources_cmd += ["--maintainer", maintainer]
-        if self.component.insecure_skip_checking:
+        if self.component.verification_mode == VerificationMode.Insecure:
             get_sources_cmd += ["--insecure-skip-checking"]
-        if self.component.less_secure_signed_commits_sufficient:
+        elif self.component.verification_mode == VerificationMode.SignedCommit:
             get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
 
         if self.config.fetch_versions_only:
