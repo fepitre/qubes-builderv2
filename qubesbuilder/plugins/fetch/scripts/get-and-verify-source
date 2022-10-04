@@ -280,7 +280,19 @@ else
     if ! git clone "${GIT_OPTIONS[@]}" -n -q -b "$BRANCH" "$GIT_URL" "$REPO"; then
         if [ "$IGNORE_MISSING" == "1" ]; then exit 0; else exit 1; fi
     fi
-    VERIFY_REF=HEAD fresh_clone=:
+    if [ "$FETCH_VERSIONS_ONLY" == "1" ]; then
+        vtag=$(git -C "$REPO" describe --match='v*' --abbrev=0 HEAD)
+        if [ -n "$vtag" ]; then
+            VERIFY_REF="$vtag^{commit}"
+        else
+            echo "No version tag"
+            # no version tag at all, abort
+            exit 1
+        fi
+    else
+        VERIFY_REF=HEAD
+    fi
+    fresh_clone=:
 fi
 
 export CHECK=signed-tag
@@ -400,7 +412,9 @@ if [ "$CURRENT_BRANCH" != "$BRANCH" ] || "$fresh_clone"; then
     fi
     if [ -n "$(git name-rev --name-only "$BRANCH" 2>/dev/null)" ]; then
         echo "--> Switching branch from $CURRENT_BRANCH branch to ${green}$BRANCH${normal}"
-        git merge-base --is-ancestor -- "$BRANCH" "$VERIFY_REF" || exit 1
+        if ! "$fresh_clone"; then
+            git merge-base --is-ancestor -- "$BRANCH" "$VERIFY_REF" || exit 1
+        fi
         git checkout -B "$BRANCH" "$VERIFY_REF" || exit 1
     else
         echo -e "--> Switching branch from $CURRENT_BRANCH branch to new ${red}$BRANCH${normal}"
