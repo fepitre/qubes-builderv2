@@ -237,3 +237,48 @@ components:
         config = Config(config_file.name)
         component = config.get_components(['example'])[0]
         assert component.verification_mode == VerificationMode.SignedTag
+
+
+def test_config_fetch_versions_only():
+    with tempfile.NamedTemporaryFile('w') as config_file:
+        config_file.write("""components:
+ - example:
+     fetch-versions-only: True
+""")
+        config_file.flush()
+        config = Config(config_file.name)
+        component = config.get_components(['example'])[0]
+        assert component.fetch_versions_only == True
+
+    with tempfile.NamedTemporaryFile('w') as config_file:
+        config_file.write("""
+fetch-versions-only: True
+components:
+ - example:
+     fetch-versions-only: False
+""")
+        config_file.flush()
+        config = Config(config_file.name)
+        component = config.get_components(['example'])[0]
+        assert component.fetch_versions_only == False
+
+    with tempfile.NamedTemporaryFile('w') as config_file:
+        config_file.write("""
+fetch-versions-only: True
+components:
+ - example
+""")
+        config_file.flush()
+        config = Config(config_file.name)
+        component = config.get_components(['example'])[0]
+        assert component.fetch_versions_only == True
+
+    with tempfile.NamedTemporaryFile('w') as config_file:
+        config_file.write("""
+components:
+ - example
+""")
+        config_file.flush()
+        config = Config(config_file.name)
+        component = config.get_components(['example'])[0]
+        assert component.fetch_versions_only == False

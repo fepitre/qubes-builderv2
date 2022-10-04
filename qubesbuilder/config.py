@@ -320,6 +320,9 @@ class Config:
             verification_mode = VerificationMode.SignedCommit
         if "verification-mode" in options:
             verification_mode = VerificationMode(options["verification-mode"])
+        fetch_versions_only = options.get(
+            "fetch-versions-only", self.get("fetch-versions-only", False)
+        )
         component = QubesComponent(
             source_dir=self._artifacts_dir / "sources" / name,
             url=options.get("url", url),
@@ -327,6 +330,7 @@ class Config:
             maintainers=options.get("maintainers", maintainers),
             verification_mode=verification_mode,
             timeout=options.get("timeout", timeout),
+            fetch_versions_only=fetch_versions_only,
         )
         return component
 

@@ -42,6 +42,7 @@ class QubesComponent:
         verification_mode: VerificationMode = VerificationMode.SignedCommit,
         maintainers: List = None,
         timeout: int = None,
+        fetch_versions_only: bool = False,
     ):
         self.source_dir: Path = (
             Path(source_dir) if isinstance(source_dir, str) else source_dir
@@ -54,6 +55,7 @@ class QubesComponent:
         self.maintainers = maintainers or []
         self.verification_mode = verification_mode
         self.timeout = timeout
+        self.fetch_versions_only = fetch_versions_only
         self._source_hash = ""
 
     def get_parameters(self, placeholders: dict = None):

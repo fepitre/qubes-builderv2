@@ -126,7 +126,7 @@ class FetchPlugin(ComponentPlugin):
         elif self.component.verification_mode == VerificationMode.SignedCommit:
             get_sources_cmd += ["--less-secure-signed-commits-sufficient"]
 
-        if self.config.fetch_versions_only:
+        if self.component.fetch_versions_only:
             get_sources_cmd += ["--fetch-versions-only"]
 
         do_fetch = True
