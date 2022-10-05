@@ -22,10 +22,6 @@ distributions:
   - host-fc32
 
 +components:
-  - kernel-latest:
-      url: https://github.com/QubesOS/qubes-linux-kernel
-      branch: master
-      timeout: 21600
   - release-configs
 
 executor:
