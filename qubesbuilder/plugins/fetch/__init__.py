@@ -299,11 +299,17 @@ class FetchPlugin(ComponentPlugin):
         # Source component directory inside executors
         source_dir = executor.get_builder_dir() / self.component.name
 
+        # Keep existing fetch info if it is up to date
+        source_hash = self.component.get_source_hash()
+        old_info = self.get_artifacts_info(stage=stage, basename="source")
+        if "source-hash" in old_info and old_info["source-hash"] == source_hash:
+            return
+
         # We store the fetched source hash as original reference to be compared
         # for any further modifications. Once the source is fetched, we may locally
         # modify the source for development and at prep stage we would need to recompute
         # source hash based on those modifications.
-        info: dict[str, Any] = {"source-hash": self.component.get_source_hash()}
+        info: dict[str, Any] = {"source-hash": source_hash}
 
         # Get git hash and tags
         copy_in = [
