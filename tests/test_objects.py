@@ -8,7 +8,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.template import QubesTemplate
-from qubesbuilder.exc import ComponentError, DistributionError
+from qubesbuilder.exc import ComponentError, DistributionError, ConfigError
 
 
 #
@@ -282,3 +282,30 @@ components:
         config = Config(config_file.name)
         component = config.get_components(['example'])[0]
         assert component.fetch_versions_only == False
+
+
+def test_config_components_filter():
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """components:
+ - component1
+ - component2
+ - component3:
+     # same repo as component1, but different branch
+     url: https://github.com/QubesOS/qubes-component1
+     branch: another
+"""
+        )
+        config_file.flush()
+        config = Config(config_file.name)
+
+        assert [c.name for c in config.get_components()] == [
+            "component1",
+            "component2",
+            "component3",
+        ]
+        assert [c.name for c in config.get_components(["component2"])] == ["component2"]
+        assert [c.name for c in config.get_components(["component1"])] == ["component1"]
+        assert [c.name for c in config.get_components(["component3"])] == ["component3"]
+        with pytest.raises(ConfigError):
+            config.get_components(["no-such-component"])

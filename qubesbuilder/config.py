@@ -231,23 +231,23 @@ class Config:
             components_from_config = []
             for c in self._conf.get("components", []):
                 components_from_config.append(self.get_component_from_dict_or_string(c))
+            self._components = components_from_config
 
-            # Find if components requested would have been found from config file with
-            # non default values for url, maintainer, etc.
-            if filtered_components:
-                for fc in filtered_components:
-                    filtered_component = None
-                    for c in components_from_config:
-                        if c.name == fc:
-                            filtered_component = c
-                            break
-                    if not filtered_component:
-                        filtered_component = self.get_component_from_dict_or_string(fc)
-                    self._components.append(filtered_component)
-            else:
-                self._components = components_from_config
-
-        return self._components
+        # Find if components requested would have been found from config file with
+        # non default values for url, maintainer, etc.
+        if filtered_components:
+            result = []
+            for fc in filtered_components:
+                found = False
+                for c in self._components:
+                    if c.name == fc:
+                        result.append(c)
+                        found = True
+                if not found:
+                    raise ConfigError(f"No such component: {fc}")
+            return result
+        else:
+            return self._components
 
     def get_artifacts_dir(self):
         return self._artifacts_dir
