@@ -225,7 +225,7 @@ class Config:
             self._templates = [QubesTemplate(template) for template in templates]
         return self._templates
 
-    def get_components(self, filtered_components=None):
+    def get_components(self, filtered_components=None, url_match=False):
         if not self._components:
             # Load available component information from config
             components_from_config = []
@@ -237,10 +237,14 @@ class Config:
         # non default values for url, maintainer, etc.
         if filtered_components:
             result = []
+            prefix = self.get("git", {}).get("prefix", "QubesOS/qubes-")
             for fc in filtered_components:
                 found = False
                 for c in self._components:
                     if c.name == fc:
+                        result.append(c)
+                        found = True
+                    elif url_match and c.url.partition(prefix)[2] == fc:
                         result.append(c)
                         found = True
                 if not found:

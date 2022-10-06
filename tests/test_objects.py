@@ -306,6 +306,10 @@ def test_config_components_filter():
         ]
         assert [c.name for c in config.get_components(["component2"])] == ["component2"]
         assert [c.name for c in config.get_components(["component1"])] == ["component1"]
+        assert [c.name for c in config.get_components(["component1"], True)] == [
+            "component1",
+            "component3",
+        ]
         assert [c.name for c in config.get_components(["component3"])] == ["component3"]
         with pytest.raises(ConfigError):
             config.get_components(["no-such-component"])
