@@ -44,7 +44,10 @@ def deep_merge(a: dict, b: dict) -> dict:
         if isinstance(a_value, dict) and isinstance(b_value, dict):
             result[b_key] = deep_merge(a_value, b_value)
         else:
-            result[b_key] = deepcopy(b_value)
+            if isinstance(result.get(b_key, None), list):
+                result[b_key] += deepcopy(b_value)
+            else:
+                result[b_key] = deepcopy(b_value)
     return result
 
 
