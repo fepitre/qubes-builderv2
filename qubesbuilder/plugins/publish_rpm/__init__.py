@@ -265,7 +265,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
             # Ensure dbpath from sign stage (still) exists
-            db_path = self.config.get_artifacts_dir() / f"rpmdb/{sign_key}"
+            db_path = self.config.artifacts_dir / f"rpmdb/{sign_key}"
             if not db_path.exists():
                 msg = f"{self.component}: {self.dist}: Failed to find RPM DB path."
                 raise PublishError(msg)

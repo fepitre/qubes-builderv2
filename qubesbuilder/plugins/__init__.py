@@ -109,39 +109,39 @@ class Plugin:
         return self._placeholders
 
     def get_temp_dir(self):
-        path = self.config.get_artifacts_dir() / "tmp"
+        path = self.config.artifacts_dir / "tmp"
         return path.resolve()
 
     def get_cache_dir(self):
-        path = self.config.get_artifacts_dir() / "cache"
+        path = self.config.artifacts_dir / "cache"
         return path.resolve()
 
     def get_sources_dir(self):
-        path = self.config.get_artifacts_dir() / "sources"
+        path = self.config.artifacts_dir / "sources"
         return path.resolve()
 
     def get_repository_dir(self):
-        path = self.config.get_artifacts_dir() / "repository"
+        path = self.config.artifacts_dir / "repository"
         return path.resolve()
 
     def get_repository_publish_dir(self):
-        path = self.config.get_artifacts_dir() / "repository-publish"
+        path = self.config.artifacts_dir / "repository-publish"
         return path.resolve()
 
     def get_distfiles_dir(self):
-        path = self.config.get_artifacts_dir() / "distfiles"
+        path = self.config.artifacts_dir / "distfiles"
         return path.resolve()
 
     def get_templates_dir(self):
-        path = self.config.get_artifacts_dir() / "templates"
+        path = self.config.artifacts_dir / "templates"
         return path.resolve()
 
     def get_installer_dir(self):
-        path = self.config.get_artifacts_dir() / "installer"
+        path = self.config.artifacts_dir / "installer"
         return path.resolve()
 
     def get_iso_dir(self):
-        path = self.config.get_artifacts_dir() / "iso"
+        path = self.config.artifacts_dir / "iso"
         return path.resolve()
 
 
@@ -187,7 +187,7 @@ class ComponentPlugin(Plugin):
         return path
 
     def get_component_artifacts_dir(self, stage: str):
-        path = self.config.get_artifacts_dir() / "components" / self.component.name
+        path = self.config.artifacts_dir / "components" / self.component.name
         path = path / f"{self.component.version}-{self.component.release}"
         path = path / "nodist" / stage
         return path.resolve()
@@ -322,12 +322,12 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
 
     def get_dist_component_artifacts_dir_history(self, stage: str):
         path = (
-            self.config.get_artifacts_dir() / "components" / self.component.name
+            self.config.artifacts_dir / "components" / self.component.name
         ).resolve()
         return list(path.glob(f"*/{self.dist.distribution}/{stage}"))
 
     def get_dist_component_artifacts_dir(self, stage: str):
-        path = self.config.get_artifacts_dir() / "components" / self.component.name
+        path = self.config.artifacts_dir / "components" / self.component.name
         path = path / f"{self.component.version}-{self.component.release}"
         path = path / self.dist.distribution / stage
         return path.resolve()
