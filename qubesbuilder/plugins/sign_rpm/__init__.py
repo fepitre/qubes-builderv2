@@ -95,7 +95,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
         build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
 
         # RPMDB
-        db_path = self.config.get_artifacts_dir() / f"rpmdb/{sign_key}"
+        db_path = self.config.artifacts_dir / f"rpmdb/{sign_key}"
 
         temp_dir = Path(tempfile.mkdtemp())
         sign_key_asc = temp_dir / f"{sign_key}.asc"

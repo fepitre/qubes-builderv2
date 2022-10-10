@@ -72,10 +72,7 @@ class Config:
         self._templates: List[QubesTemplate] = []
 
         # Artifacts directory location
-        if self._conf.get("artifacts-dir", None):
-            self._artifacts_dir = Path(self._conf["artifacts-dir"]).resolve()
-        else:
-            self._artifacts_dir = PROJECT_PATH / "artifacts"
+        self._artifacts_dir = None
 
         # log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
 
@@ -253,14 +250,16 @@ class Config:
 
         return self._components
 
-    def get_artifacts_dir(self):
+    @property
+    def artifacts_dir(self):
+        if self._conf.get("artifacts-dir", None):
+            self._artifacts_dir = Path(self._conf["artifacts-dir"]).resolve()
+        else:
+            self._artifacts_dir = PROJECT_PATH / "artifacts"
         return self._artifacts_dir
 
-    def set_artifacts_dir(self, directory: Path):
-        self._artifacts_dir = directory
-
     def get_logs_dir(self):
-        return self._artifacts_dir / "logs"
+        return self.artifacts_dir / "logs"
 
     def get_plugins_dirs(self):
         default_plugins_dir = PROJECT_PATH / "qubesbuilder" / "plugins"
@@ -329,7 +328,7 @@ class Config:
             "fetch-versions-only", self.get("fetch-versions-only", False)
         )
         component = QubesComponent(
-            source_dir=self._artifacts_dir / "sources" / name,
+            source_dir=self.artifacts_dir / "sources" / name,
             url=options.get("url", url),
             branch=options.get("branch", branch),
             maintainers=options.get("maintainers", maintainers),
