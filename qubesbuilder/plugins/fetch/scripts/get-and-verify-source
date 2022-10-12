@@ -262,7 +262,7 @@ if [[ -d "$REPO" ]]; then
     if ! git fetch "${GIT_OPTIONS[@]}" -q --tags -- "$GIT_URL" "$BRANCH"; then
         if [ "$IGNORE_MISSING" = "1" ]; then exit 0; else exit 1; fi
     fi
-    rev="$(git rev-parse -q --verify FETCH_HEAD)"
+    rev="$(git rev-parse -q --verify "FETCH_HEAD^{commit}")"
     if [ "$FETCH_VERSIONS_ONLY" == "1" ]; then
         if ! git tag --points-at "$rev" | grep -q '^v'; then
             echo "No version tag"
