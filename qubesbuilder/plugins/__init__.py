@@ -311,7 +311,9 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         # For retro-compatibility
         if self.dist.type == "rpm":
             self._parameters["build"] += [
-                PackagePath(spec) for spec in self._parameters.get("spec", [])
+                PackagePath(spec)
+                for spec in self._parameters.get("spec", [])
+                if PackagePath(spec) not in self._parameters["build"]
             ]
         # Check conflicts when mangle paths
         mangle_builds = [build.mangle() for build in self._parameters.get("build", [])]
