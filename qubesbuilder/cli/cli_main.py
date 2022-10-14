@@ -23,7 +23,7 @@ QubesBuilder command-line interface.
 
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 import re
 import click
 
@@ -43,28 +43,52 @@ log = get_logger("cli")
 ALLOWED_KEY_PATTERN = r"[A-Za-z0-9]+"
 
 
-def parse_dict_from_array(array):
-    if not array:
-        raise ValueError("Empty array found!")
-    if not re.match(ALLOWED_KEY_PATTERN, array[0]):
-        raise ValueError(f"Invalid key found: '{array[0]}'.")
-    if len(array) > 1:
-        result = {array[0]: parse_dict_from_array(array[1:])}
+def parse_dict_from_cli(s):
+    index_dict = None
+    index_array = None
+
+    if ":" in s:
+        index_dict = s.index(":")
+    if "+" in s:
+        index_array = s.index("+")
+
+    if index_dict and index_array:
+        split_identifier = ":" if index_dict < index_array else "+"
+    elif index_dict:
+        split_identifier = ":"
+    elif index_array:
+        split_identifier = "+"
     else:
-        if "=" in array[0]:
-            key, value = array[0].split("=")
-            if not re.match(ALLOWED_KEY_PATTERN, key):
-                raise ValueError(f"Invalid key found: '{array[0]}'.")
-            result = {key: value}
+        split_identifier = None
+
+    if split_identifier:
+        i, r = s.split(split_identifier, 1)
+    else:
+        r = None
+        i = s
+
+    if not re.match(ALLOWED_KEY_PATTERN, i):
+        raise ValueError(f"Invalid key identifier found: '{i}'.")
+
+    if r:
+        if split_identifier == ":":
+            result = {i: parse_dict_from_cli(r)}
         else:
-            result = {array[0]: True}
+            result = {i: [parse_dict_from_cli(r)]}
+    else:
+        if "=" not in s:
+            result = s
+        else:
+            key, val = s.split("=", 1)
+            result = {key: val if val != "True" else True}
     return result
 
 
-def parse_config_entry_from_array(array):
-    result = {}
+def parse_config_from_cli(array):
+    result: Dict[str, Any] = {}
     for s in array:
-        result = deep_merge(result, parse_dict_from_array(s.split(":")))
+        parsed_dict = parse_dict_from_cli(s)
+        result = deep_merge(result, parsed_dict)
     return result
 
 
@@ -80,13 +104,15 @@ def init_context_obj(
 ):
 
     try:
-        options = parse_config_entry_from_array(option) if option else {}
+        options = parse_config_from_cli(option) if option else {}
     except ValueError as e:
         raise CliError(f"Failed to parse CLI options: '{str(e)}'")
 
     config = Config(builder_conf)
 
     for opt in [
+        "artifacts-dir",
+        "builder-conf",
         "git",
         "executor",
         "force-fetch",
@@ -104,7 +130,8 @@ def init_context_obj(
         "template-root-with-partitions",
         "iso",
     ]:
-        config.set(opt, config.get(opt, options.get(opt)))
+        if opt in options:
+            config.set(opt, options[opt])
 
     obj = ContextObj(config)
 
@@ -132,7 +159,9 @@ def init_context_obj(
 
 
 @aliased_group("qb")
-@click.option("--verbose/--no-verbose", default=None, is_flag=True, help="Increase log verbosity.")
+@click.option(
+    "--verbose/--no-verbose", default=None, is_flag=True, help="Increase log verbosity."
+)
 @click.option(
     "--debug/--no-debug",
     default=None,

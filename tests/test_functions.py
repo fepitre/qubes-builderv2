@@ -1,7 +1,7 @@
 import pytest
 
 from qubesbuilder.common import is_filename_valid, deep_check
-from qubesbuilder.cli.cli_main import parse_config_entry_from_array
+from qubesbuilder.cli.cli_main import parse_config_from_cli
 
 
 def test_filename():
@@ -91,9 +91,9 @@ def test_parse_config_entry_from_array_01():
         "executor:type=qubes",
         "executor:options:dispvm=qubes-builder-dvm",
         "backend-vmm=kvm",
-        "force-fetch"
+        "force-fetch",
     ]
-    parsed_dict = parse_config_entry_from_array(array)
+    parsed_dict = parse_config_from_cli(array)
     expected_dict = {
         "executor": {"type": "qubes", "options": {"dispvm": "qubes-builder-dvm"}},
         "backend-vmm": "kvm",
@@ -106,10 +106,22 @@ def test_parse_config_entry_from_array_01():
 def test_parse_config_entry_from_array_02():
     array = [" =wrongkey"]
     with pytest.raises(ValueError) as e:
-        parse_config_entry_from_array(array)
+        parse_config_from_cli(array)
     assert " " in e.value.args[0]
 
     array = ["_=wrongkey"]
     with pytest.raises(ValueError) as e:
-        parse_config_entry_from_array(array)
+        parse_config_from_cli(array)
     assert "_" in e.value.args[0]
+
+
+def test_parse_config_entry_from_array_03():
+    array = [
+        "components+kernel:branch=stable-5.15",
+        "components+lvm2"
+    ]
+    parsed_dict = parse_config_from_cli(array)
+    expected_dict = {
+        "components": [{"kernel": {"branch": "stable-5.15"}}, "lvm2"],
+    }
+    assert parsed_dict == expected_dict
