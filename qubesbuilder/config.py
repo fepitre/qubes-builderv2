@@ -204,11 +204,18 @@ class Config:
 
     def get_distributions(self, filtered_distributions=None):
         if not self._dists:
-            if filtered_distributions:
-                distributions = filtered_distributions
-            else:
-                distributions = self._conf.get("distributions", [])
+            distributions = self._conf.get("distributions", [])
             self._dists = [QubesDistribution(dist) for dist in distributions]
+        if filtered_distributions:
+            result = []
+            for fd in filtered_distributions:
+                for d in self._dists:
+                    if d.distribution == fd:
+                        result.append(d)
+                        break
+                else:
+                    raise ConfigError(f"No such distribution: {fd}")
+            return result
         return self._dists
 
     def get_templates(self, filtered_templates=None):

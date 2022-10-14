@@ -313,3 +313,34 @@ def test_config_components_filter():
         assert [c.name for c in config.get_components(["component3"])] == ["component3"]
         with pytest.raises(ConfigError):
             config.get_components(["no-such-component"])
+
+
+def test_config_distributions_filter():
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """distributions:
+ - vm-fc36
+ - vm-bullseye
+ - host-fc37
+"""
+        )
+        config_file.flush()
+        config = Config(config_file.name)
+
+        assert [d.distribution for d in config.get_distributions()] == [
+            "vm-fc36",
+            "vm-bullseye",
+            "host-fc37",
+        ]
+        assert [d.distribution for d in config.get_distributions(["vm-fc36"])] == [
+            "vm-fc36"
+        ]
+        assert [
+            d.distribution
+            for d in config.get_distributions(["vm-fc36", "host-fc37"])
+        ] == [
+            "vm-fc36",
+            "host-fc37",
+        ]
+        with pytest.raises(ConfigError):
+            config.get_distributions(["vm-fc32"])
