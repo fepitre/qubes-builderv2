@@ -52,12 +52,12 @@ def deep_merge(a: dict, b: dict) -> dict:
 
 
 class Config:
-    def __init__(self, conf_file: Union[Path, str]):
+    def __init__(self, conf_file: Union[Path, str], options: dict = None):
         # Keep path of configuration file
         self._conf_file = conf_file
 
         # Parse builder configuration file
-        self._conf = self.parse_configuration_file(conf_file)
+        self._conf = self.parse_configuration_file(conf_file, options)
 
         # Qubes OS distributions
         self._dists: List = []
@@ -72,7 +72,7 @@ class Config:
         self._templates: List[QubesTemplate] = []
 
         # Artifacts directory location
-        self._artifacts_dir = None
+        self._artifacts_dir: Path = PROJECT_PATH / "artifacts"
 
         # log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
 
@@ -103,7 +103,7 @@ class Config:
         return f"<Config {str(self._conf_file)}>"
 
     @classmethod
-    def _load_config(cls, conf_file: Path):
+    def _load_config(cls, conf_file: Path, options: dict = None):
         if not conf_file.exists():
             raise ConfigError(f"Cannot find builder configuration '{conf_file}'.")
         try:
@@ -114,13 +114,18 @@ class Config:
         included_conf = conf.get("include", [])
         conf.pop("include", None)
 
-        # Init the final config based on included configs first
-        combined_conf: Dict[str, Any] = {}
+        included_data = []
         for inc in included_conf:
             inc_path = Path(inc)
             if not inc_path.is_absolute():
                 inc_path = conf_file.parent / inc_path
-            data = cls._load_config(inc_path)
+            included_data.append(cls._load_config(inc_path))
+        if options and isinstance(options, dict):
+            included_data.append(options)
+
+        # Init the final config based on included configs first
+        combined_conf: Dict[str, Any] = {}
+        for data in included_data:
             for key in data:
                 if key in (
                     "+distributions",
@@ -156,14 +161,36 @@ class Config:
             else:
                 combined_conf[key] = conf[key]
 
+        # Allow options to override only values that can be merged
+        if options and isinstance(options, dict):
+            for key in options:
+                if not key.startswith("+") and key not in (
+                    "distributions",
+                    "templates",
+                    "components",
+                    "stages",
+                    "plugins",
+                ):
+                    if isinstance(combined_conf[key], dict) and isinstance(
+                        options[key], dict
+                    ):
+                        combined_conf[key] = deep_merge(
+                            combined_conf[key], options[key]
+                        )
+                    else:
+                        combined_conf[key] = options[key]
+
         return combined_conf
 
     @classmethod
-    def parse_configuration_file(cls, conf_file: Union[Path, str]):
+    def parse_configuration_file(
+        cls, conf_file: Union[Path, str], options: Dict = None
+    ):
         if isinstance(conf_file, str):
             conf_file = Path(conf_file).resolve()
 
-        final_conf = cls._load_config(conf_file)
+        final_conf = cls._load_config(conf_file, options)
+
         # Merge dict from included configs
         for key in (
             "distributions",
@@ -267,8 +294,6 @@ class Config:
     def artifacts_dir(self):
         if self._conf.get("artifacts-dir", None):
             self._artifacts_dir = Path(self._conf["artifacts-dir"]).resolve()
-        else:
-            self._artifacts_dir = PROJECT_PATH / "artifacts"
         return self._artifacts_dir
 
     def get_logs_dir(self):

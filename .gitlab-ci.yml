@@ -176,8 +176,7 @@ pytest-cli-template:
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/qubes/' builder.yml
-    - 'sed -i ''s|image:.*|dispvm: "qubes-builder-dvm"|'' builder.yml'
-    - ./qb -d "${CI_JOB_NAME#qubes-}" package all
+    - ./qb -d "${CI_JOB_NAME#qubes-}" --option executor:type=qubes --option executor:options:dispvm=qubes-builder-dvm package all
   after_script:
     - rm -rf artifacts/cache
     - tree artifacts
@@ -196,9 +195,7 @@ pytest-cli-template:
     - sudo dnf install -y python3-debian dpkg-dev openssl tree
   script:
     - cp tests/builder-ci.yml builder.yml
-    - sed -i 's/docker/local/' builder.yml
-    - 'sed -i ''s|image:.*|directory: "/home/gitlab-runner/tmp"|'' builder.yml'
-    - ./qb -d "${CI_JOB_NAME#local-}" package all
+    - ./qb -d "${CI_JOB_NAME#local-}" --option executor:type=local --option executor:options:directory=/home/gitlab-runner/tmp package all
   after_script:
     - rm -rf artifacts/cache
     - tree artifacts
@@ -213,9 +210,7 @@ pytest-cli-template:
     - sudo dnf install -y python3-debian dpkg-dev openssl tree
   script:
     - cp tests/builder-ci.yml builder.yml
-    - sed -i 's/docker/qubes/' builder.yml
-    - 'sed -i ''s|image:.*|dispvm: "qubes-builder-dvm"|'' builder.yml'
-    - ./qb -t "${CI_JOB_NAME#qubes-template-}" template all
+    - ./qb -t "${CI_JOB_NAME#qubes-template-}" --option executor:type=qubes --option executor:options:dispvm=qubes-builder-dvm template all
 
 #
 # Components

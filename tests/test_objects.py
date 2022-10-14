@@ -398,3 +398,32 @@ def test_config_templates_filter():
         ]
         with pytest.raises(ConfigError):
             config.get_templates(["fedora-32"])
+
+
+def test_config_options():
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """components:
+ - lvm2
+ - kernel
+
+force-fetch: false
+
+executor:
+  type: podman
+  options:
+    image: myimage
+    something: else
+"""
+        )
+        config_file.flush()
+        options = {
+            "+components": [{"kernel": {"branch": "stable-5.15"}}],
+            "force-fetch": True,
+            "executor": {"options": {"image": "fedora"}},
+        }
+        config = Config(config_file.name, options)
+        component = config.get_components(["kernel"])[0]
+        assert component.branch == "stable-5.15"
+        assert config.force_fetch == True
+        assert config.get("executor").get("options").get("image") == "fedora"
