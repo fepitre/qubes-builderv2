@@ -23,12 +23,16 @@ QubesBuilder command-line interface - base module.
 
 import sys
 import traceback
-from typing import Callable
+from pathlib import Path
+from typing import Callable, List, Optional
 
 import click
 
+from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
+from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
+from qubesbuilder.template import QubesTemplate
 
 
 class ContextObj:
@@ -39,10 +43,10 @@ class ContextObj:
     def __init__(self, config: Config):
         self.config = config
         self.manager = PluginManager(config.get_plugins_dirs())
-        self.components = None
-        self.distributions = None
-        self.templates = None
-        self.log_file = None
+        self.components: List[QubesComponent] = []
+        self.distributions: List[QubesDistribution] = []
+        self.templates: List[QubesTemplate] = []
+        self.log_file: Optional[Path] = None
 
 
 class AliasedGroup(click.Group):

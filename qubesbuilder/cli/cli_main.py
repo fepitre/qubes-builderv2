@@ -23,7 +23,7 @@ QubesBuilder command-line interface.
 
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import click
 
@@ -47,9 +47,9 @@ def init_context_obj(
     verbose: int = None,
     debug: bool = None,
     log_file: str = None,
-    component: List = None,
-    distribution: List = None,
-    template: List = None,
+    component: Optional[List] = None,
+    distribution: Optional[List] = None,
+    template: Optional[List] = None,
     executor: str = None,
     executor_option: List = None,
 ):
