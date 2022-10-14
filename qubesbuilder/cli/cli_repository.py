@@ -315,10 +315,12 @@ def _check_release_status_for_template(config, manager, templates):
     name="upload",
     short_help="Upload packages or templates to remote location.",
 )
+@click.argument("repository_publish", nargs=1)
 @click.pass_obj
 def upload(obj: ContextObj, repository_publish: str):
     _upload(
         config=obj.config,
+        manager=obj.manager,
         distributions=obj.distributions,
         templates=obj.templates,
         repository_publish=repository_publish,
@@ -327,17 +329,24 @@ def upload(obj: ContextObj, repository_publish: str):
 
 def _upload(
     config: Config,
+    manager: PluginManager,
     distributions: List[QubesDistribution],
     templates: List[QubesTemplate],
     repository_publish: str,
 ):
     plugins: List[Union[UploadPlugin, TemplateBuilderPlugin]] = []
     if repository_publish in COMPONENT_REPOSITORIES:
-        for dist in distributions:
-            plugins += UploadPlugin(dist=dist, config=config)  # type: ignore
+        plugins = manager.get_component_instances(
+            stage="upload",
+            distributions=distributions,
+            config=config,
+        )
     elif repository_publish in TEMPLATE_REPOSITORIES:
-        for tmpl in templates:
-            plugins += TemplateBuilderPlugin(template=tmpl, config=config)  # type: ignore
+        plugins = manager.get_template_instances(
+            stage="upload",
+            templates=templates,
+            config=config,
+        )
     for p in plugins:
         p.run(stage="upload", repository_publish=repository_publish)
 
