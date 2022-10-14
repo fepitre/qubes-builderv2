@@ -30,33 +30,29 @@ def artifacts_dir(tmpdir_factory):
 
 
 def qb_call(builder_conf, artifacts_dir, *args, **kwargs):
-    subprocess.check_call(
-        [
-            PROJECT_PATH / "qb",
-            "--verbose",
-            "--builder-conf",
-            str(builder_conf),
-            "--artifacts-dir",
-            str(artifacts_dir),
-            *args,
-        ],
-        **kwargs,
-    )
+    cmd = [
+        str(PROJECT_PATH / "qb"),
+        "--verbose",
+        "--builder-conf",
+        str(builder_conf),
+        "--option",
+        f"artifacts-dir={artifacts_dir}",
+        *args,
+    ]
+    subprocess.check_call(cmd, **kwargs)
 
 
 def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
-    return subprocess.check_output(
-        [
-            PROJECT_PATH / "qb",
-            "--verbose",
-            "--builder-conf",
-            str(builder_conf),
-            "--artifacts-dir",
-            str(artifacts_dir),
-            *args,
-        ],
-        **kwargs,
-    )
+    cmd = [
+        str(PROJECT_PATH / "qb"),
+        "--verbose",
+        "--builder-conf",
+        str(builder_conf),
+        "--option",
+        f"artifacts-dir={artifacts_dir}",
+        *args,
+    ]
+    return subprocess.check_output(cmd, **kwargs)
 
 
 def deb_packages_list(repository_dir, suite, **kwargs):
@@ -87,24 +83,25 @@ def rpm_packages_list(repository_dir):
 # config
 #
 
+
 def test_config(artifacts_dir):
     with tempfile.TemporaryDirectory() as tmpdir:
-        include_path = os.path.join(tmpdir, 'include1.yml')
-        with open(include_path, 'w') as f:
+        include_path = os.path.join(tmpdir, "include1.yml")
+        with open(include_path, "w") as f:
             f.write("+components:\n")
             f.write("- component2\n")
             f.write("- component3\n")
             f.write("distributions:\n")
             f.write("- vm-fc36\n")
             f.write("- vm-fc37\n")
-        include_path = os.path.join(tmpdir, 'include-nested.yml')
-        with open(include_path, 'w') as f:
+        include_path = os.path.join(tmpdir, "include-nested.yml")
+        with open(include_path, "w") as f:
             f.write("+components:\n")
             f.write("- component4\n")
             f.write("- component5\n")
             f.write("debug: true\n")
-        include_path = os.path.join(tmpdir, 'include2.yml')
-        with open(include_path, 'w') as f:
+        include_path = os.path.join(tmpdir, "include2.yml")
+        with open(include_path, "w") as f:
             f.write("include:\n")
             f.write("- include-nested.yml\n")
             f.write("+components:\n")
@@ -113,8 +110,8 @@ def test_config(artifacts_dir):
             f.write("distributions:\n")
             f.write("- vm-fc36\n")
             f.write("- vm-fc37\n")
-        config_path = os.path.join(tmpdir, 'builder.yml')
-        with open(config_path, 'w') as f:
+        config_path = os.path.join(tmpdir, "builder.yml")
+        with open(config_path, "w") as f:
             f.write("include:\n")
             f.write("- include1.yml\n")
             f.write("- include2.yml\n")
@@ -125,18 +122,35 @@ def test_config(artifacts_dir):
             f.write("- vm-fc33\n")
             f.write("- vm-fc34\n")
 
-        output = qb_call_output(config_path, artifacts_dir,
-                                "config", "get-components")
-        assert output == b"component1\ncomponent2\ncomponent3\ncomponent4\n" \
-                         b"component5\ncomponent6\ncomponent7\n"
+        output = qb_call_output(config_path, artifacts_dir, "config", "get-components")
+        assert (
+            output == b"component1\ncomponent2\ncomponent3\ncomponent4\n"
+            b"component5\ncomponent6\ncomponent7\n"
+        )
 
-        output = qb_call_output(config_path, artifacts_dir,
-                                "config", "get-distributions")
+        output = qb_call_output(
+            config_path, artifacts_dir, "config", "get-distributions"
+        )
         assert output == b"vm-fc33\nvm-fc34\n"
 
-        output = qb_call_output(config_path, artifacts_dir,
-                                "config", "get-var", "debug")
+        output = qb_call_output(
+            config_path, artifacts_dir, "config", "get-var", "debug"
+        )
         assert output == b"true\n"
+
+
+#
+# Init cache
+#
+
+
+def test_component_init_cache(artifacts_dir):
+    qb_call(DEFAULT_BUILDER_CONF, artifacts_dir, "package", "init-cache")
+
+    assert (artifacts_dir / "cache/chroot/fc32/mock/fedora-32-x86_64").exists()
+    assert (artifacts_dir / "cache/chroot/bullseye/pbuilder/base.tgz").exists()
+    assert (artifacts_dir / "cache/chroot/fc36/mock/fedora-36-x86_64").exists()
+
 
 #
 # Fetch
@@ -1145,10 +1159,10 @@ def test_template_prep_fedora_36_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
-        "-e",
-        "qubes",
-        "--executor-option",
-        "dispvm=qubes-builder-dvm",
+        "--option",
+        "executor:type=qubes",
+        "--option",
+        "executor:options:dispvm=qubes-builder-dvm",
         "-t",
         "fedora-36-xfce",
         "template",
@@ -1167,10 +1181,10 @@ def test_template_build_fedora_36_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
-        "-e",
-        "qubes",
-        "--executor-option",
-        "dispvm=qubes-builder-dvm",
+        "--option",
+        "executor:type=qubes",
+        "--option",
+        "executor:options:dispvm=qubes-builder-dvm",
         "-t",
         "fedora-36-xfce",
         "template",

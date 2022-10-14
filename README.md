@@ -183,23 +183,14 @@ Usage: qb [OPTIONS] COMMAND [ARGS]...
   Main CLI
 
 Options:
-  --verbose / --no-verbose  Output logs.
+  --verbose / --no-verbose  Increase log verbosity.
   --debug / --no-debug      Print full traceback on exception.
   --builder-conf TEXT       Path to configuration file (default: builder.yml).
-  --artifacts-dir TEXT      Path to artifacts directory (default:
-                            ./artifacts).
   --log-file TEXT           Path to log file to be created.
-  -c, --component TEXT      Override component in configuration file (can be
-                            repeated).
-  -d, --distribution TEXT   Override distribution in configuration file (can
-                            be repeated).
-  -t, --template TEXT       Override template in configuration file (can be
-                            repeated).
-  -e, --executor TEXT       Override executor type in configuration file.
-  --executor-option TEXT    Override executor options in configuration file
-                            provided as "option=value" (can be repeated). For
-                            example, --executor-option image="qubes-builder-
-                            fedora:latest"
+  -c, --component TEXT      Specify component to treat (can be repeated).
+  -d, --distribution TEXT   Set distribution to treat (can be repeated).
+  -t, --template TEXT       Set template to treat (can be repeated).
+  -o, --option TEXT         Set builder configuration value (can be repeated).
   --help                    Show this message and exit.
 
 Commands:
@@ -216,9 +207,7 @@ Remark:
     The Qubes OS components are separated into two groups: standard components
     and template components. Standard components will produce distribution
     packages to be installed in TemplateVMs or StandaloneVMs, while template
-    components will produce template packages to be installed via qvm-
-    template.
-
+    components will produce template packages to be installed via qvm-template.
 ```
 
 You can use the provided development `builder-devel.yml` configuration file
@@ -236,7 +225,6 @@ artifacts/
 ├── sources             <- Qubes components source.
 └── templates           <- Template artifacts.
 ```
-
 
 ### Package
 

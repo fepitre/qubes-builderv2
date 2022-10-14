@@ -282,3 +282,23 @@ components:
         config = Config(config_file.name)
         component = config.get_components(['example'])[0]
         assert component.fetch_versions_only == False
+
+
+def test_config_options():
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """components:
+ - lvm2
+ - kernel
+force-fetch: false
+"""
+        )
+        config_file.flush()
+        options = {
+            "+components": [{"kernel": {"branch": "stable-5.15"}}],
+            "force-fetch": True,
+        }
+        config = Config(config_file.name, options)
+        component = config.get_components(["kernel"])[0]
+        assert component.branch == "stable-5.15"
+        assert config.force_fetch == True

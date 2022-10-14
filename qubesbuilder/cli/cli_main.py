@@ -23,7 +23,7 @@ QubesBuilder command-line interface.
 
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 import re
 import click
 
@@ -34,37 +34,95 @@ from qubesbuilder.cli.cli_installer import installer
 from qubesbuilder.cli.cli_package import package
 from qubesbuilder.cli.cli_repository import repository
 from qubesbuilder.cli.cli_template import template
-from qubesbuilder.common import STAGES
+from qubesbuilder.common import STAGES, str_to_bool
 from qubesbuilder.config import Config, deep_merge
 from qubesbuilder.log import get_logger, init_logging
 
 log = get_logger("cli")
 
-ALLOWED_KEY_PATTERN = r"[A-Za-z0-9]+"
+ALLOWED_KEY_PATTERN = r"[A-Za-z0-9-_+]+"
 
 
-def parse_dict_from_array(array):
-    if not array:
-        raise ValueError("Empty array found!")
-    if not re.match(ALLOWED_KEY_PATTERN, array[0]):
-        raise ValueError(f"Invalid key found: '{array[0]}'.")
-    if len(array) > 1:
-        result = {array[0]: parse_dict_from_array(array[1:])}
+# Function to validate allowed key values in a dict
+def validate_identifier(identifier):
+    if re.match(ALLOWED_KEY_PATTERN, identifier) and not any(
+        [
+            identifier in ("-", "_"),
+            identifier.startswith("-"),
+            identifier.endswith("-"),
+            identifier.startswith("_"),
+            identifier.endswith("-"),
+        ]
+    ):
+        return
+
+    raise ValueError(f"Invalid key identifier found: '{identifier}'.")
+
+
+def parse_dict_from_cli(s):
+    index_dict = None
+    index_array = None
+
+    # Determine if split identifier "+" or ":" is present
+    if ":" in s:
+        index_dict = s.index(":")
+    # We may have '+components', '+plugins', etc.
+    if "+" in s[1:]:
+        index_array = s[1:].index("+")
+
+    # If both are present, find the first one and split according to the first one
+    if index_dict and index_array:
+        split_identifier = ":" if index_dict < index_array else "+"
+    elif index_dict:
+        split_identifier = ":"
+    elif index_array:
+        split_identifier = "+"
     else:
-        if "=" in array[0]:
-            key, value = array[0].split("=")
-            if not re.match(ALLOWED_KEY_PATTERN, key):
-                raise ValueError(f"Invalid key found: '{array[0]}'.")
-            result = {key: value}
+        split_identifier = None
+
+    # If no split identifier is found, there is nothing more to parse
+    if split_identifier:
+        if split_identifier == "+" and s.startswith("+"):
+            parsed_identifier, remaining_content = s[1:].split(split_identifier, 1)
+            parsed_identifier = "+" + parsed_identifier
         else:
-            result = {array[0]: True}
+            parsed_identifier, remaining_content = s.split(split_identifier, 1)
+    else:
+        remaining_content = None
+        parsed_identifier = s
+
+    if remaining_content:
+        # Validate key
+        validate_identifier(parsed_identifier)
+
+        if split_identifier == ":":
+            if "=" not in remaining_content:
+                raise ValueError(f"Cannot find '=' in '{remaining_content}'")
+            result = {parsed_identifier: parse_dict_from_cli(remaining_content)}
+        else:
+            result = {parsed_identifier: [parse_dict_from_cli(remaining_content)]}
+    else:
+        if "=" not in s:
+            result = s
+        else:
+            if s.count("=") != 1:
+                raise ValueError("Too much '=' found.")
+            key, val = s.split("=", 1)
+
+            # Validate key
+            validate_identifier(key)
+
+            if val.lower() in ("true", "false", "1", "0"):
+                val = str_to_bool(val)
+            result = {key: val}
     return result
 
 
-def parse_config_entry_from_array(array):
-    result = {}
+def parse_config_from_cli(array):
+    result: Dict[str, Any] = {}
     for s in array:
-        result = deep_merge(result, parse_dict_from_array(s.split(":")))
+        parsed_dict = parse_dict_from_cli(s)
+        result = deep_merge(result, parsed_dict)
     return result
 
 
@@ -80,32 +138,11 @@ def init_context_obj(
 ):
 
     try:
-        options = parse_config_entry_from_array(option) if option else {}
+        options = parse_config_from_cli(option) if option else {}
     except ValueError as e:
         raise CliError(f"Failed to parse CLI options: '{str(e)}'")
 
-    config = Config(builder_conf)
-
-    for opt in [
-        "git",
-        "executor",
-        "force-fetch",
-        "skip-git-fetch",
-        "fetch-versions-only",
-        "backend-vmm",
-        "use-qubes-repo",
-        "gpg-client",
-        "sign-key",
-        "min-age-days",
-        "qubes-release",
-        "repository-publish",
-        "repository-upload-remote-host",
-        "template-root-size",
-        "template-root-with-partitions",
-        "iso",
-    ]:
-        config.set(opt, config.get(opt, options.get(opt)))
-
+    config = Config(conf_file=builder_conf, options=options)
     obj = ContextObj(config)
 
     # verbose or debug is overridden by cli options
@@ -132,7 +169,9 @@ def init_context_obj(
 
 
 @aliased_group("qb")
-@click.option("--verbose/--no-verbose", default=None, is_flag=True, help="Increase log verbosity.")
+@click.option(
+    "--verbose/--no-verbose", default=None, is_flag=True, help="Increase log verbosity."
+)
 @click.option(
     "--debug/--no-debug",
     default=None,
@@ -220,6 +259,23 @@ def main(
 
 main.epilog = f"""Stages:
     {' '.join(STAGES)}
+
+Option:
+    Input value for option is of the form:
+
+        1. key=value
+        2. parent-key:key=value
+        3. key+value
+
+    It allows to set configuration dict values or appending array values.
+    In the three forms, 'value' can be chained by one of the three forms to set value at deeper level.
+
+    For example:
+        force-fetch=true
+        executor:type=qubes
+        executor:options:dispvm=qubes-builder-dvm
+        components+lvm2
+        components+kernel:branch=stable-5.15
 
 Remark:
     The Qubes OS components are separated into two groups: standard components
