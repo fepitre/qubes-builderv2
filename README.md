@@ -23,7 +23,7 @@ $ sudo dnf install python3-packaging createrepo_c devscripts gpg qubes-gpg-split
 Debian:
 
 ```bash
-$ sudo apt install python3-packaging createrepo-c devscripts gpg qubes-gpg-split python3-yaml rpm docker python3-docker reprepro python3-pathspec mktorrent openssl tree
+$ sudo apt install python3-packaging createrepo-c devscripts gpg qubes-gpg-split python3-yaml rpm docker python3-docker reprepro python3-pathspec mktorrent openssl tree python3-setuptools python3-lxml
 ```
 
 Install `mkmetalink`:
