@@ -360,3 +360,41 @@ def test_config_distributions_filter():
         ]
         with pytest.raises(ConfigError):
             config.get_distributions(["vm-fc32"])
+
+
+def test_config_templates_filter():
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """templates:
+  - fedora-36-xfce:
+      dist: fc36
+      flavor: xfce
+  - centos-stream-8:
+      dist: centos-stream8
+  - debian-11:
+      dist: bullseye
+      options:
+        - standard
+        - firmware
+"""
+        )
+        config_file.flush()
+        config = Config(config_file.name)
+
+        assert [t.name for t in config.get_templates()] == [
+            "fedora-36-xfce",
+            "centos-stream-8",
+            "debian-11",
+        ]
+        assert [t.name for t in config.get_templates(["debian-11"])] == ["debian-11"]
+        assert [
+            t.name
+            for t in config.get_templates(
+                ["fedora-36-xfce", "debian-11"]
+            )
+        ] == [
+            "fedora-36-xfce",
+            "debian-11",
+        ]
+        with pytest.raises(ConfigError):
+            config.get_templates(["fedora-32"])

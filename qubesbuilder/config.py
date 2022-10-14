@@ -220,16 +220,18 @@ class Config:
 
     def get_templates(self, filtered_templates=None):
         if not self._templates:
-            if filtered_templates:
-                templates = []
-                for template_name in filtered_templates:
-                    for tmpl in self._conf.get("templates", []):
-                        if next(iter(tmpl.keys())) == template_name:
-                            templates.append(tmpl)
-                            break
-            else:
-                templates = self._conf.get("templates", [])
+            templates = self._conf.get("templates", [])
             self._templates = [QubesTemplate(template) for template in templates]
+        if filtered_templates:
+            result = []
+            for ft in filtered_templates:
+                for t in self._templates:
+                    if t.name == ft:
+                        result.append(t)
+                        break
+                else:
+                    raise ConfigError(f"No such template: {ft}")
+            return result
         return self._templates
 
     def get_components(self, filtered_components=None, url_match=False):
