@@ -87,24 +87,25 @@ def rpm_packages_list(repository_dir):
 # config
 #
 
+
 def test_config(artifacts_dir):
     with tempfile.TemporaryDirectory() as tmpdir:
-        include_path = os.path.join(tmpdir, 'include1.yml')
-        with open(include_path, 'w') as f:
+        include_path = os.path.join(tmpdir, "include1.yml")
+        with open(include_path, "w") as f:
             f.write("+components:\n")
             f.write("- component2\n")
             f.write("- component3\n")
             f.write("distributions:\n")
             f.write("- vm-fc36\n")
             f.write("- vm-fc37\n")
-        include_path = os.path.join(tmpdir, 'include-nested.yml')
-        with open(include_path, 'w') as f:
+        include_path = os.path.join(tmpdir, "include-nested.yml")
+        with open(include_path, "w") as f:
             f.write("+components:\n")
             f.write("- component4\n")
             f.write("- component5\n")
             f.write("debug: true\n")
-        include_path = os.path.join(tmpdir, 'include2.yml')
-        with open(include_path, 'w') as f:
+        include_path = os.path.join(tmpdir, "include2.yml")
+        with open(include_path, "w") as f:
             f.write("include:\n")
             f.write("- include-nested.yml\n")
             f.write("+components:\n")
@@ -113,8 +114,8 @@ def test_config(artifacts_dir):
             f.write("distributions:\n")
             f.write("- vm-fc36\n")
             f.write("- vm-fc37\n")
-        config_path = os.path.join(tmpdir, 'builder.yml')
-        with open(config_path, 'w') as f:
+        config_path = os.path.join(tmpdir, "builder.yml")
+        with open(config_path, "w") as f:
             f.write("include:\n")
             f.write("- include1.yml\n")
             f.write("- include2.yml\n")
@@ -125,18 +126,22 @@ def test_config(artifacts_dir):
             f.write("- vm-fc33\n")
             f.write("- vm-fc34\n")
 
-        output = qb_call_output(config_path, artifacts_dir,
-                                "config", "get-components")
-        assert output == b"component1\ncomponent2\ncomponent3\ncomponent4\n" \
-                         b"component5\ncomponent6\ncomponent7\n"
+        output = qb_call_output(config_path, artifacts_dir, "config", "get-components")
+        assert (
+            output == b"component1\ncomponent2\ncomponent3\ncomponent4\n"
+            b"component5\ncomponent6\ncomponent7\n"
+        )
 
-        output = qb_call_output(config_path, artifacts_dir,
-                                "config", "get-distributions")
+        output = qb_call_output(
+            config_path, artifacts_dir, "config", "get-distributions"
+        )
         assert output == b"vm-fc33\nvm-fc34\n"
 
-        output = qb_call_output(config_path, artifacts_dir,
-                                "config", "get-var", "debug")
+        output = qb_call_output(
+            config_path, artifacts_dir, "config", "get-var", "debug"
+        )
         assert output == b"true\n"
+
 
 #
 # Fetch

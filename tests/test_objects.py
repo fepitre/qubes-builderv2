@@ -196,91 +196,107 @@ def test_template():
 
 
 def test_config_verification():
-    with tempfile.NamedTemporaryFile('w') as config_file:
-        config_file.write("""components:
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """components:
  - example:
      verification-mode: less-secure-signed-commits-sufficient
-""")
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
-        component = config.get_components(['example'])[0]
+        component = config.get_components(["example"])[0]
         assert component.verification_mode == VerificationMode.SignedCommit
 
-    with tempfile.NamedTemporaryFile('w') as config_file:
-        config_file.write("""components:
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """components:
  - example:
      verification-mode: insecure-skip-checking
-""")
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
-        component = config.get_components(['example'])[0]
+        component = config.get_components(["example"])[0]
         assert component.verification_mode == VerificationMode.Insecure
 
-    with tempfile.NamedTemporaryFile('w') as config_file:
-        config_file.write("""
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """
 less-secure-signed-commits-sufficient:
  - example
 components:
  - example
-""")
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
-        component = config.get_components(['example'])[0]
+        component = config.get_components(["example"])[0]
         assert component.verification_mode == VerificationMode.SignedCommit
 
-    with tempfile.NamedTemporaryFile('w') as config_file:
-        config_file.write("""
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """
 components:
  - example
-""")
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
-        component = config.get_components(['example'])[0]
+        component = config.get_components(["example"])[0]
         assert component.verification_mode == VerificationMode.SignedTag
 
 
 def test_config_fetch_versions_only():
-    with tempfile.NamedTemporaryFile('w') as config_file:
-        config_file.write("""components:
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """components:
  - example:
      fetch-versions-only: True
-""")
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
-        component = config.get_components(['example'])[0]
+        component = config.get_components(["example"])[0]
         assert component.fetch_versions_only == True
 
-    with tempfile.NamedTemporaryFile('w') as config_file:
-        config_file.write("""
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """
 fetch-versions-only: True
 components:
  - example:
      fetch-versions-only: False
-""")
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
-        component = config.get_components(['example'])[0]
+        component = config.get_components(["example"])[0]
         assert component.fetch_versions_only == False
 
-    with tempfile.NamedTemporaryFile('w') as config_file:
-        config_file.write("""
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """
 fetch-versions-only: True
 components:
  - example
-""")
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
-        component = config.get_components(['example'])[0]
+        component = config.get_components(["example"])[0]
         assert component.fetch_versions_only == True
 
-    with tempfile.NamedTemporaryFile('w') as config_file:
-        config_file.write("""
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """
 components:
  - example
-""")
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
-        component = config.get_components(['example'])[0]
+        component = config.get_components(["example"])[0]
         assert component.fetch_versions_only == False
 
 
