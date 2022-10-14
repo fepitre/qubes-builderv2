@@ -1,3 +1,4 @@
+import itertools
 import os.path
 import pathlib
 import re
@@ -570,6 +571,70 @@ def test_component_publish_host_fc32(artifacts_dir):
         )
         packages = rpm_packages_list(repository_dir)
         assert set(rpms) == set(packages)
+
+
+def test_component_upload_host_fc32(artifacts_dir):
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        gnupghome = f"{tmpdir}/.gnupg"
+        shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+        os.chmod(gnupghome, 0o700)
+        builder_conf = tmpdir + "/builder.yml"
+        with open(builder_conf, "w") as builder_f:
+            builder_f.write(DEFAULT_BUILDER_CONF.read_text())
+            builder_f.write(
+                f"""
+repository-upload-remote-host:
+ rpm: {tmpdir}/repo/rpm/r4.2
+ deb: {tmpdir}/repo/deb/r4.2
+"""
+            )
+
+        env["GNUPGHOME"] = gnupghome
+        env["HOME"] = tmpdir
+
+        # upload into unstable, only host-fc32
+        qb_call(
+            builder_conf,
+            artifacts_dir,
+            "-c",
+            "core-qrexec",
+            "-d",
+            "host-fc32",
+            "repository",
+            "upload",
+            "unstable",
+            env=env,
+        )
+
+        rpms = {
+            "qubes-core-qrexec-4.1.18-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-debugsource-4.1.18-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-libs-4.1.18-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-libs-debuginfo-4.1.18-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-devel-4.1.18-1.fc32.x86_64.rpm",
+        }
+        srpm = "qubes-core-qrexec-4.1.18-1.fc32.src.rpm"
+
+        rpms_dom0 = {
+            "qubes-core-qrexec-dom0-4.1.18-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-dom0-debuginfo-4.1.18-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-dom0-debugsource-4.1.18-1.fc32.x86_64.rpm",
+        }
+        srpm_dom0 = "qubes-core-qrexec-dom0-4.1.18-1.fc32.src.rpm"
+
+        for rpm in itertools.chain([srpm_dom0], rpms_dom0, rpms, [srpm]):
+            assert (
+                pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/host/fc32/rpm/{rpm}"
+            ).exists()
+
+        # vm-fc36 shouldn't exist, as nothing was published into it
+        assert not (pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/vm/fc36").exists()
+
+        # and vm-bullseye same
+        assert not (
+            pathlib.Path(tmpdir) / f"repo/deb/r4.2/vm/dists/bullseye-unstable"
+        ).exists()
 
 
 # Check that we properly ignore already done stages.
