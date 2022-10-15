@@ -76,7 +76,7 @@ generate-container-image:
   variables:
     PYTHONPATH: .
     TMPDIR: /home/user
-    PYTEST_ARGS: -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
+    PYTEST_ARGS: -v --color=yes --showlocals --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
 
 pytest:
   extends: .pytest
