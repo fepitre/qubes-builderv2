@@ -28,6 +28,7 @@ distributions:
   - host-fc32
   - vm-bullseye
   - vm-fc36
+  - vm-centos-stream8
 
 components:
   - python-qasync:
