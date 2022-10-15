@@ -57,7 +57,29 @@ In order to use the Docker executor, you must build the image using the
 provided dockerfiles. Docker images are built from `scratch` with `mock`
 chroot cache archive. The rational is to use only built-in distribution
 tool that take care of verifying content and not third-party content
-like Docker images from external registries.
+like Docker images from external registries. As this may not be possible
+under Debian as build host, we allow to pull Fedora docker image with
+a specific sha256.
+
+In order to ease Docker or Podman image generation, a tool `generate-container-image.sh`
+is provided under `tools` directory. It takes as input container engine
+and optionally the Mock configuration file path or identifier.
+
+For example, to build a Fedora 36 x86-64 docker image with `mock`:
+```bash
+$ tools/generate-container-image.sh docker fedora-36-x86_64
+```
+or a Podman image:
+```bash
+$ tools/generate-container-image.sh podman fedora-36-x86_64
+```
+
+If not specifying the `mock` configuration, it will simply build the
+docker image based on the Fedora docker image.
+
+### Detailed steps for Mock
+
+You may want to customize your `mock` build process instead of using `generate-container-image.sh`.
 
 First, build Mock chroot according to your own configuration or use 
 default ones provided. For example, to build a Fedora 36 x86-64 mock 
@@ -70,18 +92,6 @@ By default, it creates a `config.tar.gz` located at `/var/cache/mock/fedora-36-x
 Second, build the docker image:
 ```bash
 $ docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora /var/cache/mock/fedora-36-x86_64/root_cache/
-```
-
-In order to ease Docker or Podman image generation, a tool `generate-container-image.sh`
-is provided under `tools` directory to perform previous commands with proper
-clean of previous caches. It takes as input the Mock configuration file path
-or identifier. For example, to build a Fedora 36 x86-64 docker image:
-```bash
-$ tools/generate-container-image.sh docker fedora-36-x86_64
-```
-or a Podman image:
-```bash
-$ tools/generate-container-image.sh podman fedora-36-x86_64
 ```
 
 ## Qubes executor

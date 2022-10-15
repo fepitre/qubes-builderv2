@@ -1,5 +1,8 @@
-FROM fedora@sha256:2c5b21348e9b2a0b4c49bd5013be6d406be8594831aba21043393fcfba7252e0
+FROM scratch
 MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
+
+# Use Mock chroot
+ADD cache.tar.gz /
 
 # Install dependencies for Qubes Builder
 RUN dnf -y update && \
