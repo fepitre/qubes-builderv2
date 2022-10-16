@@ -42,7 +42,6 @@ components:
   - core-qubesdb
   - core-qrexec
   - linux-utils
-  - python-xcffib
   - python-objgraph
   - python-u2flib-host
   - python-qasync
