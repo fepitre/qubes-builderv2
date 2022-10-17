@@ -1,4 +1,5 @@
 import json
+import pathlib
 
 import click
 import yaml
@@ -34,7 +35,12 @@ def config():
 )
 @click.pass_obj
 def get_var(obj: ContextObj, var: str, print_json: bool, print_yaml: bool):
-    result = obj.config.get(var)
+    if hasattr(obj.config, var.replace("-", "_")):
+        result = getattr(obj.config, var.replace("-", "_"))
+        if isinstance(result, pathlib.Path):
+            result = str(result)
+    else:
+        result = obj.config.get(var)
     if not result:
         return
     if print_json:
