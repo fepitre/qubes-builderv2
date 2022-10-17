@@ -41,7 +41,7 @@ from qubesbuilder.log import get_logger, init_logging
 
 log = get_logger("cli")
 
-ALLOWED_KEY_PATTERN = r"[A-Za-z0-9-_+]+"
+ALLOWED_KEY_PATTERN = r"[A-Za-z0-9_+-]+"
 
 
 # Function to validate allowed key values in a dict
@@ -52,7 +52,7 @@ def validate_identifier(identifier):
             identifier.startswith("-"),
             identifier.endswith("-"),
             identifier.startswith("_"),
-            identifier.endswith("-"),
+            identifier.endswith("_"),
         ]
     ):
         return
@@ -69,7 +69,7 @@ def parse_dict_from_cli(s):
         index_dict = s.index(":")
     # We may have '+components', '+plugins', etc.
     if "+" in s[1:]:
-        index_array = s[1:].index("+")
+        index_array = s[1:].index("+") + 1
 
     # If both are present, find the first one and split according to the first one
     if index_dict and index_array:
@@ -123,7 +123,7 @@ def parse_config_from_cli(array):
     result: Dict[str, Any] = {}
     for s in array:
         parsed_dict = parse_dict_from_cli(s)
-        result = deep_merge(result, parsed_dict)
+        result = deep_merge(result, parsed_dict, allow_append=True)
     return result
 
 

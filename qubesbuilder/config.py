@@ -37,14 +37,14 @@ from qubesbuilder.template import QubesTemplate
 log = get_logger("config")
 
 
-def deep_merge(a: dict, b: dict) -> dict:
+def deep_merge(a: dict, b: dict, allow_append: bool = False) -> dict:
     result = deepcopy(a)
     for b_key, b_value in b.items():
         a_value = result.get(b_key, None)
         if isinstance(a_value, dict) and isinstance(b_value, dict):
-            result[b_key] = deep_merge(a_value, b_value)
+            result[b_key] = deep_merge(a_value, b_value, allow_append)
         else:
-            if isinstance(result.get(b_key, None), list):
+            if allow_append and isinstance(result.get(b_key, None), list):
                 result[b_key] += deepcopy(b_value)
             else:
                 result[b_key] = deepcopy(b_value)
@@ -72,7 +72,7 @@ class Config:
         self._templates: List[QubesTemplate] = []
 
         # Artifacts directory location
-        self._artifacts_dir: Path = PROJECT_PATH / "artifacts"
+        self._artifacts_dir: Path = None  # type: ignore
 
         # log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
 
@@ -292,8 +292,11 @@ class Config:
 
     @property
     def artifacts_dir(self):
-        if self._conf.get("artifacts-dir", None):
-            self._artifacts_dir = Path(self._conf["artifacts-dir"]).resolve()
+        if not self._artifacts_dir:
+            if self._conf.get("artifacts-dir", None):
+                self._artifacts_dir = Path(self._conf["artifacts-dir"]).resolve()
+            else:
+                self._artifacts_dir = PROJECT_PATH / "artifacts"
         return self._artifacts_dir
 
     def get_logs_dir(self):
