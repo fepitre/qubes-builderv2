@@ -258,6 +258,16 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 copy_in += [(chroot_cache_topdir, executor.get_cache_dir())]
                 cmd += [f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"]
 
+            if self.config.increment_devel_version:
+                dist_tag = f"{self.component.devel}.{self.dist.tag}"
+            else:
+                dist_tag = self.dist.tag
+
+            dist_tag_regex = re.compile(f".*\.({dist_tag}.*)\.src\.rpm")
+            parsed_dist_tag = dist_tag_regex.match(source_info["srpm"])
+            if parsed_dist_tag and parsed_dist_tag.group(1) != dist_tag:
+                dist_tag = parsed_dist_tag.group(1)
+
             # On Fedora /usr/bin/mock is a (consolehelper) wrapper,
             # which among other things, strips environment variables
             mock_cmd = [
@@ -281,6 +291,8 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 mock_cmd.append("--enablerepo=qubes-current-testing")
             if chroot_cache.exists():
                 mock_cmd.append("--plugin-option=root_cache:age_check=False")
+            if self.config.increment_devel_version:
+                mock_cmd.append(f"--define 'dist .{dist_tag}'")
 
             files_inside_executor_with_placeholders = [
                 f"{executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
@@ -298,12 +310,6 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
 
             # Move RPMs into a separate dir and generate packages list based on given
             # distribution tag. For example, 'fc32', 'fc32.qubes', etc.
-            dist_tag_regex = re.compile(f".*\.({self.dist.tag}.*)\.src\.rpm")
-            parsed_dist_tag = dist_tag_regex.match(source_info["srpm"])
-            if parsed_dist_tag and parsed_dist_tag.group(1) != self.dist.tag:
-                dist_tag = parsed_dist_tag.group(1)
-            else:
-                dist_tag = self.dist.tag
             cmd += [
                 f"{executor.get_plugins_dir()}/build_rpm/scripts/filter-packages-by-dist-arch "
                 f"{executor.get_build_dir()} {executor.get_build_dir()}/rpm {dist_tag} {self.dist.architecture}"

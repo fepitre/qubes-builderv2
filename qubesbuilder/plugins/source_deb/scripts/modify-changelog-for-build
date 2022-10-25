@@ -29,8 +29,8 @@ if [ "${DEBUG}" == 1 ]; then
     set -x
 fi
 
-if test $# -ne 4; then
-	echo "Usage: source_dir debian_directory dist_name dist_tag"
+if test $# -ne 5; then
+	echo "Usage: source_dir debian_directory dist_name dist_tag devel_version"
 	exit 1
 fi
 
@@ -38,12 +38,20 @@ SOURCE_DIR="$1"
 DEBIAN_DIRECTORY="$2"
 DIST_NAME="$3"
 DIST_TAG="$4"
+DEVEL_VERSION="$5"
 
 SCRIPTS_DIR="$(dirname "$0")"
 
 cd "$SOURCE_DIR"
 
-"${SCRIPTS_DIR}"/debian-changelog --verify
-debchange -t -l+"$DIST_TAG"u "Build for $DIST_NAME"
-debchange -t --force-distribution -r -D "$DIST_NAME" "$DIST_NAME"
-"${SCRIPTS_DIR}"/clamp-changelog-entry-date "${SOURCE_DIR}/${DEBIAN_DIRECTORY}/changelog"
+if [ "0${DEVEL_VERSION}" -gt 0 ]; then
+    export DIST_TAG
+    export DEVEL_VERSION
+    export INCREMENT_DEVEL_VERSIONS=1
+	"${SCRIPTS_DIR}"/debian-changelog
+else
+    "${SCRIPTS_DIR}"/debian-changelog --verify
+    debchange -t -l+"$DIST_TAG"u "Build for $DIST_NAME"
+    debchange -t --force-distribution -r -D "$DIST_NAME" "$DIST_NAME"
+    "${SCRIPTS_DIR}"/clamp-changelog-entry-date "${SOURCE_DIR}/${DEBIAN_DIRECTORY}/changelog"
+fi

@@ -168,12 +168,13 @@ fi
 #                          UNRELEASED change it to the distribution $DIST
 #                          (wheezy)
 
-if [ "0${INCREMENT_DEVEL_VERSIONS}" -eq 1 ]; then
+if [ "0${INCREMENT_DEVEL_VERSIONS}" -eq 1 ] && [ "0${DEVEL_VERSION}" -gt 0 ]; then
     DEBFULLNAME="$(git config user.name)"
     DEBEMAIL="$(git config user.email)"
     export DEBFULLNAME
     export DEBEMAIL
     debchange --nomultimaint-merge --multimaint -l"+${DIST_TAG}u1+devel" -- 'Test build'
+    sed -i "s/+${DIST_TAG}u1+devel1/+${DIST_TAG}u1+devel${DEVEL_VERSION}/g" debian/changelog
     debchange --force-distribution --distribution "${DIST}" --release -- ''
 
     # Save dist specific changelog for next time
