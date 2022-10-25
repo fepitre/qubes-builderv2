@@ -194,6 +194,50 @@ def test_component_fetch_updating(artifacts_dir):
         assert sentence in result
 
 
+def test_component_fetch_increment(artifacts_dir):
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "--option",
+        "increment-devel-versions=true",
+        "package",
+        "fetch",
+    )
+
+    for component in [
+        "core-qrexec",
+        "core-vchan-xen",
+        "desktop-linux-xfce4-xfwm4",
+        "python-qasync",
+    ]:
+        assert (
+            artifacts_dir / "components" / component / "noversion" / "devel"
+        ).exists()
+
+        (artifacts_dir / "sources" / component / "hello").write_text(
+            "world", encoding="utf8"
+        )
+
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "--option",
+        "increment-devel-versions=true",
+        "package",
+        "fetch",
+    )
+
+    for component in [
+        "core-qrexec",
+        "core-vchan-xen",
+        "desktop-linux-xfce4-xfwm4",
+        "python-qasync",
+    ]:
+        assert (
+            artifacts_dir / "components" / component / "noversion" / "devel"
+        ).read_text(encoding="utf-8") == "2"
+
+
 #
 # Pipeline for core-qrexec and host-fc32
 #

@@ -299,7 +299,7 @@ class FetchPlugin(ComponentPlugin):
         # Source component directory inside executors
         source_dir = executor.get_builder_dir() / self.component.name
 
-        # Keep existing fetch info if it is up to date
+        # Keep existing fetch info if it is up-to-date
         source_hash = self.component.get_source_hash()
         old_info = self.get_artifacts_info(stage=stage, basename="source")
         if "source-hash" in old_info and old_info["source-hash"] == source_hash:
@@ -356,6 +356,7 @@ class FetchPlugin(ComponentPlugin):
         # Modules (formerly known as INCLUDED_SOURCES in Makefile.builder)
         modules = parameters.get("modules", [])
         if modules:
+
             # Get git module hashes
             copy_in = [
                 (self.component.source_dir, executor.get_builder_dir()),
@@ -419,6 +420,9 @@ class FetchPlugin(ComponentPlugin):
             except ExecutorError as e:
                 msg = f"{self.component}: Failed to generate module archives: {str(e)}."
                 raise FetchError(msg) from e
+
+        if self.config.increment_devel_versions:
+            self.component.increment_devel_versions()
 
         try:
             self.save_artifacts_info(stage=stage, basename="source", info=info)

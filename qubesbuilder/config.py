@@ -97,6 +97,7 @@ class Config:
     iso_version: Union[str, property]                    = property(lambda self: self.get("iso", {}).get("version", ""))
     iso_flavor: Union[str, property]                     = property(lambda self: self.get("iso", {}).get("flavor", ""))
     iso_use_kernel_latest: Union[bool, property]         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))
+    increment_devel_versions: Union[bool, property]       = property(lambda self: self.get("increment-devel-versions", False))
     # fmt: on
 
     def __repr__(self):
@@ -377,6 +378,15 @@ class Config:
             timeout=options.get("timeout", timeout),
             fetch_versions_only=fetch_versions_only,
         )
+        if self.increment_devel_versions:
+            devel_path = (
+                self.artifacts_dir
+                / "components"
+                / component.name
+                / "noversion"
+                / "devel"
+            )
+            component._devel_path = devel_path
         return component
 
     @staticmethod
