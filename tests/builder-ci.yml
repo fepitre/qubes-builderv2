@@ -11,7 +11,7 @@ qubes-release: r4.2
 skip-git-fetch: false
 
 use-qubes-repo:
-  version: 4.1
+  version: 4.2
   testing: True
 
 gpg-client: gpg
