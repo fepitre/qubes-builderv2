@@ -66,7 +66,30 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             debian_suite += "-unstable"
         return debian_suite
 
-    def publish(self, executor, directory, keyring_dir, repository_publish):
+    def sign_metadata(self, executor, target_dir, debian_suite, sign_key):
+        """Sign repository metadata
+
+        Do it manually, as reprepro does not support alternative gpg client"""
+
+        for (opt, out_name) in (
+            ("--detach-sign", "Release.gpg"),
+            ("--clearsign", "InRelease"),
+        ):
+            try:
+                release_dir = target_dir / "dists" / debian_suite
+                cmd = [
+                    f"{self.config.gpg_client} {opt} --armor --local-user {sign_key} "
+                    f"--batch --no-tty --output {release_dir / out_name} {release_dir / 'Release'}"
+                ]
+                log.info(
+                    f"{self.component}:{self.dist}:{debian_suite}: Signing metadata ({out_name})."
+                )
+                executor.run(cmd)
+            except ExecutorError as e:
+                msg = f"{self.component}:{self.dist}:{debian_suite}: Failed to sign metadata ({out_name})."
+                raise PublishError(msg) from e
+
+    def publish(self, executor, directory, keyring_dir, repository_publish, sign_key):
         # directory basename will be used as prefix for some artifacts
         directory_bn = directory.mangle()
 
@@ -122,11 +145,19 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             )
             raise PublishError(msg) from e
 
+        self.sign_metadata(
+            executor=executor,
+            target_dir=target_dir,
+            debian_suite=debian_suite,
+            sign_key=sign_key,
+        )
+
     def unpublish(
         self,
         executor,
         directory,
         repository_publish,
+        sign_key,
     ):
         # Publish repository
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
@@ -174,6 +205,13 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}:{directory}: Failed to unpublish packages."
             raise PublishError(msg) from e
+
+        self.sign_metadata(
+            executor=executor,
+            target_dir=target_dir,
+            debian_suite=debian_suite,
+            sign_key=sign_key,
+        )
 
     def run(
         self,
@@ -302,6 +340,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                                 executor=executor,
                                 directory=directory,
                                 repository_publish=repository,
+                                sign_key=sign_key,
                             )
                     else:
                         info = publish_info
@@ -311,6 +350,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     directory=directory,
                     keyring_dir=keyring_dir,
                     repository_publish=repository_publish,
+                    sign_key=sign_key,
                 )
 
                 # Save package information we published for committing into current
@@ -349,6 +389,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     executor=executor,
                     directory=directory,
                     repository_publish=repository_publish,
+                    sign_key=sign_key,
                 )
 
                 # Save package information we published for committing into current. If the packages
@@ -387,6 +428,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                             directory=directory,
                             keyring_dir=keyring_dir,
                             repository_publish=repository_publish,
+                            sign_key=sign_key,
                         )
                         break
 

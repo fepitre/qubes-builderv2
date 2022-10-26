@@ -1070,6 +1070,9 @@ def test_component_publish_vm_bullseye(artifacts_dir):
             f"{codename}|main|source: python-qasync 0.23.0-1+deb11u1",
         ]
         assert set(packages) == set(expected_packages)
+        # verify if repository is signed
+        assert (repository_dir / "dists" / codename / "InRelease").exists()
+        assert (repository_dir / "dists" / codename / "Release.gpg").exists()
 
 
 # Check that we properly ignore already done stages.
