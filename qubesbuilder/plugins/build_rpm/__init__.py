@@ -130,7 +130,11 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         self.environment.update(
             {
                 "DIST": self.dist.name,
-                "PACKAGE_SET": self.dist.package_set.replace("host", "dom0"),
+                "PACKAGE_SET": (
+                    self.dist.package_set.replace("host", "dom0")
+                    if str(self.config.use_qubes_repo.get("version", None)) == "4.1"
+                    else self.dist.package_set
+                ),
             }
         )
         if self.config.use_qubes_repo:
