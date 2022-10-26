@@ -191,7 +191,7 @@ class ComponentPlugin(Plugin):
             self.config.artifacts_dir
             / "components"
             / self.component.name
-            / self.component.nvr
+            / self.component.verrel
             / "nodist"
             / stage
         )
@@ -336,7 +336,7 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
             self.config.artifacts_dir
             / "components"
             / self.component.name
-            / self.component.nvr
+            / self.component.verrel
             / self.dist.distribution
             / stage
         )

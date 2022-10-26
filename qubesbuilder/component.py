@@ -62,7 +62,7 @@ class QubesComponent:
         self._devel_path = devel_path
 
     @property
-    def nvr(self):
+    def verrel(self):
         nvr = f"{self.version}-{self.release}"
         if self.devel:
             nvr = f"{nvr}.{self.devel}"
@@ -77,7 +77,7 @@ class QubesComponent:
             try:
                 with open(self._devel_path) as fd:
                     devel = fd.read().split("\n")[0]
-                assert re.match(r"[0-9]+", devel)
+                assert re.fullmatch(r"[0-9]+", devel)
                 devel = str(int(devel) + 1)
             except AssertionError as e:
                 raise ComponentError(f"Invalid devel version for {self.name}.") from e
@@ -134,7 +134,7 @@ class QubesComponent:
             try:
                 with open(self._devel_path) as fd:
                     devel = fd.read().split("\n")[0]
-                assert re.match(r"[0-9]+", devel)
+                assert re.fullmatch(r"[0-9]+", devel)
             except AssertionError as e:
                 raise ComponentError(f"Invalid devel version for {self.name}.") from e
 

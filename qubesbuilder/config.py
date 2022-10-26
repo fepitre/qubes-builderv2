@@ -369,24 +369,22 @@ class Config:
         fetch_versions_only = options.get(
             "fetch-versions-only", self.get("fetch-versions-only", False)
         )
-        component = QubesComponent(
-            source_dir=self.artifacts_dir / "sources" / name,
-            url=options.get("url", url),
-            branch=options.get("branch", branch),
-            maintainers=options.get("maintainers", maintainers),
-            verification_mode=verification_mode,
-            timeout=options.get("timeout", timeout),
-            fetch_versions_only=fetch_versions_only,
-        )
+
+        component_kwargs = {
+            "source_dir": self.artifacts_dir / "sources" / name,
+            "url": options.get("url", url),
+            "branch": options.get("branch", branch),
+            "maintainers": options.get("maintainers", maintainers),
+            "verification_mode": verification_mode,
+            "timeout": options.get("timeout", timeout),
+            "fetch_versions_only": fetch_versions_only,
+        }
         if self.increment_devel_versions:
-            devel_path = (
-                self.artifacts_dir
-                / "components"
-                / component.name
-                / "noversion"
-                / "devel"
+            component_kwargs["devel_path"] = (
+                self.artifacts_dir / "components" / name / "noversion" / "devel"
             )
-            component._devel_path = devel_path
+        component = QubesComponent(**component_kwargs)
+
         return component
 
     @staticmethod

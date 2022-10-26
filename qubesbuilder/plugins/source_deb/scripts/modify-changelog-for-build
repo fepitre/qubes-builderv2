@@ -29,8 +29,8 @@ if [ "${DEBUG}" == 1 ]; then
     set -x
 fi
 
-if test $# -ne 5; then
-	echo "Usage: source_dir debian_directory dist_name dist_tag devel_version"
+if test $# -lt 4; then
+	echo "Usage: source_dir debian_directory dist_name dist_tag <devel_version>"
 	exit 1
 fi
 
