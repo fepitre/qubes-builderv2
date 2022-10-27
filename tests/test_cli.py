@@ -194,50 +194,6 @@ def test_component_fetch_updating(artifacts_dir):
         assert sentence in result
 
 
-def test_component_fetch_increment(artifacts_dir):
-    qb_call(
-        DEFAULT_BUILDER_CONF,
-        artifacts_dir,
-        "--option",
-        "increment-devel-versions=true",
-        "package",
-        "fetch",
-    )
-
-    for component in [
-        "core-qrexec",
-        "core-vchan-xen",
-        "desktop-linux-xfce4-xfwm4",
-        "python-qasync",
-    ]:
-        assert (
-            artifacts_dir / "components" / component / "noversion" / "devel"
-        ).exists()
-
-        (artifacts_dir / "sources" / component / "hello").write_text(
-            "world", encoding="utf8"
-        )
-
-    qb_call(
-        DEFAULT_BUILDER_CONF,
-        artifacts_dir,
-        "--option",
-        "increment-devel-versions=true",
-        "package",
-        "fetch",
-    )
-
-    for component in [
-        "core-qrexec",
-        "core-vchan-xen",
-        "desktop-linux-xfce4-xfwm4",
-        "python-qasync",
-    ]:
-        assert (
-            artifacts_dir / "components" / component / "noversion" / "devel"
-        ).read_text(encoding="utf-8") == "2"
-
-
 #
 # Pipeline for core-qrexec and host-fc32
 #
@@ -1259,7 +1215,57 @@ def test_component_unpublish_vm_bullseye(artifacts_dir):
         assert set(packages) == set(expected_packages)
 
 
-def test_component_build_increment(artifacts_dir):
+def test_increment_component_fetch(artifacts_dir):
+    # # clean
+    # for d in ["sources", "components", "repository", "repository-publish", "tmp"]:
+    #     if not (artifacts_dir / d).exists():
+    #         continue
+    #     shutil.rmtree(artifacts_dir / d)
+
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "--option",
+        "increment-devel-versions=true",
+        "package",
+        "fetch",
+    )
+
+    for component in [
+        "core-qrexec",
+        "core-vchan-xen",
+        "desktop-linux-xfce4-xfwm4",
+        "python-qasync",
+    ]:
+        assert (
+            artifacts_dir / "components" / component / "noversion" / "devel"
+        ).exists()
+
+        (artifacts_dir / "sources" / component / "hello").write_text(
+            "world", encoding="utf8"
+        )
+
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "--option",
+        "increment-devel-versions=true",
+        "package",
+        "fetch",
+    )
+
+    for component in [
+        "core-qrexec",
+        "core-vchan-xen",
+        "desktop-linux-xfce4-xfwm4",
+        "python-qasync",
+    ]:
+        assert (
+            artifacts_dir / "components" / component / "noversion" / "devel"
+        ).read_text(encoding="utf-8") == "2"
+
+
+def test_increment_component_build(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1272,7 +1278,6 @@ def test_component_build_increment(artifacts_dir):
         devel_path = (
             pathlib.Path(artifacts_dir) / "components/core-qrexec/noversion/devel"
         )
-        devel_path.parent.mkdir(parents=True)
         devel_path.write_text("41", encoding="utf-8")
 
         qb_call(

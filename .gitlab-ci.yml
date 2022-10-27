@@ -88,6 +88,11 @@ pytest-cli-component:
   script:
     - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_
 
+pytest-cli-increment-component:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_increment_component_
+
 pytest-cli-template:
   extends: .pytest
   script:
