@@ -39,6 +39,28 @@ if [ $# -lt 4 ]; then
     exit 1
 fi
 
+rpm_defines=()
+
+# make it a function and export, as bash doesn't support exporting an array
+set_rpm_defines() {
+    local dist="$1"
+    # strip possible devel number
+    raw_dist="${dist#*.}"
+    if [[ "$raw_dist" = "fc"* ]]; then
+        dist_ver="${raw_dist#fc}"
+        rpm_defines+=(--define "fedora $dist_ver")
+    elif [[ "$raw_dist" = "el"* ]]; then
+        dist_ver="${raw_dist#el}"
+        rpm_defines+=(--define "centos $dist_ver")
+        rpm_defines+=(--define "rhel $dist_ver")
+    fi
+    if [[ "$raw_dist" = el8 ]]; then
+        rpm_defines+=(--define "python3_pkgversion 38")
+    fi
+}
+
+export -f set_rpm_defines
+
 spec_file_bn="$(basename "${spec_file}")"
 
 [[ "${spec_file_bn}.in" == ".in" ]] && exit 0

@@ -34,10 +34,13 @@ fi
 SPEC_FILE="$1"
 DIST_TAG="$2"
 
-RPM_OPS=(--define "dist .${DIST_TAG}" --nodebuginfo)
-if [ "${DIST_TAG}" == "el8" ]; then
-    RPM_OPS+=(--define "python3_pkgversion 38")
+rpm_defines=(--define "dist .${DIST_TAG}")
+
+if [ "$(type -t set_rpm_defines)" = "function" ]; then
+    set_rpm_defines "$DIST_TAG"
 fi
+
+RPM_OPS=("${rpm_defines[@]}" --nodebuginfo)
 
 # Get builtrpms from rpmspec without debuginfo
 # see https://github.com/rpm-software-management/rpm/issues/1878
