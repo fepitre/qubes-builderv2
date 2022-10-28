@@ -662,6 +662,8 @@ Options available in `builder.yml`:
   - `branch: str` --- git branch (default: master).
   - `maintainers: List[str]` --- List of extra fingerprint allowed for signature verification of git commit and tag.
 
+- `skip-git-fetch: bool` --- When set, do not update already downloaded git repositories (those in `sources` artifacts dir). New components are still fetched (once). Useful when doing development builds from non-default branches, local modifications etc.
+
 - `artifacts-dir: str` --- Path to artifacts directory.
 
 - `plugins-dirs: List[str]` --- List of path to plugin directory. By default, the local plugins directory is prepended to the list.
