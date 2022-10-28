@@ -149,7 +149,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             # Update changelog
             cmd = [
                 f"{executor.get_plugins_dir()}/source_deb/scripts/modify-changelog-for-build "
-                f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
+                f"{source_dir} {directory} {self.dist.name} {self.dist.tag} {self.component.devel}",
             ]
 
             cmd += [
@@ -269,7 +269,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             # Update changelog, after create-archive
             cmd += [
                 f"{executor.get_plugins_dir()}/source_deb/scripts/modify-changelog-for-build "
-                f"{source_dir} {directory} {self.dist.name} {self.dist.tag}",
+                f"{source_dir} {directory} {self.dist.name} {self.dist.tag} {self.component.devel}",
             ]
 
             gen_packages_list_cmd = [

@@ -1218,6 +1218,147 @@ def test_component_unpublish_vm_bullseye(artifacts_dir):
         assert set(packages) == set(expected_packages)
 
 
+def test_increment_component_fetch(artifacts_dir):
+    # # clean
+    # for d in ["sources", "components", "repository", "repository-publish", "tmp"]:
+    #     if not (artifacts_dir / d).exists():
+    #         continue
+    #     shutil.rmtree(artifacts_dir / d)
+
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "--option",
+        "increment-devel-versions=true",
+        "package",
+        "fetch",
+    )
+
+    for component in [
+        "core-qrexec",
+        "core-vchan-xen",
+        "desktop-linux-xfce4-xfwm4",
+        "python-qasync",
+    ]:
+        assert (
+            artifacts_dir / "components" / component / "noversion" / "devel"
+        ).exists()
+
+        (artifacts_dir / "sources" / component / "hello").write_text(
+            "world", encoding="utf8"
+        )
+
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "--option",
+        "increment-devel-versions=true",
+        "package",
+        "fetch",
+    )
+
+    for component in [
+        "core-qrexec",
+        "core-vchan-xen",
+        "desktop-linux-xfce4-xfwm4",
+        "python-qasync",
+    ]:
+        assert (
+            artifacts_dir / "components" / component / "noversion" / "devel"
+        ).read_text(encoding="utf-8") == "2"
+
+
+def test_increment_component_build(artifacts_dir):
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        gnupghome = f"{tmpdir}/.gnupg"
+        shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+        os.chmod(gnupghome, 0o700)
+
+        env["GNUPGHOME"] = gnupghome
+        env["HOME"] = tmpdir
+
+        devel_path = (
+            pathlib.Path(artifacts_dir) / "components/core-qrexec/noversion/devel"
+        )
+        devel_path.write_text("41", encoding="utf-8")
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "--option",
+            "increment-devel-versions=true",
+            "package",
+            "fetch",
+        )
+
+        assert (artifacts_dir / "components/core-qrexec/noversion/devel").read_text(
+            encoding="utf-8"
+        ) == "42"
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "--option",
+            "increment-devel-versions=true",
+            "-c",
+            "core-qrexec",
+            "-d",
+            "host-fc32",
+            "-d",
+            "vm-bullseye",
+            "package",
+            "all",
+            stderr=subprocess.STDOUT,
+            env=env,
+        )
+
+    rpms = {
+        "qubes-core-qrexec-4.1.18-1.42.fc32.x86_64.rpm",
+        "qubes-core-qrexec-debugsource-4.1.18-1.42.fc32.x86_64.rpm",
+        "qubes-core-qrexec-libs-4.1.18-1.42.fc32.x86_64.rpm",
+        "qubes-core-qrexec-libs-debuginfo-4.1.18-1.42.fc32.x86_64.rpm",
+        "qubes-core-qrexec-devel-4.1.18-1.42.fc32.x86_64.rpm",
+    }
+    srpm = "qubes-core-qrexec-4.1.18-1.42.fc32.src.rpm"
+
+    for rpm in rpms.union({srpm}):
+        assert (
+            artifacts_dir / "repository/host-fc32/core-qrexec_4.1.18" / rpm
+        ).exists()
+
+    rpms = {
+        "qubes-core-qrexec-dom0-4.1.18-1.42.fc32.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debuginfo-4.1.18-1.42.fc32.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debugsource-4.1.18-1.42.fc32.x86_64.rpm",
+    }
+    srpm = "qubes-core-qrexec-dom0-4.1.18-1.42.fc32.src.rpm"
+
+    for rpm in rpms.union({srpm}):
+        assert (
+            artifacts_dir / "repository/host-fc32/core-qrexec_4.1.18" / rpm
+        ).exists()
+
+    deb_files = [
+        "libqrexec-utils-dev_4.1.18-1+deb11u1+devel42_amd64.deb",
+        "libqrexec-utils2-dbgsym_4.1.18-1+deb11u1+devel42_amd64.deb",
+        "libqrexec-utils2_4.1.18-1+deb11u1+devel42_amd64.deb",
+        "python3-qrexec_4.1.18-1+deb11u1+devel42_amd64.deb",
+        "qubes-core-qrexec-dbgsym_4.1.18-1+deb11u1+devel42_amd64.deb",
+        "qubes-core-qrexec_4.1.18-1+deb11u1+devel42.debian.tar.xz",
+        "qubes-core-qrexec_4.1.18-1+deb11u1+devel42.dsc",
+        "qubes-core-qrexec_4.1.18-1+deb11u1+devel42_amd64.buildinfo",
+        "qubes-core-qrexec_4.1.18-1+deb11u1+devel42_amd64.changes",
+        "qubes-core-qrexec_4.1.18-1+deb11u1+devel42_amd64.deb",
+        "qubes-core-qrexec_4.1.18.orig.tar.gz",
+    ]
+
+    for file in deb_files:
+        assert (
+            artifacts_dir / "repository/vm-bullseye/core-qrexec_4.1.18" / file
+        ).exists()
+
+
 #
 # Pipeline for Fedora 36 XFCE template
 #

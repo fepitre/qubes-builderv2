@@ -148,9 +148,15 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 (source_dir / f"{build_bn}_package_release_name", temp_dir),
                 (source_dir / f"{build_bn}_packages.list", temp_dir),
             ]
+
+            if self.config.increment_devel_versions:
+                dist_tag = f"{self.component.devel}.{self.dist.tag}"
+            else:
+                dist_tag = self.dist.tag
+
             cmd = [
                 f"{executor.get_plugins_dir()}/source_rpm/scripts/get-source-info "
-                f"{source_dir} {source_dir / build} {self.dist.tag}"
+                f"{source_dir} {source_dir / build} {dist_tag}"
             ]
             try:
                 executor.run(cmd, copy_in, copy_out, environment=self.environment)
@@ -299,6 +305,8 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 mock_cmd.append("--verbose")
             if chroot_cache.exists():
                 mock_cmd.append("--plugin-option=root_cache:age_check=False")
+            if self.config.increment_devel_versions:
+                mock_cmd.append(f"--define 'dist .{dist_tag}'")
 
             files_inside_executor_with_placeholders = [
                 f"{executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"

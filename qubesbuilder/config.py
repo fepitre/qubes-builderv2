@@ -97,6 +97,7 @@ class Config:
     iso_version: Union[str, property]                    = property(lambda self: self.get("iso", {}).get("version", ""))
     iso_flavor: Union[str, property]                     = property(lambda self: self.get("iso", {}).get("flavor", ""))
     iso_use_kernel_latest: Union[bool, property]         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))
+    increment_devel_versions: Union[bool, property]       = property(lambda self: self.get("increment-devel-versions", False))
     # fmt: on
 
     def __repr__(self):
@@ -368,15 +369,22 @@ class Config:
         fetch_versions_only = options.get(
             "fetch-versions-only", self.get("fetch-versions-only", False)
         )
-        component = QubesComponent(
-            source_dir=self.artifacts_dir / "sources" / name,
-            url=options.get("url", url),
-            branch=options.get("branch", branch),
-            maintainers=options.get("maintainers", maintainers),
-            verification_mode=verification_mode,
-            timeout=options.get("timeout", timeout),
-            fetch_versions_only=fetch_versions_only,
-        )
+
+        component_kwargs = {
+            "source_dir": self.artifacts_dir / "sources" / name,
+            "url": options.get("url", url),
+            "branch": options.get("branch", branch),
+            "maintainers": options.get("maintainers", maintainers),
+            "verification_mode": verification_mode,
+            "timeout": options.get("timeout", timeout),
+            "fetch_versions_only": fetch_versions_only,
+        }
+        if self.increment_devel_versions:
+            component_kwargs["devel_path"] = (
+                self.artifacts_dir / "components" / name / "noversion" / "devel"
+            )
+        component = QubesComponent(**component_kwargs)
+
         return component
 
     @staticmethod

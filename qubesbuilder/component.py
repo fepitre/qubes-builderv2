@@ -43,6 +43,7 @@ class QubesComponent:
         maintainers: List = None,
         timeout: int = None,
         fetch_versions_only: bool = False,
+        devel_path: Path = None,
     ):
         self.source_dir: Path = (
             Path(source_dir) if isinstance(source_dir, str) else source_dir
@@ -50,6 +51,7 @@ class QubesComponent:
         self.name: str = name or self.source_dir.name
         self.version = ""
         self.release = ""
+        self.devel = ""
         self.url = url or f"https://github.com/QubesOS/qubes-{self.name}"
         self.branch = branch
         self.maintainers = maintainers or []
@@ -57,6 +59,30 @@ class QubesComponent:
         self.timeout = timeout
         self.fetch_versions_only = fetch_versions_only
         self._source_hash = ""
+        self._devel_path = devel_path
+
+    @property
+    def verrel(self):
+        nvr = f"{self.version}-{self.release}"
+        if self.devel:
+            nvr = f"{nvr}.{self.devel}"
+        return nvr
+
+    def increment_devel_versions(self):
+        devel = "1"
+        if not self._devel_path:
+            raise ComponentError(f"Devel path not provided for {self.name}.")
+        self._devel_path.parent.mkdir(parents=True, exist_ok=True)
+        if self._devel_path.exists():
+            try:
+                with open(self._devel_path) as fd:
+                    devel = fd.read().split("\n")[0]
+                assert re.fullmatch(r"[0-9]+", devel)
+                devel = str(int(devel) + 1)
+            except AssertionError as e:
+                raise ComponentError(f"Invalid devel version for {self.name}.") from e
+        self._devel_path.write_text(devel)
+        self.devel = devel
 
     def get_parameters(self, placeholders: dict = None):
         if not self.source_dir.exists():
@@ -64,6 +90,7 @@ class QubesComponent:
 
         version = ""
         release = ""
+        devel = ""
 
         version_file = self.source_dir / "version"
         if version_file.exists():
@@ -103,8 +130,17 @@ class QubesComponent:
                         f"Invalid release for {self.source_dir}."
                     ) from e
 
+        if self._devel_path and self._devel_path.exists():
+            try:
+                with open(self._devel_path) as fd:
+                    devel = fd.read().split("\n")[0]
+                assert re.fullmatch(r"[0-9]+", devel)
+            except AssertionError as e:
+                raise ComponentError(f"Invalid devel version for {self.name}.") from e
+
         self.version = version
         self.release = release
+        self.devel = devel
 
         build_file = self.source_dir / ".qubesbuilder"
         if not build_file.exists():

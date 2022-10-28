@@ -187,9 +187,14 @@ class ComponentPlugin(Plugin):
         return path
 
     def get_component_artifacts_dir(self, stage: str):
-        path = self.config.artifacts_dir / "components" / self.component.name
-        path = path / f"{self.component.version}-{self.component.release}"
-        path = path / "nodist" / stage
+        path = (
+            self.config.artifacts_dir
+            / "components"
+            / self.component.name
+            / self.component.verrel
+            / "nodist"
+            / stage
+        )
         return path.resolve()
 
     def get_artifacts_info(
@@ -327,9 +332,14 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         return list(path.glob(f"*/{self.dist.distribution}/{stage}"))
 
     def get_dist_component_artifacts_dir(self, stage: str):
-        path = self.config.artifacts_dir / "components" / self.component.name
-        path = path / f"{self.component.version}-{self.component.release}"
-        path = path / self.dist.distribution / stage
+        path = (
+            self.config.artifacts_dir
+            / "components"
+            / self.component.name
+            / self.component.verrel
+            / self.dist.distribution
+            / stage
+        )
         return path.resolve()
 
     def get_dist_artifacts_info(
