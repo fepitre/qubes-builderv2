@@ -45,7 +45,7 @@ class DEBTemplateBuilderPlugin(TemplateBuilderPlugin):
 
         # The parent class will automatically copy-in all its plugin dependencies. Calling parent
         # class method (for generic steps), we need to have access to this plugin dependencies.
-        self.dependencies += ["template_debian", "build_deb"]
+        self.dependencies += ["template_debian", "source_deb", "build_deb"]
 
     def update_parameters(self, stage: str):
         super().update_parameters(stage)

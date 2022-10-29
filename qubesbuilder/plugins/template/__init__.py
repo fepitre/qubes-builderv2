@@ -65,7 +65,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         - upload - Upload published repository for given distribution to remote mirror.
     """
 
-    dependencies = ["source_rpm", "source_deb"]
+    dependencies = ["source_rpm"]
 
     def __init__(
         self,
