@@ -197,7 +197,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
 
             # Files inside executor
             files_inside_executor_with_placeholders = [
-                executor.get_builder_dir() / "pbuilder/pbuilderrc"
+                "@BUILDER_DIR@/pbuilder/pbuilderrc"
             ]
 
             results_dir = executor.get_builder_dir() / "pbuilder" / "results"

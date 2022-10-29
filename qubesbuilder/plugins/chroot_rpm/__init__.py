@@ -111,7 +111,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             mock_cmd.append("--verbose")
 
         files_inside_executor_with_placeholders = [
-            f"{executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
+            f"@PLUGINS_DIR@/source_rpm/mock/{mock_conf}"
         ]
         cmd = [" ".join(mock_cmd)]
 

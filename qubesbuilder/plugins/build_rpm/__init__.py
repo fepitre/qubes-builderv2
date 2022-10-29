@@ -295,7 +295,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 mock_cmd.append(f"--define 'dist .{dist_tag}'")
 
             files_inside_executor_with_placeholders = [
-                f"{executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}"
+                f"@PLUGINS_DIR@/source_rpm/mock/{mock_conf}"
             ]
 
             self.environment["BIND_MOUNT_ENABLE"] = "True"

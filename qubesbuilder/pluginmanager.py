@@ -12,6 +12,9 @@ class PluginEntity:
             self.name = self.directory.name
         else:
             self.name = path.name.replace(".py", "")
+        if self.name.startswith("qubes-"):
+            self.name = self.name[6:]
+        self.name = self.name.replace("-", "_")
         self.fullname = f"qubesbuilder.plugins.{self.name}"
         try:
             spec = importlib.util.spec_from_file_location(self.fullname, path)

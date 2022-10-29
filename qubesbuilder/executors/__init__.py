@@ -76,3 +76,15 @@ class Executor(ABC):
 
     def get_group(self):
         raise NotImplemented
+
+    def get_placeholders(self):
+        return {
+            "@BUILDER_DIR@": self.get_builder_dir(),
+            "@BUILD_DIR@": self.get_build_dir(),
+            "@PLUGINS_DIR@": self.get_plugins_dir(),
+            "@DISTFILES_DIR@": self.get_distfiles_dir(),
+        }
+
+    def replace_placeholders(self, s: str):
+        for key, val in self.get_placeholders().items():
+            s = s.replace(key, str(val))

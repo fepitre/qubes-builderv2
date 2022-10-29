@@ -91,14 +91,7 @@ class Plugin:
         executor = self.config.get_executor_from_config(stage)
 
         # Default placeholders
-        self._placeholders.update(
-            {
-                "@BUILDER_DIR@": executor.get_builder_dir(),
-                "@BUILD_DIR@": executor.get_build_dir(),
-                "@PLUGINS_DIR@": executor.get_plugins_dir(),
-                "@DISTFILES_DIR@": executor.get_distfiles_dir(),
-            }
-        )
+        self._placeholders.update(executor.get_placeholders())
 
     def get_parameters(self, stage: str):
         self.update_parameters(stage)
