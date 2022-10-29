@@ -242,7 +242,7 @@ class InstallerPlugin(DistributionPlugin):
                 mock_cmd.append("--enablerepo=qubes-current-testing")
 
             files_inside_executor_with_placeholders = [
-                f"{executor.get_plugins_dir()}/installer/mock/{mock_conf}"
+                f"@PLUGINS_DIR@/installer/mock/{mock_conf}"
             ]
 
             # Create builder-local repository (could be empty) inside the cage
@@ -343,7 +343,7 @@ class InstallerPlugin(DistributionPlugin):
                 mock_cmd.append("--disablerepo=builder-local")
 
             files_inside_executor_with_placeholders = [
-                f"{executor.get_plugins_dir()}/installer/mock/{mock_conf}"
+                f"@PLUGINS_DIR@/installer/mock/{mock_conf}"
             ]
 
             cmd += [" ".join(mock_cmd)]
@@ -455,7 +455,7 @@ class InstallerPlugin(DistributionPlugin):
                 mock_cmd.append("--plugin-option=root_cache:age_check=False")
 
             files_inside_executor_with_placeholders = [
-                f"{executor.get_plugins_dir()}/installer/mock/{mock_conf}"
+                f"@PLUGINS_DIR@/installer/mock/{mock_conf}"
             ]
 
             cmd += [" ".join(mock_cmd)]

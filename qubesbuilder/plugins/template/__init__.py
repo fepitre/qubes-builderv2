@@ -75,6 +75,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         **kwargs,
     ):
         super().__init__(template=template, config=config, manager=manager)
+        self.files_inside_executor_with_placeholders = []
 
     def update_parameters(self, stage: str):
         executor = self.config.get_executor_from_config(stage_name=stage)
@@ -390,10 +391,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ),
             ]
 
-            files_inside_executor_with_placeholders = [
-                executor.get_plugins_dir() / "template_rpm/04_install_qubes.sh"
-            ]
-
             cmd = [
                 f"make -C {executor.get_plugins_dir()}/template prepare build-rootimg"
             ]
@@ -403,7 +400,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     copy_in,
                     copy_out,
                     environment=self.environment,
-                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                    files_inside_executor_with_placeholders=self.files_inside_executor_with_placeholders,
                     dig_holes=True,
                 )
             except ExecutorError as e:
@@ -451,10 +448,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ),
             ]
 
-            files_inside_executor_with_placeholders = [
-                executor.get_plugins_dir() / "template_rpm/04_install_qubes.sh"
-            ]
-
             cmd = [f"make -C {executor.get_plugins_dir()}/template prepare build-rpm"]
             try:
                 executor.run(
@@ -462,7 +455,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     copy_in,
                     copy_out,
                     environment=self.environment,
-                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                    files_inside_executor_with_placeholders=self.files_inside_executor_with_placeholders,
                 )
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to build template."

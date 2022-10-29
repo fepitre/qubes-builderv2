@@ -82,9 +82,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
                 chroot_dir,
             )
         ]
-        files_inside_executor_with_placeholders = [
-            executor.get_builder_dir() / "pbuilder/pbuilderrc"
-        ]
+        files_inside_executor_with_placeholders = ["@PLUGINS_DIR@/pbuilder/pbuilderrc"]
         cmd = [
             f"sed -i '\#/tmp/qubes-deb#d' {executor.get_builder_dir()}/pbuilder/pbuilderrc",
             f"sudo -E pbuilder create --distribution {self.dist.name} "
