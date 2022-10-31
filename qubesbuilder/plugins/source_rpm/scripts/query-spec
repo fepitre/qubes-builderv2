@@ -54,9 +54,6 @@ set_rpm_defines() {
         rpm_defines+=(--define "centos $dist_ver")
         rpm_defines+=(--define "rhel $dist_ver")
     fi
-    if [[ "$raw_dist" = el8 ]]; then
-        rpm_defines+=(--define "python3_pkgversion 38")
-    fi
 }
 
 export -f set_rpm_defines
