@@ -199,8 +199,8 @@ class QubesComponent:
                 hash = self._update_hash_from_dir(path, hash)
         return hash
 
-    def get_source_hash(self):
-        if not self._source_hash:
+    def get_source_hash(self, force_update=True):
+        if not self._source_hash or force_update:
             source_dir_hash = self._update_hash_from_dir(
                 self.source_dir, hashlib.sha512()
             ).hexdigest()

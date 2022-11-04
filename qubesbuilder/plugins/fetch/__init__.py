@@ -300,7 +300,7 @@ class FetchPlugin(ComponentPlugin):
         source_dir = executor.get_builder_dir() / self.component.name
 
         # Keep existing fetch info if it is up-to-date
-        source_hash = self.component.get_source_hash()
+        source_hash = self.component.get_source_hash(force_update=True)
         old_info = self.get_artifacts_info(stage=stage, basename="source")
         if "source-hash" in old_info and old_info["source-hash"] == source_hash:
             return
