@@ -31,6 +31,15 @@ distributions:
   - vm-centos-stream8
 
 components:
+  - builder-debian:
+      url: https://github.com/fepitre/qubes-builder-debian
+      branch: builderv2
+      plugin: true
+      content-dir: template_debian
+  - template-whonix:
+      url: https://github.com/fepitre/qubes-template-whonix
+      branch: builderv2
+      plugin: true
   - python-qasync:
       url: https://github.com/fepitre/qubes-python-qasync
       branch: builderv2
@@ -77,6 +86,8 @@ templates:
         - no-recommends
 
 less-secure-signed-commits-sufficient:
+  - builder-debian
+  - template-whonix
   - python-qasync
   - core-vchan-xen
   - core-qrexec
