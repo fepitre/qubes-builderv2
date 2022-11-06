@@ -97,6 +97,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "DISCARD_PREPARED_IMAGE": "1",
                 "BUILDER_TURBO_MODE": "1",
                 "CACHE_DIR": str(executor.get_cache_dir() / f"cache_{self.dist.name}"),
+                "TEMPLATE_SCRIPTS_DIR": str(executor.get_plugins_dir() / "template/scripts")
             }
         )
 
