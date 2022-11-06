@@ -74,7 +74,8 @@ class Config:
         # Artifacts directory location
         self._artifacts_dir: Path = None  # type: ignore
 
-        # log.info(f"Using '{self._artifacts_dir}' as artifacts directory.")
+        # Plugins directories
+        self._plugins_dirs: List[Path] = [PROJECT_PATH / "qubesbuilder" / "plugins"]
 
     # fmt: off
     # Mypy does not support this form yet (see https://github.com/python/mypy/issues/8083).
@@ -269,6 +270,7 @@ class Config:
             components_from_config = []
             for c in self._conf.get("components", []):
                 components_from_config.append(self.get_component_from_dict_or_string(c))
+
             self._components = components_from_config
 
         # Find if components requested would have been found from config file with
@@ -304,10 +306,14 @@ class Config:
         return self.artifacts_dir / "logs"
 
     def get_plugins_dirs(self):
-        default_plugins_dir = PROJECT_PATH / "qubesbuilder" / "plugins"
         plugins_dirs = self._conf.get("plugins-dirs", [])
-        if default_plugins_dir not in plugins_dirs:
-            plugins_dirs = [default_plugins_dir] + plugins_dirs
+        # We call get_components in order to ensure that plugin ones are added
+        # in _plugins_dirs.
+        self.get_components()
+        for d in self._plugins_dirs:
+            d_path = Path(d).expanduser().resolve()
+            if d not in plugins_dirs:
+                plugins_dirs = [str(d_path)] + plugins_dirs
         return plugins_dirs
 
     def get_executor_from_config(self, stage_name: str):
@@ -358,6 +364,7 @@ class Config:
             component_name = {component_name: {}}
 
         name, options = next(iter(component_name.items()))
+        source_dir = self.artifacts_dir / "sources" / name
         url = f"{baseurl}/{options.get('prefix', prefix)}{name}{options.get('suffix', suffix)}"
         verification_mode = VerificationMode.SignedTag
         if name in self._conf.get("insecure-skip-checking", []):
@@ -369,22 +376,28 @@ class Config:
         fetch_versions_only = options.get(
             "fetch-versions-only", self.get("fetch-versions-only", False)
         )
+        is_plugin = options.get("plugin", False)
 
         component_kwargs = {
-            "source_dir": self.artifacts_dir / "sources" / name,
+            "source_dir": source_dir,
             "url": options.get("url", url),
             "branch": options.get("branch", branch),
             "maintainers": options.get("maintainers", maintainers),
             "verification_mode": verification_mode,
             "timeout": options.get("timeout", timeout),
             "fetch_versions_only": fetch_versions_only,
+            "is_plugin": is_plugin
         }
         if self.increment_devel_versions:
             component_kwargs["devel_path"] = (
                 self.artifacts_dir / "components" / name / "noversion" / "devel"
             )
+        if is_plugin:
+            plugin_dir = source_dir
+            if options.get("content-dir", None):
+                plugin_dir = source_dir / options["content-dir"]
+            self._plugins_dirs.append(plugin_dir)
         component = QubesComponent(**component_kwargs)
-
         return component
 
     @staticmethod

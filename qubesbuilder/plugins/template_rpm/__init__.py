@@ -69,9 +69,5 @@ class RPMTemplateBuilderPlugin(TemplateBuilderPlugin):
             **kwargs,
         )
 
-        self.files_inside_executor_with_placeholders.append(
-            "@PLUGINS_DIR@/template_rpm/04_install_qubes.sh"
-        )
-
 
 TEMPLATE_PLUGINS = [RPMTemplateBuilderPlugin]

@@ -3,17 +3,23 @@ from pathlib import Path
 from typing import List, Dict
 
 from qubesbuilder.exc import EntityError, PluginManagerError
+from qubesbuilder.log import get_logger
+
+log = get_logger("pluginmanager")
 
 
 class PluginEntity:
     def __init__(self, path: Path):
         self.directory = path.parent
+        # Determine plugin name based on directory or filename
         if path.name == "__init__.py":
             self.name = self.directory.name
         else:
             self.name = path.name.replace(".py", "")
+        # If exists, Remove qubes- prefix
         if self.name.startswith("qubes-"):
             self.name = self.name[6:]
+        # Replace - by _
         self.name = self.name.replace("-", "_")
         self.fullname = f"qubesbuilder.plugins.{self.name}"
         try:
@@ -36,7 +42,12 @@ class PluginManager:
     def _get_plugin_entities(self):
         entities = {}
         for directory in self._directories:
-            modules = Path(directory).iterdir()
+            directory_path = Path(directory).expanduser().resolve()
+            if not directory_path.exists():
+                log.warning(f"Ignoring non existing directory '{directory_path}'. If directory is"
+                            f" a component plugin, component source may not be fetched.")
+                continue
+            modules = directory_path.iterdir()
             for module in modules:
                 if module.is_dir():
                     module_path = module / "__init__.py"
@@ -65,7 +76,7 @@ class PluginManager:
             plugin_names += [c.__name__ for c in getattr(entity.module, module_attr)]
 
         if len(set(plugin_names)) != len(plugin_names):
-            raise PluginManagerError(f"Conflicting plugin name detected.")
+            raise PluginManagerError("Conflicting plugin name detected.")
 
         instances = []
         for entity in self.entities.values():

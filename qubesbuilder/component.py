@@ -44,6 +44,7 @@ class QubesComponent:
         timeout: int = None,
         fetch_versions_only: bool = False,
         devel_path: Path = None,
+        is_plugin: bool = False
     ):
         self.source_dir: Path = (
             Path(source_dir) if isinstance(source_dir, str) else source_dir
@@ -58,15 +59,18 @@ class QubesComponent:
         self.verification_mode = verification_mode
         self.timeout = timeout
         self.fetch_versions_only = fetch_versions_only
+        self.is_plugin = is_plugin
         self._source_hash = ""
         self._devel_path = devel_path
 
     @property
     def verrel(self):
-        nvr = f"{self.version}-{self.release}"
+        version_release = f"{self.version}-{self.release}"
         if self.devel:
-            nvr = f"{nvr}.{self.devel}"
-        return nvr
+            version_release = f"{version_release}.{self.devel}"
+        if self.is_plugin:
+            version_release = "noversion"
+        return version_release
 
     def increment_devel_versions(self):
         devel = "1"
@@ -87,6 +91,9 @@ class QubesComponent:
     def get_parameters(self, placeholders: dict = None):
         if not self.source_dir.exists():
             raise ComponentError(f"Cannot find source directory {self.source_dir}.")
+
+        if self.is_plugin:
+            return {}
 
         version = ""
         release = ""
