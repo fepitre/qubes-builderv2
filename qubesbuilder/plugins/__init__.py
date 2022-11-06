@@ -80,6 +80,10 @@ class Plugin:
 
         self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
+        for dependency in self.dependencies:
+            if not self.manager.entities.get(dependency, None):
+                raise PluginError(f"Cannot find plugin '{dependency}'.")
+
     def run(self, stage: str):
         pass
 

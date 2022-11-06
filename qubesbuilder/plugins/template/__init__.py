@@ -99,6 +99,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "CACHE_DIR": str(executor.get_cache_dir() / f"cache_{self.dist.name}"),
             }
         )
+
         if self.config.template_root_size:
             self.environment.update(
                 {"TEMPLATE_ROOT_SIZE": self.config.template_root_size}
