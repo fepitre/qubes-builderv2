@@ -4,6 +4,7 @@ git:
   branch: builderv2
   maintainers:
     - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
+    - 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
 
 backend-vmm: xen
 
@@ -57,6 +58,13 @@ templates:
 artifacts-dir: /home/user/qubes-builderv2/artifacts
 
 components:
+  - builder-debian:
+      plugin: true
+      branch: builderv2
+      content-dir: template_debian
+  - template-whonix:
+      plugin: true
+      branch: builderv2
   - lvm2
   - vmm-xen
   - core-libvirt
@@ -140,6 +148,8 @@ components:
   - mgmt-salt-dom0-update
 
 less-secure-signed-commits-sufficient:
+  - builder-debian
+  - template-whonix
   - lvm2
   - vmm-xen
   - core-libvirt
