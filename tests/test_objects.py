@@ -35,6 +35,25 @@ def test_component():
         assert str(component) == os.path.basename(source_dir)
         assert repr(component) == repr_str
 
+def test_component_rc():
+    with tempfile.TemporaryDirectory() as source_dir:
+        with open(f"{source_dir}/version", "w") as f:
+            f.write("1.2.3-rc5")
+        with open(f"{source_dir}/rel", "w") as f:
+            f.write("4")
+        with open(f"{source_dir}/.qubesbuilder", "w") as f:
+            f.write("")
+        component = QubesComponent(source_dir)
+        component.get_parameters()
+
+        assert component.version == "1.2.3-rc5"
+        assert component.release == "4"
+
+        repr_str = f"<QubesComponent {os.path.basename(source_dir)}>"
+        assert component.to_str() == os.path.basename(source_dir)
+        assert str(component) == os.path.basename(source_dir)
+        assert repr(component) == repr_str
+
 
 def test_component_no_qubesbuilder():
     with tempfile.TemporaryDirectory() as source_dir:

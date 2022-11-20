@@ -32,6 +32,16 @@ from qubesbuilder.common import sanitize_line, deep_check, VerificationMode
 from qubesbuilder.exc import ComponentError, NoQubesBuilderFileError
 
 
+class QubesVersion(Version):
+    """Version class that preserves '-' in X.Y-rcZ version"""
+
+    def __init__(self, version: str) -> None:
+        super().__init__(version)
+        if "-rc" in version:
+            # pylint: disable=protected-access
+            self._version = self._version._replace(pre=("-rc", self._version.pre[1]))  # type: ignore
+
+
 class QubesComponent:
     def __init__(
         self,
@@ -96,7 +106,7 @@ class QubesComponent:
         if version_file.exists():
             try:
                 with open(version_file) as fd:
-                    version = Version(fd.read().split("\n")[0]).base_version
+                    version = str(QubesVersion(fd.read().split("\n")[0]))
             except InvalidVersion as e:
                 raise ComponentError(f"Invalid version for {self.source_dir}.") from e
         else:
