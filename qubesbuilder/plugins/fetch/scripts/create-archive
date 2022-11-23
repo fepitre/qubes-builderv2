@@ -30,7 +30,7 @@ TAR_VERSION="$(tar --version | head -1 | awk '{print $4}')"
 
 GIT_ARCHIVE_SRC="$(readlink -f "$1")"
 GIT_ARCHIVE_TYPE="${2##*.}"
-GIT_TARBALL_NAME="${2%.$GIT_ARCHIVE_TYPE}"
+GIT_TARBALL_NAME="${2%."$GIT_ARCHIVE_TYPE"}"
 
 if [ "x$3" != "x" ]; then
     GIT_ARCHIVE_PREFIX="$3"
