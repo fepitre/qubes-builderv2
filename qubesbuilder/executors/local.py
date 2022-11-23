@@ -84,6 +84,7 @@ class LocalExecutor(Executor):
         files_inside_executor_with_placeholders: List[Path] = None,
         environment=None,
         no_fail_copy_out_allowed_patterns=None,
+        **kwargs,
     ):
 
         # Create temporary builder directory. In an unlikely case of conflict,

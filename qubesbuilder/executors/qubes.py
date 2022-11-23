@@ -80,7 +80,7 @@ class QubesExecutor(Executor):
                 log.error(msg)
             raise ExecutorError from e
 
-    def copy_out(self, vm, source_path: PurePath, destination_dir: Path):  # type: ignore
+    def copy_out(self, vm, source_path: PurePath, destination_dir: Path, dig_holes=False):  # type: ignore
         src = source_path
         dst = destination_dir.resolve()
 
@@ -105,6 +105,10 @@ class QubesExecutor(Executor):
         try:
             log.debug(f"copy-out (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
+
+            if dig_holes and not dst_path.is_dir():
+                log.debug("copy-out (detect zeroes and replace with holes)")
+                subprocess.run(["/usr/bin/fallocate", "-d", str(dst_path)], check=True)
         except subprocess.CalledProcessError as e:
             if e.stderr is not None:
                 msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
@@ -119,6 +123,7 @@ class QubesExecutor(Executor):
         files_inside_executor_with_placeholders: List[Path] = None,
         environment: dict = None,
         no_fail_copy_out_allowed_patterns=None,
+        dig_holes: bool = False,
     ):
 
         dispvm = None
@@ -203,7 +208,12 @@ class QubesExecutor(Executor):
             # copy-out hook
             for src_out, dst_out in copy_out or []:
                 try:
-                    self.copy_out(dispvm, source_path=src_out, destination_dir=dst_out)
+                    self.copy_out(
+                        dispvm,
+                        source_path=src_out,
+                        destination_dir=dst_out,
+                        dig_holes=dig_holes,
+                    )
                 except ExecutorError as e:
                     # Ignore copy-out failure if requested
                     if isinstance(no_fail_copy_out_allowed_patterns, list) and any(

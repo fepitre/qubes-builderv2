@@ -381,6 +381,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     copy_out,
                     environment=self.environment,
                     files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                    dig_holes=True,
                 )
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to prepare template."
