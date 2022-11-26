@@ -313,7 +313,7 @@ class Config:
         for d in self._plugins_dirs:
             d_path = Path(d).expanduser().resolve()
             if d not in plugins_dirs:
-                plugins_dirs = [str(d_path)] + plugins_dirs
+                plugins_dirs = plugins_dirs + [str(d_path)]
         return plugins_dirs
 
     def get_executor_from_config(self, stage_name: str):
