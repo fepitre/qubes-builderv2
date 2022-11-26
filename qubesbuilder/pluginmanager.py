@@ -1,7 +1,8 @@
+import sys
 import importlib.util
 from pathlib import Path
 from typing import List, Dict
-
+from collections import OrderedDict
 from qubesbuilder.exc import EntityError, PluginManagerError
 from qubesbuilder.log import get_logger
 
@@ -10,6 +11,7 @@ log = get_logger("pluginmanager")
 
 class PluginEntity:
     def __init__(self, path: Path):
+        self.path = path
         self.directory = path.parent
         # Determine plugin name based on directory or filename
         if path.name == "__init__.py":
@@ -22,13 +24,15 @@ class PluginEntity:
         # Replace - by _
         self.name = self.name.replace("-", "_")
         self.fullname = f"qubesbuilder.plugins.{self.name}"
+
         try:
-            spec = importlib.util.spec_from_file_location(self.fullname, path)
+            spec = importlib.util.spec_from_file_location(self.fullname, self.path)
             if not spec:
                 raise EntityError("Cannot get module spec.")
             self.module = importlib.util.module_from_spec(spec)
             if not spec.loader:
                 raise EntityError("Cannot get module from spec.")
+            sys.modules[self.fullname] = self.module
             spec.loader.exec_module(self.module)
         except ImportError as e:
             raise EntityError(str(e)) from e
@@ -40,7 +44,7 @@ class PluginManager:
         self._entities: Dict[str, PluginEntity] = {}
 
     def _get_plugin_entities(self):
-        entities = {}
+        entities = OrderedDict()
         for directory in self._directories:
             directory_path = Path(directory).expanduser().resolve()
             if not directory_path.exists():
