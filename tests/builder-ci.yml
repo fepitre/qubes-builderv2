@@ -32,6 +32,11 @@ distributions:
 
 components:
   - builder-debian:
+      url: https://github.com/fepitre/qubes-builder-rpm
+      branch: builderv2
+      plugin: true
+      content-dir: template_rpm
+  - builder-debian:
       url: https://github.com/fepitre/qubes-builder-debian
       branch: builderv2
       plugin: true
@@ -86,6 +91,7 @@ templates:
         - no-recommends
 
 less-secure-signed-commits-sufficient:
+  - builder-rpm
   - builder-debian
   - template-whonix
   - python-qasync
