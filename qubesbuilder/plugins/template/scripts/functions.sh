@@ -565,7 +565,7 @@ buildStep() {
 }
 
 # ------------------------------------------------------------------------------
-# Copy extra file tree to ${INSTALL_DIR²}
+# Copy extra file tree to ${INSTALL_DIR}
 # TODO:  Allow copy per step (04_install_qubes.sh-files)
 #
 # To set file permissions is a PITA since git won't save them and will
