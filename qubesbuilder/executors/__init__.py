@@ -88,3 +88,4 @@ class Executor(ABC):
     def replace_placeholders(self, s: str):
         for key, val in self.get_placeholders().items():
             s = s.replace(key, str(val))
+        return s
