@@ -48,7 +48,7 @@ class QubesComponent:
         source_dir: Union[str, Path],
         name: str = None,
         url: str = None,
-        branch: str = "master",
+        branch: str = "main",
         verification_mode: VerificationMode = VerificationMode.SignedCommit,
         maintainers: List = None,
         timeout: int = None,

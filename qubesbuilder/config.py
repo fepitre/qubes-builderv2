@@ -350,7 +350,7 @@ class Config:
         baseurl = self.get("git", {}).get("baseurl", "https://github.com")
         prefix = self.get("git", {}).get("prefix", "QubesOS/qubes-")
         suffix = self.get("git", {}).get("suffix", ".git")
-        branch = self.get("git", {}).get("branch", "master")
+        branch = self.get("git", {}).get("branch", "main")
         maintainers = self.get("git", {}).get("maintainers", [])
         timeout = self.get("timeout", 3600)
 
