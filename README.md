@@ -659,7 +659,7 @@ Options available in `builder.yml`:
   - `baseurl: str` --- Base url of git repos (default: https://github.com).
   - `prefix: str` --- Which repository to clone (default: QubesOS/qubes-).
   - `suffix: str` --- git suffix (default: .git).
-  - `branch: str` --- git branch (default: master).
+  - `branch: str` --- git branch (default: main).
   - `maintainers: List[str]` --- List of extra fingerprint allowed for signature verification of git commit and tag.
 
 - `skip-git-fetch: bool` --- When set, do not update already downloaded git repositories (those in `sources` artifacts dir). New components are still fetched (once). Useful when doing development builds from non-default branches, local modifications etc.

@@ -203,7 +203,7 @@ fi
 [ -z "$GIT_SUFFIX" ] && GIT_SUFFIX='.git'
 
 # Default GIT branch
-[ -z "$BRANCH" ] && BRANCH='master'
+[ -z "$BRANCH" ] && BRANCH='main'
 
 # Allow to override URL for which COMPONENT is cloned
 if [ -n "${GIT_BASEURL}" ] && [ -n "${GIT_PREFIX}" ]; then

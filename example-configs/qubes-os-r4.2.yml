@@ -1,7 +1,7 @@
 git:
   baseurl: https://github.com
   prefix: QubesOS/qubes-
-  branch: master
+  branch: main
 
 backend-vmm: xen
 debug: true
@@ -60,7 +60,7 @@ components:
       timeout: 21600
   - linux-kernel-latest:
       url: https://github.com/QubesOS/qubes-linux-kernel
-      branch: master
+      branch: main
       timeout: 21600
   - artwork
   - grub2

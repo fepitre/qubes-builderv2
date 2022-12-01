@@ -7,7 +7,7 @@ include:
 git:
   baseurl: https://github.com
   prefix: QubesOS/qubes-
-  branch: master
+  branch: main
 
 backend-vmm: xen
 debug: true
