@@ -77,6 +77,9 @@ generate-container-image:
     PYTHONPATH: .
     TMPDIR: /home/user
     PYTEST_ARGS: -v --color=yes --showlocals --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
+  # https://gitlab.com/gitlab-org/gitlab/-/issues/15603
+  before_script:
+    - rm -rf ~/pytest-of-user/
 
 pytest:
   extends: .pytest

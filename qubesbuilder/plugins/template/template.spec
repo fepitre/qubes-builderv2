@@ -34,6 +34,7 @@ Obsoletes:      %{name} > %{template_version}-%{release}
 
 %build
 rm -f root.img.part.*
+fallocate -d %{_sourcedir}/qubeized_images/%{template_name}/root.img
 tar --sparse --dereference -cf - %{_sourcedir}/qubeized_images/%{template_name}/root.img | split -d -b 1G - root.img.part.
 rm -f root.img
 

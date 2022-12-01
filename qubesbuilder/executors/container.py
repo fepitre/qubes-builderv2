@@ -138,6 +138,7 @@ class ContainerExecutor(Executor):
         files_inside_executor_with_placeholders: List[Union[Path, str]] = None,
         environment=None,
         no_fail_copy_out_allowed_patterns=None,
+        **kwargs,
     ):
 
         container = None
