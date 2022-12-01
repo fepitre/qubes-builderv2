@@ -35,8 +35,7 @@ templates:
         - no-recommends
 
 components:
-  - vmm-xen:
-      branch: xen-4.14
+  - vmm-xen
   - core-libvirt
   - core-vchan-xen
   - core-qubesdb
@@ -46,8 +45,7 @@ components:
   - python-u2flib-host
   - python-qasync
   - python-panflute
-  - rpm-oxide:
-      branch: main
+  - rpm-oxide
   - core-admin
   - core-admin-client
   - core-admin-addon-whonix
@@ -106,18 +104,14 @@ components:
   - dummy-psu
   - dummy-backlight
   - xorg-x11-drv-intel
-  - xorg-x11-drv-amdgpu:
-      branch: main
+  - xorg-x11-drv-amdgpu
   - linux-pvgrub2
   - linux-gbulb
   - linux-scrypt
   - xdotool
-  - alsa-lib:
-      branch: main
-  - alsa-utils:
-      branch: main
-  - alsa-sof-firmware:
-      branch: main
+  - alsa-lib
+  - alsa-utils
+  - alsa-sof-firmware
   - lvm2
   - qubes-release
   - pykickstart
@@ -126,14 +120,10 @@ components:
   - lorax-templates
   - anaconda
   - anaconda-addon
-  - efitools:
-      branch: main
-  - sbsigntools:
-      branch: main
-  - tpm2-tss:
-      branch: main
-  - tpm2-tools:
-      branch: main
+  - efitools
+  - sbsigntools
+  - tpm2-tss
+  - tpm2-tools
   - tpm-extra
   - trousers-changer
   - antievilmaid
