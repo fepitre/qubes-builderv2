@@ -125,6 +125,7 @@ pytest-cli-template:
   artifacts:
     paths:
       - artifacts
+    when: always
   before_script:
     - cp -r tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
@@ -146,6 +147,7 @@ pytest-cli-template:
   artifacts:
     paths:
       - artifacts
+    when: always
   before_script:
     - cp -r tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
@@ -173,6 +175,7 @@ pytest-cli-template:
   artifacts:
     paths:
       - artifacts
+    when: always
   before_script:
     - cp -r tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
@@ -193,6 +196,7 @@ pytest-cli-template:
   artifacts:
     paths:
       - artifacts
+    when: always
   before_script:
     - cp -r tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
