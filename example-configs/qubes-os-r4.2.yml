@@ -36,6 +36,7 @@ templates:
 
 components:
   - vmm-xen
+  - vmm-xen-guest
   - core-libvirt
   - core-vchan-xen
   - core-qubesdb
