@@ -53,6 +53,7 @@ zip
 --exclude=geolite2-city
 --exclude=gimp-help
 --exclude=gnome-boxes
+--exclude=gnome-browser-connector
 --exclude=gnome-classic-session
 --exclude=gnome-getting-started-docs
 --exclude=gnome-initial-setup
