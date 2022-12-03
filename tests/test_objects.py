@@ -40,14 +40,14 @@ def test_component_rc():
         with open(f"{source_dir}/version", "w") as f:
             f.write("1.2.3-rc5")
         with open(f"{source_dir}/rel", "w") as f:
-            f.write("4")
+            f.write("4.1")
         with open(f"{source_dir}/.qubesbuilder", "w") as f:
             f.write("")
         component = QubesComponent(source_dir)
         component.get_parameters()
 
         assert component.version == "1.2.3-rc5"
-        assert component.release == "4"
+        assert component.release == "4.1"
 
         repr_str = f"<QubesComponent {os.path.basename(source_dir)}>"
         assert component.to_str() == os.path.basename(source_dir)
@@ -111,6 +111,18 @@ def test_component_invalid_release():
             f.write("1.2.3")
         with open(f"{source_dir}/rel", "w") as f:
             f.write("wrongrelease")
+        with pytest.raises(ComponentError) as e:
+            QubesComponent(source_dir).get_parameters()
+        msg = f"Invalid release for {source_dir}."
+        assert str(e.value) == msg
+
+def test_component_invalid_release2():
+    with tempfile.TemporaryDirectory() as source_dir:
+        with open(f"{source_dir}/version", "w") as f:
+            f.write("1.2.3")
+        with open(f"{source_dir}/rel", "w") as f:
+            # only one decimal point allowed
+            f.write("3.2.1")
         with pytest.raises(ComponentError) as e:
             QubesComponent(source_dir).get_parameters()
         msg = f"Invalid release for {source_dir}."
