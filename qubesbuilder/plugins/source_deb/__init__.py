@@ -299,6 +299,11 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                     f"cp -a {source_dir}/* .",
                 ]
             cmd += [
+                # Workaround for https://bugs.debian.org/796257, or rather its
+                # complementary part (asymmetry between extract and build)
+                # Taken from Dpkg::Source::Functions::fixperms, assuming umask 022
+                "chmod -R -- u+rwX,g+rX-w,o+rX-w .",
+                "chmod +x debian/rules",
                 "dpkg-source -b .",
                 " ".join(gen_packages_list_cmd),
             ]
