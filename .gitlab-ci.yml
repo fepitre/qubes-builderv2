@@ -80,10 +80,15 @@ generate-container-image:
   # https://gitlab.com/gitlab-org/gitlab/-/issues/15603
   before_script:
     - rm -rf ~/pytest-of-user/
+    - git clone https://github.com/qubesos/qubes-infrastructure-mirrors
+    - (cd qubes-infrastructure-mirrors; pip3 install .)
+    - export "PATH=$PATH:$HOME/.local/bin"
+    - export "PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python3.10/site-packages"
 
 pytest:
   extends: .pytest
   script:
+    - echo "$PYTHONPATH"
     - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py
 
 pytest-cli-component:
