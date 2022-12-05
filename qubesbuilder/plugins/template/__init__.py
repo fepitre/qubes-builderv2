@@ -225,6 +225,29 @@ class TemplateBuilderPlugin(TemplatePlugin):
     def get_template_tag(self):
         return f"{TEMPLATE_VERSION}-{self.get_template_timestamp()}"
 
+    def create_metalink(self, executor, repository_publish):
+        repository_dir = (
+            self.get_repository_publish_dir()
+            / "rpm"
+            / self.config.qubes_release
+            / repository_publish
+        )
+        repomd = repository_dir / "repodata/repomd.xml"
+        if not repomd.exists():
+            msg = f"{self.template.name}: Cannot find repomd '{repomd}'."
+            raise TemplateError(msg)
+
+        log.info(f"Creating metalink for {repomd}.")
+        try:
+            # XXX: consider separate mirrors.list?
+            cmd = [
+                f"mkmetalink -b {repository_dir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
+            ]
+            executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.template.name}: Failed to create metalink for '{repomd}'."
+            log.error(msg)
+
     def publish(self, executor, db_path, repository_publish):
         # Read information from build stage
         template_timestamp = self.get_template_timestamp()
@@ -270,6 +293,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
         # Sign metadata
         self.sign_metadata(executor=executor, target_dir=target_dir, sign_key=sign_key)
 
+        self.create_metalink(executor=executor, repository_publish=repository_publish)
+
     def unpublish(self, executor, repository_publish):
         # Read information from build stage
         template_timestamp = self.get_template_timestamp()
@@ -301,6 +326,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         # Sign metadata
         self.sign_metadata(executor=executor, target_dir=target_dir, sign_key=sign_key)
+
+        self.create_metalink(executor=executor, repository_publish=repository_publish)
 
     def run(
         self,

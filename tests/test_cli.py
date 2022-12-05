@@ -1,3 +1,4 @@
+import hashlib
 import itertools
 import os.path
 import pathlib
@@ -1528,6 +1529,13 @@ def test_template_publish_fedora_36_xfce(artifacts_dir):
         )
         packages = rpm_packages_list(repository_dir)
         assert {rpm} == set(packages)
+        metadata_dir = artifacts_dir / f"repository-publish/rpm/r4.2/{repository}/repodata"
+        assert (metadata_dir / "repomd.xml").exists()
+        assert (metadata_dir / "repomd.xml.asc").exists()
+        assert (metadata_dir / "repomd.xml.metalink").exists()
+        with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
+            repomd_hash = hashlib.sha256(repomd_f.read()).hexdigest()
+        assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(encoding='ascii')
 
 
 def test_template_unpublish_fedora_36_xfce(artifacts_dir):
@@ -1576,3 +1584,10 @@ def test_template_unpublish_fedora_36_xfce(artifacts_dir):
             assert packages == []
         else:
             assert {rpm} == set(packages)
+        metadata_dir = artifacts_dir / f"repository-publish/rpm/r4.2/{repository}/repodata"
+        assert (metadata_dir / "repomd.xml").exists()
+        assert (metadata_dir / "repomd.xml.asc").exists()
+        assert (metadata_dir / "repomd.xml.metalink").exists()
+        with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
+            repomd_hash = hashlib.sha256(repomd_f.read()).hexdigest()
+        assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(encoding='ascii')
