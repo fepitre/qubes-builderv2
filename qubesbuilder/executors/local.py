@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import getpass
 import grp
+import os
 import pwd
 import shutil
 import subprocess
@@ -138,6 +139,12 @@ class LocalExecutor(Executor):
                 "&&".join(sed_cmd + cmd),
             ]
             log.info(f"Executing '{' '.join(final_cmd)}'.")
+
+            # add requested env to existing env, instead of completely replacing it
+            if environment is not None:
+                environment_new = os.environ.copy()
+                environment_new.update(environment)
+                environment = environment_new
 
             # stream output for command
             process = subprocess.Popen(
