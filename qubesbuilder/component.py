@@ -26,20 +26,39 @@ from typing import Union, List
 
 import pathspec
 import yaml
-from packaging.version import Version, InvalidVersion
+from packaging.version import Version, InvalidVersion, VERSION_PATTERN
 
 from qubesbuilder.common import sanitize_line, deep_check, VerificationMode
 from qubesbuilder.exc import ComponentError, NoQubesBuilderFileError
 
+# allow fractional post-release (like 1.0-0.1)
+VERSION_PATTERN_REL = r"(?:(?P<post_frac>\.[0-9]+))?"
+
 
 class QubesVersion(Version):
-    """Version class that preserves '-' in X.Y-rcZ version"""
+    """Version class that preserves '-' in X.Y-rcZ version,
+    and allows decimal point in post-release
+    """
+
+    _regex = re.compile(
+        r"^\s*" + VERSION_PATTERN + VERSION_PATTERN_REL + r"\s*$",
+        re.VERBOSE | re.IGNORECASE,
+    )
 
     def __init__(self, version: str) -> None:
         super().__init__(version)
         if "-rc" in version:
             # pylint: disable=protected-access
             self._version = self._version._replace(pre=("-rc", self._version.pre[1]))  # type: ignore
+        match = self._regex.search(version)
+        assert match  # already verified in parent
+        if match.group("post_frac"):
+            self._version = self._version._replace(
+                post=(
+                    self._version.post[0],
+                    str(self._version.post[1]) + match.group("post_frac"),
+                )
+            )  # type: ignore
 
 
 class QubesComponent:
@@ -134,7 +153,7 @@ class QubesComponent:
                 try:
                     with open(release_file) as fd:
                         release = fd.read().split("\n")[0]
-                    Version(f"{version}-{release}")
+                    QubesVersion(f"{version}-{release}")
                 except (InvalidVersion, AssertionError) as e:
                     raise ComponentError(
                         f"Invalid release for {self.source_dir}."
