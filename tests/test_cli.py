@@ -556,6 +556,19 @@ def test_component_publish_host_fc32(artifacts_dir):
             "current",
         }
 
+        metadata_dir = (
+            artifacts_dir / f"repository-publish/rpm/r4.2/current/host/fc32/repodata"
+        )
+        assert (metadata_dir / "repomd.xml.metalink").exists()
+        with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
+            repomd_hash = hashlib.sha256(repomd_f.read()).hexdigest()
+        assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
+            encoding="ascii"
+        )
+        assert "/pub/os/qubes/repo/yum/r4.2/current/host/fc32/repodata/repomd.xml" in (
+            metadata_dir / "repomd.xml.metalink"
+        ).read_text(encoding="ascii")
+
         # buildinfo
         assert (
             artifacts_dir / "repository-publish/rpm/r4.2/current/host/fc32"

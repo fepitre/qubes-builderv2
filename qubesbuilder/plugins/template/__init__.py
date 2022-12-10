@@ -226,12 +226,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
         return f"{TEMPLATE_VERSION}-{self.get_template_timestamp()}"
 
     def create_metalink(self, executor, repository_publish):
-        repository_dir = (
-            self.get_repository_publish_dir()
-            / "rpm"
-            / self.config.qubes_release
-            / repository_publish
-        )
+        repo_basedir = self.get_repository_publish_dir() / "rpm"
+        repository_dir = repo_basedir / self.config.qubes_release / repository_publish
         repomd = repository_dir / "repodata/repomd.xml"
         if not repomd.exists():
             msg = f"{self.template.name}: Cannot find repomd '{repomd}'."
@@ -241,7 +237,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         try:
             # XXX: consider separate mirrors.list?
             cmd = [
-                f"mkmetalink -b {repository_dir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
+                f"mkmetalink -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
             ]
             executor.run(cmd)
         except ExecutorError as e:

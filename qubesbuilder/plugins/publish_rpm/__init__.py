@@ -194,9 +194,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         )
 
     def create_metalink(self, executor, repository_publish):
+        repo_basedir = self.get_repository_publish_dir() / self.dist.type
         repository_dir = (
-            self.get_repository_publish_dir()
-            / self.dist.type
+            repo_basedir
             / self.config.qubes_release
             / repository_publish
             / self.dist.package_set
@@ -210,7 +210,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         log.info(f"Creating metalink for {repomd}.")
         try:
             cmd = [
-                f"mkmetalink -b {repository_dir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
+                f"mkmetalink -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
             ]
             executor.run(cmd)
         except ExecutorError as e:
