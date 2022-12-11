@@ -58,6 +58,10 @@ templates:
 artifacts-dir: /home/user/qubes-builderv2/artifacts
 
 components:
+  - builder-rpm:
+      plugin: true
+      branch: builderv2
+      content-dir: template_rpm
   - builder-debian:
       plugin: true
       branch: builderv2
