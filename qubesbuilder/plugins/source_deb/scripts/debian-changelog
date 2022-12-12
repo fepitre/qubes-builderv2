@@ -54,23 +54,11 @@ fi
 
 debian_parser=$(dirname "${0}")/debian-parser
 
-previous_changelog=debian/changelog
-# Create separate changelogs for each dist
-if [ "0${INCREMENT_DEVEL_VERSIONS}" -eq 1 ]; then
-    previous_changelog=debian/changelog.dist
-    if [ ! -e debian/changelog.dist ]; then
-        cp -p debian/changelog debian/changelog.dist
-    fi
-    if [ -e "debian/changelog.${DIST}" ]; then
-        cp -fp "debian/changelog.${DIST}" debian/changelog
-    else
-        cp -fp debian/changelog.dist debian/changelog
-    fi
-fi
+changelog=debian/changelog
 
-deb_version=$($debian_parser changelog --package-version $previous_changelog)
-deb_revision=$($debian_parser changelog --package-revision $previous_changelog)
-deb_epoc=$($debian_parser changelog --package-version-epoc $previous_changelog)
+deb_version=$($debian_parser changelog --package-version $changelog)
+deb_revision=$($debian_parser changelog --package-revision $changelog)
+deb_epoc=$($debian_parser changelog --package-version-epoc $changelog)
 
 # drop dist-specific suffix for version comparison
 deb_revision=${deb_revision%+deb*}
@@ -184,7 +172,4 @@ if [ "0${INCREMENT_DEVEL_VERSIONS}" -eq 1 ] && [ "0${DEVEL_VERSION}" -gt 0 ]; th
     debchange --nomultimaint-merge --multimaint -l"+${DIST_TAG}u1+devel" -- 'Test build'
     sed -i "s/+${DIST_TAG}u1+devel1/+${DIST_TAG}u1+devel${DEVEL_VERSION}/g" debian/changelog
     debchange --force-distribution --distribution "${DIST}" --release -- ''
-
-    # Save dist specific changelog for next time
-    cp -fp debian/changelog "debian/changelog.${DIST}"
 fi
