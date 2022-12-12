@@ -119,9 +119,8 @@ if [ "${deb_version}-${deb_revision}" != "${version}-${revision}" ]; then
         echo
     ) |
         while read -r a_name a_email date sum; do
-            export DEBFULLNAME="${a_name}"
-            export DEBEMAIL="${a_email}"
-            debchange --newversion="${new_version}" --no-auto-nmu --nomultimaint-merge --multimaint -- "${sum}"
+            DEBFULLNAME="${a_name}" DEBEMAIL="${a_email}" \
+                         debchange --newversion="${new_version}" --no-auto-nmu --nomultimaint-merge --multimaint -- "${sum}"
         done
 
     # -----------------------------------------------------------------------------
