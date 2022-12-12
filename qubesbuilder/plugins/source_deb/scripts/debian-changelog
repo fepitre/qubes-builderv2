@@ -139,8 +139,12 @@ if [ "${deb_version}-${deb_revision}" != "${version}-${revision}" ]; then
     # -----------------------------------------------------------------------------
     # Release - changelog name, email and distribution updated
     # -----------------------------------------------------------------------------
-    DEBFULLNAME="$(git config user.name)"
-    DEBEMAIL="$(git config user.email)"
+    if [ -z "$DEBFULLNAME" ]; then
+        DEBFULLNAME="$(git config user.name)"
+    fi
+    if [ -z "$DEBEMAIL" ]; then
+        DEBEMAIL="$(git config user.email)"
+    fi
     export DEBFULLNAME
     export DEBEMAIL
     debchange --force-distribution --distribution "${DIST}" --release -- ''
@@ -169,8 +173,12 @@ fi
 #                          (wheezy)
 
 if [ "0${INCREMENT_DEVEL_VERSIONS}" -eq 1 ] && [ "0${DEVEL_VERSION}" -gt 0 ]; then
-    DEBFULLNAME="$(git config user.name)"
-    DEBEMAIL="$(git config user.email)"
+    if [ -z "$DEBFULLNAME" ]; then
+        DEBFULLNAME="$(git config user.name)"
+    fi
+    if [ -z "$DEBEMAIL" ]; then
+        DEBEMAIL="$(git config user.email)"
+    fi
     export DEBFULLNAME
     export DEBEMAIL
     debchange --nomultimaint-merge --multimaint -l"+${DIST_TAG}u1+devel" -- 'Test build'
