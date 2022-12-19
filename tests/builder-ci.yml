@@ -35,14 +35,20 @@ components:
       url: https://github.com/fepitre/qubes-builder-rpm
       branch: builderv2
       packages: False
+      maintainers:
+        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - builder-debian:
       url: https://github.com/fepitre/qubes-builder-debian
       branch: builderv2
       packages: False
+      maintainers:
+        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - template-whonix:
       url: https://github.com/fepitre/qubes-template-whonix
       branch: builderv2
       packages: False
+      maintainers:
+        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - python-qasync:
       url: https://github.com/fepitre/qubes-python-qasync
       branch: builderv2
