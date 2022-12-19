@@ -1382,6 +1382,15 @@ def test_template_prep_fedora_36_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
+        "-c",
+        "builder-rpm",
+        "package",
+        "fetch",
+    )
+
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
         "--option",
         "executor:type=qubes",
         "--option",
