@@ -11,7 +11,7 @@ RUN useradd -m user -u 1000
 RUN usermod -aG sudo user && echo '%sudo ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/sudo
 
 # Create needed folders
-RUN mkdir /builder /builder/plugins /builder/build /builder/distfiles /builder/cache /builder/repository
+RUN mkdir /builder /builder/plugins /builder/build /builder/distfiles /builder/cache /builder/repository /builder/sources
 RUN chown -R user /builder
 
 USER user

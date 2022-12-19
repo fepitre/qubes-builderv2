@@ -711,6 +711,8 @@ Options available in `builder.yml`:
     - `url: str` --- provide the full url of the component.
     - `maintainers: List[str]` --- List of extra fingerprint allowed for signature verification of git commit and tag.
     - `timeout: int` --- Abort build after given timeout, in seconds.
+    - `plugin: bool` --- Component being actually an extra plugin. No `.qubesbuilder` file is needed.
+    - `packages: bool` --- Component that generate packages (default: True). If set to False (e.g. `builder-rpm`), no `.qubesbuilder` file is allowed.
 
 - `templates: List[Dict]` -- List of templates you want to build. See example configs for sensible lists.
   - `<template_name>`: --- Template name

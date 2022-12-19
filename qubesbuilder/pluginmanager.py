@@ -48,8 +48,10 @@ class PluginManager:
         for directory in self._directories:
             directory_path = Path(directory).expanduser().resolve()
             if not directory_path.exists():
-                log.warning(f"Ignoring non existing directory '{directory_path}'. If directory is"
-                            f" a component plugin, component source may not be fetched.")
+                log.warning(
+                    f"Ignoring non existing directory '{directory_path}'. If directory is"
+                    f" a component plugin, component source may not be fetched."
+                )
                 continue
             modules = directory_path.iterdir()
             for module in modules:

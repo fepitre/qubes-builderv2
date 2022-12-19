@@ -59,16 +59,14 @@ artifacts-dir: /home/user/qubes-builderv2/artifacts
 
 components:
   - builder-rpm:
-      plugin: true
       branch: builderv2
-      content-dir: template_rpm
+      packages: False
   - builder-debian:
-      plugin: true
       branch: builderv2
-      content-dir: template_debian
+      packages: False
   - template-whonix:
-      plugin: true
       branch: builderv2
+      packages: False
   - lvm2
   - vmm-xen
   - core-libvirt

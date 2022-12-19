@@ -36,13 +36,11 @@ templates:
 
 components:
   - builder-rpm:
-      plugin: true
-      content-dir: template_rpm
+      packages: False
   - builder-debian:
-      plugin: true
-      content-dir: template_debian
+      packages: False
   - template-whonix:
-      plugin: true
+      packages: False
   - vmm-xen
   - vmm-xen-guest
   - core-libvirt

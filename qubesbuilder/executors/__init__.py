@@ -50,6 +50,9 @@ class Executor(ABC):
     def get_plugins_dir(self):
         return self.get_builder_dir() / "plugins"
 
+    def get_sources_dir(self):
+        return self.get_builder_dir() / "sources"
+
     def get_distfiles_dir(self):
         return self.get_builder_dir() / "distfiles"
 

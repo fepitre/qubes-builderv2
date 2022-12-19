@@ -73,7 +73,8 @@ class QubesComponent:
         timeout: int = None,
         fetch_versions_only: bool = False,
         devel_path: Path = None,
-        is_plugin: bool = False
+        is_plugin: bool = False,
+        has_packages: bool = True,
     ):
         self.source_dir: Path = (
             Path(source_dir) if isinstance(source_dir, str) else source_dir
@@ -89,6 +90,7 @@ class QubesComponent:
         self.timeout = timeout
         self.fetch_versions_only = fetch_versions_only
         self.is_plugin = is_plugin
+        self.has_packages = has_packages
         self._source_hash = ""
         self._devel_path = devel_path
 
@@ -121,7 +123,9 @@ class QubesComponent:
         if not self.source_dir.exists():
             raise ComponentError(f"Cannot find source directory {self.source_dir}.")
 
-        if self.is_plugin:
+        build_file = self.source_dir / ".qubesbuilder"
+
+        if self.is_plugin or not self.has_packages:
             return {}
 
         version = ""
@@ -178,7 +182,6 @@ class QubesComponent:
         self.release = release
         self.devel = devel
 
-        build_file = self.source_dir / ".qubesbuilder"
         if not build_file.exists():
             raise NoQubesBuilderFileError(
                 f"Cannot find '.qubesbuilder' in {self.source_dir}."

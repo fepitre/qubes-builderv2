@@ -31,20 +31,18 @@ distributions:
   - vm-centos-stream8
 
 components:
-  - builder-debian:
+  - builder-rpm:
       url: https://github.com/fepitre/qubes-builder-rpm
       branch: builderv2
-      plugin: true
-      content-dir: template_rpm
+      packages: False
   - builder-debian:
       url: https://github.com/fepitre/qubes-builder-debian
       branch: builderv2
-      plugin: true
-      content-dir: template_debian
+      packages: False
   - template-whonix:
       url: https://github.com/fepitre/qubes-template-whonix
       branch: builderv2
-      plugin: true
+      packages: False
   - python-qasync:
       url: https://github.com/fepitre/qubes-python-qasync
       branch: builderv2

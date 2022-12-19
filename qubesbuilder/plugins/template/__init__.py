@@ -22,7 +22,7 @@ import shutil
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import yaml
 from dateutil.parser import parse as parsedate
@@ -65,7 +65,20 @@ class TemplateBuilderPlugin(TemplatePlugin):
         - upload - Upload published repository for given distribution to remote mirror.
     """
 
-    dependencies = ["source_rpm"]
+    @classmethod
+    def supported_template(cls, template: QubesTemplate):
+        return any(
+            [
+                template.distribution.is_rpm(),
+                template.distribution.is_deb(),
+                template.distribution.is_deb()
+                and template.flavor
+                in (
+                    "whonix-gateway",
+                    "whonix-workstation",
+                ),
+            ]
+        )
 
     def __init__(
         self,
@@ -75,7 +88,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         **kwargs,
     ):
         super().__init__(template=template, config=config, manager=manager)
-        self.files_inside_executor_with_placeholders = []
+        self.source_dependencies: List[str] = []
 
     def update_parameters(self, stage: str):
         executor = self.config.get_executor_from_config(stage_name=stage)
@@ -97,7 +110,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "DISCARD_PREPARED_IMAGE": "1",
                 "BUILDER_TURBO_MODE": "1",
                 "CACHE_DIR": str(executor.get_cache_dir() / f"cache_{self.dist.name}"),
-                "TEMPLATE_SCRIPTS_DIR": str(executor.get_plugins_dir() / "template/scripts")
+                "TEMPLATE_SCRIPTS_DIR": str(
+                    executor.get_plugins_dir() / "template/scripts"
+                ),
             }
         )
 
@@ -105,8 +120,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
             self.environment.update(
                 {"TEMPLATE_ROOT_SIZE": self.config.template_root_size}
             )
+
         if self.config.template_root_with_partitions:
             self.environment.update({"TEMPLATE_ROOT_WITH_PARTITIONS": "1"})
+
         if self.config.use_qubes_repo:
             self.environment.update(
                 {
@@ -118,6 +135,55 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     else "0",
                 }
             )
+
+        if self.template.distribution.is_rpm():
+            self.dependencies += ["source_rpm"]
+            self.source_dependencies += ["builder-rpm"]
+            self.environment.update(
+                {
+                    "TEMPLATE_CONTENT_DIR": str(
+                        executor.get_sources_dir() / "builder-rpm/template_rpm"
+                    ),
+                    "KEYS_DIR": str(executor.get_plugins_dir() / "source_rpm/keys"),
+                }
+            )
+        elif self.template.distribution.is_deb() and self.template.flavor not in (
+            "whonix-gateway",
+            "whonix-workstation",
+        ):
+            self.dependencies += ["source_deb", "build_deb"]
+            self.source_dependencies += ["builder-debian"]
+            self.environment.update(
+                {
+                    "TEMPLATE_CONTENT_DIR": str(
+                        executor.get_sources_dir() / "builder-debian/template_debian"
+                    ),
+                    "KEYS_DIR": str(executor.get_plugins_dir() / "source_deb/keys"),
+                }
+            )
+        elif self.template.distribution.is_deb() and self.template.flavor in (
+            "whonix-gateway",
+            "whonix-workstation",
+        ):
+            self.dependencies += ["build_deb"]
+            self.source_dependencies += ["builder-debian", "template-whonix"]
+            self.environment.update(
+                {
+                    "TEMPLATE_ENV_WHITELIST": "DERIVATIVE_APT_REPOSITORY_OPTS WHONIX_ENABLE_TOR WHONIX_TBB_VERSION",
+                    "TEMPLATE_FLAVOR_DIR": f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix +whonix-workstation:{executor.get_sources_dir()}/template-whonix",
+                    "APPMENUS_DIR": str(executor.get_sources_dir() / "template-whonix"),
+                    "FLAVOR_DIR": str(executor.get_sources_dir() / "template-whonix"),
+                    # FIXME: Pass values with the help of plugin options
+                    "DERIVATIVE_APT_REPOSITORY_OPTS": "stable",
+                    "WHONIX_ENABLE_TOR": "0",
+                }
+            )
+        else:
+            raise TemplateError("Unsupported template.")
+
+        for dependency in self.source_dependencies:
+            if not self.get_sources_dir() / dependency:
+                raise PluginError(f"Cannot find source directory '{dependency}'.")
 
     def get_artifacts_info(self, stage: str) -> Dict:
         fileinfo = self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
@@ -364,16 +430,26 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
             self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
-            copy_in = [
-                (
-                    self.manager.entities["template"].directory,
-                    executor.get_plugins_dir(),
-                ),
-                (repository_dir, executor.get_repository_dir()),
-            ] + [
-                (self.manager.entities[plugin].directory, executor.get_plugins_dir())
-                for plugin in self.dependencies
-            ]
+            copy_in = (
+                [
+                    (
+                        self.manager.entities["template"].directory,
+                        executor.get_plugins_dir(),
+                    ),
+                    (repository_dir, executor.get_repository_dir()),
+                ]
+                + [
+                    (
+                        self.manager.entities[plugin].directory,
+                        executor.get_plugins_dir(),
+                    )
+                    for plugin in self.dependencies
+                ]
+                + [
+                    (self.get_sources_dir() / source, executor.get_sources_dir())
+                    for source in self.source_dependencies
+                ]
+            )
 
             copy_out = [
                 (
@@ -402,7 +478,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     copy_in,
                     copy_out,
                     environment=self.environment,
-                    files_inside_executor_with_placeholders=self.files_inside_executor_with_placeholders,
                     dig_holes=True,
                 )
             except ExecutorError as e:
@@ -419,28 +494,40 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
             rpm_fn = f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
 
-            copy_in = [
-                (
-                    self.manager.entities["template"].directory,
-                    executor.get_plugins_dir(),
-                ),
-                (repository_dir, executor.get_repository_dir()),
-                (
-                    qubeized_image / "root.img",
-                    executor.get_build_dir() / "qubeized_images" / self.template.name,
-                ),
-                (
-                    template_artifacts_dir / self.template.name / "template.conf",
-                    executor.get_build_dir(),
-                ),
-                (
-                    template_artifacts_dir / self.template.name / "appmenus",
-                    executor.get_build_dir(),
-                ),
-            ] + [
-                (self.manager.entities[plugin].directory, executor.get_plugins_dir())
-                for plugin in self.dependencies
-            ]
+            copy_in = (
+                [
+                    (
+                        self.manager.entities["template"].directory,
+                        executor.get_plugins_dir(),
+                    ),
+                    (repository_dir, executor.get_repository_dir()),
+                    (
+                        qubeized_image / "root.img",
+                        executor.get_build_dir()
+                        / "qubeized_images"
+                        / self.template.name,
+                    ),
+                    (
+                        template_artifacts_dir / self.template.name / "template.conf",
+                        executor.get_build_dir(),
+                    ),
+                    (
+                        template_artifacts_dir / self.template.name / "appmenus",
+                        executor.get_build_dir(),
+                    ),
+                ]
+                + [
+                    (
+                        self.manager.entities[plugin].directory,
+                        executor.get_plugins_dir(),
+                    )
+                    for plugin in self.dependencies
+                ]
+                + [
+                    (self.get_sources_dir() / source, executor.get_sources_dir())
+                    for source in self.source_dependencies
+                ]
+            )
 
             # Copy-in previously prepared base root img
             copy_out = [
@@ -457,7 +544,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     copy_in,
                     copy_out,
                     environment=self.environment,
-                    files_inside_executor_with_placeholders=self.files_inside_executor_with_placeholders,
                 )
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to build template."
@@ -677,3 +763,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 raise TemplateError(
                     f"{self.dist}: Failed to upload to remote host: {str(e)}"
                 ) from e
+
+
+TEMPLATE_PLUGINS = [TemplateBuilderPlugin]
