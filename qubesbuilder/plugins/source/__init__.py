@@ -71,7 +71,7 @@ class SourcePlugin(DistributionComponentPlugin):
     def run(self, stage: str):
         self.update_parameters(stage)
 
-        if stage != "prep":
+        if stage != "prep" or not self.component.has_packages:
             return
 
         # Compare previous artifacts hash with current source hash

@@ -227,7 +227,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
-        if stage != "publish":
+        if stage != "publish" or not self.component.has_packages:
             return
 
         executor = self.config.get_executor_from_config(stage)

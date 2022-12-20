@@ -156,7 +156,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
-        if stage != "build":
+        if stage != "build" or not self.component.has_packages:
             return
 
         executor = self.config.get_executor_from_config(stage)

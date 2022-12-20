@@ -66,7 +66,7 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
-        if stage != "sign":
+        if stage != "sign" or not self.component.has_packages:
             return
 
         executor = self.config.get_executor_from_config(stage)

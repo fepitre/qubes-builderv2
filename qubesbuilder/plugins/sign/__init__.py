@@ -56,7 +56,7 @@ class SignPlugin(DistributionComponentPlugin):
     def run(self, stage: str):
         self.update_parameters(stage)
 
-        if stage != "sign":
+        if stage != "sign" or not self.component.has_packages:
             return
 
         executor = self.config.get_executor_from_config(stage)
