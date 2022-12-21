@@ -170,7 +170,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                         "APPMENUS_DIR": str(
                             executor.get_sources_dir() / "template-whonix"
                         ),
-                        "FLAVOR_DIR": str(
+                        "FLAVORS_DIR": str(
                             executor.get_sources_dir() / "template-whonix"
                         ),
                         # FIXME: Pass values with the help of plugin options
