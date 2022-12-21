@@ -147,10 +147,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "KEYS_DIR": str(executor.get_plugins_dir() / "source_rpm/keys"),
                 }
             )
-        elif self.template.distribution.is_deb() and self.template.flavor not in (
-            "whonix-gateway",
-            "whonix-workstation",
-        ):
+        elif self.template.distribution.is_deb():
             self.dependencies += ["source_deb", "build_deb"]
             self.source_dependencies += ["builder-debian"]
             self.environment.update(
@@ -161,23 +158,26 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "KEYS_DIR": str(executor.get_plugins_dir() / "source_deb/keys"),
                 }
             )
-        elif self.template.distribution.is_deb() and self.template.flavor in (
-            "whonix-gateway",
-            "whonix-workstation",
-        ):
-            self.dependencies += ["build_deb"]
-            self.source_dependencies += ["builder-debian", "template-whonix"]
-            self.environment.update(
-                {
-                    "TEMPLATE_ENV_WHITELIST": "DERIVATIVE_APT_REPOSITORY_OPTS WHONIX_ENABLE_TOR WHONIX_TBB_VERSION",
-                    "TEMPLATE_FLAVOR_DIR": f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix +whonix-workstation:{executor.get_sources_dir()}/template-whonix",
-                    "APPMENUS_DIR": str(executor.get_sources_dir() / "template-whonix"),
-                    "FLAVOR_DIR": str(executor.get_sources_dir() / "template-whonix"),
-                    # FIXME: Pass values with the help of plugin options
-                    "DERIVATIVE_APT_REPOSITORY_OPTS": "stable",
-                    "WHONIX_ENABLE_TOR": "0",
-                }
-            )
+            if self.template.flavor in (
+                "whonix-gateway",
+                "whonix-workstation",
+            ):
+                self.source_dependencies += ["template-whonix"]
+                self.environment.update(
+                    {
+                        "TEMPLATE_ENV_WHITELIST": "DERIVATIVE_APT_REPOSITORY_OPTS WHONIX_ENABLE_TOR WHONIX_TBB_VERSION",
+                        "TEMPLATE_FLAVOR_DIR": f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix +whonix-workstation:{executor.get_sources_dir()}/template-whonix",
+                        "APPMENUS_DIR": str(
+                            executor.get_sources_dir() / "template-whonix"
+                        ),
+                        "FLAVOR_DIR": str(
+                            executor.get_sources_dir() / "template-whonix"
+                        ),
+                        # FIXME: Pass values with the help of plugin options
+                        "DERIVATIVE_APT_REPOSITORY_OPTS": "stable",
+                        "WHONIX_ENABLE_TOR": "0",
+                    }
+                )
         else:
             raise TemplateError("Unsupported template.")
 
