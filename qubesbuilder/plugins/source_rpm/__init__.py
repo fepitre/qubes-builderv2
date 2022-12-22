@@ -81,7 +81,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
         # Run stage defined by parent class
         super().run(stage=stage)
 
-        if stage != "prep" or not self.component.has_packages:
+        if stage != "prep" or not self.has_component_packages("prep"):
             return
 
         executor = self.config.get_executor_from_config(stage)

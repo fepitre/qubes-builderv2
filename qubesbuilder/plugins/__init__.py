@@ -373,6 +373,11 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
             artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
         )
 
+    def has_component_packages(self, stage: str):
+        return self.component.has_packages and self.get_parameters(stage=stage).get(
+            "build", []
+        )
+
 
 class TemplatePlugin(DistributionPlugin):
     def __init__(self, template: QubesTemplate, config, manager: PluginManager):

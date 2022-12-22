@@ -9,7 +9,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.template import QubesTemplate
 from qubesbuilder.exc import ComponentError, DistributionError, ConfigError
-
+from qubesbuilder.plugins import DistributionComponentPlugin
+from qubesbuilder.pluginmanager import PluginManager
 
 #
 # QubesComponent
@@ -34,6 +35,7 @@ def test_component():
         assert component.to_str() == os.path.basename(source_dir)
         assert str(component) == os.path.basename(source_dir)
         assert repr(component) == repr_str
+
 
 def test_component_rc():
     with tempfile.TemporaryDirectory() as source_dir:
@@ -116,6 +118,7 @@ def test_component_invalid_release():
         msg = f"Invalid release for {source_dir}."
         assert str(e.value) == msg
 
+
 def test_component_invalid_release2():
     with tempfile.TemporaryDirectory() as source_dir:
         with open(f"{source_dir}/version", "w") as f:
@@ -127,6 +130,56 @@ def test_component_invalid_release2():
             QubesComponent(source_dir).get_parameters()
         msg = f"Invalid release for {source_dir}."
         assert str(e.value) == msg
+
+
+def test_component_no_packages_1():
+    manager = PluginManager([])
+    fcdist = QubesDistribution("vm-fc42")
+    debdist = QubesDistribution("vm-bullseye")
+
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write("{}")
+        config_file.flush()
+        config = Config(config_file.name)
+
+    with tempfile.TemporaryDirectory() as source_dir:
+        with open(f"{source_dir}/version", "w") as f:
+            f.write("1.2.3")
+        with open(f"{source_dir}/rel", "w") as f:
+            f.write("1")
+
+        # no .qubesbuilder
+        component = QubesComponent(source_dir, has_packages=False)
+
+        plugin = DistributionComponentPlugin(
+            component=component, dist=fcdist, config=config, manager=manager
+        )
+        assert not plugin.has_component_packages(stage="prep")
+
+        # .qubesbuilder
+        with open(f"{source_dir}/.qubesbuilder", "w") as f:
+            f.write(
+                """
+vm:
+  rpm:
+    build:
+      - toto.spec
+"""
+            )
+
+        component = QubesComponent(source_dir)
+
+        # build for RPM
+        plugin = DistributionComponentPlugin(
+            component=component, dist=fcdist, config=config, manager=manager
+        )
+        assert plugin.has_component_packages(stage="prep")
+
+        # no build for DEB
+        plugin = DistributionComponentPlugin(
+            component=component, dist=debdist, config=config, manager=manager
+        )
+        assert not plugin.has_component_packages(stage="prep")
 
 
 #
@@ -383,8 +436,7 @@ def test_config_distributions_filter():
             "vm-fc36"
         ]
         assert [
-            d.distribution
-            for d in config.get_distributions(["vm-fc36", "host-fc37"])
+            d.distribution for d in config.get_distributions(["vm-fc36", "host-fc37"])
         ] == [
             "vm-fc36",
             "host-fc37",
@@ -419,10 +471,7 @@ def test_config_templates_filter():
         ]
         assert [t.name for t in config.get_templates(["debian-11"])] == ["debian-11"]
         assert [
-            t.name
-            for t in config.get_templates(
-                ["fedora-36-xfce", "debian-11"]
-            )
+            t.name for t in config.get_templates(["fedora-36-xfce", "debian-11"])
         ] == [
             "fedora-36-xfce",
             "debian-11",

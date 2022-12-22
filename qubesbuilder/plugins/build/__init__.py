@@ -59,7 +59,7 @@ class BuildPlugin(DistributionComponentPlugin):
     def run(self, stage: str):
         self.update_parameters(stage)
 
-        if stage != "build" or not self.component.has_packages:
+        if stage != "build" or not self.has_component_packages("build"):
             return
 
         if not self.get_parameters(stage).get("build", []):
