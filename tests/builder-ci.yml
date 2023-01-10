@@ -60,8 +60,8 @@ components:
       maintainers:
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - core-qrexec:
-      url: https://github.com/fepitre/qubes-core-qrexec
-      branch: builderv2
+      url: https://github.com/qubesos/qubes-core-qrexec
+      branch: v4.2.2
       maintainers:
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - desktop-linux-xfce4-xfwm4:
