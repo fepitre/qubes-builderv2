@@ -137,6 +137,7 @@ components:
   - xscreensaver
   - remote-support
   - windows-tools-cross
+  - video-companion
 
 
 #executor:
