@@ -87,6 +87,7 @@ components:
   - app-shutdown-idle
   - app-yubikey
   - app-u2f
+  - video-companion
   - screenshot-helper
   - mgmt-salt
   - mgmt-salt-base
