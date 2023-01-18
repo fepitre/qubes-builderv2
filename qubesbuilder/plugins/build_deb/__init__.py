@@ -209,12 +209,11 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             )
             copy_out = [
                 (
-                    results_dir / source_info["dsc"].replace(".dsc", "_amd64.changes"),
+                    results_dir / source_info["changes"],
                     artifacts_dir,
                 ),
                 (
-                    results_dir
-                    / source_info["dsc"].replace(".dsc", "_amd64.buildinfo"),
+                    results_dir / source_info["buildinfo"],
                     artifacts_dir,
                 ),
             ]
@@ -277,6 +276,16 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
                 f"--configfile {executor.get_builder_dir()}/pbuilder/pbuilderrc "
                 f"--othermirror \"{extra_sources}\" "
                 f"{str(executor.get_build_dir() / source_info['dsc'])}"
+            ]
+
+            # Patch .changes path to have source package checksums of the original source,
+            # not the one rebuilt during binary build. They should be reproducible
+            # in theory, but due to dpkg-source bugs sometimes they are not.
+            cmd += [
+                f"{executor.get_plugins_dir()}/build_deb/scripts/patch-changes "
+                f"{str(executor.get_build_dir() / source_info['dsc'])} "
+                f"{str(results_dir / source_info['buildinfo'])} "
+                f"{str(results_dir / source_info['changes'])}"
             ]
             # fmt: on
             try:
