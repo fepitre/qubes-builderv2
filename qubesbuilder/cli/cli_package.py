@@ -1,3 +1,4 @@
+import subprocess
 from typing import List
 
 import click
@@ -159,6 +160,25 @@ def init_cache(obj: ContextObj):
     )
 
 
+@package.command()
+@click.pass_obj
+def diff(obj: ContextObj):
+    for component in obj.components:
+        if not component.source_dir.exists():
+            continue
+        status = subprocess.run(
+            f"git -C {component.source_dir} status | grep '^nothing to commit'",
+            shell=True,
+            stdout=subprocess.DEVNULL,
+        )
+        if not status.returncode == 0:
+            subprocess.run(
+                f"(echo -e 'Uncommitted changes in {component.source_dir}:\n\n'; git -C {component.source_dir} diff --color=always) | less -RM +Gg",
+                shell=True,
+            )
+
+
+# stages commands
 package.add_command(init_cache, name="init-cache")
 package.add_command(prep)
 package.add_command(build)
@@ -168,5 +188,8 @@ package.add_command(sign)
 package.add_command(publish)
 package.add_command(upload)
 package.add_command(_all_package_stage)
+
+# utils commands
+package.add_command(diff)
 
 package.add_alias(**STAGES_ALIAS)
