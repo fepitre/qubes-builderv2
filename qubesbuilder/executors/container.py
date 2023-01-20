@@ -175,18 +175,19 @@ class ContainerExecutor(Executor):
                 if self._container_client == "podman":
                     for k, v in environment.copy().items():
                         environment[k] = str(v)
-                if self._container_client == "podman":
-                    volumes = {
-                        "loop-control": {"bind": "/dev/loop-control", "mode": "rw"}
+                mounts = [
+                    {
+                        "type": "bind",
+                        "source": "/dev/loop-control",
+                        "target": "/dev/loop-control",
                     }
-                else:
-                    volumes = ["/dev/loop-control"]  # type: ignore
+                ]
                 container = client.containers.create(
                     image,
                     container_cmd,
                     privileged=True,
                     environment=environment,
-                    volumes=volumes,
+                    mounts=mounts,
                 )
 
                 # Adjust log namespace
