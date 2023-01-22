@@ -284,6 +284,13 @@ class InstallerPlugin(DistributionPlugin):
             # Prepare cmd
             cmd = []
 
+            # Create builder-local repository (could be empty) inside the cage
+            cmd += [
+                f"mkdir -p {executor.get_repository_dir()}",
+                f"cd {executor.get_repository_dir()}",
+                "createrepo_c .",
+            ]
+
             # Add prepared chroot cache
             if chroot_cache.exists():
                 copy_in += [(chroot_cache.parent, executor.get_cache_dir())]
