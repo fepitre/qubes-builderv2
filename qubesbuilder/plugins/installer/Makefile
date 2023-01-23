@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-DIST ?= fc32
+DIST ?= fc37
 DIST_VER = $(subst fc,,$(DIST))
 
 BUILDER_DIR ?= /builder
@@ -95,10 +95,10 @@ iso-prepare:
 	rm -rf $(INSTALLER_DIR)/yum/installer/repodata
 	$(CREATEREPO) -q -g $(TMP_DIR)/comps.xml /tmp/qubes-installer/yum/installer
 
-	mkdir -p $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-dom0
+	mkdir -p $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-host
 	rm -rf $(BUILDER_DIR)/repository/repodata
 	$(CREATEREPO) -q -g $(TMP_DIR)/comps.xml $(BUILDER_DIR)/repository
-	mount --bind $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-dom0
+	mount --bind $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-host
 
 	#
 	# Prepare DNF
