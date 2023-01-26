@@ -910,6 +910,21 @@ def test_component_build_vm_bullseye(artifacts_dir):
     assert info.get("package-release-name", None) == package_release_name
     assert info.get("package-release-name-full", None) == package_release_name_full
 
+    files = [
+        "python-qasync_0.23.0-1+deb11u1.dsc",
+        "python-qasync_0.23.0-1+deb11u1_amd64.changes",
+        "python-qasync_0.23.0-1+deb11u1_amd64.buildinfo",
+    ]
+    for f in files:
+        file_path = (
+            artifacts_dir / f"components/python-qasync/0.23.0-1/vm-bullseye/build/{f}"
+        )
+        assert file_path.exists()
+        result = subprocess.run(
+            f"dscverify --no-sig-check {file_path}",
+            shell=True,
+        )
+        assert result.returncode == 0
 
 def test_component_sign_vm_bullseye(artifacts_dir):
     env = os.environ.copy()
@@ -950,6 +965,11 @@ def test_component_sign_vm_bullseye(artifacts_dir):
         assert file_path.exists()
         result = subprocess.run(
             f"gpg2 --homedir {keyring_dir} --verify {file_path}",
+            shell=True,
+        )
+        assert result.returncode == 0
+        result = subprocess.run(
+            f"dscverify --no-sig-check {file_path}",
             shell=True,
         )
         assert result.returncode == 0
