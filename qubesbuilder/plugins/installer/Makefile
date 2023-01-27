@@ -65,11 +65,16 @@ endif
 
 MKISOFS := /usr/bin/xorriso -as mkisofs
 # common mkisofs flags
-MKISOFS_OPTS := -v -U -J --joliet-long -R -T -m repoview -m boot.iso
+MKISOFS_OPTS := -v -U -J --joliet-long -R
+# boot options
+MKISOFS_OPTS += --grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img
+MKISOFS_OPTS += -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info -eltorito-alt-boot -no-emul-boot
 # x86 boot args
-MKISOFS_OPTS += -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table
+MKISOFS_OPTS += -b images/eltorito.img
 # efi boot args
-MKISOFS_OPTS += -eltorito-alt-boot -e images/efiboot.img -no-emul-boot
+MKISOFS_OPTS += -e images/efiboot.img
+# files to exclude
+MKISOFS_OPTS += -m repoview -m boot.iso
 
 #
 # CAGE -> MOCK
@@ -147,6 +152,6 @@ iso-installer-mkisofs:
 	chmod og+rX -R $(BASE_DIR)/os/
 	$(MKISOFS) $(MKISOFS_OPTS) -V $(ISO_VOLID) -o $(BASE_DIR)/iso/$(ISO_NAME).iso $(BASE_DIR)/os/
 	/usr/bin/isohybrid -u $(BASE_DIR)/iso/$(ISO_NAME).iso
-	/usr/bin/implantisomd5  $(BASE_DIR)/iso/$(ISO_NAME).iso
+	/usr/bin/implantisomd5 $(BASE_DIR)/iso/$(ISO_NAME).iso
 
 
