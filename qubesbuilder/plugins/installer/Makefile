@@ -64,17 +64,19 @@ ifdef QUBES_RELEASE
 endif
 
 MKISOFS := /usr/bin/xorriso -as mkisofs
-# common mkisofs flags
-MKISOFS_OPTS := -v -U -J --joliet-long -R
-# boot options
-MKISOFS_OPTS += --grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img
-MKISOFS_OPTS += -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info -eltorito-alt-boot -no-emul-boot
-# x86 boot args
-MKISOFS_OPTS += -b images/eltorito.img
-# efi boot args
-MKISOFS_OPTS += -e images/efiboot.img
-# files to exclude
-MKISOFS_OPTS += -m repoview -m boot.iso
+# Remark: relative path is needed for boot image and absolute path is needed for efi image.
+MKISOFS_OPTS := -v -U -J --joliet-long -R \
+	--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \
+	-partition_offset 16 \
+	-appended_part_as_gpt \
+	-append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B $(BASE_DIR)/os/images/efiboot.img \
+	-iso_mbr_part_type EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 \
+	-c boot.cat --boot-catalog-hide \
+	-b images/eltorito.img \
+	-no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
+	-eltorito-alt-boot \
+	-e '--interval:appended_partition_2:all::' -no-emul-boot \
+	-m repoview -m boot.iso
 
 #
 # CAGE -> MOCK
@@ -151,7 +153,6 @@ iso-installer-mkisofs:
 	mkdir -p $(BASE_DIR)/iso/
 	chmod og+rX -R $(BASE_DIR)/os/
 	$(MKISOFS) $(MKISOFS_OPTS) -V $(ISO_VOLID) -o $(BASE_DIR)/iso/$(ISO_NAME).iso $(BASE_DIR)/os/
-	/usr/bin/isohybrid -u $(BASE_DIR)/iso/$(ISO_NAME).iso
 	/usr/bin/implantisomd5 $(BASE_DIR)/iso/$(ISO_NAME).iso
 
 
