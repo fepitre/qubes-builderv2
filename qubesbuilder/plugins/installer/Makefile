@@ -63,21 +63,6 @@ ifdef QUBES_RELEASE
 	LORAX_OPTS += --isfinal
 endif
 
-MKISOFS := /usr/bin/xorriso -as mkisofs
-# Remark: relative path is needed for boot image and absolute path is needed for efi image.
-MKISOFS_OPTS := -v -U -J --joliet-long -R \
-	--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \
-	-partition_offset 16 \
-	-appended_part_as_gpt \
-	-append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B $(BASE_DIR)/os/images/efiboot.img \
-	-iso_mbr_part_type EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 \
-	-c boot.cat --boot-catalog-hide \
-	-b images/eltorito.img \
-	-no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
-	-eltorito-alt-boot \
-	-e '--interval:appended_partition_2:all::' -no-emul-boot \
-	-m repoview -m boot.iso
-
 #
 # CAGE -> MOCK
 #
@@ -152,7 +137,29 @@ iso-installer-lorax:
 iso-installer-mkisofs:
 	mkdir -p $(BASE_DIR)/iso/
 	chmod og+rX -R $(BASE_DIR)/os/
-	$(MKISOFS) $(MKISOFS_OPTS) -V $(ISO_VOLID) -o $(BASE_DIR)/iso/$(ISO_NAME).iso $(BASE_DIR)/os/
+	xorrisofs -o $(BASE_DIR)/iso/$(ISO_NAME).iso \
+		-R -J -V $(ISO_VOLID) \
+		--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \
+		-partition_offset 16 \
+		-appended_part_as_gpt \
+		-append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B $(BASE_DIR)/os/images/efiboot.img \
+		-iso_mbr_part_type EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 \
+		-c boot.cat --boot-catalog-hide \
+		-b images/eltorito.img \
+		-no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
+		-eltorito-alt-boot \
+		-e '--interval:appended_partition_2:all::' -no-emul-boot \
+		-graft-points \
+		.discinfo=$(BASE_DIR)/os/.discinfo \
+		.treeinfo=$(BASE_DIR)/os/.treeinfo \
+		images/install.img=$(BASE_DIR)/os/images/install.img \
+		images/pxeboot=$(BASE_DIR)/os/images/pxeboot \
+		boot/grub2=$(BASE_DIR)/os/boot/grub2 \
+		boot/grub2/i386-pc=/usr/lib/grub/i386-pc \
+		images/eltorito.img=$(BASE_DIR)/os/images/eltorito.img \
+		EFI/BOOT=$(BASE_DIR)/os/EFI/BOOT \
+		Packages=$(BASE_DIR)/os/Packages \
+		repodata=$(BASE_DIR)/os/repodata
 	/usr/bin/implantisomd5 $(BASE_DIR)/iso/$(ISO_NAME).iso
 
 
