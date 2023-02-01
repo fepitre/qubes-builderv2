@@ -126,6 +126,7 @@ components:
   - lorax-templates
   - anaconda
   - anaconda-addon
+  - initial-setup
   - sbsigntools
   - tpm-extra
   - trousers-changer
