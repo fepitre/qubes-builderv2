@@ -89,6 +89,7 @@ components:
   - app-u2f
   - video-companion
   - screenshot-helper
+  - salt
   - mgmt-salt
   - mgmt-salt-base
   - mgmt-salt-base-topd
