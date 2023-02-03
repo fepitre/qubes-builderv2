@@ -25,12 +25,7 @@ PLUGINS_DIR ?= $(BUILDER_DIR)/plugins
 INSTALLER_DIR ?= $(PLUGINS_DIR)/installer
 INSTALLER_KICKSTART ?= $(INSTALLER_DIR)/conf/qubes-kickstart.cfg
 CREATEREPO := $(shell which createrepo_c createrepo 2>/dev/null |head -1)
-
-ifdef QUBES_RELEASE
-	ISO_VERSION ?= $(QUBES_RELEASE)
-else
-	ISO_VERSION ?= $(shell date +%Y%m%d)
-endif
+ISO_VERSION ?= $(shell date +%Y%m%d)
 
 ifneq (,$(ISO_FLAVOR))
 ISO_NAME := Qubes-$(ISO_VERSION)-$(ISO_FLAVOR)-x86_64
@@ -59,7 +54,7 @@ ifeq ($(ISO_USE_KERNEL_LATEST),1)
 LORAX_OPTS += --installpkgs kernel-latest --excludepkgs kernel
 endif
 
-ifdef QUBES_RELEASE
+ifeq ($(ISO_IS_FINAL),1)
 	LORAX_OPTS += --isfinal
 endif
 

@@ -81,6 +81,7 @@ class InstallerPlugin(DistributionPlugin):
                 "ISO_USE_KERNEL_LATEST": "1"
                 if self.config.iso_use_kernel_latest
                 else "0",
+                "ISO_IS_FINAL": "1" if self.config.iso_is_final else "0",
             }
         )
         if self.config.use_qubes_repo:
@@ -97,9 +98,6 @@ class InstallerPlugin(DistributionPlugin):
 
         if self.config.iso_version:
             self.iso_version = self.config.iso_version
-        elif self.config.qubes_release:
-            self.iso_version = self.config.qubes_release.upper()
-            self.environment["QUBES_RELEASE"] = self.config.qubes_release
         else:
             self.iso_version = datetime.utcnow().strftime("%Y%m%d")
 
