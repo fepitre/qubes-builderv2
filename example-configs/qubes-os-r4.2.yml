@@ -41,6 +41,10 @@ components:
       packages: False
   - template-whonix:
       packages: False
+      branch: master
+      url: https://github.com/Whonix/qubes-template-whonix
+      maintainers:
+        - '916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA'
   - vmm-xen
   - vmm-xen-guest
   - core-libvirt
