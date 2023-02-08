@@ -149,7 +149,7 @@ def test_config(artifacts_dir):
 def test_component_init_cache(artifacts_dir):
     qb_call(DEFAULT_BUILDER_CONF, artifacts_dir, "package", "init-cache")
 
-    assert (artifacts_dir / "cache/chroot/fc32/mock/fedora-32-x86_64").exists()
+    assert (artifacts_dir / "cache/chroot/fc37/mock/fedora-37-x86_64").exists()
     assert (artifacts_dir / "cache/chroot/bullseye/pbuilder/base.tgz").exists()
     assert (artifacts_dir / "cache/chroot/fc36/mock/fedora-36-x86_64").exists()
 
@@ -196,38 +196,38 @@ def test_component_fetch_updating(artifacts_dir):
 
 
 #
-# Pipeline for core-qrexec and host-fc32
+# Pipeline for core-qrexec and host-fc37
 #
 
 
-def test_component_prep_host_fc32(artifacts_dir):
+def test_component_prep_host_fc37(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
         "core-qrexec",
         "-d",
-        "host-fc32",
+        "host-fc37",
         "package",
         "prep",
     )
 
     with open(
         artifacts_dir
-        / "components/core-qrexec/4.2.2-1/host-fc32/prep/rpm_spec_qubes-qrexec.spec.prep.yml"
+        / "components/core-qrexec/4.2.2-1/host-fc37/prep/rpm_spec_qubes-qrexec.spec.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
     rpms = {
-        "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-debugsource-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-debugsource-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
     }
-    srpm = "qubes-core-qrexec-4.2.2-1.fc32.src.rpm"
+    srpm = "qubes-core-qrexec-4.2.2-1.fc37.src.rpm"
 
     assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
@@ -235,52 +235,52 @@ def test_component_prep_host_fc32(artifacts_dir):
 
     with open(
         artifacts_dir
-        / "components/core-qrexec/4.2.2-1/host-fc32/prep/rpm_spec_qubes-qrexec-dom0.spec.prep.yml"
+        / "components/core-qrexec/4.2.2-1/host-fc37/prep/rpm_spec_qubes-qrexec-dom0.spec.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
     rpms = {
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
     }
-    srpm = "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm"
+    srpm = "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm"
 
     assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
     assert info.get("srpm", None) == srpm
 
 
-def test_component_build_host_fc32(artifacts_dir):
+def test_component_build_host_fc37(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
         "core-qrexec",
         "-d",
-        "host-fc32",
+        "host-fc37",
         "package",
         "build",
     )
 
     with open(
         artifacts_dir
-        / "components/core-qrexec/4.2.2-1/host-fc32/build/rpm_spec_qubes-qrexec.spec.build.yml"
+        / "components/core-qrexec/4.2.2-1/host-fc37/build/rpm_spec_qubes-qrexec.spec.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
     rpms = {
-        "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
     }
-    srpm = "qubes-core-qrexec-4.2.2-1.fc32.src.rpm"
+    srpm = "qubes-core-qrexec-4.2.2-1.fc37.src.rpm"
 
     for rpm in rpms.union({srpm}):
         assert (
-            artifacts_dir / "repository/host-fc32/core-qrexec_4.2.2" / rpm
+            artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm
         ).exists()
 
     assert set(info.get("rpms", [])) == rpms
@@ -289,20 +289,20 @@ def test_component_build_host_fc32(artifacts_dir):
 
     with open(
         artifacts_dir
-        / "components/core-qrexec/4.2.2-1/host-fc32/build/rpm_spec_qubes-qrexec-dom0.spec.build.yml"
+        / "components/core-qrexec/4.2.2-1/host-fc37/build/rpm_spec_qubes-qrexec-dom0.spec.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
     rpms = {
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
     }
-    srpm = "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm"
+    srpm = "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm"
 
     for rpm in rpms.union({srpm}):
         assert (
-            artifacts_dir / "repository/host-fc32/core-qrexec_4.2.2" / rpm
+            artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm
         ).exists()
 
     assert set(info.get("rpms", [])) == rpms
@@ -312,16 +312,16 @@ def test_component_build_host_fc32(artifacts_dir):
     # buildinfo
     assert (
         artifacts_dir
-        / "components/core-qrexec/4.2.2-1/host-fc32/build/rpm/qubes-core-qrexec-4.2.2-1.fc32.x86_64.buildinfo"
+        / "components/core-qrexec/4.2.2-1/host-fc37/build/rpm/qubes-core-qrexec-4.2.2-1.fc37.x86_64.buildinfo"
     ).exists()
 
 
-def test_component_sign_host_fc32(artifacts_dir):
+def test_component_sign_host_fc37(artifacts_dir):
     env = os.environ.copy()
 
     buildinfo = (
         artifacts_dir
-        / "components/core-qrexec/4.2.2-1/host-fc32/build/rpm/qubes-core-qrexec-4.2.2-1.fc32.x86_64.buildinfo"
+        / "components/core-qrexec/4.2.2-1/host-fc37/build/rpm/qubes-core-qrexec-4.2.2-1.fc37.x86_64.buildinfo"
     )
     buildinfo_number_lines = len(buildinfo.read_text(encoding="utf8").splitlines())
 
@@ -342,7 +342,7 @@ def test_component_sign_host_fc32(artifacts_dir):
             "-c",
             "core-qrexec",
             "-d",
-            "host-fc32",
+            "host-fc37",
             "package",
             "sign",
             env=env,
@@ -352,21 +352,21 @@ def test_component_sign_host_fc32(artifacts_dir):
     assert dbpath.exists()
 
     rpms = [
-        "qubes-core-qrexec-4.2.2-1.fc32.src.rpm",
-        "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm",
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.src.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
     ]
     for rpm in rpms:
         rpm_path = (
             artifacts_dir
-            / f"components/core-qrexec/4.2.2-1/host-fc32/{f'prep/{rpm}' if rpm.endswith('.src.rpm') else f'build/rpm/{rpm}'}"
+            / f"components/core-qrexec/4.2.2-1/host-fc37/{f'prep/{rpm}' if rpm.endswith('.src.rpm') else f'build/rpm/{rpm}'}"
         )
         assert rpm_path.exists()
         result = subprocess.run(
@@ -385,7 +385,7 @@ def test_component_sign_host_fc32(artifacts_dir):
     assert signed_buildinfo_number_lines > buildinfo_number_lines + 4
 
 
-def test_component_publish_host_fc32(artifacts_dir):
+def test_component_publish_host_fc37(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -402,7 +402,7 @@ def test_component_publish_host_fc32(artifacts_dir):
             "-c",
             "core-qrexec",
             "-d",
-            "host-fc32",
+            "host-fc37",
             "repository",
             "publish",
             "unstable",
@@ -410,30 +410,30 @@ def test_component_publish_host_fc32(artifacts_dir):
         )
 
         rpms = {
-            "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
         }
-        srpm = "qubes-core-qrexec-4.2.2-1.fc32.src.rpm"
+        srpm = "qubes-core-qrexec-4.2.2-1.fc37.src.rpm"
 
         rpms_dom0 = {
-            "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
         }
-        srpm_dom0 = "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm"
+        srpm_dom0 = "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm"
 
         with open(
             artifacts_dir
-            / "components/core-qrexec/4.2.2-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
+            / "components/core-qrexec/4.2.2-1/host-fc37/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
             artifacts_dir
-            / "components/core-qrexec/4.2.2-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
+            / "components/core-qrexec/4.2.2-1/host-fc37/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
@@ -454,7 +454,7 @@ def test_component_publish_host_fc32(artifacts_dir):
             "-c",
             "core-qrexec",
             "-d",
-            "host-fc32",
+            "host-fc37",
             "repository",
             "publish",
             "current-testing",
@@ -462,13 +462,13 @@ def test_component_publish_host_fc32(artifacts_dir):
         )
         with open(
             artifacts_dir
-            / "components/core-qrexec/4.2.2-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
+            / "components/core-qrexec/4.2.2-1/host-fc37/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
             artifacts_dir
-            / "components/core-qrexec/4.2.2-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
+            / "components/core-qrexec/4.2.2-1/host-fc37/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
@@ -490,18 +490,18 @@ def test_component_publish_host_fc32(artifacts_dir):
 
         # buildinfo
         assert (
-            artifacts_dir / "repository-publish/rpm/r4.2/current-testing/host/fc32"
+            artifacts_dir / "repository-publish/rpm/r4.2/current-testing/host/fc37"
         ).exists()
 
         # publish into current
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
             artifacts_dir
-            / "components/core-qrexec/4.2.2-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
+            / "components/core-qrexec/4.2.2-1/host-fc37/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         )
         publish_dom0_file = (
             artifacts_dir
-            / "components/core-qrexec/4.2.2-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
+            / "components/core-qrexec/4.2.2-1/host-fc37/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         )
 
         for r in info["repository-publish"]:
@@ -526,7 +526,7 @@ def test_component_publish_host_fc32(artifacts_dir):
             "-c",
             "core-qrexec",
             "-d",
-            "host-fc32",
+            "host-fc37",
             "repository",
             "publish",
             "current",
@@ -557,7 +557,7 @@ def test_component_publish_host_fc32(artifacts_dir):
         }
 
         metadata_dir = (
-            artifacts_dir / f"repository-publish/rpm/r4.2/current/host/fc32/repodata"
+            artifacts_dir / f"repository-publish/rpm/r4.2/current/host/fc37/repodata"
         )
         assert (metadata_dir / "repomd.xml.metalink").exists()
         with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
@@ -565,38 +565,38 @@ def test_component_publish_host_fc32(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert "/pub/os/qubes/repo/yum/r4.2/current/host/fc32/repodata/repomd.xml" in (
+        assert "/pub/os/qubes/repo/yum/r4.2/current/host/fc37/repodata/repomd.xml" in (
             metadata_dir / "repomd.xml.metalink"
         ).read_text(encoding="ascii")
 
         # buildinfo
         assert (
-            artifacts_dir / "repository-publish/rpm/r4.2/current/host/fc32"
+            artifacts_dir / "repository-publish/rpm/r4.2/current/host/fc37"
         ).exists()
 
     rpms = [
-        "qubes-core-qrexec-4.2.2-1.fc32.src.rpm",
-        "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm",
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.src.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
     ]
 
     # Check that packages are in the published repository
     for repository in ["unstable", "current-testing", "current"]:
         repository_dir = (
-            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc32"
+            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc37"
         )
         packages = rpm_packages_list(repository_dir)
         assert set(rpms) == set(packages)
 
 
-def test_component_upload_host_fc32(artifacts_dir):
+def test_component_upload_host_fc37(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -616,14 +616,14 @@ repository-upload-remote-host:
         env["GNUPGHOME"] = gnupghome
         env["HOME"] = tmpdir
 
-        # upload into unstable, only host-fc32
+        # upload into unstable, only host-fc37
         qb_call(
             builder_conf,
             artifacts_dir,
             "-c",
             "core-qrexec",
             "-d",
-            "host-fc32",
+            "host-fc37",
             "repository",
             "upload",
             "unstable",
@@ -631,24 +631,24 @@ repository-upload-remote-host:
         )
 
         rpms = {
-            "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
         }
-        srpm = "qubes-core-qrexec-4.2.2-1.fc32.src.rpm"
+        srpm = "qubes-core-qrexec-4.2.2-1.fc37.src.rpm"
 
         rpms_dom0 = {
-            "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
         }
-        srpm_dom0 = "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm"
+        srpm_dom0 = "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm"
 
         for rpm in itertools.chain([srpm_dom0], rpms_dom0, rpms, [srpm]):
             assert (
-                pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/host/fc32/rpm/{rpm}"
+                pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/host/fc37/rpm/{rpm}"
             ).exists()
 
         # vm-fc36 shouldn't exist, as nothing was published into it
@@ -663,45 +663,45 @@ repository-upload-remote-host:
 # Check that we properly ignore already done stages.
 
 
-def test_component_prep_host_fc32_skip(artifacts_dir):
+def test_component_prep_host_fc37_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
         "core-qrexec",
         "-d",
-        "host-fc32",
+        "host-fc37",
         "package",
         "prep",
         stderr=subprocess.STDOUT,
     ).decode()
     print(result)
     assert (
-        "core-qrexec:host-fedora-32.x86_64: Source hash is the same than already prepared source. Skipping."
+        "core-qrexec:host-fedora-37.x86_64: Source hash is the same than already prepared source. Skipping."
         in result
     )
 
 
-def test_component_build_host_fc32_skip(artifacts_dir):
+def test_component_build_host_fc37_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
         "core-qrexec",
         "-d",
-        "host-fc32",
+        "host-fc37",
         "package",
         "build",
         stderr=subprocess.STDOUT,
     ).decode()
     print(result)
     assert (
-        "core-qrexec:host-fedora-32.x86_64: Source hash is the same than already built source. Skipping."
+        "core-qrexec:host-fedora-37.x86_64: Source hash is the same than already built source. Skipping."
         in result
     )
 
 
-def test_component_sign_host_fc32_skip(artifacts_dir):
+def test_component_sign_host_fc37_skip(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -717,7 +717,7 @@ def test_component_sign_host_fc32_skip(artifacts_dir):
             "-c",
             "core-qrexec",
             "-d",
-            "host-fc32",
+            "host-fc37",
             "package",
             "sign",
             stderr=subprocess.STDOUT,
@@ -725,16 +725,16 @@ def test_component_sign_host_fc32_skip(artifacts_dir):
         ).decode()
 
     rpms = [
-        "qubes-core-qrexec-4.2.2-1.fc32.src.rpm",
-        "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm",
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.src.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
     ]
     for rpm in rpms:
         assert f"{rpm} has already a valid signature. Skipping." in result
@@ -743,7 +743,7 @@ def test_component_sign_host_fc32_skip(artifacts_dir):
 # Check that we unpublish properly from current-testing
 
 
-def test_component_unpublish_host_fc32(artifacts_dir):
+def test_component_unpublish_host_fc37(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -760,7 +760,7 @@ def test_component_unpublish_host_fc32(artifacts_dir):
             "-c",
             "core-qrexec",
             "-d",
-            "host-fc32",
+            "host-fc37",
             "repository",
             "unpublish",
             "current",
@@ -768,30 +768,30 @@ def test_component_unpublish_host_fc32(artifacts_dir):
         )
 
         rpms = {
-            "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
         }
-        srpm = "qubes-core-qrexec-4.2.2-1.fc32.src.rpm"
+        srpm = "qubes-core-qrexec-4.2.2-1.fc37.src.rpm"
 
         rpms_dom0 = {
-            "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-            "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+            "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+            "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
         }
-        srpm_dom0 = "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm"
+        srpm_dom0 = "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm"
 
         with open(
             artifacts_dir
-            / "components/core-qrexec/4.2.2-1/host-fc32/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
+            / "components/core-qrexec/4.2.2-1/host-fc37/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
         with open(
             artifacts_dir
-            / "components/core-qrexec/4.2.2-1/host-fc32/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
+            / "components/core-qrexec/4.2.2-1/host-fc37/publish/rpm_spec_qubes-qrexec-dom0.spec.publish.yml"
         ) as f:
             info_dom0 = yaml.safe_load(f.read())
 
@@ -813,20 +813,20 @@ def test_component_unpublish_host_fc32(artifacts_dir):
 
     # Check that packages are in the published repository
     rpms = [
-        "qubes-core-qrexec-4.2.2-1.fc32.src.rpm",
-        "qubes-core-qrexec-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-debugsource-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-devel-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.src.rpm",
-        "qubes-core-qrexec-dom0-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc32.x86_64.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.src.rpm",
+        "qubes-core-qrexec-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-debugsource-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-devel-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.fc37.x86_64.rpm",
     ]
     for repository in ["unstable", "current-testing", "current"]:
         repository_dir = (
-            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc32"
+            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc37"
         )
         packages = rpm_packages_list(repository_dir)
         if repository == "current":
@@ -1318,7 +1318,7 @@ def test_increment_component_build(artifacts_dir):
             "-c",
             "core-qrexec",
             "-d",
-            "host-fc32",
+            "host-fc37",
             "-d",
             "vm-bullseye",
             "package",
@@ -1328,29 +1328,29 @@ def test_increment_component_build(artifacts_dir):
         )
 
     rpms = {
-        "qubes-core-qrexec-4.2.2-1.42.fc32.x86_64.rpm",
-        "qubes-core-qrexec-debugsource-4.2.2-1.42.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-4.2.2-1.42.fc32.x86_64.rpm",
-        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.42.fc32.x86_64.rpm",
-        "qubes-core-qrexec-devel-4.2.2-1.42.fc32.x86_64.rpm",
+        "qubes-core-qrexec-4.2.2-1.42.fc37.x86_64.rpm",
+        "qubes-core-qrexec-debugsource-4.2.2-1.42.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-4.2.2-1.42.fc37.x86_64.rpm",
+        "qubes-core-qrexec-libs-debuginfo-4.2.2-1.42.fc37.x86_64.rpm",
+        "qubes-core-qrexec-devel-4.2.2-1.42.fc37.x86_64.rpm",
     }
-    srpm = "qubes-core-qrexec-4.2.2-1.42.fc32.src.rpm"
+    srpm = "qubes-core-qrexec-4.2.2-1.42.fc37.src.rpm"
 
     for rpm in rpms.union({srpm}):
         assert (
-            artifacts_dir / "repository/host-fc32/core-qrexec_4.2.2" / rpm
+            artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm
         ).exists()
 
     rpms = {
-        "qubes-core-qrexec-dom0-4.2.2-1.42.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.42.fc32.x86_64.rpm",
-        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.42.fc32.x86_64.rpm",
+        "qubes-core-qrexec-dom0-4.2.2-1.42.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debuginfo-4.2.2-1.42.fc37.x86_64.rpm",
+        "qubes-core-qrexec-dom0-debugsource-4.2.2-1.42.fc37.x86_64.rpm",
     }
-    srpm = "qubes-core-qrexec-dom0-4.2.2-1.42.fc32.src.rpm"
+    srpm = "qubes-core-qrexec-dom0-4.2.2-1.42.fc37.src.rpm"
 
     for rpm in rpms.union({srpm}):
         assert (
-            artifacts_dir / "repository/host-fc32/core-qrexec_4.2.2" / rpm
+            artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm
         ).exists()
 
     deb_files = [

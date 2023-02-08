@@ -25,7 +25,7 @@ iso:
   kickstart: conf/iso-online-testing.ks
 
 distributions:
-  - host-fc32
+  - host-fc37
   - vm-bullseye
   - vm-fc36
   - vm-centos-stream8
