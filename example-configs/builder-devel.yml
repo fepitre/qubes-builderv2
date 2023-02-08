@@ -32,11 +32,11 @@ iso:
 distributions:
   - host-fc37
   - vm-bullseye
-  - vm-fc36
+  - vm-fc37
 
 templates:
-  - fedora-36-xfce:
-      dist: fc36
+  - fedora-37-xfce:
+      dist: fc37
       flavor: xfce
   - debian-11:
       dist: bullseye

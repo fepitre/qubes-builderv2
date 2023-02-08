@@ -11,11 +11,11 @@ qubes-release: r4.2
 distributions:
   - host-fc37
   - vm-bullseye
-  - vm-fc36
+  - vm-fc37
 
 templates:
-  - fedora-36:
-      dist: fc36
+  - fedora-37:
+      dist: fc37
   - debian-11:
       dist: bullseye
       options:
