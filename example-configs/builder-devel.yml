@@ -30,7 +30,7 @@ iso:
   kickstart: conf/iso-full-online.ks
 
 distributions:
-  - host-fc32
+  - host-fc37
   - vm-bullseye
   - vm-fc36
 

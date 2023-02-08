@@ -19,7 +19,7 @@ skip-git-fetch: false
 fetch-versions-only: true
 
 distributions:
-  - host-fc32
+  - host-fc37
 
 +components:
   - release-configs

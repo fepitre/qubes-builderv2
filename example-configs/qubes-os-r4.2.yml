@@ -9,7 +9,7 @@ verbose: true
 qubes-release: r4.2
 
 distributions:
-  - host-fc32
+  - host-fc37
   - vm-bullseye
   - vm-fc36
 

@@ -2,7 +2,7 @@ github:
   maintainers:
     9FA64B92F95E706BF28E2CA6484010B5CDC576E2:
       distributions:
-        - host-fc32
+        - host-fc37
         - vm-fc36
       templates:
         - fedora-36
