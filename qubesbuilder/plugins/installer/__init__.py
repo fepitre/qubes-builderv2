@@ -81,6 +81,7 @@ class InstallerPlugin(DistributionPlugin):
                 "ISO_USE_KERNEL_LATEST": "1"
                 if self.config.iso_use_kernel_latest
                 else "0",
+                "ISO_IS_FINAL": "1" if self.config.iso_is_final else "0",
             }
         )
         if self.config.use_qubes_repo:
@@ -97,9 +98,6 @@ class InstallerPlugin(DistributionPlugin):
 
         if self.config.iso_version:
             self.iso_version = self.config.iso_version
-        elif self.config.qubes_release:
-            self.iso_version = self.config.qubes_release.upper()
-            self.environment["QUBES_RELEASE"] = self.config.qubes_release
         else:
             self.iso_version = datetime.utcnow().strftime("%Y%m%d")
 
@@ -253,6 +251,7 @@ class InstallerPlugin(DistributionPlugin):
             ]
 
             cmd += [" ".join(mock_cmd)]
+            cmd += [f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/*/pubring"]
 
             try:
                 executor.run(
@@ -283,6 +282,13 @@ class InstallerPlugin(DistributionPlugin):
 
             # Prepare cmd
             cmd = []
+
+            # Create builder-local repository (could be empty) inside the cage
+            cmd += [
+                f"mkdir -p {executor.get_repository_dir()}",
+                f"cd {executor.get_repository_dir()}",
+                "createrepo_c .",
+            ]
 
             # Add prepared chroot cache
             if chroot_cache.exists():

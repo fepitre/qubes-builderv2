@@ -22,10 +22,10 @@ sign-key:
   iso: 632F8C69E01B25C9E0C3ADF2F360C0D259FB650C
 
 iso:
-  kickstart: conf/iso-full-online.ks
+  kickstart: conf/iso-online-testing.ks
 
 distributions:
-  - host-fc32
+  - host-fc37
   - vm-bullseye
   - vm-fc36
   - vm-centos-stream8

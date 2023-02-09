@@ -15,6 +15,7 @@ RUN usermod -aG wheel user && echo '%wheel ALL=(ALL) NOPASSWD: ALL' > /etc/sudoe
 
 # Create needed folders
 RUN mkdir /builder /builder/plugins /builder/build /builder/distfiles /builder/cache /builder/repository /builder/sources
+RUN mkdir -p /builder/cache/mock
 RUN chown -R user /builder
 
 USER user

@@ -236,7 +236,7 @@ pytest-cli-template:
 
 # Cache
 
-cache-host-fc32:
+cache-host-fc37:
   extends: .init_cache_job
 
 cache-vm-fc36:
@@ -250,10 +250,10 @@ cache-vm-bullseye:
 
 # Podman executor
 
-podman-host-fc32:
+podman-host-fc37:
   extends: .component_podman_job
   needs:
-    - cache-host-fc32
+    - cache-host-fc37
 
 podman-vm-fc36:
   extends: .component_podman_job
@@ -270,10 +270,10 @@ podman-vm-centos-stream8:
 
 # Docker executor
 
-docker-host-fc32:
+docker-host-fc37:
   extends: .component_docker_job
   needs:
-    - cache-host-fc32
+    - cache-host-fc37
 
 docker-vm-fc36:
   extends: .component_docker_job
@@ -292,10 +292,10 @@ docker-vm-bullseye:
 
 # Qubes executor
 
-qubes-host-fc32:
+qubes-host-fc37:
   extends: .component_qubes_job
   needs:
-    - cache-host-fc32
+    - cache-host-fc37
 
 qubes-vm-fc36:
   extends: .component_qubes_job
@@ -314,10 +314,10 @@ qubes-vm-bullseye:
 
 # Local executor
 
-local-host-fc32:
+local-host-fc37:
   extends: .component_local_job
   needs:
-    - cache-host-fc32
+    - cache-host-fc37
 
 local-vm-fc36:
   extends: .component_local_job

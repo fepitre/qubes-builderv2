@@ -17,7 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-DIST ?= fc32
+DIST ?= fc37
 DIST_VER = $(subst fc,,$(DIST))
 
 BUILDER_DIR ?= /builder
@@ -25,12 +25,7 @@ PLUGINS_DIR ?= $(BUILDER_DIR)/plugins
 INSTALLER_DIR ?= $(PLUGINS_DIR)/installer
 INSTALLER_KICKSTART ?= $(INSTALLER_DIR)/conf/qubes-kickstart.cfg
 CREATEREPO := $(shell which createrepo_c createrepo 2>/dev/null |head -1)
-
-ifdef QUBES_RELEASE
-	ISO_VERSION ?= $(QUBES_RELEASE)
-else
-	ISO_VERSION ?= $(shell date +%Y%m%d)
-endif
+ISO_VERSION ?= $(shell date +%Y%m%d)
 
 ifneq (,$(ISO_FLAVOR))
 ISO_NAME := Qubes-$(ISO_VERSION)-$(ISO_FLAVOR)-x86_64
@@ -59,17 +54,9 @@ ifeq ($(ISO_USE_KERNEL_LATEST),1)
 LORAX_OPTS += --installpkgs kernel-latest --excludepkgs kernel
 endif
 
-ifdef QUBES_RELEASE
+ifeq ($(ISO_IS_FINAL),1)
 	LORAX_OPTS += --isfinal
 endif
-
-MKISOFS := /usr/bin/xorriso -as mkisofs
-# common mkisofs flags
-MKISOFS_OPTS := -v -U -J --joliet-long -R -T -m repoview -m boot.iso
-# x86 boot args
-MKISOFS_OPTS += -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table
-# efi boot args
-MKISOFS_OPTS += -eltorito-alt-boot -e images/efiboot.img -no-emul-boot
 
 #
 # CAGE -> MOCK
@@ -95,10 +82,10 @@ iso-prepare:
 	rm -rf $(INSTALLER_DIR)/yum/installer/repodata
 	$(CREATEREPO) -q -g $(TMP_DIR)/comps.xml /tmp/qubes-installer/yum/installer
 
-	mkdir -p $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-dom0
+	mkdir -p $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-host
 	rm -rf $(BUILDER_DIR)/repository/repodata
 	$(CREATEREPO) -q -g $(TMP_DIR)/comps.xml $(BUILDER_DIR)/repository
-	mount --bind $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-dom0
+	mount --bind $(BUILDER_DIR)/repository /tmp/qubes-installer/yum/qubes-host
 
 	#
 	# Prepare DNF
@@ -145,8 +132,21 @@ iso-installer-lorax:
 iso-installer-mkisofs:
 	mkdir -p $(BASE_DIR)/iso/
 	chmod og+rX -R $(BASE_DIR)/os/
-	$(MKISOFS) $(MKISOFS_OPTS) -V $(ISO_VOLID) -o $(BASE_DIR)/iso/$(ISO_NAME).iso $(BASE_DIR)/os/
-	/usr/bin/isohybrid -u $(BASE_DIR)/iso/$(ISO_NAME).iso
-	/usr/bin/implantisomd5  $(BASE_DIR)/iso/$(ISO_NAME).iso
+	xorrisofs -o $(BASE_DIR)/iso/$(ISO_NAME).iso \
+		-R -J -V $(ISO_VOLID) \
+		--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \
+		-partition_offset 16 \
+		-appended_part_as_gpt \
+		-append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B $(BASE_DIR)/os/images/efiboot.img \
+		-iso_mbr_part_type EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 \
+		-c boot.cat --boot-catalog-hide \
+		-b images/eltorito.img \
+		-no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
+		-eltorito-alt-boot \
+		-e '--interval:appended_partition_2:all::' -no-emul-boot \
+		-graft-points \
+		.=$(BASE_DIR)/os \
+		boot/grub2/i386-pc=/usr/lib/grub/i386-pc
+	/usr/bin/implantisomd5 $(BASE_DIR)/iso/$(ISO_NAME).iso
 
 

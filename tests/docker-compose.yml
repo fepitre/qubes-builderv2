@@ -12,7 +12,7 @@ services:
       - PYTHONPATH=/qubesbuilder
     command: pytest-3 -v --color=yes --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml tests/
 
-  host-fc32:
+  host-fc37:
     privileged: true
     build:
       context: ..
@@ -22,7 +22,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONPATH=/qubesbuilder
-    command: ./qb --builder-conf tests/builder-ci.yml -d host-fc32 package all
+    command: ./qb --builder-conf tests/builder-ci.yml -d host-fc37 package all
 
   vm-fc35:
     privileged: true

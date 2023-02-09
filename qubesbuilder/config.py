@@ -98,6 +98,7 @@ class Config:
     iso_version: Union[str, property]                    = property(lambda self: self.get("iso", {}).get("version", ""))
     iso_flavor: Union[str, property]                     = property(lambda self: self.get("iso", {}).get("flavor", ""))
     iso_use_kernel_latest: Union[bool, property]         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))
+    iso_is_final: Union[bool, property]                  = property(lambda self: self.get("iso", {}).get("is-final", False))
     increment_devel_versions: Union[bool, property]      = property(lambda self: self.get("increment-devel-versions", False))
     # fmt: on
 
