@@ -358,7 +358,7 @@ qubes-template-whonix-workstation-16:
 # ISO
 #
 
-installer-iso-full-online:
+.installer_iso:
   stage: build
   tags:
     - vm
@@ -373,7 +373,31 @@ installer-iso-full-online:
     - sudo dnf install -y python3-debian dpkg-dev openssl tree mktorrent
   script:
     - cp tests/builder-ci.yml builder.yml
-    - ./qb installer init-cache all
+    - 'sh -c "$EXPECT_FAILURE ./qb -o iso:kickstart=$KICKSTART_FILE installer init-cache all"'
   after_script:
     - rm -rf artifacts/cache
     - tree artifacts
+
+installer-iso-full-online:
+  variables:
+    KICKSTART_FILE: conf/iso-online-testing.ks
+    EXPECT_FAILURE: ""
+  extends: .installer_iso
+
+installer-iso-unsigned:
+  variables:
+    KICKSTART_FILE: conf/iso-unsigned.ks
+    EXPECT_FAILURE: "!"
+  extends: .installer_iso
+
+installer-iso-unsigned2:
+  variables:
+    KICKSTART_FILE: conf/iso-unsigned2.ks
+    EXPECT_FAILURE: "!"
+  extends: .installer_iso
+
+installer-iso-unknown-key:
+  variables:
+    KICKSTART_FILE: conf/iso-unknown-key.ks
+    EXPECT_FAILURE: "!"
+  extends: .installer_iso
