@@ -682,8 +682,10 @@ Options available in `builder.yml`:
 
 - `iso: Dict`:
   - `kickstart: str` --- Image installer kickstart.
-  - `iso-flavor: str` --- Image name will be named as `Qubes-<iso-version>-<iso-flavor>-<arch>.iso`.
+  - `flavor: str` --- Image name will be named as `Qubes-<iso-version>-<iso-flavor>-<arch>.iso`.
   - `use-kernel-latest: bool` --- If True, use `kernel-latest` when building installer runtime and superseed `kernel` in the installation. It allows to boot installer and QubesOS with the latest drivers provided by stable kernels and not only long term supported ones by default.
+  - `version: str` --- Define specific version to embed, by default current date is used.
+  - `is-final: bool` --- Should the ISO be marked as "final" (skip showing warning about development build at the start of the installation).
 
 - `use-qubes-repo: Dict`:
   `version: str` --- Use Qubes packages repository to satisfy build dependents. Set to target version of Qubes you are building packages for (like "4.1", "4.2" etc.).
