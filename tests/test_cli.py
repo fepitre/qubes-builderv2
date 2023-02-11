@@ -1584,6 +1584,126 @@ def test_template_publish_fedora_36_xfce(artifacts_dir):
         )
 
 
+#@pytest.mark.depends(on=['test_template_publish_fedora_36_xfce'])
+def test_template_publish_new_fedora_36_xfce(artifacts_dir):
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        gnupghome = f"{tmpdir}/.gnupg"
+        shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+        os.chmod(gnupghome, 0o700)
+
+        env["GNUPGHOME"] = gnupghome
+        env["HOME"] = tmpdir
+
+        with open(
+                artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
+            data = f.read().splitlines()
+        template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
+
+        # bump timestamp, without re-running "prep" stage
+        new_timestamp = str(int(template_timestamp)+1)
+        with open(
+                artifacts_dir / "templates/build_timestamp_fedora-36-xfce", "w") as f:
+            f.write(new_timestamp)
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "--option",
+            "executor:type=qubes",
+            "--option",
+            "executor:options:dispvm=qubes-builder-dvm",
+            "-t",
+            "fedora-36-xfce",
+            "template",
+            "build",
+            "sign",
+        )
+
+        rpm_path = (
+                artifacts_dir
+                / f"templates/rpm/qubes-template-fedora-36-xfce-4.1.0-{new_timestamp}.noarch.rpm"
+        )
+        assert rpm_path.exists()
+
+        assert template_timestamp != new_timestamp
+
+        # publish into templates-itl-testing
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-t",
+            "fedora-36-xfce",
+            "repository",
+            "publish",
+            "templates-itl-testing",
+            env=env,
+        )
+
+        publish_file = artifacts_dir / "templates/fedora-36-xfce.publish.yml"
+        with open(publish_file) as f:
+            info = yaml.safe_load(f.read())
+
+        assert info.get("timestamp", []) == new_timestamp
+        assert ["templates-itl-testing"] == [
+            r["name"] for r in info.get("repository-publish", [])
+        ]
+
+        # publish into templates-itl
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
+
+        # pretend it was in testing repo for 7 days already
+        for r in info["repository-publish"]:
+            if r["name"] == "templates-itl-testing":
+                r["timestamp"] = fake_time
+                break
+
+        with open(publish_file, "w") as f:
+            f.write(yaml.safe_dump(info))
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-t",
+            "fedora-36-xfce",
+            "repository",
+            "publish",
+            "templates-itl",
+            env=env,
+        )
+        with open(publish_file) as f:
+            info = yaml.safe_load(f.read())
+
+        assert info.get("timestamp", []) == new_timestamp
+        assert set([r["name"] for r in info.get("repository-publish", [])]) == {
+            "templates-itl-testing",
+            "templates-itl",
+        }
+
+    # Check that packages are in the published repository
+    for repository in ["templates-itl-testing", "templates-itl"]:
+        rpms = {
+            f"qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm",
+            f"qubes-template-fedora-36-xfce-4.1.0-{new_timestamp}.noarch.rpm",
+        }
+        repository_dir = (
+            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}"
+        )
+        packages = rpm_packages_list(repository_dir)
+        assert rpms == set(packages)
+        metadata_dir = (
+            artifacts_dir / f"repository-publish/rpm/r4.2/{repository}/repodata"
+        )
+        assert (metadata_dir / "repomd.xml").exists()
+        assert (metadata_dir / "repomd.xml.asc").exists()
+        assert (metadata_dir / "repomd.xml.metalink").exists()
+        with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
+            repomd_hash = hashlib.sha256(repomd_f.read()).hexdigest()
+        assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
+            encoding="ascii"
+        )
+
+
 def test_template_unpublish_fedora_36_xfce(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -1627,9 +1747,9 @@ def test_template_unpublish_fedora_36_xfce(artifacts_dir):
         )
         packages = rpm_packages_list(repository_dir)
         if repository == "templates-itl":
-            assert packages == []
+            assert rpm not in packages
         else:
-            assert {rpm} == set(packages)
+            assert rpm in packages
         metadata_dir = (
             artifacts_dir / f"repository-publish/rpm/r4.2/{repository}/repodata"
         )
