@@ -52,6 +52,7 @@ components:
   - core-qubesdb
   - core-qrexec
   - linux-utils
+  - plymouth
   - python-objgraph
   - python-u2flib-host
   - python-qasync
