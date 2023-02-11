@@ -46,7 +46,7 @@ mkdir -p "${INSTALL_DIR}" "${CACHE_DIR}" "${PACKAGES_DIR}"
 # ------------------------------------------------------------------------------
 # Export needed environment variable
 # ------------------------------------------------------------------------------
-export INSTALL_DIR LC_ALL BASE_IMG TEMPLATE_NAME IMG
+export INSTALL_DIR LC_ALL BASE_IMG TEMPLATE_NAME IMG TEMPLATE_CONF
 
 # ------------------------------------------------------------------------------
 # Cleanup function
@@ -65,6 +65,8 @@ trap cleanup ERR
 # Mount qubeized_image
 # ------------------------------------------------------------------------------
 mkdir -p "${ARTIFACTS_DIR}/qubeized_images/${TEMPLATE_NAME}"
+# remove old versions, if any
+rm -f "${TEMPLATE_CONF}"
 
 echo "--> Moving $IMG to $IMG..."
 mv "${BASE_IMG}" "$IMG" || exit 1
@@ -104,13 +106,14 @@ cp -r "${appmenus}" "${ARTIFACTS_DIR}/appmenus"
 
 echo "--> Creating template config file..."
 _conf_dir="${CONFIG_DIR:-${TEMPLATE_CONTENT_DIR}}"
-rm -f "${ARTIFACTS_DIR}/template.conf"
 
 template_conf="$(get_file_or_directory_for_current_flavor "${_conf_dir}/template.conf")"
 if [ -z "$template_conf" ]; then
     template_conf="${PLUGINS_DIR}/template/template_generic.conf"
 fi
-cp "${template_conf}" "${ARTIFACTS_DIR}/template.conf"
+if ! [ -e "${TEMPLATE_CONF}" ]; then
+    cp "${template_conf}" "${TEMPLATE_CONF}"
+fi
 
 # ------------------------------------------------------------------------------
 # Link directories so they can be mounted
