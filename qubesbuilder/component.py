@@ -136,7 +136,11 @@ class QubesComponent:
         if version_file.exists():
             try:
                 with open(version_file) as fd:
-                    version = str(QubesVersion(fd.read().split("\n")[0]))
+                    version_str = fd.read().split("\n")[0]
+                    # validate
+                    QubesVersion(version_str)
+                    # but use the original
+                    version = version_str
             except InvalidVersion as e:
                 raise ComponentError(f"Invalid version for {self.source_dir}.") from e
         else:

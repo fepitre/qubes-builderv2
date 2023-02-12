@@ -57,6 +57,21 @@ def test_component_rc():
         assert repr(component) == repr_str
 
 
+def test_component_zeroes():
+    with tempfile.TemporaryDirectory() as source_dir:
+        with open(f"{source_dir}/version", "w") as f:
+            f.write("2023.02.12")
+        with open(f"{source_dir}/rel", "w") as f:
+            f.write("1")
+        with open(f"{source_dir}/.qubesbuilder", "w") as f:
+            f.write("")
+        component = QubesComponent(source_dir)
+        component.get_parameters()
+
+        assert component.version == "2023.02.12"
+        assert component.release == "1"
+
+
 def test_component_no_qubesbuilder():
     with tempfile.TemporaryDirectory() as source_dir:
         with open(f"{source_dir}/version", "w") as f:
