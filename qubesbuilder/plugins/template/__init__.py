@@ -261,6 +261,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
         publish_info = self.get_artifacts_info("publish")
         if not publish_info:
             return False
+        if publish_info["timestamp"] != self.get_template_timestamp():
+            return False
         return repository in [
             r["name"] for r in publish_info.get("repository-publish", [])
         ]
