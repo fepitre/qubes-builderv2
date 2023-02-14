@@ -23,6 +23,7 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
+from qubesbuilder.plugins.source import SourcePlugin
 
 log = get_logger("build")
 
@@ -31,7 +32,7 @@ class BuildError(PluginError):
     pass
 
 
-class BuildPlugin(DistributionComponentPlugin):
+class BuildPlugin(SourcePlugin, DistributionComponentPlugin):
     """
     BuildPlugin manages generic distribution build.
 
@@ -55,6 +56,9 @@ class BuildPlugin(DistributionComponentPlugin):
             config=config,
             manager=manager
         )
+
+    def update_parameters(self, stage: str):
+        super(SourcePlugin, self).update_parameters(stage)
 
     def run(self, stage: str):
         self.update_parameters(stage)

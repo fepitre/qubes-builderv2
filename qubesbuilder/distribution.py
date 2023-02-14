@@ -38,18 +38,23 @@ DEBIAN_ARCHITECTURE = {"x86_64": "amd64", "ppc64le": "ppc64el"}
 class QubesDistribution:
     def __init__(self, distribution: str):
         self.distribution = distribution
+        if not distribution.startswith("vm-") and not distribution.startswith("host-"):
+            raise DistributionError(
+                f"Invalid distribution format provided. Please specify package set."
+            )
         self.package_set, self.name = distribution.split("-", 1)
         if self.name == self.name.split(".")[0]:
             self.architecture = "x86_64"
         else:
             self.name, self.architecture = self.name.split(".", 1)
         if self.package_set not in ("host", "vm"):
-            raise DistributionError(f"Unknown package set '{self.package_set}'")
+            raise DistributionError(f"Unknown package set '{self.package_set}'.")
 
         self.version = None
         is_fedora = FEDORA_RE.match(self.name)
         is_centos_stream = CENTOS_STREAM_RE.match(self.name)
         is_debian = DEBIAN.get(self.name, None)
+        is_archlinux = self.name == "archlinux"
         if is_fedora:
             self.fullname = "fedora"
             self.version = is_fedora.group(1)
@@ -68,8 +73,13 @@ class QubesDistribution:
             )
             self.tag = f"deb{self.version}"
             self.type = "deb"
+        elif is_archlinux:
+            self.fullname = "archlinux"
+            self.version = "rolling"
+            self.tag = "archlinux"
+            self.type = "archlinux"
         else:
-            raise DistributionError(f"Unsupported distribution '{self.distribution}'")
+            raise DistributionError(f"Unsupported distribution '{self.distribution}'.")
 
     def to_str(self) -> str:
         return f"{self.package_set}-{self.fullname}-{self.version}.{self.architecture}"
@@ -92,3 +102,6 @@ class QubesDistribution:
         if DEBIAN.get(self.name, None):
             return True
         return False
+
+    def is_archlinux(self) -> bool:
+        return self.name == "archlinux"
