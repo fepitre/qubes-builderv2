@@ -114,11 +114,6 @@ def test_parse_config_entry_from_array_02():
         parse_config_from_cli(array)
     assert "_" in e.value.args[0]
 
-    array = ["tata:titi:toto=too=much=equals"]
-    with pytest.raises(ValueError) as e:
-        parse_config_from_cli(array)
-    assert "Too much" in e.value.args[0]
-
 
 def test_parse_config_entry_from_array_03():
     array = [
@@ -140,5 +135,25 @@ def test_parse_config_entry_from_array_04():
     parsed_dict = parse_config_from_cli(array)
     expected_dict = {
         "+components": [{"kernel": {"branch": "stable-5.15"}}, "lvm2"],
+    }
+    assert parsed_dict == expected_dict
+
+
+def test_parse_config_entry_from_array_05():
+    array = [
+        "repository-upload-remote-host:iso=remote.host:/remote/dir/",
+    ]
+    parsed_dict = parse_config_from_cli(array)
+    expected_dict = {
+        "repository-upload-remote-host": {"iso": "remote.host:/remote/dir/"},
+    }
+    assert parsed_dict == expected_dict
+
+
+def test_parse_config_entry_from_array_06():
+    array = ["tata:titi:toto=many=equals"]
+    parsed_dict = parse_config_from_cli(array)
+    expected_dict = {
+        "tata": {"titi": {"toto": "many=equals"}},
     }
     assert parsed_dict == expected_dict

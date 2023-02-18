@@ -60,9 +60,14 @@ def validate_identifier(identifier):
     raise ValueError(f"Invalid key identifier found: '{identifier}'.")
 
 
-def parse_dict_from_cli(s):
+def parse_dict_from_cli(s, value=None):
     index_dict = None
     index_array = None
+
+    if value is None:
+        # first, consider everything after "=" as value
+        if "=" in s:
+            s, value = s.split("=", 1)
 
     # Determine if split identifier "+" or ":" is present
     if ":" in s:
@@ -97,25 +102,27 @@ def parse_dict_from_cli(s):
         validate_identifier(parsed_identifier)
 
         if split_identifier == ":":
-            if "=" not in remaining_content:
+            if value is None:
                 raise ValueError(f"Cannot find '=' in '{remaining_content}'")
-            result = {parsed_identifier: parse_dict_from_cli(remaining_content)}
+            result = {
+                parsed_identifier: parse_dict_from_cli(remaining_content, value=value)
+            }
         else:
-            result = {parsed_identifier: [parse_dict_from_cli(remaining_content)]}
+            result = {
+                parsed_identifier: [parse_dict_from_cli(remaining_content, value=value)]
+            }
     else:
-        if "=" not in s:
+        if value is None:
             result = s
         else:
-            if s.count("=") != 1:
-                raise ValueError("Too much '=' found.")
-            key, val = s.split("=", 1)
+            key = s
 
             # Validate key
             validate_identifier(key)
 
-            if val.lower() in ("true", "false", "1", "0"):
-                val = str_to_bool(val)
-            result = {key: val}
+            if value.lower() in ("true", "false", "1", "0"):
+                value = str_to_bool(value)
+            result = {key: value}
     return result
 
 
