@@ -18,7 +18,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import itertools
 import shutil
+import dateutil.parser
 from datetime import datetime
+from dateutil.parser import parse as parsedate
 from typing import Dict
 
 import yaml
@@ -46,6 +48,7 @@ class InstallerPlugin(DistributionPlugin):
     InstallerPlugin creates Qubes OS ISO
     """
 
+    stages = ["init-cache", "prep", "build", "sign", "upload"]
     dependencies = ["source_rpm"]
 
     def __init__(
@@ -59,6 +62,7 @@ class InstallerPlugin(DistributionPlugin):
 
         self.iso_name = ""
         self.iso_version = ""
+        self.iso_timestamp = ""
 
         if not (
             self.manager.entities["installer"].directory
@@ -68,7 +72,43 @@ class InstallerPlugin(DistributionPlugin):
                 f"Cannot find kickstart: '{self.config.installer_kickstart}'"
             )
 
-    def update_parameters(self, stage: str):
+    def get_iso_timestamp(self, stage: str, iso_timestamp: str = None) -> str:
+        if not self.iso_timestamp:
+            # Determine latest timestamp filename
+            installer_dir = self.get_installer_dir()
+            if self.config.iso_flavor:
+                iso_timestamp_file = (
+                    installer_dir
+                    / f"latest_{self.dist.name}_iso_{self.config.iso_flavor}_timestamp"
+                )
+            else:
+                iso_timestamp_file = (
+                    installer_dir / f"latest_{self.dist.name}_iso_timestamp"
+                )
+
+            # Create timestamp value for "prep" only
+            if stage == "prep":
+                if iso_timestamp:
+                    self.iso_timestamp = parsedate(iso_timestamp).strftime("%Y%m%d%H%M")
+                else:
+                    self.iso_timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
+                installer_dir.mkdir(parents=True, exist_ok=True)
+                with open(iso_timestamp_file, "w") as f:
+                    f.write(self.iso_timestamp)
+            else:
+                # Read information from build stage
+                if not iso_timestamp_file.exists():
+                    raise PluginError(f"{self.dist}: Cannot find build timestamp.")
+                with open(iso_timestamp_file) as f:
+                    data = f.read().splitlines()
+                try:
+                    self.iso_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
+                except (dateutil.parser.ParserError, IndexError) as e:
+                    msg = f"{self.dist}: Failed to parse build timestamp format."
+                    raise PluginError(msg) from e
+        return self.iso_timestamp
+
+    def update_parameters(self, stage: str, iso_timestamp: str = None):
         executor = self.config.get_executor_from_config(stage_name=stage)
         self.environment.update(
             {
@@ -96,10 +136,20 @@ class InstallerPlugin(DistributionPlugin):
                 }
             )
 
+        # Kickstart will be copied under builder directory
+        self.environment[
+            "INSTALLER_KICKSTART"
+        ] = f"{executor.get_plugins_dir()}/installer/{self.config.installer_kickstart}"
+
+        # We don't need to process more ISO information
+        if stage == "init-cache":
+            return
+
+        self.iso_version = self.get_iso_timestamp(
+            stage=stage, iso_timestamp=iso_timestamp
+        )
         if self.config.iso_version:
             self.iso_version = self.config.iso_version
-        else:
-            self.iso_version = datetime.utcnow().strftime("%Y%m%d")
 
         if self.config.iso_flavor:
             self.environment["ISO_FLAVOR"] = self.config.iso_flavor
@@ -110,11 +160,6 @@ class InstallerPlugin(DistributionPlugin):
         self.environment.update(
             {"ISO_VERSION": self.iso_version, "ISO_NAME": self.iso_name}
         )
-
-        # Kickstart will be copied under builder directory
-        self.environment[
-            "INSTALLER_KICKSTART"
-        ] = f"{executor.get_plugins_dir()}/installer/{self.config.installer_kickstart}"
 
     def get_artifacts_info(self, stage: str) -> Dict:
         fileinfo = (
@@ -154,8 +199,11 @@ class InstallerPlugin(DistributionPlugin):
             env.append(f'{key}="{val}"')
         return " ".join(env)
 
-    def run(self, stage: str):
-        self.update_parameters(stage)
+    def run(self, stage: str, iso_timestamp: str = None):
+        if stage not in self.stages:
+            return
+
+        self.update_parameters(stage=stage, iso_timestamp=iso_timestamp)
 
         executor = self.config.get_executor_from_config(stage_name=stage)
 
@@ -251,7 +299,9 @@ class InstallerPlugin(DistributionPlugin):
             ]
 
             cmd += [" ".join(mock_cmd)]
-            cmd += [f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/*/pubring"]
+            cmd += [
+                f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/*/pubring"
+            ]
 
             try:
                 executor.run(
@@ -481,6 +531,8 @@ class InstallerPlugin(DistributionPlugin):
             # Save ISO information we built
             info = {
                 "iso": iso.name,
+                "version": self.iso_version,
+                "timestamp": self.get_iso_timestamp(stage),
                 "kickstart": str(self.config.installer_kickstart),
                 "packages": {
                     "runtime": [
