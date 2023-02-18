@@ -19,6 +19,7 @@ def _installer_stage(
     config: Config,
     manager: PluginManager,
     stage_name: str,
+    iso_timestamp: str = None,
 ):
     """
     Generic function to trigger stage for a template component
@@ -35,7 +36,7 @@ def _installer_stage(
 
     dist = host_distributions[0]
     installer_plugin = InstallerPlugin(dist=dist, config=config, manager=manager)
-    installer_plugin.run(stage=stage_name)
+    installer_plugin.run(stage=stage_name, iso_timestamp=iso_timestamp)
 
 
 @click.command(name="all", short_help="Run all template stages.")
@@ -53,16 +54,17 @@ def fetch(obj: ContextObj):
 
 @installer.command()
 @click.option(
-    "--template-timestamp",
+    "--iso-timestamp",
     default=None,
-    help="Provide template timestamp to use (format must be '%Y%m%d%H%M').",
+    help="Provide ISO timestamp to use (format must be '%Y%m%d%H%M').",
 )
 @click.pass_obj
-def prep(obj: ContextObj, template_timestamp: str):
+def prep(obj: ContextObj, iso_timestamp: str):
     _installer_stage(
         config=obj.config,
         manager=obj.manager,
         stage_name="prep",
+        iso_timestamp=iso_timestamp,
     )
 
 
