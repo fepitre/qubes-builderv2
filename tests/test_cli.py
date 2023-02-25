@@ -1618,6 +1618,7 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
             "template",
             "build",
             "sign",
+            env=env,
         )
 
         rpm_path = (
