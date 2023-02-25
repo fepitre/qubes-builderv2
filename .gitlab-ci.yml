@@ -135,7 +135,7 @@ pytest-cli-template:
       - artifacts
     when: always
   before_script:
-    - cp -r tests/gnupg ~/.gnupg
+    - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
@@ -157,7 +157,7 @@ pytest-cli-template:
       - artifacts
     when: always
   before_script:
-    - cp -r tests/gnupg ~/.gnupg
+    - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - sudo sed -i "/$(id -u -n)/d" /etc/subuid
     - sudo sed -i "/$(id -g -n)/d" /etc/subgid
@@ -185,7 +185,7 @@ pytest-cli-template:
       - artifacts
     when: always
   before_script:
-    - cp -r tests/gnupg ~/.gnupg
+    - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - tar xf artifacts.tar.xz
     - sudo dnf install -y python3-debian dpkg-dev openssl tree
@@ -206,7 +206,7 @@ pytest-cli-template:
       - artifacts
     when: always
   before_script:
-    - cp -r tests/gnupg ~/.gnupg
+    - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - tar xf artifacts.tar.xz
     - sudo dnf install -y python3-debian dpkg-dev openssl tree
@@ -222,7 +222,7 @@ pytest-cli-template:
   tags:
     - qubes
   before_script:
-    - cp -r tests/gnupg ~/.gnupg
+    - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - sudo dnf install -y python3-debian dpkg-dev openssl tree
   script:
@@ -366,7 +366,7 @@ qubes-template-whonix-workstation-16:
     paths:
       - artifacts/installer
   before_script:
-    - cp -r tests/gnupg ~/.gnupg
+    - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
