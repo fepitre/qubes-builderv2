@@ -16,6 +16,8 @@ distributions:
 templates:
   - fedora-37:
       dist: fc37
+      options:
+        - selinux
   - debian-11:
       dist: bullseye
       options:
