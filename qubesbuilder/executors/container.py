@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 import subprocess
+import shlex
 from contextlib import contextmanager
 from pathlib import Path, PurePath
 from typing import List, Tuple, Union
@@ -150,8 +151,8 @@ class ContainerExecutor(Executor):
 
                 # fix permissions and user group
                 permissions_cmd = [
-                    f"sudo mkdir -p {self.get_builder_dir()} {self.get_builder_dir()/'build'} {self.get_builder_dir()/'plugins'} {self.get_builder_dir()/'distfiles'}",
-                    f"sudo chown -R {self._user}:{self._group} {self.get_builder_dir()}",
+                    ["sudo", "mkdir", "-p", "--", self.get_builder_dir(), self.get_builder_dir()/'build', self.get_builder_dir()/'plugins', self.get_builder_dir()/'distfiles'],
+                    ["sudo", "chown", "-R", "--", f"{self._user}:{self._group}", self.get_builder_dir()],
                 ]
 
                 # replace placeholders
@@ -159,15 +160,20 @@ class ContainerExecutor(Executor):
                 if files_inside_executor_with_placeholders and isinstance(
                     files_inside_executor_with_placeholders, list
                 ):
+                    sed_escaped_dir = (self.get_builder_dir()
+                        .replace('\\', '\\\\')
+                        .replace('#', '\\#')
+                        .replace('&', '\\&')
+                        .replace('\n', '\\\n'))
                     files = [
                         self.replace_placeholders(str(f))
                         for f in files_inside_executor_with_placeholders
                     ]
                     sed_cmd = [
-                        f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {' '.join(files)}"
+                        [f"sed", "-i", "--", f's#@BUILDER_DIR@#{sed_escaped_dir}#g', *files],
                     ]
 
-                final_cmd = "&&".join(permissions_cmd + sed_cmd + cmd)
+                final_cmd = "&&".join(' '.join(map(shlex.quote, i)) for i in permissions_cmd + sed_cmd + cmd)
                 container_cmd = ["bash", "-c", final_cmd]
 
                 # FIXME: Ensure podman client can parse non str value
