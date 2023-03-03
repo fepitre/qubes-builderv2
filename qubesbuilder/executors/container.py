@@ -148,11 +148,12 @@ class ContainerExecutor(Executor):
             with self.get_client() as client:
                 # prepare container for given image and command
                 image = client.images.get(self.attrs["Id"])
+                builder_dir = self.get_builder_dir()
 
                 # fix permissions and user group
                 permissions_cmd = [
-                    ["sudo", "mkdir", "-p", "--", self.get_builder_dir(), self.get_builder_dir()/'build', self.get_builder_dir()/'plugins', self.get_builder_dir()/'distfiles'],
-                    ["sudo", "chown", "-R", "--", f"{self._user}:{self._group}", self.get_builder_dir()],
+                    ["sudo", "mkdir", "-p", "--", builder_dir, builder_dir/'build', builder_dir/'plugins', builder_dir/'distfiles'],
+                    ["sudo", "chown", "-R", "--", f"{self._user}:{self._group}", builder_dir],
                 ]
 
                 # replace placeholders
@@ -160,7 +161,7 @@ class ContainerExecutor(Executor):
                 if files_inside_executor_with_placeholders and isinstance(
                     files_inside_executor_with_placeholders, list
                 ):
-                    sed_escaped_dir = (self.get_builder_dir()
+                    sed_escaped_dir = (builder_dir
                         .replace('\\', '\\\\')
                         .replace('#', '\\#')
                         .replace('&', '\\&')
