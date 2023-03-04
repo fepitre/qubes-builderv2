@@ -1,7 +1,9 @@
 #!/usr/bin/sh
 
 set -e
-
-sudo bash -c "mkdir -p /builder/incoming && chown -R user:user /builder"
-
-exec /usr/lib/qubes/qfile-unpacker "$(id -u user)" "/builder/incoming"
+uid=$(id -u user)
+case $uid in
+(*[!0-9]*) echo "Fatal error: Bad UID for 'user'" >&2; exit 1;;
+esac
+sudo bash -c "mkdir -p /builder/incoming && chown -R '$uid:$uid' /builder"
+exec /usr/lib/qubes/qfile-unpacker "$uid" '/builder/incoming'

@@ -27,8 +27,39 @@ from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 
+_qubes_re: re.Pattern[bytes] = re.compile(br'[^a-zA-Z0-9_.]')
+_qube_name_re: re.Pattern[bytes] = re.compile(br'\A(?:@dispvm:)?[a-zA-Z][a-zA-Z0-9_-]{0,30}\Z')
 log = get_logger("executor:qubes")
 
+def _encode_for_vmexec(args: List[bytes], destination_vm: bytes,
+                       disposable: bool) -> List[bytes]:
+    """
+    Encode an argument list for qubes.VMExec call.
+    """
+
+    _sub = re.sub
+    assert destination_vm.match(_qube_name_re), f'Invalid qube name {destination_vm!r}'
+    def encode(part: re.Match[bytes]) -> bytes:
+        g = part.group(0)
+        return b'--' if g == b'-' else b'-%02X' % ord(g)
+
+    out: List[bytes] = [b'qubes.VMExec']
+    for arg in args:
+        assert b'\0' not in arg, "NUL not allowed in command line argument"
+        out.append(_sub(_qubes_re, encode, arg))
+    out_bytes = b'+'.join(out)
+    return [
+        b'/usr/lib/qubes/qrexec-client-vm',
+        b'--filter-escape-chars-stderr',
+        b'--filter-escape-chars-stdout',
+        b'--',
+        destination_vm
+        out_bytes,
+    ]
+
+def _encode_shell_command_list(argument_lists: List[List[str]]) -> str:
+    return '&&'.join(' '.join(shlex.quote(arg) for arg in args)
+                     for args in argument_lists)
 
 class QubesExecutor(Executor):
     def __init__(self, dispvm, clean: Union[str, bool] = True, **kwargs):
@@ -47,24 +78,29 @@ class QubesExecutor(Executor):
     def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):  # type: ignore
         src = source_path.expanduser().resolve()
         dst = destination_dir
+        builder_dir = self.get_builder_dir()
+        delete_command = ['rm', '-rf', '--', builder_dir / 'incoming' / src.name, dst.as_posix() / src.name]
+        mkdir_command = ['mkdir', '-p', '--', dst.as_posix()]
+        mv_command = ['mv', '--', builder_dir / 'incoming' / src.name, dst.as_posix()]
+        bash_command = [
+            b'bash',
+            b'-euc',
+            _encode_shell_command_list([mkdir_command, mv_command]).encode('utf-8', 'surrogateescape'),
+        ])
         # FIXME: Refactor the qvm-run and qrexec commandlines.
-        prepare_incoming_and_destination = [
-            "/usr/bin/qvm-run-vm",
-            vm,
-            f"bash -c 'rm -rf {self.get_builder_dir()}/incoming/{src.name} {dst.as_posix()}/{src.name}'",
-        ]
+        vm_bytes = vm.encode('ascii', 'strict')
+        prepare_incoming_and_destination = _encode_for_vmexec(delete_command, vm_bytes)
         copy_to_incoming = [
-            "/usr/lib/qubes/qrexec-client-vm",
-            vm,
-            "qubesbuilder.FileCopyIn",
-            "/usr/lib/qubes/qfile-agent",
-            str(src),
+            b"/usr/lib/qubes/qrexec-client-vm",
+            b"--filter-escape-chars-stderr",
+            b"--filter-escape-chars-stdout",
+            b"--",
+            vm_bytes,
+            b"qubesbuilder.FileCopyIn",
+            b"/usr/lib/qubes/qfile-agent",
+            str(src).encode('utf-8', 'surrogateescape'),
         ]
-        move_to_destination = [
-            "/usr/bin/qvm-run-vm",
-            vm,
-            f"bash -c 'mkdir -p {dst.as_posix()} && mv {self.get_builder_dir()}/incoming/{src.name} {dst.as_posix()}'",
-        ]
+        move_to_destination = _encode_for_vmexec(bash_command, vm_bytes)
         try:
             log.debug(f"copy-in (cmd): {' '.join(prepare_incoming_and_destination)}")
             subprocess.run(prepare_incoming_and_destination, check=True)
@@ -96,6 +132,8 @@ class QubesExecutor(Executor):
 
         cmd = [
             "/usr/lib/qubes/qrexec-client-vm",
+            "--filter-escape-chars-stderr",
+            "--filter-escape-chars-stdout",
             vm,
             f"qubesbuilder.FileCopyOut+{str(src).replace('/', '__')}",
             "/usr/lib/qubes/qfile-unpacker",
