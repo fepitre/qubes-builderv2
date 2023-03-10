@@ -45,5 +45,10 @@ DIRECTORY_BN="$(basename "$ARCHLINUX_DIRECTORY")"
 
 DIRECTORY_MANGLE_PATH="${ARCHLINUX_DIRECTORY/$SOURCE_DIR\//}"
 DIRECTORY_MANGLE_PATH="${DIRECTORY_MANGLE_PATH//\//_}"
+PKGBUILD="${ARCHLINUX_DIRECTORY}/PKGBUILD.in"
+# For legacy support
+if [ ! -e "$PKGBUILD" ] && [ -e "${PKGBUILD//.in}" ]; then
+    PKGBUILD="${ARCHLINUX_DIRECTORY}/PKGBUILD"
+fi
 
-grep -oP "pkgname=[\(]*\K([^\)]*)" "${ARCHLINUX_DIRECTORY}/PKGBUILD" | tr ' ' '\n' > "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_packages.list"
+grep -oP "pkgname=[\(]*\K([^\)]*)" "${PKGBUILD}" | tr ' ' '\n' > "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_packages.list"

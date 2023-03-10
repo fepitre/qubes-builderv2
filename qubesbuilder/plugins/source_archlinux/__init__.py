@@ -151,7 +151,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 if not is_filename_valid(line):
                     msg = f"{self.component}:{self.dist}:{build}: Invalid package name."
                     raise SourceError(msg)
-                pkg = f"{line}-{self.component.verrel}-{self.dist.architecture}"
+                pkg = f"{line}-{self.component.verrel}-{self.dist.architecture}.pkg.tar.zst"
                 packages_list.append(pkg)
 
             # Save package information we parsed for next stages

@@ -75,28 +75,16 @@ def provision_local_repository(
         f"{component}:{dist}:{build}: Provisioning local repository '{repository_dir}'."
     )
 
-    # Create target directory that will have hardlinks to SArchlinux and built Archlinuxs
+    # Create target directory that will have hardlinks to PKGs
     target_dir = repository_dir / f"{component.name}_{component.version}"
     target_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # srpm
-        srpm_path = prep_artifacts_dir / source_info["srpm"]
-        target_path = target_dir / source_info["srpm"]
-        # target_path.hardlink_to(srpm_path)
-        os.link(srpm_path, target_path)
-
-        # rpms
-        for rpm in packages_list:
-            rpm_path = build_artifacts_dir / "rpm" / rpm
-            target_path = target_dir / rpm
-            # target_path.hardlink_to(rpm_path)
-            os.link(rpm_path, target_path)
-
-        # buildinfo
-        buildinfo_path = build_artifacts_dir / "rpm" / source_info["buildinfo"]
-        target_path = target_dir / source_info["buildinfo"]
-        os.link(buildinfo_path, target_path)
+        # pkgs
+        for pkg in packages_list:
+            pkg_path = build_artifacts_dir / "pkgs" / pkg
+            target_path = target_dir / pkg
+            os.link(pkg_path, target_path)
     except (ValueError, PermissionError, NotImplementedError, FileExistsError) as e:
         msg = f"{component}:{dist}:{build}: Failed to provision local repository."
         raise BuildError(msg) from e
@@ -236,7 +224,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             ]
 
             copy_out = [
-                (executor.get_build_dir() / pkg, pkgs_dir)
+                (executor.get_builder_dir() / source_dir / pkg, pkgs_dir)
                 for pkg in source_info["pkgs"]
             ]
 
@@ -292,33 +280,34 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 msg = f"{self.component}:{self.dist}:{build}: Failed to build PKGs: {str(e)}."
                 raise BuildError(msg) from e
 
-            # # Get packages list that have been actually built from predicted ones
-            # packages_list = []
-            # for rpm in source_info["rpms"]:
-            #     if os.path.exists(pkgs_dir / rpm):
-            #         packages_list.append(rpm)
-            #
-            # info = {
-            #     "srpm": source_info["srpm"],
-            #     "rpms": packages_list,
-            #     "buildinfo": buildinfo_file,
-            #     "source-hash": self.component.get_source_hash(),
-            # }
-            #
-            # # Provision builder local repository
-            # provision_local_repository(
-            #     build=build,
-            #     component=self.component,
-            #     dist=self.dist,
-            #     repository_dir=repository_dir,
-            #     source_info=info,
-            #     packages_list=packages_list,
-            #     prep_artifacts_dir=prep_artifacts_dir,
-            #     build_artifacts_dir=artifacts_dir,
-            # )
-            #
-            # # Save package information we parsed for next stages
-            # self.save_dist_artifacts_info(stage=stage, basename=build_bn, info=info)
+            # Get packages list that have been actually built from predicted ones
+            packages_list = []
+            for pkg in source_info["pkgs"]:
+                if os.path.exists(pkgs_dir / pkg):
+                    packages_list.append(pkg)
+
+            info = source_info
+            info.update(
+                    {
+                        "pkgs": packages_list,
+                        "source-hash": self.component.get_source_hash(),
+                    }
+                )
+
+            # Provision builder local repository
+            provision_local_repository(
+                build=build,
+                component=self.component,
+                dist=self.dist,
+                repository_dir=repository_dir,
+                source_info=info,
+                packages_list=packages_list,
+                prep_artifacts_dir=prep_artifacts_dir,
+                build_artifacts_dir=artifacts_dir,
+            )
+
+            # Save package information we parsed for next stages
+            self.save_dist_artifacts_info(stage=stage, basename=build_bn, info=info)
 
 
 PLUGINS = [ArchlinuxBuildPlugin]
