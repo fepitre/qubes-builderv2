@@ -85,7 +85,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         chroot_name = "root"
         chroot_archive = f"{chroot_name}.tar.gz"
         if (chroot_dir / chroot_archive).exists():
-            shutil.rmtree(chroot_dir / chroot_archive)
+            (chroot_dir / chroot_archive).unlink()
 
         copy_in = [
             (self.manager.entities[dependency].directory, executor.get_plugins_dir())

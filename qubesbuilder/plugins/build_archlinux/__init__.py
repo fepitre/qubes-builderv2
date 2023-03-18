@@ -127,6 +127,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     "USE_QUBES_REPO_TESTING": "1"
                     if self.config.use_qubes_repo.get("testing", None)
                     else "0",
+                    # FIXME: Allow to define repo proxy
+                    "REPO_PROXY": ""
                 }
             )
 
@@ -228,14 +230,6 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 for pkg in source_info["pkgs"]
             ]
 
-            # # Createrepo of local builder repository and ensure 'mock' group can access
-            # # build directory
-            # cmd = [
-            #     f"cd {executor.get_repository_dir()}",
-            #     "createrepo_c .",
-            #     f"sudo chown -R {executor.get_user()}:mock {executor.get_build_dir()}",
-            # ]
-
             cmd = [
                 f"{executor.get_plugins_dir()}/build_archlinux/scripts/generate-pkgbuild {source_dir} {source_dir}/{build}/PKGBUILD.in {source_dir}/PKGBUILD",
                 "sudo pacman-key --init",
@@ -263,6 +257,15 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     f"cd {executor.get_cache_dir()}/extra-x86_64",
                     f"sudo tar xvf {executor.get_cache_dir() / chroot_archive}",
                 ]
+            else:
+                # FIXME: ensure to create chroot
+                pass
+
+            # Create local repository inside chroot
+            cmd += [
+                f"sudo cp {executor.get_plugins_dir()}/build_archlinux/pacman/pacman.conf {executor.get_cache_dir()}/extra-x86_64/root/etc/",
+                f"{executor.get_plugins_dir()}/build_archlinux/scripts/update-local-repo.sh {executor.get_cache_dir()}/extra-x86_64/root {executor.get_repository_dir()}",
+            ]
 
             # if self.config.increment_devel_versions:
             #     dist_tag = f"{self.component.devel}.{self.dist.tag}"
@@ -271,7 +274,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             cmd += [
                 f"cd {source_dir}",
-                f"sudo extra-x86_64-build -r {executor.get_cache_dir()} -- -- --syncdeps --noconfirm --skipinteg",
+                f"sudo extra-x86_64-build -r {executor.get_cache_dir()} -- -d {executor.get_repository_dir()}:/tmp/qubes-packages-mirror-repo -- --syncdeps --noconfirm --skipinteg",
             ]
 
             try:
