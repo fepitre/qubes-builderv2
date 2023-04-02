@@ -20,8 +20,8 @@
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.log import get_logger
+from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
 
 log = get_logger("build")
@@ -49,12 +49,7 @@ class BuildPlugin(DistributionComponentPlugin):
         config: Config,
         manager: PluginManager,
     ):
-        super().__init__(
-            component=component,
-            dist=dist,
-            config=config,
-            manager=manager
-        )
+        super().__init__(component=component, dist=dist, config=config, manager=manager)
 
     def run(self, stage: str):
         self.update_parameters(stage)

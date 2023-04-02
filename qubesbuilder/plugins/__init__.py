@@ -455,3 +455,9 @@ class DEBDistributionPlugin(DistributionPlugin):
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
         return distribution.is_deb()
+
+
+class ArchlinuxDistributionPlugin(DistributionPlugin):
+    @classmethod
+    def supported_distribution(cls, distribution: QubesDistribution):
+        return distribution.is_archlinux()

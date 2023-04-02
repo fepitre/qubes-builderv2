@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2023 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -u -o pipefail
+if [ "${VERBOSE:-0}" -ge 2 ] || [ "${DEBUG:-0}" -eq 1 ]; then
+    set -x
+fi
+
+if [ $# -ne 4 ]; then
+    echo "Usage: $0 input output version release" >&2
+    exit 1
+fi
+
+input="$1"
+output="$2"
+version="$3"
+release="$4"
+
+# Handle the case where PKGBUILD.in (input) does not exist
+# and PKGBUILD does (output).
+if [ ! -e "${input}" ] && [ -e "${output}" ]; then
+    echo "PKGBUILD file '${output}' already exists. Skipping."
+    exit
+fi
+
+cp "$input" "$input.tmp"
+
+# Handle vers ion
+sed -i "s|@VERSION@|$version|g" "$input.tmp"
+# Handle release
+sed -i "s|@REL@|$release|g" "$input.tmp"
+# Handle default backend_vmm
+sed -i -e "s:@BACKEND_VMM@:${BACKEND_VMM:-xen}:g" "$input.tmp"
+
+cat "$input.tmp" > "$output"
+rm -rf "$input.tmp"

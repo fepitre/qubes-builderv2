@@ -1,0 +1,144 @@
+git:
+  baseurl: https://github.com
+  prefix: fepitre/qubes-
+  branch: archlinuxv2
+  maintainers:
+    - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
+    - 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+
+backend-vmm: xen
+debug: true
+verbose: true
+qubes-release: r4.2
+gpg-client: qubes-gpg-client-wrapper
+
+sign-key:
+  rpm: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+  deb: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+  archlinux: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+  iso: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+
+cache:
+  vm-archlinux:
+    packages:
+      - bin86
+      - bridge-utils
+      - conntrack-tools
+      - dconf
+      - desktop-file-utils
+      - dev86
+      - fakeroot
+      - gawk
+      - gcc
+      - git
+      - gnome-packagekit
+      - graphicsmagick
+      - haveged
+      - iasl
+      - iproute2
+      - iptables
+      - librsvg
+      - libsystemd
+      - libutil-linux
+      - libx11
+      - lsb-release
+      - lzo
+      - make
+      - make
+      - networkmanager
+      - nftables
+      - notification-daemon
+      - ntp
+      - openssl
+      - pacman-contrib
+      - pandoc
+      - parted
+      - patch
+      - pixman
+      - pkg-config
+      - procps-ng
+      - python
+      - python-dbus
+      - python-gobject
+      - python-lxml
+      - python-setuptools
+      - python-xdg
+      - sed
+      - shared-mime-info
+      - socat
+      - tinyproxy
+      - wget
+      - xdg-utils
+      - yajl
+      - zenity
+      - blas
+      - cblas
+      - lapack
+      - libimagequant
+      - libraqm
+      - openjpeg2
+      - python-cairo
+      - python-numpy
+      - python-pillow
+
+distributions:
+  - vm-archlinux
+
+templates:
+  - fedora-37:
+      dist: fc37
+
+components:
+  - builder-archlinux:
+      packages: False
+  - vmm-xen
+  - core-vchan-xen
+  - core-qubesdb
+  - core-qrexec
+  - linux-utils
+  - core-agent-linux
+  - gui-common
+  - gui-agent-linux
+  - app-linux-split-gpg
+  - app-linux-input-proxy
+  - app-linux-usb-proxy
+  - meta-packages
+
+less-secure-signed-commits-sufficient:
+  - vmm-xen
+  - core-vchan-xen
+  - core-qubesdb
+  - core-qrexec
+  - linux-utils
+  - core-agent-linux
+  - gui-common
+  - gui-agent-linux
+  - app-linux-split-gpg
+  - app-linux-input-proxy
+  - app-linux-usb-proxy
+  - meta-packages
+
+executor:
+ type: docker
+ options:
+   image: "qubes-builder-fedora:latest"
+
+stages:
+  - fetch
+  - prep
+  - build:
+      executor:
+        type: qubes
+        options:
+          dispvm: "qubes-builder-dvm"
+  - post
+  - verify
+  - sign:
+      executor:
+        type: local
+  - publish:
+      executor:
+        type: local
+  - upload:
+      executor:
+        type: local

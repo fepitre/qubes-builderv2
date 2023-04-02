@@ -29,6 +29,7 @@ def _component_stage(
     Generic function to trigger stage for a standard component
     """
     click.echo(f"Running stage: {stage_name}")
+
     plugins = manager.get_component_instances(
         stage=stage_name,
         components=components,

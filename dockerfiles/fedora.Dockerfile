@@ -6,8 +6,13 @@ RUN dnf -y update && \
     dnf install -y createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder \
         which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml e2fsprogs \
         python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev \
-        tree \
+        tree python3-jinja2-cli pacman m4 asciidoc rsync \
     && dnf clean all
+
+RUN git clone https://gitlab.archlinux.org/archlinux/devtools && \
+	cd devtools && \
+	git checkout 6dd7be3fd4d3104101f5a8bbf0f12fcfe8124fd7 && \
+	make install DESTDIR=/ PREFIX=/usr/local
 
 # Create build user
 RUN useradd -m user
