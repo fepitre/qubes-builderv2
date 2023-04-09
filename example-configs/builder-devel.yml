@@ -27,7 +27,7 @@ sign-key:
 
 # Path relative to qubesbuilder/plugins/installer
 iso:
-  kickstart: conf/iso-full-online.ks
+  kickstart: conf/iso-online.ks
 
 distributions:
   - host-fc37

@@ -378,7 +378,7 @@ qubes-template-whonix-workstation-16:
     - rm -rf artifacts/cache
     - tree artifacts
 
-installer-iso-full-online:
+installer-iso-online-testing:
   variables:
     KICKSTART_FILE: conf/iso-online-testing.ks
     EXPECT_FAILURE: ""
