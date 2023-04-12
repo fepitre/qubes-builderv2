@@ -32,8 +32,6 @@ log = get_logger("executor:qubes")
 
 class QubesExecutor(Executor):
     def __init__(self, dispvm, clean: Union[str, bool] = True, **kwargs):
-        # FIXME: dispvm is the template used for creating a disposable qube.
-        #  It is currently unused and need to be specified when calling qrexec
         self._dispvm = dispvm
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
@@ -129,7 +127,7 @@ class QubesExecutor(Executor):
         dispvm = None
         try:
             result = subprocess.run(
-                ["qrexec-client-vm", "dom0", "admin.vm.CreateDisposable"],
+                ["qrexec-client-vm", self._dispvm, "admin.vm.CreateDisposable"],
                 capture_output=True,
                 stdin=subprocess.DEVNULL,
             )
