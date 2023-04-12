@@ -300,7 +300,7 @@ class InstallerPlugin(DistributionPlugin):
 
             cmd += [" ".join(mock_cmd)]
             cmd += [
-                f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/*/pubring"
+                f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/"
             ]
 
             try:
