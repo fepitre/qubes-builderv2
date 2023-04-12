@@ -23,7 +23,7 @@ $ sudo dnf install python3-packaging createrepo_c devscripts gpg python3-pyyaml 
 Debian:
 
 ```bash
-$ sudo apt install python3-packaging createrepo-c devscripts gpg python3-yaml rpm docker python3-docker reprepro python3-pathspec mktorrent openssl tree python3-setuptools python3-lxml
+$ sudo apt install python3-packaging createrepo-c devscripts gpg python3-yaml rpm docker.io python3-docker reprepro python3-pathspec mktorrent openssl tree python3-setuptools python3-lxml
 ```
 
 If your host OS is Qubes OS, install `qubes-gpg-split`.
