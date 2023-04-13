@@ -36,8 +36,8 @@ chroot_cmd /bin/sh -c "find . -name '*.pkg.tar.*' -print0 | xargs -0 -I {} mv {}
 
 # Generate custom repository metadata based on packages that are available
 # Repo Add need packages to be added in the right version number order as it only keeps the last entered package version
-chroot_cmd /bin/sh -c \
-    'for pkg in `ls -v pkgs/*.pkg.tar.*`; do repo-add pkgs/qubes.db.tar.gz "$pkg"; done;'
+# shellcheck disable=SC2016
+chroot_cmd /bin/sh -c 'for pkg in `ls -v pkgs/*.pkg.tar.*`; do repo-add pkgs/qubes.db.tar.gz "$pkg"; done;'
 
 # Ensure pacman doesn't check for disk free space -- it doesn't work in chroots
 chroot_cmd sed "s/^ *CheckSpace/#CheckSpace/g" -i /etc/pacman.conf

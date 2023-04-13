@@ -40,9 +40,6 @@ fi
 
 SOURCE_DIR="$1"
 ARCHLINUX_DIRECTORY="$2"
-
-DIRECTORY_BN="$(basename "$ARCHLINUX_DIRECTORY")"
-
 DIRECTORY_MANGLE_PATH="${ARCHLINUX_DIRECTORY/$SOURCE_DIR\//}"
 DIRECTORY_MANGLE_PATH="${DIRECTORY_MANGLE_PATH//\//_}"
 PKGBUILD="${ARCHLINUX_DIRECTORY}/PKGBUILD.in"
@@ -51,4 +48,6 @@ if [ ! -e "$PKGBUILD" ] && [ -e "${PKGBUILD//.in}" ]; then
     PKGBUILD="${ARCHLINUX_DIRECTORY}/PKGBUILD"
 fi
 
-(source "${PKGBUILD}" && echo "${pkgname[@]}" | tr ' ' '\n' > "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_packages.list")
+# shellcheck disable=SC1090
+# shellcheck disable=SC2154
+(source "${PKGBUILD}" && echo "${pkgname[@]}" | tr ' ' '\n' > "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_packages.list" 2>$ERR_OUTPUT)
