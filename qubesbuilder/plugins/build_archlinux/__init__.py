@@ -233,23 +233,6 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 for pkg in source_info["packages"]
             ]
 
-            cmd = [
-                "sudo pacman-key --init",
-                "sudo pacman-key --populate",
-            ]
-
-            for file in parameters.get("files", []):
-                fn = os.path.basename(file["url"])
-                if file.get("uncompress", False):
-                    fn = Path(fn).with_suffix("").name
-                cmd.append(
-                    f"mv {executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
-                )
-                if file.get("signature", None):
-                    cmd.append(
-                        f"mv {executor.get_distfiles_dir() / self.component.name / os.path.basename(file['signature'])} {source_dir}"
-                    )
-
             # pacman and makepkg configuration files
             pacman_conf = (
                 f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
@@ -258,7 +241,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             # Host (cage) has access to builder-local repository that will be mounted bind into
             # the archlinux chroot. Configurations will be copied-in by qubes-x86_64-build (archbuild).
-            cmd += [
+            cmd = [
                 f"sudo jinja2 {pacman_conf} -D enable_builder_local=1 -o /usr/local/share/devtools/pacman-qubes.conf",
                 f"sudo cp {makepkg_conf} /usr/local/share/devtools/",
             ]
@@ -282,6 +265,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 # We don't need builder-local to create fresh chroot
                 cmd += [
                     f"sudo jinja2 {pacman_conf} -o /tmp/pacman-qubes.conf",
+                    "sudo pacman-key --init",
+                    "sudo pacman-key --populate",
                 ] + get_archchroot_cmd(
                     executor.get_cache_dir() / "qubes-x86_64/root",
                     "/tmp/pacman-qubes.conf",
@@ -292,6 +277,18 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             cmd += [
                 f"sudo {executor.get_plugins_dir()}/build_archlinux/scripts/update-local-repo.sh {executor.get_cache_dir()}/qubes-x86_64/root {executor.get_repository_dir()}",
             ]
+
+            for file in parameters.get("files", []):
+                fn = os.path.basename(file["url"])
+                if file.get("uncompress", False):
+                    fn = Path(fn).with_suffix("").name
+                cmd.append(
+                    f"mv {executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
+                )
+                if file.get("signature", None):
+                    cmd.append(
+                        f"mv {executor.get_distfiles_dir() / self.component.name / os.path.basename(file['signature'])} {source_dir}"
+                    )
 
             build_command = [
                 f"sudo qubes-x86_64-build -r {executor.get_cache_dir()} -- ",
