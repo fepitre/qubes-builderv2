@@ -84,6 +84,8 @@ generate-container-image:
     - (cd qubes-infrastructure-mirrors; pip3 install .)
     - export "PATH=$PATH:$HOME/.local/bin"
     - export "PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python3.10/site-packages"
+    - docker pull fepitre/qubes-builder-fedora:latest
+    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
 
 pytest:
   extends: .pytest
