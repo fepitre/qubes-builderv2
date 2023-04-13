@@ -89,13 +89,13 @@ def test_qubesbuilder_data():
 def test_parse_config_entry_from_array_01():
     array = [
         "executor:type=qubes",
-        "executor:options:dispvm=qubes-builder-dvm",
+        "executor:options:dispvm=builder-dvm",
         "backend-vmm=kvm",
         "force-fetch=True",
     ]
     parsed_dict = parse_config_from_cli(array)
     expected_dict = {
-        "executor": {"type": "qubes", "options": {"dispvm": "qubes-builder-dvm"}},
+        "executor": {"type": "qubes", "options": {"dispvm": "builder-dvm"}},
         "backend-vmm": "kvm",
         "force-fetch": True,
     }

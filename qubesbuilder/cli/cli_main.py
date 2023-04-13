@@ -281,7 +281,7 @@ Option:
     For example:
         force-fetch=true
         executor:type=qubes
-        executor:options:dispvm=qubes-builder-dvm
+        executor:options:dispvm=builder-dvm
         components+lvm2
         components+kernel:branch=stable-5.15
 
