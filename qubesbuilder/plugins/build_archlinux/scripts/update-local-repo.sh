@@ -17,6 +17,7 @@ chroot_cmd() {
     systemd-nspawn --directory="$CHROOT_DIR" \
         --keep-unit \
         --register=no \
+        --as-pid2 \
         --bind="${BUILDER_REPO_DIR}":"/builder/repository" \
         --chdir=/builder/repository \
         "$@"
