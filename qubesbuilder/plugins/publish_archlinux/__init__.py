@@ -68,14 +68,14 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         # Read information from build stage
         build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
 
-        if not build_info.get("pkgs", None):
+        if not build_info.get("packages", None):
             log.info(f"{self.component}:{self.dist}:{directory}: Nothing to publish.")
             return
 
         log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
 
         packages_list = [
-            build_artifacts_dir / "pkgs" / pkg for pkg in build_info["pkgs"]
+            build_artifacts_dir / "pkgs" / pkg for pkg in build_info["packages"]
         ]
 
         # Verify signatures (sanity check, refuse to publish if packages weren't signed)
@@ -129,14 +129,14 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         # Read information from build stage
         build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
 
-        if not build_info.get("pkgs", None):
+        if not build_info.get("packages", None):
             log.info(f"{self.component}:{self.dist}:{directory}: Nothing to unpublish.")
             return
 
         log.info(f"{self.component}:{self.dist}:{directory}: Unpublishing packages.")
 
         packages_list = [
-            build_artifacts_dir / "pkgs" / pkg for pkg in build_info["pkgs"]
+            build_artifacts_dir / "pkgs" / pkg for pkg in build_info["packages"]
         ]
 
         # Unpublishing packages

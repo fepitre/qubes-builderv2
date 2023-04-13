@@ -119,12 +119,12 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
                 stage="build", basename=directory_bn
             )
 
-            if not build_info.get("pkgs", None):
+            if not build_info.get("packages", None):
                 log.info(f"{self.component}:{self.dist}:{directory}: Nothing to sign.")
                 continue
 
             packages_list = [
-                build_artifacts_dir / "pkgs" / pkg for pkg in build_info["pkgs"]
+                build_artifacts_dir / "pkgs" / pkg for pkg in build_info["packages"]
             ]
 
             try:

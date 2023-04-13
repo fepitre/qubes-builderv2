@@ -252,14 +252,14 @@ def test_dist_unknown_package_set():
     with pytest.raises(DistributionError) as e:
         QubesDistribution("notset-fc42")
 
-    msg = "Unknown package set 'notset'"
+    msg = "Please specify package set either 'host' or 'vm'."
     assert str(e.value) == msg
 
 
 def test_dist_unknown():
     with pytest.raises(DistributionError) as e:
         QubesDistribution("host-lfs")
-    msg = "Unsupported distribution 'host-lfs'"
+    msg = "Unsupported distribution 'host-lfs'."
     assert str(e.value) == msg
 
 

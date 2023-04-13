@@ -172,6 +172,7 @@ def test_component_fetch(artifacts_dir):
         "core-vchan-xen",
         "desktop-linux-xfce4-xfwm4",
         "python-qasync",
+        "app-linux-split-gpg",
     ]:
         assert (artifacts_dir / "sources" / component / ".qubesbuilder").exists()
 
@@ -188,6 +189,7 @@ def test_component_fetch_updating(artifacts_dir):
         "python-qasync: source already fetched. Updating.",
         "core-vchan-xen: source already fetched. Updating.",
         "core-qrexec: source already fetched. Updating.",
+        "app-linux-split-gpg: source already fetched. Updating.",
         "desktop-linux-xfce4-xfwm4: source already fetched. Updating.",
         "python-qasync: file qasync-0.23.0.tar.gz already downloaded. Skipping.",
         "desktop-linux-xfce4-xfwm4: file xfwm4-4.14.2.tar.bz2 already downloaded. Skipping.",
@@ -279,9 +281,7 @@ def test_component_build_host_fc37(artifacts_dir):
     srpm = "qubes-core-qrexec-4.2.2-1.fc37.src.rpm"
 
     for rpm in rpms.union({srpm}):
-        assert (
-            artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm
-        ).exists()
+        assert (artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm).exists()
 
     assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
@@ -301,9 +301,7 @@ def test_component_build_host_fc37(artifacts_dir):
     srpm = "qubes-core-qrexec-dom0-4.2.2-1.fc37.src.rpm"
 
     for rpm in rpms.union({srpm}):
-        assert (
-            artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm
-        ).exists()
+        assert (artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm).exists()
 
     assert set(info.get("rpms", [])) == rpms
     assert HASH_RE.match(info.get("source-hash", None))
@@ -926,6 +924,7 @@ def test_component_build_vm_bullseye(artifacts_dir):
         )
         assert result.returncode == 0
 
+
 def test_component_sign_vm_bullseye(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -1357,9 +1356,7 @@ def test_increment_component_build(artifacts_dir):
     srpm = "qubes-core-qrexec-4.2.2-1.42.fc37.src.rpm"
 
     for rpm in rpms.union({srpm}):
-        assert (
-            artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm
-        ).exists()
+        assert (artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm).exists()
 
     rpms = {
         "qubes-core-qrexec-dom0-4.2.2-1.42.fc37.x86_64.rpm",
@@ -1369,9 +1366,7 @@ def test_increment_component_build(artifacts_dir):
     srpm = "qubes-core-qrexec-dom0-4.2.2-1.42.fc37.src.rpm"
 
     for rpm in rpms.union({srpm}):
-        assert (
-            artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm
-        ).exists()
+        assert (artifacts_dir / "repository/host-fc37/core-qrexec_4.2.2" / rpm).exists()
 
     deb_files = [
         "libqrexec-utils-dev_4.2.2-1+deb11u1+devel42_amd64.deb",
@@ -1390,6 +1385,273 @@ def test_increment_component_build(artifacts_dir):
     for file in deb_files:
         assert (
             artifacts_dir / "repository/vm-bullseye/core-qrexec_4.2.2" / file
+        ).exists()
+
+
+#
+# Pipeline for app-linux-split-gpg and vm-archlinux
+#
+
+
+def test_component_prep_vm_archlinux(artifacts_dir):
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-c",
+        "app-linux-split-gpg",
+        "-d",
+        "vm-archlinux",
+        "package",
+        "prep",
+    )
+
+    with open(
+        artifacts_dir
+        / "components/app-linux-split-gpg/2.0.66-1/vm-archlinux/prep/archlinux.prep.yml"
+    ) as f:
+        info = yaml.safe_load(f.read())
+
+    assert info.get("packages", []) == ["qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"]
+    assert info.get("source-archive", None) == "qubes-gpg-split-2.0.66-1.tar.gz"
+    assert HASH_RE.match(info.get("source-hash", None))
+
+
+def test_component_build_vm_archlinux(artifacts_dir):
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-c",
+        "app-linux-split-gpg",
+        "-d",
+        "vm-archlinux",
+        "package",
+        "build",
+    )
+
+    with open(
+        artifacts_dir
+        / "components/app-linux-split-gpg/2.0.66-1/vm-archlinux/build/archlinux.build.yml"
+    ) as f:
+        info = yaml.safe_load(f.read())
+
+    assert info.get("packages", []) == ["qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"]
+    assert info.get("source-archive", None) == "qubes-gpg-split-2.0.66-1.tar.gz"
+    assert HASH_RE.match(info.get("source-hash", None))
+
+    pkg_path = (
+        artifacts_dir
+        / f"components/app-linux-split-gpg/2.0.66-1/vm-archlinux/build/pkgs/qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"
+    )
+    assert pkg_path.exists()
+
+
+def test_component_sign_vm_archlinux(artifacts_dir):
+    env = os.environ.copy()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        gnupghome = f"{tmpdir}/.gnupg"
+        # Better copy testing keyring into a separate directory to prevent locks inside
+        # local sources (when executed locally).
+        shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+        os.chmod(gnupghome, 0o700)
+        # Enforce keyring location
+        env["GNUPGHOME"] = gnupghome
+        # We prevent rpm to find ~/.rpmmacros
+        env["HOME"] = tmpdir
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "app-linux-split-gpg",
+            "-d",
+            "vm-archlinux",
+            "package",
+            "sign",
+            env=env,
+        )
+        pkgs_dir = artifacts_dir / "components/app-linux-split-gpg/2.0.66-1/vm-archlinux/build/pkgs"
+        pkg_path = pkgs_dir / "qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"
+        pkg_sig_path = pkgs_dir / "qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst.sig"
+        assert pkg_path.exists()
+        assert pkg_sig_path.exists()
+
+        subprocess.run(
+            f"gpg2 -q --verify {pkg_sig_path} {pkg_path}",
+            check=True,
+            capture_output=True,
+            shell=True,
+            env=env,
+        )
+
+
+def test_component_publish_vm_archlinux(artifacts_dir):
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        gnupghome = f"{tmpdir}/.gnupg"
+        shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+        os.chmod(gnupghome, 0o700)
+
+        env["GNUPGHOME"] = gnupghome
+        env["HOME"] = tmpdir
+
+        # publish into unstable
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "app-linux-split-gpg",
+            "-d",
+            "vm-archlinux",
+            "repository",
+            "publish",
+            "unstable",
+            env=env,
+        )
+
+        with open(
+            artifacts_dir
+            / "components/app-linux-split-gpg/2.0.66-1/vm-archlinux/publish/archlinux.publish.yml"
+        ) as f:
+            info = yaml.safe_load(f.read())
+
+        assert info.get("packages", []) == [
+            "qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"
+        ]
+        assert HASH_RE.match(info.get("source-hash", None))
+        assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
+
+        # publish into current-testing
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "app-linux-split-gpg",
+            "-d",
+            "vm-archlinux",
+            "repository",
+            "publish",
+            "current-testing",
+            env=env,
+        )
+        with open(
+            artifacts_dir
+            / "components/app-linux-split-gpg/2.0.66-1/vm-archlinux/publish/archlinux.publish.yml"
+        ) as f:
+            info = yaml.safe_load(f.read())
+
+        assert info.get("packages", []) == [
+            "qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"
+        ]
+        assert HASH_RE.match(info.get("source-hash", None))
+        assert set([r["name"] for r in info.get("repository-publish", [])]) == {
+            "unstable",
+            "current-testing",
+        }
+
+        # publish into current
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
+        publish_file = (
+            artifacts_dir
+            / "components/app-linux-split-gpg/2.0.66-1/vm-archlinux/publish/archlinux.publish.yml"
+        )
+
+        for r in info["repository-publish"]:
+            if r["name"] == "current-testing":
+                r["timestamp"] = fake_time
+                break
+
+        with open(publish_file, "w") as f:
+            f.write(yaml.safe_dump(info))
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "app-linux-split-gpg",
+            "-d",
+            "vm-archlinux",
+            "repository",
+            "publish",
+            "current",
+            env=env,
+        )
+        with open(publish_file) as f:
+            info = yaml.safe_load(f.read())
+
+        assert info.get("packages", []) == [
+            "qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"
+        ]
+        assert HASH_RE.match(info.get("source-hash", None))
+        assert set([r["name"] for r in info.get("repository-publish", [])]) == {
+            "unstable",
+            "current-testing",
+            "current",
+        }
+
+        qubesdb = (
+            artifacts_dir
+            / f"repository-publish/archlinux/r4.2/current/vm/pkgs/qubes.db.tar.gz"
+        )
+        assert qubesdb.exists()
+
+
+def test_component_upload_vm_archlinux(artifacts_dir):
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        gnupghome = f"{tmpdir}/.gnupg"
+        shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+        os.chmod(gnupghome, 0o700)
+        builder_conf = tmpdir + "/builder.yml"
+        with open(builder_conf, "w") as builder_f:
+            builder_f.write(DEFAULT_BUILDER_CONF.read_text())
+            builder_f.write(
+                f"""
+repository-upload-remote-host:
+ rpm: {tmpdir}/repo/rpm/r4.2
+ deb: {tmpdir}/repo/deb/r4.2
+ archlinux: {tmpdir}/repo/archlinux/r4.2
+"""
+            )
+
+        env["GNUPGHOME"] = gnupghome
+        env["HOME"] = tmpdir
+
+        # upload into unstable, only vm-archlinux
+        qb_call(
+            builder_conf,
+            artifacts_dir,
+            "-c",
+            "app-linux-split-gpg",
+            "-d",
+            "vm-archlinux",
+            "repository",
+            "upload",
+            "unstable",
+            env=env,
+        )
+
+        assert (
+            pathlib.Path(tmpdir)
+            / f"repo/archlinux/r4.2/unstable/vm/archlinux/pkgs/qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"
+        ).exists()
+
+        assert (
+            pathlib.Path(tmpdir)
+            / f"repo/archlinux/r4.2/unstable/vm/archlinux/pkgs/qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst.sig"
+        ).exists()
+
+        assert (
+            pathlib.Path(tmpdir)
+            / f"repo/archlinux/r4.2/unstable/vm/archlinux/pkgs/qubes.db.tar.gz"
+        ).exists()
+
+        # vm-fc36 shouldn't exist, as nothing was published into it
+        assert not (pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/vm/fc36").exists()
+
+        # and vm-bullseye same
+        assert not (
+            pathlib.Path(tmpdir) / f"repo/deb/r4.2/vm/dists/bullseye-unstable"
         ).exists()
 
 
@@ -1584,7 +1846,7 @@ def test_template_publish_fedora_36_xfce(artifacts_dir):
         )
 
 
-#@pytest.mark.depends(on=['test_template_publish_fedora_36_xfce'])
+# @pytest.mark.depends(on=['test_template_publish_fedora_36_xfce'])
 def test_template_publish_new_fedora_36_xfce(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -1595,15 +1857,13 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
         env["GNUPGHOME"] = gnupghome
         env["HOME"] = tmpdir
 
-        with open(
-                artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
+        with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
         # bump timestamp, without re-running "prep" stage
-        new_timestamp = str(int(template_timestamp)+1)
-        with open(
-                artifacts_dir / "templates/build_timestamp_fedora-36-xfce", "w") as f:
+        new_timestamp = str(int(template_timestamp) + 1)
+        with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce", "w") as f:
             f.write(new_timestamp)
 
         qb_call(
@@ -1622,8 +1882,8 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
         )
 
         rpm_path = (
-                artifacts_dir
-                / f"templates/rpm/qubes-template-fedora-36-xfce-4.1.0-{new_timestamp}.noarch.rpm"
+            artifacts_dir
+            / f"templates/rpm/qubes-template-fedora-36-xfce-4.1.0-{new_timestamp}.noarch.rpm"
         )
         assert rpm_path.exists()
 

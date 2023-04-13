@@ -200,7 +200,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             # Read information from source stage
             source_info = self.get_dist_artifacts_info(stage="prep", basename=build_bn)
 
-            if not source_info.get("pkgs", None):
+            if not source_info.get("packages", None):
                 raise BuildError(
                     f"Cannot find PKGs for '{build}'. Missing 'prep' stage call?"
                 )
@@ -230,7 +230,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             copy_out = [
                 (executor.get_builder_dir() / source_dir / pkg, pkgs_dir)
-                for pkg in source_info["pkgs"]
+                for pkg in source_info["packages"]
             ]
 
             cmd = [
@@ -309,14 +309,14 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             # Get packages list that have been actually built from predicted ones
             packages_list = []
-            for pkg in source_info["pkgs"]:
+            for pkg in source_info["packages"]:
                 if os.path.exists(pkgs_dir / pkg):
                     packages_list.append(pkg)
 
             info = source_info
             info.update(
                 {
-                    "pkgs": packages_list,
+                    "packages": packages_list,
                     "source-hash": self.component.get_source_hash(),
                 }
             )

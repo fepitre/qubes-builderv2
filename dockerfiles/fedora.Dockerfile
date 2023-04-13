@@ -9,10 +9,12 @@ RUN dnf -y update && \
         tree python3-jinja2-cli pacman m4 asciidoc rsync \
     && dnf clean all
 
+# Install devtools for Archlinux
 RUN git clone https://gitlab.archlinux.org/archlinux/devtools && \
 	cd devtools && \
 	git checkout 6dd7be3fd4d3104101f5a8bbf0f12fcfe8124fd7 && \
-	make install DESTDIR=/ PREFIX=/usr/local
+	make install DESTDIR=/ PREFIX=/usr/local && \
+	ln -s /usr/local/bin/archbuild /usr/local/bin/qubes-x86_64-build
 
 # Create build user
 RUN useradd -m user

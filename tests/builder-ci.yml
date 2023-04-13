@@ -19,6 +19,7 @@ gpg-client: gpg
 sign-key:
   rpm: 632F8C69E01B25C9E0C3ADF2F360C0D259FB650C
   deb: 632F8C69E01B25C9E0C3ADF2F360C0D259FB650C
+  archlinux: 632F8C69E01B25C9E0C3ADF2F360C0D259FB650C
   iso: 632F8C69E01B25C9E0C3ADF2F360C0D259FB650C
 
 iso:
@@ -29,6 +30,7 @@ distributions:
   - vm-bullseye
   - vm-fc36
   - vm-centos-stream8
+  - vm-archlinux
 
 components:
   - builder-rpm:
@@ -59,6 +61,11 @@ components:
   - desktop-linux-xfce4-xfwm4:
       url: https://github.com/fepitre/qubes-desktop-linux-xfce4-xfwm4
       branch: builderv2
+      maintainers:
+        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
+  - app-linux-split-gpg:
+      url: https://github.com/fepitre/qubes-app-linux-split-gpg
+      branch: archlinuxv2
       maintainers:
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
 
@@ -94,6 +101,7 @@ less-secure-signed-commits-sufficient:
   - core-vchan-xen
   - core-qrexec
   - desktop-linux-xfce4-xfwm4
+  - app-linux-split-gpg
 
 repository-publish:
   components: current-testing

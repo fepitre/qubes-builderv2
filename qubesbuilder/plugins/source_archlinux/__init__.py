@@ -211,7 +211,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 info = fetch_info
                 info.update(
                     {
-                        "pkgs": packages_list,
+                        "packages": packages_list,
                         "source-hash": self.component.get_source_hash(),
                     }
                 )

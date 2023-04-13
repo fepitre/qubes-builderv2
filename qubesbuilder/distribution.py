@@ -39,16 +39,12 @@ class QubesDistribution:
     def __init__(self, distribution: str):
         self.distribution = distribution
         if not distribution.startswith("vm-") and not distribution.startswith("host-"):
-            raise DistributionError(
-                f"Invalid distribution format provided. Please specify package set."
-            )
+            raise DistributionError("Please specify package set either 'host' or 'vm'.")
         self.package_set, self.name = distribution.split("-", 1)
         if self.name == self.name.split(".")[0]:
             self.architecture = "x86_64"
         else:
             self.name, self.architecture = self.name.split(".", 1)
-        if self.package_set not in ("host", "vm"):
-            raise DistributionError(f"Unknown package set '{self.package_set}'.")
 
         self.version = None
         is_fedora = FEDORA_RE.match(self.name)
