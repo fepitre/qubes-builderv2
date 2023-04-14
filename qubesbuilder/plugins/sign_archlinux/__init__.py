@@ -133,7 +133,7 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
                         f"{self.component}:{self.dist}:{directory}: Signing '{pkg.name}'."
                     )
                     cmd = [
-                        f"{self.config.gpg_client} --detach-sign -u {sign_key} {pkg} > {pkg}.sig",
+                        f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign -u {sign_key} {pkg} > {pkg}.sig",
                     ]
                     executor.run(cmd)
             except ExecutorError as e:
