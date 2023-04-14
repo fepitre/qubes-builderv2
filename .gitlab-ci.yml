@@ -250,6 +250,9 @@ cache-vm-centos-stream8:
 cache-vm-bullseye:
   extends: .init_cache_job
 
+cache-vm-archlinux:
+  extends: .init_cache_job
+
 # Podman executor
 
 podman-host-fc37:
@@ -291,6 +294,11 @@ docker-vm-bullseye:
   extends: .component_docker_job
   needs:
     - cache-vm-bullseye
+
+docker-vm-archlinux:
+  extends: .component_docker_job
+  needs:
+    - cache-vm-archlinux
 
 # Qubes executor
 
