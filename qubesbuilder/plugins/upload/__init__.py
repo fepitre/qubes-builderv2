@@ -53,7 +53,11 @@ class UploadPlugin(DistributionPlugin):
 
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
-        return distribution.is_rpm() or distribution.is_deb()
+        return (
+            distribution.is_rpm()
+            or distribution.is_deb()
+            or distribution.is_archlinux()
+        )
 
     def run(self, stage: str, repository_publish: str = None):
         if stage != "upload":
@@ -83,7 +87,7 @@ class UploadPlugin(DistributionPlugin):
             )
             # Repository dir relative to local path that will be the same on remote host
             directories_to_upload = []
-            if self.dist.is_rpm():
+            if self.dist.is_rpm() or self.dist.is_archlinux():
                 directories_to_upload.append(
                     f"{repository_publish}/{self.dist.package_set}/{self.dist.name}"
                 )

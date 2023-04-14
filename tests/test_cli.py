@@ -1470,7 +1470,10 @@ def test_component_sign_vm_archlinux(artifacts_dir):
             "sign",
             env=env,
         )
-        pkgs_dir = artifacts_dir / "components/app-linux-split-gpg/2.0.66-1/vm-archlinux/build/pkgs"
+        pkgs_dir = (
+            artifacts_dir
+            / "components/app-linux-split-gpg/2.0.66-1/vm-archlinux/build/pkgs"
+        )
         pkg_path = pkgs_dir / "qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst"
         pkg_sig_path = pkgs_dir / "qubes-gpg-split-2.0.66-1-x86_64.pkg.tar.zst.sig"
         assert pkg_path.exists()
@@ -1591,7 +1594,7 @@ def test_component_publish_vm_archlinux(artifacts_dir):
 
         qubesdb = (
             artifacts_dir
-            / f"repository-publish/archlinux/r4.2/current/vm/pkgs/qubes.db.tar.gz"
+            / f"repository-publish/archlinux/r4.2/current/vm/archlinux/pkgs/qubes.db.tar.gz"
         )
         assert qubesdb.exists()
 

@@ -137,7 +137,7 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
                     ]
                     executor.run(cmd)
             except ExecutorError as e:
-                msg = f"{self.component}:{self.dist}:{directory}: Failed to sign RPMs."
+                msg = f"{self.component}:{self.dist}:{directory}: Failed to sign PKGs."
                 raise SignError(msg) from e
 
 
