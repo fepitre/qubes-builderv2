@@ -122,7 +122,7 @@ pytest-cli-template:
   before_script:
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
-    - sudo dnf install -y python3-debian dpkg-dev openssl tree
+    - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   script:
     - cp tests/builder-ci.yml builder.yml
     - ./qb -d "${CI_JOB_NAME#cache-}" package init-cache
@@ -142,10 +142,10 @@ pytest-cli-template:
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
     - tar xf artifacts.tar.xz
-    - sudo dnf install -y python3-debian dpkg-dev openssl tree
+    - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   script:
     - cp tests/builder-ci.yml builder.yml
-    - ./qb -d "${CI_JOB_NAME#docker-}" package all
+    - ./qb -d "${CI_JOB_NAME#docker-}" ${QB_EXTRA_ARGS} package all
   after_script:
     - rm -rf artifacts/cache
     - tree artifacts
@@ -169,11 +169,11 @@ pytest-cli-template:
     - podman pull docker.io/fepitre/qubes-builder-fedora:latest
     - podman tag docker.io/fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
     - tar xf artifacts.tar.xz
-    - sudo dnf install -y python3-debian dpkg-dev openssl tree
+    - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/podman/' builder.yml
-    - ./qb -d "${CI_JOB_NAME#podman-}" package all
+    - ./qb -d "${CI_JOB_NAME#podman-}" ${QB_EXTRA_ARGS} package all
   after_script:
     - rm -rf artifacts/cache
     - tree artifacts
@@ -190,11 +190,11 @@ pytest-cli-template:
     - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - tar xf artifacts.tar.xz
-    - sudo dnf install -y python3-debian dpkg-dev openssl tree
+    - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   script:
     - cp tests/builder-ci.yml builder.yml
     - sed -i 's/docker/qubes/' builder.yml
-    - ./qb -d "${CI_JOB_NAME#qubes-}" --option executor:type=qubes --option executor:options:dispvm=builder-dvm package all
+    - ./qb -d "${CI_JOB_NAME#qubes-}" --option executor:type=qubes --option executor:options:dispvm=builder-dvm ${QB_EXTRA_ARGS} package all
   after_script:
     - rm -rf artifacts/cache
     - tree artifacts
@@ -211,10 +211,10 @@ pytest-cli-template:
     - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - tar xf artifacts.tar.xz
-    - sudo dnf install -y python3-debian dpkg-dev openssl tree
+    - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   script:
     - cp tests/builder-ci.yml builder.yml
-    - ./qb -d "${CI_JOB_NAME#local-}" --option executor:type=local --option executor:options:directory=/home/gitlab-runner/tmp package all
+    - ./qb -d "${CI_JOB_NAME#local-}" --option executor:type=local --option executor:options:directory=/home/gitlab-runner/tmp ${QB_EXTRA_ARGS} package all
   after_script:
     - rm -rf artifacts/cache
     - tree artifacts
@@ -226,7 +226,7 @@ pytest-cli-template:
   before_script:
     - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
-    - sudo dnf install -y python3-debian dpkg-dev openssl tree
+    - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   script:
     - cp tests/builder-ci.yml builder.yml
     - ./qb -c builder-rpm -c builder-debian -c template-whonix package fetch
@@ -297,6 +297,8 @@ docker-vm-bullseye:
 
 docker-vm-archlinux:
   extends: .component_docker_job
+  variables:
+    QB_EXTRA_ARGS: "-o +components+vmm-xen:branch=archlinuxv2 -o +components+vmm-xen:url=https://github.com/fepitre/qubes-vmm-xen -c vmm-xen -c core-vchan-xen"
   needs:
     - cache-vm-archlinux
 

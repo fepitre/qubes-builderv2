@@ -1,6 +1,8 @@
 git:
   baseurl: https://github.com
   prefix: QubesOS/qubes-
+  maintainers:
+    - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
 
 backend-vmm: xen
 
@@ -46,28 +48,18 @@ components:
   - python-qasync:
       url: https://github.com/fepitre/qubes-python-qasync
       branch: builderv2
-      maintainers:
-        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - core-vchan-xen:
       url: https://github.com/fepitre/qubes-core-vchan-xen
       branch: archlinuxv2
-      maintainers:
-        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - core-qrexec:
       url: https://github.com/fepitre/qubes-core-qrexec
       branch: archlinuxv2
-      maintainers:
-        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - desktop-linux-xfce4-xfwm4:
       url: https://github.com/fepitre/qubes-desktop-linux-xfce4-xfwm4
       branch: builderv2
-      maintainers:
-        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - app-linux-split-gpg:
       url: https://github.com/fepitre/qubes-app-linux-split-gpg
       branch: archlinuxv2
-      maintainers:
-        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
 
 templates:
   - fedora-36-xfce:
@@ -102,6 +94,7 @@ less-secure-signed-commits-sufficient:
   - core-qrexec
   - desktop-linux-xfce4-xfwm4
   - app-linux-split-gpg
+  - vmm-xen
 
 repository-publish:
   components: current-testing
