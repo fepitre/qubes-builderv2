@@ -50,12 +50,12 @@ components:
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - core-vchan-xen:
       url: https://github.com/fepitre/qubes-core-vchan-xen
-      branch: builderv2
+      branch: archlinuxv2
       maintainers:
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - core-qrexec:
-      url: https://github.com/qubesos/qubes-core-qrexec
-      branch: v4.2.2
+      url: https://github.com/fepitre/qubes-core-qrexec
+      branch: archlinuxv2
       maintainers:
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
   - desktop-linux-xfce4-xfwm4:
