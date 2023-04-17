@@ -31,7 +31,7 @@ log = get_logger("executor:qubes")
 
 
 class QubesExecutor(Executor):
-    def __init__(self, dispvm, clean: Union[str, bool] = True, **kwargs):
+    def __init__(self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs):
         self._dispvm = dispvm
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
