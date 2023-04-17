@@ -256,11 +256,20 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 log.info(
                     f"{self.component}:{self.dist}: Chroot cache exists. Will use it."
                 )
+
                 copy_in += [(chroot_dir / chroot_archive, executor.get_cache_dir())]
+
                 cmd += [
                     f"sudo mkdir -p {executor.get_cache_dir()}/qubes-x86_64",
                     f"cd {executor.get_cache_dir()}/qubes-x86_64",
                     f"sudo tar xvf {executor.get_cache_dir() / chroot_archive}",
+                ]
+
+                # Ensure to regenerate pacman keyring
+                cmd += [
+                    "sudo rm -rf /etc/pacman.d/gnupg/private-keys-v1.d",
+                    "sudo pacman-key --init",
+                    "sudo pacman-key --populate",
                 ]
             else:
                 log.info(
@@ -269,8 +278,6 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 # We don't need builder-local to create fresh chroot
                 cmd += [
                     f"sudo jinja2 {pacman_conf} -o /tmp/pacman-qubes.conf",
-                    "sudo pacman-key --init",
-                    "sudo pacman-key --populate",
                 ] + get_archchroot_cmd(
                     executor.get_cache_dir() / "qubes-x86_64/root",
                     "/tmp/pacman-qubes.conf",

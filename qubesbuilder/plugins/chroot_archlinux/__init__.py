@@ -43,6 +43,7 @@ def get_archchroot_cmd(chroot_dir, pacman_conf, makepkg_conf, additional_package
     ] + additional_packages
 
     cmd += [
+        "sudo rm -rf /etc/pacman.d/gnupg/private-keys-v1.d",
         "sudo pacman-key --init",
         "sudo pacman-key --populate",
         f"mkdir -p {chroot_dir.parent}",
