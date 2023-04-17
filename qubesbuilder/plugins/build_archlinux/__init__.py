@@ -26,6 +26,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
+from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin
@@ -156,6 +157,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
         executor = self.config.get_executor_from_config(stage)
         parameters = self.get_parameters(stage)
+
+        if isinstance(executor, LocalExecutor):
+            raise BuildError("This plugin does not yet support local executor.")
 
         artifacts_dir = self.get_dist_component_artifacts_dir(stage)
         distfiles_dir = self.get_component_distfiles_dir()
