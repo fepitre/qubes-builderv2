@@ -180,7 +180,7 @@ class ContainerExecutor(Executor):
                         "type": "bind",
                         "source": "/dev/loop-control",
                         "target": "/dev/loop-control",
-                    }
+                    },
                 ]
                 container = client.containers.create(
                     image,
