@@ -19,6 +19,7 @@
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path, PurePath
+import tempfile
 from typing import List, Tuple, Union
 
 from qubesbuilder.common import sanitize_line, str_to_bool
@@ -98,8 +99,21 @@ class ContainerExecutor(Executor):
         src = source_path.resolve()
         dst = destination_dir.as_posix()
 
-        cmd = [self._container_client, "cp", str(src), f"{container.id}:{dst}"]
         try:
+            # docker doesn't create parent target dirs on copy (similar to `cp`), do that first
+            with tempfile.TemporaryDirectory() as empty_dir:
+                for parent in list(reversed(destination_dir.parents)) + [
+                    destination_dir
+                ]:
+                    cmd = [
+                        self._container_client,
+                        "cp",
+                        f"{empty_dir!s}/.",
+                        f"{container.id}:{parent}",
+                    ]
+                    log.debug(f"copy-in (cmd): {' '.join(cmd)}")
+                    subprocess.run(cmd, check=True, capture_output=True)
+            cmd = [self._container_client, "cp", str(src), f"{container.id}:{dst}"]
             log.debug(f"copy-in (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
@@ -119,6 +133,7 @@ class ContainerExecutor(Executor):
         cmd = [self._container_client, "cp", f"{container.id}:{src}", str(dst)]
         try:
             log.debug(f"copy-out (cmd): {' '.join(cmd)}")
+            dst.mkdir(parents=True, exist_ok=True)
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
             if e.stderr is not None:
