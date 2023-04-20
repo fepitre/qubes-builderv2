@@ -79,6 +79,7 @@ generate-container-image:
     PYTEST_ARGS: -v --color=yes --showlocals --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
   # https://gitlab.com/gitlab-org/gitlab/-/issues/15603
   before_script:
+    - sudo dnf install -y python3-pip python3-pytest-cov python3-pytest
     - rm -rf ~/pytest-of-user/
     - git clone https://github.com/qubesos/qubes-infrastructure-mirrors
     - (cd qubes-infrastructure-mirrors; pip3 install .)
