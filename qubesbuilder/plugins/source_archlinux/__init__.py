@@ -109,6 +109,10 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
             # spec file basename will be used as prefix for some artifacts
             build_bn = build.mangle()
 
+            if not (self.component.source_dir / build / "PKGBUILD.in").exists():
+                msg = f"{self.component}:{self.dist}:{build}: Cannot find PKGBUILD.in."
+                raise SourceError(msg)
+
             # Generate packages list
             copy_in = [
                 (self.component.source_dir, executor.get_builder_dir()),
