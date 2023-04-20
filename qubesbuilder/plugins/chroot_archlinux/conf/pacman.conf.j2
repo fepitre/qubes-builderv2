@@ -57,3 +57,13 @@ Include = /etc/pacman.d/mirrorlist
 SigLevel = Optional TrustAll
 Server = file:///builder/repository/pkgs
 {% endif %}
+
+{% if use_qubes_repo_version %}
+[qubes-r{{use_qubes_repo_version}}-current]
+Server = https://archlinux.qubes-os.org/r{{use_qubes_repo_version}}/current/vm/archlinux/pkgs
+{% endif %}
+
+{% if use_qubes_repo_testing == "1" %}
+[qubes-r{{use_qubes_repo_version}}-current-testing]
+Server = https://archlinux.qubes-os.org/r{{use_qubes_repo_version}}/current-testing/vm/archlinux/pkgs
+{% endif %}
