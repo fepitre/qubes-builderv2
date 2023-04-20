@@ -126,11 +126,7 @@ executor:
 stages:
   - fetch
   - prep
-  - build:
-      executor:
-        type: qubes
-        options:
-          dispvm: "qubes-builder-dvm"
+  - build
   - post
   - verify
   - sign:
