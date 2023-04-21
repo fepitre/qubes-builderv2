@@ -15,7 +15,7 @@ qubes-release: r4.2
 min-age-days: 3
 
 use-qubes-repo:
-  version: 4.1
+  version: 4.2
   testing: false
 
 gpg-client: qubes-gpg-client-wrapper
@@ -59,13 +59,10 @@ artifacts-dir: /home/user/qubes-builderv2/artifacts
 
 components:
   - builder-rpm:
-      branch: builderv2
       packages: False
   - builder-debian:
-      branch: builderv2
       packages: False
   - template-whonix:
-      branch: builderv2
       packages: False
   - lvm2
   - vmm-xen
