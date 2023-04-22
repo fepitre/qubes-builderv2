@@ -305,7 +305,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             if self.config.use_qubes_repo.get("version", None):
                 files_inside_executor_with_placeholders += [
-                    executor.get_plugins_dir() / "chroot_archlinux/scripts/add-qubes-repository-key"
+                    executor.get_plugins_dir()
+                    / "chroot_archlinux/scripts/add-qubes-repository-key"
                 ]
                 cmd += [
                     f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/add-qubes-repository-key"
