@@ -281,7 +281,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 cmd += [
                     f"sudo mkdir -p {executor.get_cache_dir()}/qubes-x86_64",
                     f"cd {executor.get_cache_dir()}/qubes-x86_64",
-                    f"sudo tar xvf {executor.get_cache_dir() / chroot_archive}",
+                    f"sudo tar xf {executor.get_cache_dir() / chroot_archive}",
                 ]
 
                 # Ensure to regenerate pacman keyring
