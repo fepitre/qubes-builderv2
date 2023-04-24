@@ -17,7 +17,7 @@ variables:
 
 lint:
   stage: test
-  image: fedora:latest
+  image: fedora:37
   tags:
     - docker
   before_script:
@@ -27,7 +27,7 @@ lint:
 
 mypy:
   stage: test
-  image: fedora:latest
+  image: fedora:37
   tags:
     - docker
   before_script:
@@ -41,7 +41,7 @@ mypy:
 
 shellcheck:
   stage: test
-  image: fedora:latest
+  image: fedora:37
   tags:
     - docker
   before_script:
