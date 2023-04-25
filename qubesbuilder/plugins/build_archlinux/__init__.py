@@ -209,6 +209,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     f"Cannot find PKGs for '{build}'. Missing 'prep' stage call?"
                 )
 
+            files_inside_executor_with_placeholders = []
+
             # Copy-in source
             copy_in = [
                 (self.component.source_dir, executor.get_builder_dir()),
@@ -218,6 +220,11 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 (
                     self.manager.entities["build_archlinux"].directory,
                     executor.get_plugins_dir(),
+                ),
+                (
+                    self.manager.entities["chroot_archlinux"].directory
+                    / "keys/qubes-repo-archlinux-key.asc",
+                    executor.get_builder_dir(),
                 ),
             ] + [
                 (
@@ -245,8 +252,20 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             # Host (cage) has access to builder-local repository that will be mounted bind into
             # the archlinux chroot. Configurations will be copied-in by qubes-x86_64-build (archbuild).
+
+            # Build options to pass to jinja2-cli for generating pacman configuration file.
+            jinja2_options = ["-D enable_builder_local=1"]
+            if self.config.use_qubes_repo.get("version", None):
+                jinja2_options.append(
+                    f"-D use_qubes_repo_version={self.config.use_qubes_repo['version']}"
+                )
+                if self.config.use_qubes_repo.get("testing", None):
+                    jinja2_options.append(
+                        f"-D use_qubes_repo_testing={self.config.use_qubes_repo['testing']}"
+                    )
+
             cmd = [
-                f"sudo jinja2 {pacman_conf} -D enable_builder_local=1 -o /usr/local/share/devtools/pacman-qubes.conf",
+                f"sudo jinja2 {pacman_conf} {' '.join(jinja2_options)} -o /usr/local/share/devtools/pacman-qubes.conf",
                 f"sudo cp {makepkg_conf} /usr/local/share/devtools/",
             ]
 
@@ -262,7 +281,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 cmd += [
                     f"sudo mkdir -p {executor.get_cache_dir()}/qubes-x86_64",
                     f"cd {executor.get_cache_dir()}/qubes-x86_64",
-                    f"sudo tar xvf {executor.get_cache_dir() / chroot_archive}",
+                    f"sudo tar xf {executor.get_cache_dir() / chroot_archive}",
                 ]
 
                 # Ensure to regenerate pacman keyring
@@ -283,6 +302,15 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     "/tmp/pacman-qubes.conf",
                     "/usr/local/share/devtools/makepkg-x86_64.conf",
                 )
+
+            if self.config.use_qubes_repo.get("version", None):
+                files_inside_executor_with_placeholders += [
+                    executor.get_plugins_dir()
+                    / "chroot_archlinux/scripts/add-qubes-repository-key"
+                ]
+                cmd += [
+                    f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/add-qubes-repository-key"
+                ]
 
             # Create local repository inside chroot
             cmd += [
@@ -310,7 +338,13 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             cmd += [f"cd {source_dir}", " ".join(build_command)]
 
             try:
-                executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(
+                    cmd,
+                    copy_in,
+                    copy_out,
+                    environment=self.environment,
+                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                )
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to build PKGs: {str(e)}."
                 raise BuildError(msg) from e

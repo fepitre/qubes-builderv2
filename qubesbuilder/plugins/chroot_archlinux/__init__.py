@@ -132,7 +132,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
             additional_packages=additional_packages,
         ) + [
             f"cd {executor.get_cache_dir()}",
-            f"sudo tar cvf {chroot_archive} {chroot_name}",
+            f"sudo tar cf {chroot_archive} {chroot_name}",
         ]
 
         try:

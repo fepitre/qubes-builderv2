@@ -77,6 +77,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "whonix-gateway",
                     "whonix-workstation",
                 ),
+                template.distribution.is_archlinux(),
             ]
         )
 
@@ -178,6 +179,22 @@ class TemplateBuilderPlugin(TemplatePlugin):
                         "WHONIX_ENABLE_TOR": "0",
                     }
                 )
+        elif self.template.distribution.is_archlinux():
+            self.dependencies += ["chroot_archlinux"]
+            self.source_dependencies += ["builder-archlinux"]
+            self.environment.update(
+                {
+                    "TEMPLATE_CONTENT_DIR": str(
+                        executor.get_sources_dir()
+                        / "builder-archlinux/template_archlinux"
+                    ),
+                    "CACHE_DIR": str(executor.get_cache_dir()),
+                    # We would use chroot_archlinux when deprecating legacy builder.
+                    "KEYS_DIR": str(
+                        executor.get_sources_dir() / "builder-archlinux/keys"
+                    ),
+                }
+            )
         else:
             raise TemplateError("Unsupported template.")
 

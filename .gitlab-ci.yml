@@ -17,7 +17,7 @@ variables:
 
 lint:
   stage: test
-  image: fedora:latest
+  image: fedora:37
   tags:
     - docker
   before_script:
@@ -27,7 +27,7 @@ lint:
 
 mypy:
   stage: test
-  image: fedora:latest
+  image: fedora:37
   tags:
     - docker
   before_script:
@@ -41,7 +41,7 @@ mypy:
 
 shellcheck:
   stage: test
-  image: fedora:latest
+  image: fedora:37
   tags:
     - docker
   before_script:
@@ -79,7 +79,8 @@ generate-container-image:
     PYTEST_ARGS: -v --color=yes --showlocals --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
   # https://gitlab.com/gitlab-org/gitlab/-/issues/15603
   before_script:
-    - rm -rf ~/pytest-of-user/
+    - sudo dnf install -y python3-pip python3-pytest-cov python3-pytest
+    - sudo rm -rf ~/pytest-of-user/
     - git clone https://github.com/qubesos/qubes-infrastructure-mirrors
     - (cd qubes-infrastructure-mirrors; pip3 install .)
     - export "PATH=$PATH:$HOME/.local/bin"
