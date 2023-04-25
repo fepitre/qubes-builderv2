@@ -1594,13 +1594,13 @@ def test_component_publish_vm_archlinux(artifacts_dir):
 
         qubesdb = (
             artifacts_dir
-            / f"repository-publish/archlinux/r4.2/current/vm/archlinux/pkgs/qubes.db.tar.gz"
+            / f"repository-publish/archlinux/r4.2/current/vm/archlinux/pkgs/qubes-r4.2-current.db.tar.gz"
         )
         assert qubesdb.exists()
 
         qubesdb_sig = (
             artifacts_dir
-            / f"repository-publish/archlinux/r4.2/current/vm/archlinux/pkgs/qubes.db.tar.gz.sig"
+            / f"repository-publish/archlinux/r4.2/current/vm/archlinux/pkgs/qubes-r4.2-current.db.tar.gz.sig"
         )
         assert qubesdb_sig.exists()
 
@@ -1652,12 +1652,12 @@ repository-upload-remote-host:
 
         assert (
             pathlib.Path(tmpdir)
-            / f"repo/archlinux/r4.2/unstable/vm/archlinux/pkgs/qubes.db.tar.gz"
+            / f"repo/archlinux/r4.2/unstable/vm/archlinux/pkgs/qubes-r4.2-unstable.db.tar.gz"
         ).exists()
 
         assert (
             pathlib.Path(tmpdir)
-            / f"repo/archlinux/r4.2/unstable/vm/archlinux/pkgs/qubes.db.tar.gz.sig"
+            / f"repo/archlinux/r4.2/unstable/vm/archlinux/pkgs/qubes-r4.2-unstable.db.tar.gz.sig"
         ).exists()
 
         # vm-fc36 shouldn't exist, as nothing was published into it

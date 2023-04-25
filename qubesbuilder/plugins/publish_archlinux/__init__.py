@@ -55,16 +55,17 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
     ):
         super().__init__(component=component, dist=dist, config=config, manager=manager)
 
-    def sign_metadata(self, executor, directory, sign_key, target_dir):
+    def sign_metadata(self, executor, directory, sign_key, repository_db):
         log.info(f"{self.component}:{self.dist}:{directory}: Signing metadata.")
-        qubesdb = target_dir / "pkgs/qubes.db.tar.gz"
-        qubesdb_sig = target_dir / "pkgs/qubes.db.tar.gz.sig"
+        repository_db_sig = repository_db.with_suffix(".gz.sig")
         cmd = [
-            f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {qubesdb} > {qubesdb_sig}",
+            f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repository_db} > {repository_db_sig}",
         ]
         try:
             executor.run(cmd)
         except (ExecutorError, OSError) as e:
+            # On error, it creates an empty file.
+            repository_db_sig.unlink(missing_ok=True)
             msg = f"{self.component}:{self.dist}:{directory}:  Failed to sign metadata"
             raise PublishError(msg) from e
 
@@ -111,9 +112,13 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 artifacts_dir
                 / f"{self.config.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
             )
-            (target_dir / "pkgs").mkdir(parents=True, exist_ok=True)
-            if not (target_dir / "pkgs/qubes.db.tar.gz").exists():
-                cmd += [f"repo-add {target_dir}/pkgs/qubes.db.tar.gz"]
+            repository_db = (
+                target_dir
+                / f"pkgs/qubes-{self.config.qubes_release}-{repository_publish}.db.tar.gz"
+            )
+            repository_db.parent.mkdir(parents=True, exist_ok=True)
+            if not repository_db.exists():
+                cmd += [f"repo-add {repository_db}"]
             for pkg in packages_list:
                 target_path = target_dir / "pkgs" / pkg.name
                 target_sig_path = target_path.with_suffix(".zst.sig")
@@ -124,7 +129,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 os.link(pkg, target_path)
                 os.link(pkg.with_suffix(".zst.sig"), target_sig_path)
 
-                cmd += [f"repo-add {target_dir}/pkgs/qubes.db.tar.gz {pkg}"]
+                cmd += [f"repo-add {repository_db} {pkg}"]
             executor.run(cmd)
         except ExecutorError as e:
             msg = (
@@ -132,7 +137,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
             )
             raise PublishError(msg) from e
 
-        self.sign_metadata(executor, directory, sign_key, target_dir)
+        self.sign_metadata(executor, directory, sign_key, repository_db)
 
     def unpublish(self, executor, directory, sign_key, repository_publish):
         # directory basename will be used as prefix for some artifacts
@@ -164,7 +169,11 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 artifacts_dir
                 / f"{self.config.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
             )
-            if not (target_dir / "pkgs/qubes.db").exists:
+            repository_db = (
+                target_dir
+                / f"pkgs/qubes-r{self.config.qubes_release}-{repository_publish}.db.tar.gz"
+            )
+            if not repository_db.exists:
                 return
             for pkg in packages_list:
                 target_path = target_dir / "pkgs" / pkg.name
@@ -173,10 +182,11 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 target_path.unlink(missing_ok=True)
                 target_sig_path.unlink(missing_ok=True)
 
+                # repo-remove supports only package name as input, not version and release.
                 pkg_name = pkg.name.replace(
                     f"-{self.component.verrel}-{self.dist.architecture}.pkg.tar.zst", ""
                 )
-                cmd += [f"repo-remove {target_dir}/pkgs/qubes.db.tar.gz {pkg_name}"]
+                cmd += [f"repo-remove {repository_db} {pkg_name}"]
             executor.run(cmd)
         except ExecutorError as e:
             msg = (
@@ -184,7 +194,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
             )
             raise PublishError(msg) from e
 
-        self.sign_metadata(executor, directory, sign_key, target_dir)
+        self.sign_metadata(executor, directory, sign_key, repository_db)
 
     def run(
         self,
