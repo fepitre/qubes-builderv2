@@ -44,6 +44,13 @@ export INSTALL_DIR LC_ALL IMG
 # ------------------------------------------------------------------------------
 # Prepare for mount
 # ------------------------------------------------------------------------------
+
+# docker has tmpfs on /dev with copied content from host, it doesn't update
+# when loop0p3 shows up; mount devmpfs to avoid this issue
+if [ "$(df -T /dev | tail -1 |cut -f 1 -d ' ')" = "tmpfs" ]; then
+    mount -t devtmpfs none /dev
+fi
+
 DIST_TO_STR="${DIST_CODENAME}+${TEMPLATE_FLAVOR}"
 if [ ${#TEMPLATE_OPTIONS} -gt 0 ]; then
     DIST_TO_STR="${DIST_TO_STR} (options: ${TEMPLATE_OPTIONS[*]})"
