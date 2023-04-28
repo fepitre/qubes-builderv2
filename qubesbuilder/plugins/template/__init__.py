@@ -237,7 +237,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         ) or self.config.sign_key.get("rpm", None)
 
         if not sign_key:
-            raise TemplateError(f"{self.template}: No signing key found.")
+            return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
@@ -348,6 +348,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
         # We check that signature exists (--check-only option)
         log.info(f"{self.template}: Verifying signatures.")
         sign_key = self.get_sign_key()
+        if not sign_key:
+            log.info(f"{self.template}: No signing key found.")
+            return
         try:
             cmd = [
                 f"{self.manager.entities['sign_rpm'].directory}/scripts/sign-rpm "
@@ -393,6 +396,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
             raise TemplateError(msg)
 
         sign_key = self.get_sign_key()
+        if not sign_key:
+            log.info(f"{self.template}: No signing key found.")
+            return
 
         # If exists, remove hardlinks to built RPMs
         log.info(f"{self.template}: Unpublishing template.")
@@ -600,6 +606,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 shutil.rmtree(db_path)
 
             sign_key = self.get_sign_key()
+            if not sign_key:
+                log.info(f"{self.template}: No signing key found.")
+                return
 
             temp_dir = Path(tempfile.mkdtemp())
             sign_key_asc = temp_dir / f"{sign_key}.asc"
