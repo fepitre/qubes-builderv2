@@ -73,8 +73,10 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             shutil.rmtree(chroot_dir / mock_chroot_name)
 
         copy_in = [
-            (self.manager.entities[dependency].directory, executor.get_plugins_dir())
-            for dependency in self.dependencies
+            (
+                self.manager.entities["chroot_rpm"].directory,
+                executor.get_plugins_dir(),
+            ),
         ]
 
         self.environment.update(

@@ -16,7 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import re
 from copy import deepcopy
 from pathlib import Path
 from typing import Union, List, Dict, Any
@@ -35,6 +35,9 @@ from qubesbuilder.log import get_logger
 from qubesbuilder.template import QubesTemplate
 
 log = get_logger("config")
+
+QUBES_RELEASE_RE = re.compile("r([1-9]\.[0-9]+).*")
+QUBES_RELEASE_DEFAULT = "r4.2"
 
 
 def deep_merge(a: dict, b: dict, allow_append: bool = False) -> dict:
@@ -89,7 +92,7 @@ class Config:
     gpg_client: Union[str, property]                     = property(lambda self: self.get("gpg-client", "gpg"))
     sign_key: Union[Dict, property]                      = property(lambda self: self.get("sign-key", {}))
     min_age_days: Union[int, property]                   = property(lambda self: self.get("min-age-days", 5))
-    qubes_release: Union[str, property]                  = property(lambda self: self.get("qubes-release", ""))
+    qubes_release: Union[str, property]                  = property(lambda self: self.get("qubes-release", QUBES_RELEASE_DEFAULT))
     repository_publish: Union[Dict, property]            = property(lambda self: self.get("repository-publish", {}))
     repository_upload_remote_host: Union[Dict, property] = property(lambda self: self.get("repository-upload-remote-host", {}))
     template_root_size: Union[str, property]             = property(lambda self: self.get("template-root-size", "20G"))
