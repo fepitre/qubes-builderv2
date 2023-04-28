@@ -38,7 +38,6 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
     """
 
     stages = ["init-cache"]
-    dependencies = ["source_deb"]
 
     def __init__(
         self,
@@ -72,7 +71,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
 
         copy_in += [
             (
-                self.manager.entities["source_deb"].directory / "pbuilder",
+                self.manager.entities["chroot_deb"].directory / "pbuilder",
                 executor.get_builder_dir(),
             ),
         ]
@@ -82,12 +81,22 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
                 chroot_dir,
             )
         ]
+        additional_packages = (
+            self.config.get("cache", {})
+            .get(self.dist.distribution, {})
+            .get("packages", [])
+        )
         files_inside_executor_with_placeholders = ["@BUILDER_DIR@/pbuilder/pbuilderrc"]
         cmd = [
             f"sed -i '\#/tmp/qubes-deb#d' {executor.get_builder_dir()}/pbuilder/pbuilderrc",
-            f"sudo -E pbuilder create --distribution {self.dist.name} "
+        ]
+        pbuilder_cmd = [
+            f"sudo -E pbuilder create --distribution {self.dist.name}",
             f"--configfile {executor.get_builder_dir()}/pbuilder/pbuilderrc",
         ]
+        if additional_packages:
+            pbuilder_cmd += [f"--extrapackages '{' '.join(additional_packages)}'"]
+        cmd.append(" ".join(pbuilder_cmd))
 
         try:
             executor.run(

@@ -1,4 +1,4 @@
-FROM fedora@sha256:2c5b21348e9b2a0b4c49bd5013be6d406be8594831aba21043393fcfba7252e0
+FROM fedora:latest
 MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
 
 # Install dependencies for Qubes Builder
@@ -6,7 +6,7 @@ RUN dnf -y update && \
     dnf install -y createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder \
         which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml e2fsprogs \
         python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev \
-        tree python3-jinja2-cli pacman m4 asciidoc rsync psmisc \
+        tree python3-jinja2-cli pacman m4 asciidoc rsync psmisc zstd \
     && dnf clean all
 
 # Install devtools for Archlinux

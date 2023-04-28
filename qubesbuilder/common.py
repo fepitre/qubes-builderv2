@@ -22,6 +22,7 @@ import tempfile
 from enum import Enum
 from pathlib import Path
 from string import digits, ascii_letters
+from typing import List
 
 PROJECT_PATH = Path(__file__).resolve().parents[1]
 
@@ -58,7 +59,7 @@ for s in STAGES:
 
 
 def is_filename_valid(
-    filename: str, allowed_ext: str = None, forbidden_filename: str = None
+    filename: str, allowed_ext: List[str] = None, forbidden_filename: str = None
 ) -> bool:
     if filename == "" or filename[0] in ("-", "."):
         return False
@@ -66,7 +67,7 @@ def is_filename_valid(
         return False
     if allowed_ext:
         p = Path(filename)
-        if p.suffix != allowed_ext:
+        if p.suffix not in allowed_ext:
             return False
     authorized_chars = digits + ascii_letters + "-_.+"
     for c in filename:

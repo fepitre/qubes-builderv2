@@ -78,6 +78,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "whonix-workstation",
                 ),
                 template.distribution.is_archlinux(),
+                template.distribution.is_ubuntu()
             ]
         )
 
@@ -138,25 +139,25 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
 
         if self.template.distribution.is_rpm():
-            self.dependencies += ["source_rpm"]
+            self.dependencies += ["chroot_rpm", "source_rpm"]
             self.source_dependencies += ["builder-rpm"]
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": str(
                         executor.get_sources_dir() / "builder-rpm/template_rpm"
                     ),
-                    "KEYS_DIR": str(executor.get_plugins_dir() / "source_rpm/keys"),
+                    "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_rpm/keys"),
                 }
             )
-        elif self.template.distribution.is_deb():
-            self.dependencies += ["source_deb", "build_deb"]
+        elif self.template.distribution.is_deb() or self.template.distribution.is_ubuntu():
+            self.dependencies += ["chroot_deb", "source_deb", "build_deb"]
             self.source_dependencies += ["builder-debian"]
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": str(
-                        executor.get_sources_dir() / "builder-debian/template_debian"
+                        executor.get_sources_dir() / f"builder-debian/template_{self.dist.fullname}"
                     ),
-                    "KEYS_DIR": str(executor.get_plugins_dir() / "source_deb/keys"),
+                    "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_deb/keys"),
                 }
             )
             if self.template.flavor in (
