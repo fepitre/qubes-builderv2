@@ -68,7 +68,7 @@ components:
   - intel-microcode
   - linux-firmware
   - linux-kernel:
-      branch: stable-5.15
+      branch: stable-6.1
       timeout: 21600
   - linux-kernel-latest:
       url: https://github.com/QubesOS/qubes-linux-kernel
