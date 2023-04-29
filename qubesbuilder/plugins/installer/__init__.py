@@ -21,7 +21,7 @@ import shutil
 import dateutil.parser
 from datetime import datetime
 from dateutil.parser import parse as parsedate
-from typing import Dict
+from typing import Dict, List
 
 import yaml
 
@@ -35,6 +35,7 @@ from qubesbuilder.plugins import (
     PluginError,
     DistributionPlugin,
 )
+from qubesbuilder.template import QubesTemplate
 
 log = get_logger("installer")
 
@@ -56,6 +57,7 @@ class InstallerPlugin(DistributionPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        templates: List[QubesTemplate] = [],
         **kwargs,
     ):
         super().__init__(config=config, manager=manager, dist=dist)
@@ -63,6 +65,7 @@ class InstallerPlugin(DistributionPlugin):
         self.iso_name = ""
         self.iso_version = ""
         self.iso_timestamp = ""
+        self.templates = templates
 
         if not (
             self.manager.entities["installer"].directory
@@ -161,7 +164,7 @@ class InstallerPlugin(DistributionPlugin):
             {"ISO_VERSION": self.iso_version, "ISO_NAME": self.iso_name}
         )
 
-    def get_artifacts_info(self, stage: str) -> Dict:
+    def get_installer_artifacts_info(self, stage: str) -> Dict:
         fileinfo = (
             self.get_installer_dir() / f"{self.dist.name}_{self.iso_name}.{stage}.yml"
         )
@@ -198,6 +201,20 @@ class InstallerPlugin(DistributionPlugin):
         for key, val in self.environment.items():
             env.append(f'{key}="{val}"')
         return " ".join(env)
+
+    def templates_copy_in(self, executor):
+        for template in self.templates:
+            template_info = self.get_artifacts_info(
+                "build", template.name, self.get_templates_dir()
+            )
+            if not template_info:
+                log.warning(f"{self.dist}: Template {template.name} not built locally")
+                continue
+            assert len(template_info["rpms"]) == 1
+            rpm = template_info["rpms"][0]
+            yield (
+                self.get_templates_dir() / "rpm" / rpm
+            ), executor.get_repository_dir()
 
     def run(self, stage: str, iso_timestamp: str = None):
         if stage not in self.stages:
@@ -254,6 +271,7 @@ class InstallerPlugin(DistributionPlugin):
             # Copy-in builder local repository
             if repository_dir.exists():
                 copy_in += [(repository_dir, executor.get_repository_dir())]
+            copy_in.extend(self.templates_copy_in(executor))
 
             copy_out = [
                 (
@@ -329,6 +347,7 @@ class InstallerPlugin(DistributionPlugin):
             # Copy-in builder local repository
             if repository_dir.exists():
                 copy_in += [(repository_dir, executor.get_repository_dir())]
+            copy_in.extend(self.templates_copy_in(executor))
 
             # Prepare cmd
             cmd = []
@@ -461,6 +480,7 @@ class InstallerPlugin(DistributionPlugin):
             # Copy-in builder local repository
             if repository_dir.exists():
                 copy_in += [(repository_dir, executor.get_repository_dir())]
+            copy_in.extend(self.templates_copy_in(executor))
 
             # Prepare installer cmd
             cmd = []
