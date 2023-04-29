@@ -141,6 +141,24 @@ class Plugin:
         path = self.config.artifacts_dir / "iso"
         return path.resolve()
 
+    @staticmethod
+    def get_artifacts_info_filename(stage: str, basename: str):
+        return f"{basename}.{stage}.yml"
+
+    def get_artifacts_info(
+        self, stage: str, basename: str, artifacts_dir: Path
+    ) -> Dict:
+        fileinfo = artifacts_dir / self.get_artifacts_info_filename(stage, basename)
+        if fileinfo.exists():
+            try:
+                with open(fileinfo, "r") as f:
+                    artifacts_info = yaml.safe_load(f.read())
+                return artifacts_info or {}
+            except (PermissionError, yaml.YAMLError) as e:
+                msg = f"{basename}: Failed to read info from {stage} stage."
+                raise PluginError(msg) from e
+        return {}
+
 
 class ComponentPlugin(Plugin):
     """
@@ -175,10 +193,6 @@ class ComponentPlugin(Plugin):
             }
         )
 
-    @staticmethod
-    def get_artifacts_info_filename(stage: str, basename: str):
-        return f"{basename}.{stage}.yml"
-
     def get_component_distfiles_dir(self):
         path = self.get_distfiles_dir() / self.component.name
         return path
@@ -197,17 +211,8 @@ class ComponentPlugin(Plugin):
     def get_artifacts_info(
         self, stage: str, basename: str, artifacts_dir: Path = None
     ) -> Dict:
-        artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
-        fileinfo = artifacts_dir / self.get_artifacts_info_filename(stage, basename)
-        if fileinfo.exists():
-            try:
-                with open(fileinfo, "r") as f:
-                    artifacts_info = yaml.safe_load(f.read())
-                return artifacts_info or {}
-            except (PermissionError, yaml.YAMLError) as e:
-                msg = f"{self.component}:{basename}: Failed to read info from {stage} stage."
-                raise PluginError(msg) from e
-        return {}
+        a_dir: Path = artifacts_dir or self.get_component_artifacts_dir(stage)
+        return super().get_artifacts_info(stage, basename, a_dir)
 
     def save_artifacts_info(
         self, stage: str, basename: str, info: dict, artifacts_dir: Path = None
@@ -397,7 +402,7 @@ class TemplatePlugin(DistributionPlugin):
             instances.append(cls(template=template, **kwargs))
         return instances
 
-    def get_artifacts_info(self, stage: str) -> Dict:
+    def get_template_artifacts_info(self, stage: str) -> Dict:
         fileinfo = self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
         if fileinfo.exists():
             try:

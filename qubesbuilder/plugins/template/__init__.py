@@ -202,34 +202,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
             if not self.get_sources_dir() / dependency:
                 raise PluginError(f"Cannot find source directory '{dependency}'.")
 
-    def get_artifacts_info(self, stage: str) -> Dict:
-        fileinfo = self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
-        if fileinfo.exists():
-            try:
-                with open(fileinfo, "r") as f:
-                    artifacts_info = yaml.safe_load(f.read())
-                return artifacts_info or {}
-            except (PermissionError, yaml.YAMLError) as e:
-                msg = f"{self.template}: Failed to read info from {stage} stage."
-                raise PluginError(msg) from e
-        return {}
-
-    def save_artifacts_info(self, stage: str, info: dict):
-        artifacts_dir = self.get_templates_dir()
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            with open(artifacts_dir / f"{self.template}.{stage}.yml", "w") as f:
-                f.write(yaml.safe_dump(info))
-        except (PermissionError, yaml.YAMLError) as e:
-            msg = f"{self.template}: Failed to write info for {stage} stage."
-            raise PluginError(msg) from e
-
-    def delete_artifacts_info(self, stage: str):
-        artifacts_dir = self.get_templates_dir()
-        info_path = artifacts_dir / f"{self.template}.{stage}.yml"
-        if info_path.exists():
-            info_path.unlink()
-
     def get_sign_key(self):
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -275,7 +247,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
 
     def is_published(self, repository):
-        publish_info = self.get_artifacts_info("publish")
+        publish_info = self.get_template_artifacts_info("publish")
         if not publish_info:
             return False
         if publish_info["timestamp"] != self.get_template_timestamp():
@@ -291,7 +263,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             return False
 
         # Check minimum day that packages are available for testing
-        publish_info = self.get_artifacts_info("publish")
+        publish_info = self.get_template_artifacts_info("publish")
         publish_date = None
         for r in publish_info["repository-publish"]:
             if r["name"] == f"{repository_publish}-testing":
@@ -703,8 +675,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 msg = f"{self.template}: Failed to create repository skeleton."
                 raise TemplateError(msg) from e
 
-            publish_info = self.get_artifacts_info(stage=stage)
-            build_info = self.get_artifacts_info(stage="build")
+            publish_info = self.get_template_artifacts_info(stage=stage)
+            build_info = self.get_template_artifacts_info(stage="build")
             if not (
                 publish_info
                 and publish_info.get("timestamp", None) == self.get_template_timestamp()
@@ -732,7 +704,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 log.info(f"{self.template}: Not published to '{repository_publish}'.")
                 return
 
-            publish_info = self.get_artifacts_info(stage=stage)
+            publish_info = self.get_template_artifacts_info(stage=stage)
             self.unpublish(
                 executor=executor,
                 repository_publish=repository_publish,

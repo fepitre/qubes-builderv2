@@ -272,7 +272,7 @@ def _check_release_status_for_template(config, manager, templates):
             for repo_name in TEMPLATE_REPOSITORIES:
                 days = 0
                 if plugin.is_published(repository=repo_name):
-                    publish_info = plugin.get_artifacts_info(stage="publish")
+                    publish_info = plugin.get_template_artifacts_info(stage="publish")
                     for repo in publish_info.get("repository-publish", []):
                         if repo["name"] == repo_name:
                             publish_date = datetime.datetime.strptime(
@@ -295,7 +295,7 @@ def _check_release_status_for_template(config, manager, templates):
             raise CliError(f"{template}: Failed to process status ({str(e)}).")
 
         if not found:
-            if plugin.get_artifacts_info(stage="build"):
+            if plugin.get_template_artifacts_info(stage="build"):
                 status = "built, not released"
                 set_template_tag = True
             else:
