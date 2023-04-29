@@ -1727,7 +1727,7 @@ def test_template_build_fedora_36_xfce(artifacts_dir):
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
         artifacts_dir
-        / f"templates/rpm/qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        / f"templates/rpm/qubes-template-fedora-36-xfce-4.2.0-{template_timestamp}.noarch.rpm"
     )
     assert rpm_path.exists()
 
@@ -1763,7 +1763,7 @@ def test_template_sign_fedora_36_xfce(artifacts_dir):
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
         artifacts_dir
-        / f"templates/rpm/qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        / f"templates/rpm/qubes-template-fedora-36-xfce-4.2.0-{template_timestamp}.noarch.rpm"
     )
     assert rpm_path.exists()
     result = subprocess.run(
@@ -1842,7 +1842,7 @@ def test_template_publish_fedora_36_xfce(artifacts_dir):
 
     # Check that packages are in the published repository
     for repository in ["templates-itl-testing", "templates-itl"]:
-        rpm = f"qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        rpm = f"qubes-template-fedora-36-xfce-4.2.0-{template_timestamp}.noarch.rpm"
         repository_dir = (
             f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}"
         )
@@ -1898,7 +1898,7 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
 
         rpm_path = (
             artifacts_dir
-            / f"templates/rpm/qubes-template-fedora-36-xfce-4.1.0-{new_timestamp}.noarch.rpm"
+            / f"templates/rpm/qubes-template-fedora-36-xfce-4.2.0-{new_timestamp}.noarch.rpm"
         )
         assert rpm_path.exists()
 
@@ -1959,8 +1959,8 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
     # Check that packages are in the published repository
     for repository in ["templates-itl-testing", "templates-itl"]:
         rpms = {
-            f"qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm",
-            f"qubes-template-fedora-36-xfce-4.1.0-{new_timestamp}.noarch.rpm",
+            f"qubes-template-fedora-36-xfce-4.2.0-{template_timestamp}.noarch.rpm",
+            f"qubes-template-fedora-36-xfce-4.2.0-{new_timestamp}.noarch.rpm",
         }
         repository_dir = (
             f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}"
@@ -2017,7 +2017,7 @@ def test_template_unpublish_fedora_36_xfce(artifacts_dir):
 
     # Check that packages are in the published repository
     for repository in ["templates-itl-testing", "templates-itl"]:
-        rpm = f"qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        rpm = f"qubes-template-fedora-36-xfce-4.2.0-{template_timestamp}.noarch.rpm"
         repository_dir = (
             f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}"
         )
