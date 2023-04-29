@@ -65,14 +65,9 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
             os.remove(chroot_dir / "base.tgz")
 
         copy_in = [
-            (self.manager.entities[dependency].directory, executor.get_plugins_dir())
-            for dependency in self.dependencies
-        ]
-
-        copy_in += [
             (
-                self.manager.entities["chroot_deb"].directory / "pbuilder",
-                executor.get_builder_dir(),
+                self.manager.entities["chroot_deb"].directory,
+                executor.get_plugins_dir(),
             ),
         ]
         copy_out = [
@@ -86,13 +81,15 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
             .get(self.dist.distribution, {})
             .get("packages", [])
         )
-        files_inside_executor_with_placeholders = ["@BUILDER_DIR@/pbuilder/pbuilderrc"]
+        files_inside_executor_with_placeholders = [
+            "@PLUGINS_DIR@/chroot_deb/pbuilder/pbuilderrc"
+        ]
         cmd = [
-            f"sed -i '\#/tmp/qubes-deb#d' {executor.get_builder_dir()}/pbuilder/pbuilderrc",
+            f"sed -i '\#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
         ]
         pbuilder_cmd = [
             f"sudo -E pbuilder create --distribution {self.dist.name}",
-            f"--configfile {executor.get_builder_dir()}/pbuilder/pbuilderrc",
+            f"--configfile {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
         ]
         if additional_packages:
             pbuilder_cmd += [f"--extrapackages '{' '.join(additional_packages)}'"]

@@ -859,6 +859,7 @@ def test_component_prep_vm_bullseye(artifacts_dir):
     packages = [
         "python3-qasync_0.23.0-1+deb11u1_all.deb",
         "python3-qasync-dbgsym_0.23.0-1+deb11u1_all.deb",
+        "python3-qasync-dbgsym_0.23.0-1+deb11u1_all.ddeb",
     ]
     debian = "python-qasync_0.23.0-1+deb11u1.debian.tar.xz"
     dsc = "python-qasync_0.23.0-1+deb11u1.dsc"
