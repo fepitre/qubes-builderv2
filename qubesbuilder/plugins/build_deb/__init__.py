@@ -236,15 +236,20 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             ]
 
             if self.config.use_qubes_repo.get("version", None):
+                repo_server = (
+                    "ubuntu.qubes-os.org"
+                    if self.dist.fullname == "ubuntu"
+                    else "deb.qubes-os.org"
+                )
                 qubes_version = self.config.use_qubes_repo["version"]
-                extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name} main"
+                extra_sources = f"{extra_sources}|deb [arch=amd64] https://{repo_server}/r{qubes_version}/vm {self.dist.name} main"
                 cmd += [
                     f"gpg --dearmor "
                     f"< {executor.get_plugins_dir()}/chroot_deb/keys/qubes-debian-r{qubes_version}.asc "
                     f"> {executor.get_builder_dir()}/pbuilder/qubes-keyring.gpg"
                 ]
                 if self.config.use_qubes_repo.get("testing", False):
-                    extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name}-testing main"
+                    extra_sources = f"{extra_sources}|deb [arch=amd64] https://{repo_server}/r{qubes_version}/vm {self.dist.name}-testing main"
 
             # fmt: off
             # FIXME: We disable black here because it removes escaped quotes.
