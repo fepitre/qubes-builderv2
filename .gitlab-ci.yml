@@ -242,7 +242,7 @@ pytest-cli-template:
 cache-host-fc37:
   extends: .init_cache_job
 
-cache-vm-fc36:
+cache-vm-fc38:
   extends: .init_cache_job
 
 cache-vm-centos-stream8:
@@ -254,6 +254,9 @@ cache-vm-bullseye:
 cache-vm-archlinux:
   extends: .init_cache_job
 
+cache-vm-jammy:
+  extends: .init_cache_job
+
 # Podman executor
 
 podman-host-fc37:
@@ -261,10 +264,10 @@ podman-host-fc37:
   needs:
     - cache-host-fc37
 
-podman-vm-fc36:
+podman-vm-fc38:
   extends: .component_podman_job
   needs:
-    - cache-vm-fc36
+    - cache-vm-fc38
 
 podman-vm-centos-stream8:
   extends: .component_podman_job
@@ -281,10 +284,10 @@ docker-host-fc37:
   needs:
     - cache-host-fc37
 
-docker-vm-fc36:
+docker-vm-fc38:
   extends: .component_docker_job
   needs:
-    - cache-vm-fc36
+    - cache-vm-fc38
 
 docker-vm-centos-stream8:
   extends: .component_docker_job
@@ -298,10 +301,15 @@ docker-vm-bullseye:
 
 docker-vm-archlinux:
   extends: .component_docker_job
-  variables:
-    QB_EXTRA_ARGS: "-o +components+vmm-xen:branch=archlinuxv2 -o +components+vmm-xen:url=https://github.com/fepitre/qubes-vmm-xen -c vmm-xen -c core-vchan-xen"
   needs:
     - cache-vm-archlinux
+
+#docker-vm-jammy:
+#  extends: .component_docker_job
+#  variables:
+#    QB_EXTRA_ARGS: "-o +components+vmm-xen-guest -c vmm-xen-guest -c core-vchan-xen"
+#  needs:
+#    - cache-vm-jammy
 
 # Qubes executor
 
@@ -310,10 +318,10 @@ qubes-host-fc37:
   needs:
     - cache-host-fc37
 
-qubes-vm-fc36:
+qubes-vm-fc38:
   extends: .component_qubes_job
   needs:
-    - cache-vm-fc36
+    - cache-vm-fc38
 
 qubes-vm-centos-stream8:
   extends: .component_qubes_job
@@ -332,10 +340,10 @@ local-host-fc37:
   needs:
     - cache-host-fc37
 
-local-vm-fc36:
+local-vm-fc38:
   extends: .component_local_job
   needs:
-    - cache-vm-fc36
+    - cache-vm-fc38
 
 local-vm-centos-stream8:
   extends: .component_local_job
@@ -351,7 +359,7 @@ local-vm-bullseye:
 # Templates
 #
 
-qubes-template-fedora-36-xfce:
+qubes-template-fedora-38-xfce:
   extends: .template_qubes_job
 
 qubes-template-centos-stream-8:
@@ -366,6 +374,9 @@ qubes-template-whonix-gateway-16:
 qubes-template-whonix-workstation-16:
   extends: .template_qubes_job
   allow_failure: true
+
+#qubes-template-archlinux:
+#  extends: .template_qubes_job
 
 #
 # ISO
