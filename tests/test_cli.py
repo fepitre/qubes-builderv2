@@ -2036,3 +2036,54 @@ def test_template_unpublish_fedora_36_xfce(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
+
+
+def test_template_for_iso(artifacts_dir):
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
+            data = f.read().splitlines()
+        template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
+        rpm = f"qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+
+        DEFAULT_KICKSTART = (
+            PROJECT_PATH / "qubesbuilder/plugins/installer/conf/iso-online-testing-no-templates.ks"
+        )
+
+        kickstart = tmpdir + "/tests-kickstart.cfg"
+        with open(kickstart, "w") as kickstart_f:
+            kickstart_f.write(DEFAULT_KICKSTART.read_text())
+            kickstart_f.write("""
+%packages
+qubes-template-fedora-36-xfce
+%end
+""")
+
+        # make ISO cache with a single template
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-t",
+            "fedora-36-xfce",
+            "-o",
+            f"iso:kickstart={kickstart!s}",
+            "installer",
+            "init-cache",
+            "prep",
+            env=env,
+        )
+
+        with open(artifacts_dir / "installer/latest_fc37_iso_timestamp") as f:
+            data = f.read().splitlines()
+        latest_iso_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
+
+        installer_iso_pkgs = (
+            artifacts_dir
+            / "cache"
+            / "installer"
+            / f"Qubes-{latest_iso_timestamp}-x86_64"
+            / "work"
+            / latest_iso_timestamp
+            / "x86_64/os/Packages"
+        )
+        assert (installer_iso_pkgs / rpm).exists()
