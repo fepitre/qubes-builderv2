@@ -18,6 +18,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import itertools
 import shutil
+from pathlib import Path
+
 import dateutil.parser
 from datetime import datetime
 from dateutil.parser import parse as parsedate
@@ -66,6 +68,7 @@ class InstallerPlugin(DistributionPlugin):
         self.iso_version = ""
         self.iso_timestamp = ""
         self.templates = templates
+        self.kickstart_path = Path(config.installer_kickstart)
 
         if not (
             self.manager.entities["installer"].directory
@@ -140,9 +143,14 @@ class InstallerPlugin(DistributionPlugin):
             )
 
         # Kickstart will be copied under builder directory
-        self.environment[
-            "INSTALLER_KICKSTART"
-        ] = f"{executor.get_plugins_dir()}/installer/{self.config.installer_kickstart}"
+        if self.kickstart_path.is_absolute():
+            self.environment[
+                "INSTALLER_KICKSTART"
+            ] = f"{executor.get_plugins_dir()}/installer/conf/{self.kickstart_path.name}"
+        else:
+            self.environment[
+                "INSTALLER_KICKSTART"
+            ] = f"{executor.get_plugins_dir()}/installer/{self.kickstart_path}"
 
         # We don't need to process more ISO information
         if stage == "init-cache":
@@ -343,6 +351,11 @@ class InstallerPlugin(DistributionPlugin):
                 (self.manager.entities[plugin].directory, executor.get_plugins_dir())
                 for plugin in self.dependencies
             ]
+            # copy kickstart file if given by absolute path
+            if self.kickstart_path.is_absolute():
+                copy_in += [
+                    (self.kickstart_path, executor.get_plugins_dir() / "installer/conf")
+                ]
 
             # Copy-in builder local repository
             if repository_dir.exists():
