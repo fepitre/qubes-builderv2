@@ -6,8 +6,6 @@ git:
     - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
     - 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
 
-artifacts-dir: /mnt/removable/artifacts
-
 backend-vmm: xen
 debug: true
 verbose: true
@@ -42,6 +40,8 @@ components:
   - app-linux-split-gpg
   - app-linux-input-proxy
   - app-linux-usb-proxy
+  - app-linux-pdf-converter
+  - app-linux-img-converter
   - meta-packages
 
 less-secure-signed-commits-sufficient:
@@ -57,6 +57,8 @@ less-secure-signed-commits-sufficient:
   - app-linux-split-gpg
   - app-linux-input-proxy
   - app-linux-usb-proxy
+  - app-linux-pdf-converter
+  - app-linux-img-converter
   - meta-packages
 
 executor:
