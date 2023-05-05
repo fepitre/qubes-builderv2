@@ -105,6 +105,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
     def update_parameters(self, stage: str):
         executor = self.config.get_executor_from_config(stage_name=stage)
+        template_options = [self.template.flavor] + self.template.options
+        template_flavor_dir = []
         self.environment.update(
             {
                 "DIST": self.dist.name,  # legacy value
@@ -115,7 +117,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "TEMPLATE_NAME": self.template.name,
                 "TEMPLATE_VERSION": self.get_template_version(),
                 "TEMPLATE_FLAVOR": self.template.flavor,
-                "TEMPLATE_OPTIONS": " ".join(self.template.options),
+                "TEMPLATE_OPTIONS": " ".join(template_options),
                 "INSTALL_DIR": f"{executor.get_builder_dir()}/mnt",
                 "ARTIFACTS_DIR": str(executor.get_build_dir()),
                 "PLUGINS_DIR": str(executor.get_plugins_dir()),
@@ -152,11 +154,12 @@ class TemplateBuilderPlugin(TemplatePlugin):
         if self.template.distribution.is_rpm():
             self.dependencies += ["chroot_rpm", "source_rpm"]
             self.source_dependencies += ["builder-rpm"]
+            template_content_dir = str(
+                executor.get_sources_dir() / "builder-rpm/template_rpm"
+            )
             self.environment.update(
                 {
-                    "TEMPLATE_CONTENT_DIR": str(
-                        executor.get_sources_dir() / "builder-rpm/template_rpm"
-                    ),
+                    "TEMPLATE_CONTENT_DIR": template_content_dir,
                     "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_rpm/keys"),
                 }
             )
@@ -166,12 +169,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
         ):
             self.dependencies += ["chroot_deb", "source_deb", "build_deb"]
             self.source_dependencies += ["builder-debian"]
+            template_content_dir = str(
+                executor.get_sources_dir()
+                / f"builder-debian/template_{self.dist.fullname}"
+            )
             self.environment.update(
                 {
-                    "TEMPLATE_CONTENT_DIR": str(
-                        executor.get_sources_dir()
-                        / f"builder-debian/template_{self.dist.fullname}"
-                    ),
+                    "TEMPLATE_CONTENT_DIR": template_content_dir,
                     "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_deb/keys"),
                 }
             )
@@ -180,30 +184,33 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "whonix-workstation",
             ):
                 self.source_dependencies += ["template-whonix"]
+                template_content_dir = str(
+                    executor.get_sources_dir() / "template-whonix"
+                )
                 self.environment.update(
                     {
                         "TEMPLATE_ENV_WHITELIST": "DERIVATIVE_APT_REPOSITORY_OPTS WHONIX_ENABLE_TOR WHONIX_TBB_VERSION",
-                        "TEMPLATE_FLAVOR_DIR": f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix +whonix-workstation:{executor.get_sources_dir()}/template-whonix",
-                        "APPMENUS_DIR": str(
-                            executor.get_sources_dir() / "template-whonix"
-                        ),
-                        "FLAVORS_DIR": str(
-                            executor.get_sources_dir() / "template-whonix"
-                        ),
+                        "APPMENUS_DIR": template_content_dir,
+                        "FLAVORS_DIR": template_content_dir,
                         # FIXME: Pass values with the help of plugin options
                         "DERIVATIVE_APT_REPOSITORY_OPTS": "stable",
                         "WHONIX_ENABLE_TOR": "0",
                     }
                 )
+                template_flavor_dir += [
+                    f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix",
+                    f"+whonix-workstation:{executor.get_sources_dir()}/template-whonix",
+                ]
+
         elif self.template.distribution.is_archlinux():
             self.dependencies += ["chroot_archlinux"]
             self.source_dependencies += ["builder-archlinux"]
+            template_content_dir = str(
+                executor.get_sources_dir() / "builder-archlinux/template_archlinux"
+            )
             self.environment.update(
                 {
-                    "TEMPLATE_CONTENT_DIR": str(
-                        executor.get_sources_dir()
-                        / "builder-archlinux/template_archlinux"
-                    ),
+                    "TEMPLATE_CONTENT_DIR": template_content_dir,
                     "CACHE_DIR": str(executor.get_cache_dir()),
                     # We would use chroot_archlinux when deprecating legacy builder.
                     "KEYS_DIR": str(
@@ -213,6 +220,11 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
         else:
             raise TemplateError("Unsupported template.")
+        template_flavor_dir = [
+            f"+{option}:{template_content_dir}/{option}"
+            for option in template_options
+        ]
+        self.environment["TEMPLATE_FLAVOR_DIR"] = " ".join(template_flavor_dir)
 
         for dependency in self.source_dependencies:
             if not self.get_sources_dir() / dependency:
