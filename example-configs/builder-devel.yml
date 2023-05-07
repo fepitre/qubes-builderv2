@@ -55,6 +55,7 @@ templates:
       options:
         - minimal
         - no-recommends
+
 artifacts-dir: /home/user/qubes-builderv2/artifacts
 
 components:

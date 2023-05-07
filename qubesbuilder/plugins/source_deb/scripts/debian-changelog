@@ -168,7 +168,7 @@ if [ "0${INCREMENT_DEVEL_VERSIONS}" -eq 1 ] && [ "0${DEVEL_VERSION}" -gt 0 ]; th
     fi
     export DEBFULLNAME
     export DEBEMAIL
-    debchange --nomultimaint-merge --multimaint -l"+${DIST_TAG}u1+devel" -- 'Test build'
-    sed -i "s/+${DIST_TAG}u1+devel1/+${DIST_TAG}u1+devel${DEVEL_VERSION}/g" debian/changelog
+    debchange --nomultimaint-merge --multimaint -l"+${DIST_TAG}1+devel" -- 'Test build'
+    sed -i "s/+${DIST_TAG}1+devel1/+${DIST_TAG}1+devel${DEVEL_VERSION}/g" debian/changelog
     debchange --force-distribution --distribution "${DIST}" --release -- ''
 fi

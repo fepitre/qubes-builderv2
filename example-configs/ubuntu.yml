@@ -1,0 +1,81 @@
+git:
+  baseurl: https://github.com
+  prefix: qubesos/qubes-
+  branch: main
+  maintainers:
+    - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
+    - 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+
+artifacts-dir: /mnt/removable/artifacts
+
+backend-vmm: xen
+debug: true
+verbose: true
+qubes-release: r4.2
+gpg-client: qubes-gpg-client-wrapper
+
+repository-publish:
+  components: current-testing
+
+sign-key:
+  rpm: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+  deb: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+
+distributions:
+  - vm-jammy
+
+templates:
+  - jammy:
+      dist: jammy
+
+components:
+  - builder-debian:
+      packages: False
+  - vmm-xen-guest
+  - core-vchan-xen
+  - core-qubesdb
+  - core-qrexec
+  - linux-utils
+  - core-agent-linux
+  - gui-common
+  - gui-agent-linux
+  - app-linux-split-gpg
+  - app-linux-input-proxy
+  - app-linux-usb-proxy
+  - meta-packages
+
+less-secure-signed-commits-sufficient:
+  - builder-debian
+  - vmm-xen-guest
+  - core-vchan-xen
+  - core-qubesdb
+  - core-qrexec
+  - linux-utils
+  - core-agent-linux
+  - gui-common
+  - gui-agent-linux
+  - app-linux-split-gpg
+  - app-linux-input-proxy
+  - app-linux-usb-proxy
+  - meta-packages
+
+executor:
+ type: docker
+ options:
+   image: "qubes-builder-debian:latest"
+
+stages:
+  - fetch
+  - prep
+  - build
+  - post
+  - verify
+  - sign:
+      executor:
+        type: local
+  - publish:
+      executor:
+        type: local
+  - upload:
+      executor:
+        type: local

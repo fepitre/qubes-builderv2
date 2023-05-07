@@ -28,18 +28,30 @@ fi
 
 print_usage() {
     cat >&2 <<USAGE
-Usage: $0 release output_dir
+Usage: $0 release fullname output_dir
 Create Qubes repository skeleton for Debian distributions family
 USAGE
 }
 
-if [ $# -lt 2 ]; then
+if [ $# -lt 3 ]; then
     print_usage
     exit 1
 fi
 
 release="$1"
-output_dir="$2"
+fullname="$2"
+output_dir="$3"
+
+if [ "${fullname}" == "debian" ]; then
+    name="Debian"
+    dists=(buster bullseye bookworm trixie)
+elif [ "${fullname}" == "ubuntu" ]; then
+    name="Ubuntu"
+    dists=(bionic focal jammy lunar)
+else
+    echo "Unsupported distribution."
+    exit 1
+fi
 
 mkdir -p "${output_dir}"
 
@@ -47,7 +59,7 @@ if [[ $release =~ ^r[1-9]\.[0-9]$ ]]; then
     mkdir -p "${output_dir}/$release/vm/"{conf,db,dists,pool}
 
     rm -f "${output_dir}/$release/vm/conf/distributions"
-    for dist in buster bullseye bookworm trixie; do
+    for dist in "${dists[@]}"; do
         for repo in current current-testing security-testing unstable; do
             label_suffix=""
             codename_suffix=""
@@ -64,13 +76,13 @@ if [[ $release =~ ^r[1-9]\.[0-9]$ ]]; then
                 codename_suffix="-unstable"
             fi
             cat <<EOF >>"${output_dir}/$release/vm/conf/distributions"
-Origin: Qubes OS Debian
-Label: Qubes Debian${label_suffix}
+Origin: Qubes OS ${name}
+Label: Qubes ${name}${label_suffix}
 Codename: ${dist}${codename_suffix}
 AlsoAcceptFor: ${dist}
 Architectures: amd64 source
 Components: main
-Description: Apt repository with Qubes OS ${release} domU support tools for Debian ${dist}
+Description: Apt repository with Qubes OS ${release} domU support tools for ${name} ${dist}
 Tracking: all includebuildinfos
 
 EOF
