@@ -221,8 +221,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         else:
             raise TemplateError("Unsupported template.")
         template_flavor_dir = [
-            f"+{option}:{template_content_dir}/{option}"
-            for option in template_options
+            f"+{option}:{template_content_dir}/{option}" for option in template_options
         ]
         self.environment["TEMPLATE_FLAVOR_DIR"] = " ".join(template_flavor_dir)
 
