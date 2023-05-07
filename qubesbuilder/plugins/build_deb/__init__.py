@@ -237,7 +237,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
 
             if self.config.use_qubes_repo.get("version", None):
                 repo_server = (
-                    "ubuntu.qubes-os.org"
+                    "debu.qubes-os.org"
                     if self.dist.fullname == "ubuntu"
                     else "deb.qubes-os.org"
                 )
