@@ -150,14 +150,14 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
 
         if self.template.distribution.is_rpm():
-            self.dependencies += ["source_rpm"]
+            self.dependencies += ["chroot_rpm", "source_rpm"]
             self.source_dependencies += ["builder-rpm"]
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": str(
                         executor.get_sources_dir() / "builder-rpm/template_rpm"
                     ),
-                    "KEYS_DIR": str(executor.get_plugins_dir() / "source_rpm/keys"),
+                    "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_rpm/keys"),
                 }
             )
         elif (

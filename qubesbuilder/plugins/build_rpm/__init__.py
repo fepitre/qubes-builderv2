@@ -114,7 +114,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
     """
 
     stages = ["build"]
-    dependencies = ["source_rpm", "build"]
+    dependencies = ["chroot_rpm", "build"]
 
     def __init__(
         self,
@@ -278,7 +278,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                 "/usr/libexec/mock/mock --no-cleanup-after",
                 f"--rebuild {executor.get_build_dir() / source_info['srpm']}",
-                f"--root {executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
+                f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
                 f"--resultdir={executor.get_build_dir()}",
             ]
             if isinstance(executor, ContainerExecutor):
@@ -299,14 +299,14 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 mock_cmd.append(f"--define 'dist .{dist_tag}'")
 
             files_inside_executor_with_placeholders = [
-                f"@PLUGINS_DIR@/source_rpm/mock/{mock_conf}"
+                f"@PLUGINS_DIR@/chroot_rpm/mock/{mock_conf}"
             ]
 
             self.environment["BIND_MOUNT_ENABLE"] = "True"
             buildinfo_cmd = [
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION,BIND_MOUNT_ENABLE",
                 "/usr/libexec/mock/mock",
-                f"--root {executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
+                f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
                 f'--chroot /plugins/build_rpm/scripts/rpmbuildinfo /builddir/build/SRPMS/{source_info["srpm"]} > {executor.get_build_dir()}/{buildinfo_file}',
             ]
 

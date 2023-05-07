@@ -48,7 +48,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
     """
 
     stages = ["prep"]
-    dependencies = ["fetch", "source"]
+    dependencies = ["fetch", "source", "chroot_rpm"]
 
     def __init__(
         self,
@@ -191,7 +191,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             with open(temp_dir / f"{build_bn}_packages.list") as f:
                 data = f.read().splitlines()
             for line in data:
-                if not is_filename_valid(line, allowed_ext=".rpm"):
+                if not is_filename_valid(line, allowed_ext=[".rpm"]):
                     msg = f"{self.component}:{self.dist}:{build}: Invalid package name."
                     raise SourceError(msg)
                 packages_list.append(line)
@@ -294,7 +294,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 f"/usr/libexec/mock/mock",
                 "--buildsrpm",
                 f"--spec {source_dir / build}",
-                f"--root {executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
+                f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
                 f"--sources={source_dir}",
                 f"--resultdir={executor.get_build_dir()}",
                 "--disablerepo=builder-local",
@@ -313,7 +313,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 mock_cmd.append(f"--define 'dist .{dist_tag}'")
 
             files_inside_executor_with_placeholders = [
-                f"@PLUGINS_DIR@/source_rpm/mock/{mock_conf}"
+                f"@PLUGINS_DIR@/chroot_rpm/mock/{mock_conf}"
             ]
 
             cmd += [" ".join(mock_cmd)]

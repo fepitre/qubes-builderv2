@@ -1,5 +1,0 @@
-@buildsys-build
-@development-tools
-rpm-sign
-xorg-x11-server-devel
---exclude=pipewire-*
