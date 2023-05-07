@@ -23,8 +23,17 @@ distributions:
   - vm-jammy
 
 templates:
+  # Using packages_jammy.list + gnome directory
   - jammy:
       dist: jammy
+      flavor: gnome
+  # Using packages_jammy.list only (no gnome apps)
+  - jammy-standard:
+      dist: jammy
+  # Using packages_jammy_minimal.list
+  - jammy-minimal:
+      dist: jammy
+      flavor: minimal
 
 components:
   - builder-debian:
