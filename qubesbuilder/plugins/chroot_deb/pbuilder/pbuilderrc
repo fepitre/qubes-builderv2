@@ -20,7 +20,7 @@ case ${DISTRIBUTION} in
         ;;
     bionic|focal|jammy|lunar)
         DIST_VENDOR=ubuntu
-        MIRRORSITE=https://fr.archive.ubuntu.com/ubuntu
+        MIRRORSITE=http://archive.ubuntu.com/ubuntu
         ;;
     *)
         echo "Unknown distribution: ${DISTRIBUTION}" >&2
