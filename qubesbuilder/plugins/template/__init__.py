@@ -27,7 +27,7 @@ from typing import Dict, List
 import yaml
 from dateutil.parser import parse as parsedate
 
-from qubesbuilder.config import Config
+from qubesbuilder.config import Config, QUBES_RELEASE_RE, QUBES_RELEASE_DEFAULT
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
@@ -40,7 +40,6 @@ from qubesbuilder.template import QubesTemplate
 
 log = get_logger("template")
 
-TEMPLATE_VERSION = "4.1.0"
 TEMPLATE_REPOSITORIES = [
     "templates-itl-testing",
     "templates-community-testing",
@@ -78,6 +77,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "whonix-workstation",
                 ),
                 template.distribution.is_archlinux(),
+                template.distribution.is_ubuntu(),
             ]
         )
 
@@ -90,9 +90,23 @@ class TemplateBuilderPlugin(TemplatePlugin):
     ):
         super().__init__(template=template, config=config, manager=manager)
         self.source_dependencies: List[str] = []
+        self.template_version = ""
+
+    def get_template_version(self):
+        if not self.template_version:
+            parsed_release = QUBES_RELEASE_RE.match(
+                self.config.qubes_release
+            ) or QUBES_RELEASE_RE.match(QUBES_RELEASE_DEFAULT)
+            if not parsed_release:
+                raise TemplateError(f"Cannot parse template version.")
+            # For now, we assume 4.X.0
+            self.template_version = f"{parsed_release.group(1)}.0"
+        return self.template_version
 
     def update_parameters(self, stage: str):
         executor = self.config.get_executor_from_config(stage_name=stage)
+        template_options = [self.template.flavor] + self.template.options
+        template_flavor_dir = []
         self.environment.update(
             {
                 "DIST": self.dist.name,  # legacy value
@@ -101,9 +115,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "DIST_NAME": self.dist.fullname,  # DISTRIBUTION
                 "DIST_VER": str(self.dist.version),
                 "TEMPLATE_NAME": self.template.name,
-                "TEMPLATE_VERSION": TEMPLATE_VERSION,
+                "TEMPLATE_VERSION": self.get_template_version(),
                 "TEMPLATE_FLAVOR": self.template.flavor,
-                "TEMPLATE_OPTIONS": " ".join(self.template.options),
+                "TEMPLATE_OPTIONS": " ".join(template_options),
                 "INSTALL_DIR": f"{executor.get_builder_dir()}/mnt",
                 "ARTIFACTS_DIR": str(executor.get_build_dir()),
                 "PLUGINS_DIR": str(executor.get_plugins_dir()),
@@ -138,25 +152,31 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
 
         if self.template.distribution.is_rpm():
-            self.dependencies += ["source_rpm"]
+            self.dependencies += ["chroot_rpm", "source_rpm"]
             self.source_dependencies += ["builder-rpm"]
+            template_content_dir = str(
+                executor.get_sources_dir() / "builder-rpm/template_rpm"
+            )
             self.environment.update(
                 {
-                    "TEMPLATE_CONTENT_DIR": str(
-                        executor.get_sources_dir() / "builder-rpm/template_rpm"
-                    ),
-                    "KEYS_DIR": str(executor.get_plugins_dir() / "source_rpm/keys"),
+                    "TEMPLATE_CONTENT_DIR": template_content_dir,
+                    "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_rpm/keys"),
                 }
             )
-        elif self.template.distribution.is_deb():
-            self.dependencies += ["source_deb", "build_deb"]
+        elif (
+            self.template.distribution.is_deb()
+            or self.template.distribution.is_ubuntu()
+        ):
+            self.dependencies += ["chroot_deb", "source_deb", "build_deb"]
             self.source_dependencies += ["builder-debian"]
+            template_content_dir = str(
+                executor.get_sources_dir()
+                / f"builder-debian/template_{self.dist.fullname}"
+            )
             self.environment.update(
                 {
-                    "TEMPLATE_CONTENT_DIR": str(
-                        executor.get_sources_dir() / "builder-debian/template_debian"
-                    ),
-                    "KEYS_DIR": str(executor.get_plugins_dir() / "source_deb/keys"),
+                    "TEMPLATE_CONTENT_DIR": template_content_dir,
+                    "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_deb/keys"),
                 }
             )
             if self.template.flavor in (
@@ -164,30 +184,33 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "whonix-workstation",
             ):
                 self.source_dependencies += ["template-whonix"]
+                template_content_dir = str(
+                    executor.get_sources_dir() / "template-whonix"
+                )
                 self.environment.update(
                     {
                         "TEMPLATE_ENV_WHITELIST": "DERIVATIVE_APT_REPOSITORY_OPTS WHONIX_ENABLE_TOR WHONIX_TBB_VERSION",
-                        "TEMPLATE_FLAVOR_DIR": f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix +whonix-workstation:{executor.get_sources_dir()}/template-whonix",
-                        "APPMENUS_DIR": str(
-                            executor.get_sources_dir() / "template-whonix"
-                        ),
-                        "FLAVORS_DIR": str(
-                            executor.get_sources_dir() / "template-whonix"
-                        ),
+                        "APPMENUS_DIR": template_content_dir,
+                        "FLAVORS_DIR": template_content_dir,
                         # FIXME: Pass values with the help of plugin options
                         "DERIVATIVE_APT_REPOSITORY_OPTS": "stable",
                         "WHONIX_ENABLE_TOR": "0",
                     }
                 )
+                template_flavor_dir += [
+                    f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix",
+                    f"+whonix-workstation:{executor.get_sources_dir()}/template-whonix",
+                ]
+
         elif self.template.distribution.is_archlinux():
             self.dependencies += ["chroot_archlinux"]
             self.source_dependencies += ["builder-archlinux"]
+            template_content_dir = str(
+                executor.get_sources_dir() / "builder-archlinux/template_archlinux"
+            )
             self.environment.update(
                 {
-                    "TEMPLATE_CONTENT_DIR": str(
-                        executor.get_sources_dir()
-                        / "builder-archlinux/template_archlinux"
-                    ),
+                    "TEMPLATE_CONTENT_DIR": template_content_dir,
                     "CACHE_DIR": str(executor.get_cache_dir()),
                     # We would use chroot_archlinux when deprecating legacy builder.
                     "KEYS_DIR": str(
@@ -197,6 +220,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
         else:
             raise TemplateError("Unsupported template.")
+        template_flavor_dir = [
+            f"+{option}:{template_content_dir}/{option}" for option in template_options
+        ]
+        self.environment["TEMPLATE_FLAVOR_DIR"] = " ".join(template_flavor_dir)
 
         for dependency in self.source_dependencies:
             if not self.get_sources_dir() / dependency:
@@ -209,7 +236,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         ) or self.config.sign_key.get("rpm", None)
 
         if not sign_key:
-            raise TemplateError(f"{self.template}: No signing key found.")
+            return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
@@ -283,7 +310,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         return True
 
     def get_template_tag(self):
-        return f"{TEMPLATE_VERSION}-{self.get_template_timestamp()}"
+        return f"{self.get_template_version()}-{self.get_template_timestamp()}"
 
     def create_metalink(self, executor, repository_publish):
         repo_basedir = self.get_repository_publish_dir() / "rpm"
@@ -320,6 +347,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
         # We check that signature exists (--check-only option)
         log.info(f"{self.template}: Verifying signatures.")
         sign_key = self.get_sign_key()
+        if not sign_key:
+            log.info(f"{self.template}: No signing key found.")
+            return
         try:
             cmd = [
                 f"{self.manager.entities['sign_rpm'].directory}/scripts/sign-rpm "
@@ -354,17 +384,21 @@ class TemplateBuilderPlugin(TemplatePlugin):
     def unpublish(self, executor, repository_publish):
         # Read information from build stage
         template_timestamp = self.get_template_timestamp()
+        template_version = self.get_template_version()
 
         rpm = (
             self.get_templates_dir()
             / "rpm"
-            / f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
+            / f"qubes-template-{self.template.name}-{template_version}-{template_timestamp}.noarch.rpm"
         )
         if not rpm.exists():
             msg = f"{self.template}: Cannot find template RPM '{rpm}'."
             raise TemplateError(msg)
 
         sign_key = self.get_sign_key()
+        if not sign_key:
+            log.info(f"{self.template}: No signing key found.")
+            return
 
         # If exists, remove hardlinks to built RPMs
         log.info(f"{self.template}: Unpublishing template.")
@@ -481,9 +515,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         if stage == "build":
             template_timestamp = self.get_template_timestamp()
+            template_version = self.get_template_version()
             self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
-            rpm_fn = f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
+            rpm_fn = f"qubes-template-{self.template.name}-{template_version}-{template_timestamp}.noarch.rpm"
 
             copy_in = (
                 [
@@ -572,6 +607,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 shutil.rmtree(db_path)
 
             sign_key = self.get_sign_key()
+            if not sign_key:
+                log.info(f"{self.template}: No signing key found.")
+                return
 
             temp_dir = Path(tempfile.mkdtemp())
             sign_key_asc = temp_dir / f"{sign_key}.asc"
@@ -590,11 +628,12 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 shutil.rmtree(temp_dir)
 
             template_timestamp = self.get_template_timestamp()
+            template_version = self.get_template_version()
 
             rpm = (
                 template_artifacts_dir
                 / "rpm"
-                / f"qubes-template-{self.template.name}-{TEMPLATE_VERSION}-{template_timestamp}.noarch.rpm"
+                / f"qubes-template-{self.template.name}-{template_version}-{template_timestamp}.noarch.rpm"
             )
             if not rpm.exists():
                 msg = f"{self.template}: Cannot find template RPM '{rpm}'."

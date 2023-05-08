@@ -32,6 +32,14 @@ DEBIAN = {
     "trixie": "13",
 }
 
+# LTS
+UBUNTU = {
+    "bionic": "18.04",
+    "focal": "20.04",
+    "jammy": "22.04",
+    "lunar": "23.04",
+}
+
 DEBIAN_ARCHITECTURE = {"x86_64": "amd64", "ppc64le": "ppc64el"}
 
 
@@ -50,6 +58,7 @@ class QubesDistribution:
         is_fedora = FEDORA_RE.match(self.name)
         is_centos_stream = CENTOS_STREAM_RE.match(self.name)
         is_debian = DEBIAN.get(self.name, None)
+        is_ubuntu = UBUNTU.get(self.name, None)
         is_archlinux = self.name == "archlinux"
         if is_fedora:
             self.fullname = "fedora"
@@ -67,7 +76,15 @@ class QubesDistribution:
             self.architecture = DEBIAN_ARCHITECTURE.get(
                 self.architecture, self.architecture
             )
-            self.tag = f"deb{self.version}"
+            self.tag = f"deb{self.version}u"
+            self.type = "deb"
+        elif is_ubuntu:
+            self.fullname = "ubuntu"
+            self.version = UBUNTU[self.name]
+            self.architecture = DEBIAN_ARCHITECTURE.get(
+                self.architecture, self.architecture
+            )
+            self.tag = self.name
             self.type = "deb"
         elif is_archlinux:
             self.fullname = "archlinux"
@@ -96,6 +113,11 @@ class QubesDistribution:
 
     def is_deb(self) -> bool:
         if DEBIAN.get(self.name, None):
+            return True
+        return False
+
+    def is_ubuntu(self) -> bool:
+        if UBUNTU.get(self.name, None):
             return True
         return False
 

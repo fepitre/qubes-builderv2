@@ -25,15 +25,9 @@ import sys
 from debian.deb822 import Dsc
 
 
-def main(dsc, debian_release):
+def main(dsc):
     if not os.path.exists(dsc):
         print(f"Cannot find '{dsc}'.", file=sys.stderr)
-        return 1
-
-    try:
-        debian_release = int(debian_release)
-    except ValueError:
-        print(f"Cannot parse Debian release number '{debian_release}'.", file=sys.stderr)
         return 1
 
     with open(dsc) as f:
@@ -66,10 +60,13 @@ def main(dsc, debian_release):
             continue
         print(f"{package}_{version}_{arch}.{package_type}")
         print(f"{package}-dbgsym_{version}_{arch}.{package_type}")
+        if package_type == "deb":
+            # See https://wiki.debian.org/AutomaticDebugPackages
+            print(f"{package}-dbgsym_{version}_{arch}.d{package_type}")
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print(f"usage: {sys.argv[0]} dsc debian_release_number", file=sys.stderr)
+    if len(sys.argv) < 1:
+        print(f"usage: {sys.argv[0]} dsc", file=sys.stderr)
         sys.exit(1)
-    sys.exit(main(sys.argv[1], sys.argv[2]))
+    sys.exit(main(sys.argv[1]))

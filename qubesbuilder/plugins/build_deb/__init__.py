@@ -93,7 +93,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
     """
 
     stages = ["build"]
-    dependencies = ["source_deb", "build"]
+    dependencies = ["chroot_deb", "build"]
 
     def __init__(
         self,
@@ -174,7 +174,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             # Copy-in plugin, repository and sources
             copy_in = [
                 (
-                    self.manager.entities["source_deb"].directory / "pbuilder",
+                    self.manager.entities["chroot_deb"].directory / "pbuilder",
                     executor.get_builder_dir(),
                 ),
                 (repository_dir, executor.get_repository_dir()),
@@ -236,15 +236,20 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             ]
 
             if self.config.use_qubes_repo.get("version", None):
+                repo_server = (
+                    "debu.qubes-os.org"
+                    if self.dist.fullname == "ubuntu"
+                    else "deb.qubes-os.org"
+                )
                 qubes_version = self.config.use_qubes_repo["version"]
-                extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name} main"
+                extra_sources = f"{extra_sources}|deb [arch=amd64] https://{repo_server}/r{qubes_version}/vm {self.dist.name} main"
                 cmd += [
                     f"gpg --dearmor "
-                    f"< {executor.get_plugins_dir()}/source_deb/keys/qubes-debian-r{qubes_version}.asc "
+                    f"< {executor.get_plugins_dir()}/chroot_deb/keys/qubes-debian-r{qubes_version}.asc "
                     f"> {executor.get_builder_dir()}/pbuilder/qubes-keyring.gpg"
                 ]
                 if self.config.use_qubes_repo.get("testing", False):
-                    extra_sources = f"{extra_sources}|deb [arch=amd64] http://deb.qubes-os.org/r{qubes_version}/vm {self.dist.name}-testing main"
+                    extra_sources = f"{extra_sources}|deb [arch=amd64] https://{repo_server}/r{qubes_version}/vm {self.dist.name}-testing main"
 
             # fmt: off
             # FIXME: We disable black here because it removes escaped quotes.

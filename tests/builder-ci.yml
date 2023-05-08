@@ -31,8 +31,10 @@ distributions:
   - host-fc37
   - vm-bullseye
   - vm-fc36
+  - vm-fc38
   - vm-centos-stream8
   - vm-archlinux
+  - vm-jammy
 
 components:
   - builder-rpm:
@@ -45,25 +47,24 @@ components:
       branch: master
       maintainers:
         - 916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA
+  - builder-archlinux:
+      packages: False
   - python-qasync:
-      url: https://github.com/fepitre/qubes-python-qasync
-      branch: builderv2
-  - core-vchan-xen:
-      url: https://github.com/fepitre/qubes-core-vchan-xen
-      branch: archlinuxv2
+      branch: v0.23.0-2
+  - core-vchan-xen
   - core-qrexec:
-      url: https://github.com/fepitre/qubes-core-qrexec
-      branch: archlinuxv2
+      branch: v4.2.4
   - desktop-linux-xfce4-xfwm4:
-      url: https://github.com/fepitre/qubes-desktop-linux-xfce4-xfwm4
-      branch: builderv2
+      branch: v4.16.1-3
   - app-linux-split-gpg:
-      url: https://github.com/fepitre/qubes-app-linux-split-gpg
-      branch: archlinuxv2
+      branch: v2.0.67
 
 templates:
   - fedora-36-xfce:
       dist: fc36
+      flavor: xfce
+  - fedora-38-xfce:
+      dist: fc38
       flavor: xfce
   - centos-stream-8:
       dist: centos-stream8
@@ -84,10 +85,13 @@ templates:
       options:
         - minimal
         - no-recommends
+  - archlinux:
+      dist: archlinux
 
 less-secure-signed-commits-sufficient:
   - builder-rpm
   - builder-debian
+  - builder-archlinux
   - template-whonix
   - python-qasync
   - core-vchan-xen
@@ -95,6 +99,7 @@ less-secure-signed-commits-sufficient:
   - desktop-linux-xfce4-xfwm4
   - app-linux-split-gpg
   - vmm-xen
+  - vmm-xen-guest
 
 repository-publish:
   components: current-testing

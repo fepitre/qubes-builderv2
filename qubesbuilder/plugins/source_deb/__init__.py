@@ -275,7 +275,6 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             gen_packages_list_cmd = [
                 f"{executor.get_plugins_dir()}/source_deb/scripts/debian-get-packages-list",
                 str(executor.get_builder_dir() / source_dsc),
-                str(self.dist.version),
                 f">{executor.get_builder_dir()}/{directory_bn}_packages.list",
             ]
 
@@ -318,7 +317,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             with open(temp_dir / f"{directory_bn}_packages.list") as f:
                 data = f.read().splitlines()
             for line in data:
-                if not is_filename_valid(line, allowed_ext=".deb"):
+                if not is_filename_valid(line, allowed_ext=[".deb", ".ddeb", ".udeb"]):
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid package name."
                     raise SourceError(msg)
                 packages_list.append(line)

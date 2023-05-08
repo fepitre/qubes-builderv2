@@ -52,7 +52,7 @@ class InstallerPlugin(DistributionPlugin):
     """
 
     stages = ["init-cache", "prep", "build", "sign", "upload"]
-    dependencies = ["source_rpm"]
+    dependencies = ["chroot_rpm"]
 
     def __init__(
         self,

@@ -302,12 +302,17 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
     def update_parameters(self, stage: str):
         super().update_parameters(stage)
 
-        # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
         parameters = self.component.get_parameters(self.get_placeholders(stage))
 
+        # host/vm -> rpm/deb/archlinux
         self._parameters.update(
             parameters.get(self.dist.package_set, {}).get(self.dist.type, {})
         )
+        # host/vm -> fedora/debian/ubuntu/archlinux
+        self._parameters.update(
+            parameters.get(self.dist.package_set, {}).get(self.dist.fullname, {})
+        )
+        # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
         self._parameters.update(
             parameters.get(self.dist.distribution, {}).get(self.dist.type, {})
         )
@@ -459,7 +464,7 @@ class RPMDistributionPlugin(DistributionPlugin):
 class DEBDistributionPlugin(DistributionPlugin):
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
-        return distribution.is_deb()
+        return distribution.is_deb() or distribution.is_ubuntu()
 
 
 class ArchlinuxDistributionPlugin(DistributionPlugin):

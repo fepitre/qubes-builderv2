@@ -39,7 +39,6 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
     """
 
     stages = ["init-cache"]
-    dependencies = ["source_rpm"]
 
     def __init__(
         self,
@@ -73,8 +72,10 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             shutil.rmtree(chroot_dir / mock_chroot_name)
 
         copy_in = [
-            (self.manager.entities[dependency].directory, executor.get_plugins_dir())
-            for dependency in self.dependencies
+            (
+                self.manager.entities["chroot_rpm"].directory,
+                executor.get_plugins_dir(),
+            ),
         ]
 
         self.environment.update(
@@ -94,7 +95,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
         mock_cmd = [
             f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
             f"/usr/libexec/mock/mock",
-            f"--root {executor.get_plugins_dir()}/source_rpm/mock/{mock_conf}",
+            f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
             "--disablerepo=builder-local",
             "--init",
         ]
@@ -111,7 +112,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             mock_cmd.append("--verbose")
 
         files_inside_executor_with_placeholders = [
-            f"@PLUGINS_DIR@/source_rpm/mock/{mock_conf}"
+            f"@PLUGINS_DIR@/chroot_rpm/mock/{mock_conf}"
         ]
         cmd = [" ".join(mock_cmd)]
 

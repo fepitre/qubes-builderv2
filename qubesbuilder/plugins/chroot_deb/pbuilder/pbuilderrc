@@ -14,19 +14,18 @@ LOGLEVEL=I
 USECOLORS=auto
 
 case ${DISTRIBUTION} in
-    stretch|buster|bullseye|bookworm|sid|experimental)
+    buster|bullseye|bookworm|sid|experimental)
         DIST_VENDOR=debian
         MIRRORSITE=https://deb.debian.org/debian
         ;;
-    trusty|xenial|bionic|focal)
-        DIST_VENDOR=qubuntu
-        MIRRORSITE=https://archive.ubuntu.com/ubuntu
+    bionic|focal|jammy|lunar)
+        DIST_VENDOR=ubuntu
+        MIRRORSITE=http://archive.ubuntu.com/ubuntu
         ;;
     *)
         echo "Unknown distribution: ${DISTRIBUTION}" >&2
         exit 1
 esac
-
 
 BASETGZ="@BUILDER_DIR@/pbuilder/base.tgz"
 #EXTRAPACKAGES=""
@@ -57,7 +56,14 @@ BUILDRESULT="@BUILDER_DIR@/pbuilder/results"
 # specifying the components of the distribution, for instance to enable all
 # components on Debian use "main contrib non-free" and on Ubuntu "main
 # restricted universe multiverse"
-COMPONENTS="main"
+case ${DISTRIBUTION} in
+    buster|bullseye|bookworm|sid|experimental)
+        COMPONENTS="main"
+        ;;
+    bionic|focal|jammy|lunar)
+        COMPONENTS="main restricted universe multiverse"
+        ;;
+esac
 #specify the cache for APT
 APTCACHE="$CACHEDIR"
 APTCACHEHARDLINK="yes"
@@ -132,7 +138,7 @@ DEBOOTSTRAPOPTS=(
 # or unset it to make it not a buildd type.
 # unset DEBOOTSTRAPOPTS
 
-DEBOOTSTRAPOPTS+=( "--keyring=@BUILDER_DIR@/plugins/source_deb/keys/${DISTRIBUTION}-${DIST_VENDOR}-archive-keyring.gpg" )
+DEBOOTSTRAPOPTS+=( "--keyring=@BUILDER_DIR@/plugins/chroot_deb/keys/${DISTRIBUTION}-${DIST_VENDOR}-archive-keyring.gpg" )
 
 # Keyrings to use for package verification with apt, not used for debootstrap
 # (use DEBOOTSTRAPOPTS). By default the debian-archive-keyring package inside

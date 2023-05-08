@@ -270,6 +270,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             create_skeleton_cmd = [
                 f"{self.manager.entities['publish_deb'].directory}/scripts/create-skeleton",
                 self.config.qubes_release,
+                self.dist.fullname,
                 str(artifacts_dir),
             ]
             cmd = [" ".join(create_skeleton_cmd)]
