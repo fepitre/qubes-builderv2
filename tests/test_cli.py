@@ -2045,7 +2045,7 @@ def test_template_for_iso(artifacts_dir):
         with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce") as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
-        rpm = f"qubes-template-fedora-36-xfce-4.1.0-{template_timestamp}.noarch.rpm"
+        rpm = f"qubes-template-fedora-36-xfce-4.2.0-{template_timestamp}.noarch.rpm"
 
         DEFAULT_KICKSTART = (
             PROJECT_PATH / "qubesbuilder/plugins/installer/conf/iso-online-testing-no-templates.ks"
