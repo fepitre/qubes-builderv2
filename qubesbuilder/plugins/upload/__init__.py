@@ -56,6 +56,7 @@ class UploadPlugin(DistributionPlugin):
         return (
             distribution.is_rpm()
             or distribution.is_deb()
+            or distribution.is_ubuntu()
             or distribution.is_archlinux()
         )
 
@@ -91,7 +92,7 @@ class UploadPlugin(DistributionPlugin):
                 directories_to_upload.append(
                     f"{repository_publish}/{self.dist.package_set}/{self.dist.name}"
                 )
-            elif self.dist.is_deb():
+            elif self.dist.is_deb() or self.dist.is_ubuntu():
                 debian_suite = (
                     DEBPublishPlugin.get_debian_suite_from_repository_publish(
                         self.dist, repository_publish
