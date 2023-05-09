@@ -153,6 +153,7 @@ class ContainerExecutor(Executor):
         files_inside_executor_with_placeholders: List[Union[Path, str]] = None,
         environment=None,
         no_fail_copy_out_allowed_patterns=None,
+        override_container_cmd=False,
         **kwargs,
     ):
 
@@ -183,7 +184,11 @@ class ContainerExecutor(Executor):
                     ]
 
                 final_cmd = "&&".join(permissions_cmd + sed_cmd + cmd)
-                container_cmd = ["bash", "-c", final_cmd]
+
+                if override_container_cmd:
+                    container_cmd = cmd
+                else:
+                    container_cmd = ["bash", "-c", final_cmd]
 
                 # FIXME: Ensure podman client can parse non str value
                 #  https://github.com/containers/podman/issues/11984
@@ -207,7 +212,7 @@ class ContainerExecutor(Executor):
 
                 # Adjust log namespace
                 log.name = f"executor:{self._container_client}:{container.short_id}"
-                log.info(f"Executing '{final_cmd}'.")
+                log.info(f"Executing '{container_cmd}'.")
 
                 # copy-in hook
                 for src_in, dst_in in copy_in or []:
@@ -231,7 +236,7 @@ class ContainerExecutor(Executor):
                         break
                 rc = process.poll()
                 if rc != 0:
-                    raise ExecutorError(f"Failed to run '{final_cmd}' (status={rc}).")
+                    raise ExecutorError(f"Failed to run '{container_cmd}' (status={rc}).")
 
                 # copy-out hook
                 for src_out, dst_out in copy_out or []:
