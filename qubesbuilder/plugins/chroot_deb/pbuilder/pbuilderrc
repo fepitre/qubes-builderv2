@@ -139,6 +139,7 @@ DEBOOTSTRAPOPTS=(
 # unset DEBOOTSTRAPOPTS
 
 DEBOOTSTRAPOPTS+=( "--keyring=@BUILDER_DIR@/plugins/chroot_deb/keys/${DISTRIBUTION}-${DIST_VENDOR}-archive-keyring.gpg" )
+DEBOOTSTRAPOPTS+=( "--include=ca-certificates" )
 
 # Keyrings to use for package verification with apt, not used for debootstrap
 # (use DEBOOTSTRAPOPTS). By default the debian-archive-keyring package inside
