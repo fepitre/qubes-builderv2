@@ -362,12 +362,12 @@ docker-vm-archlinux:
   needs:
     - cache-vm-archlinux
 
-#docker-vm-jammy:
-#  extends: .component_docker_job
-#  variables:
-#    QB_EXTRA_ARGS: "-o +components+vmm-xen-guest -c vmm-xen-guest -c core-vchan-xen"
-#  needs:
-#    - cache-vm-jammy
+docker-vm-jammy:
+  extends: .component_docker_job
+  variables:
+    QB_EXTRA_ARGS: "-o +components+vmm-xen-guest -c vmm-xen-guest -c core-vchan-xen"
+  needs:
+    - cache-vm-jammy
 
 # Qubes executor
 
