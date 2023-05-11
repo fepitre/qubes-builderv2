@@ -18,9 +18,13 @@ case ${DISTRIBUTION} in
         DIST_VENDOR=debian
         MIRRORSITE=https://deb.debian.org/debian
         ;;
-    bionic|focal|jammy|lunar)
+    bionic|focal)
         DIST_VENDOR=ubuntu
         MIRRORSITE=http://archive.ubuntu.com/ubuntu
+        ;;
+    jammy|lunar)
+        DIST_VENDOR=ubuntu
+        MIRRORSITE=https://fr.archive.ubuntu.com/ubuntu
         ;;
     *)
         echo "Unknown distribution: ${DISTRIBUTION}" >&2
