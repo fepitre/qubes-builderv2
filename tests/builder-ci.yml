@@ -30,10 +30,13 @@ iso:
 distributions:
   - host-fc37
   - vm-bullseye
+  - vm-bookworm
   - vm-fc36
+  - vm-fc37
   - vm-fc38
   - vm-centos-stream8
   - vm-archlinux
+  - vm-focal
   - vm-jammy
 
 components:
