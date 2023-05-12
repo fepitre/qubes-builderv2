@@ -243,9 +243,10 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
                 )
                 qubes_version = self.config.use_qubes_repo["version"]
                 extra_sources = f"{extra_sources}|deb [arch=amd64] https://{repo_server}/r{qubes_version}/vm {self.dist.name} main"
+                keyring_file = f"qubes-{self.dist.fullname}-r{qubes_version}.asc"
                 cmd += [
                     f"gpg --dearmor "
-                    f"< {executor.get_plugins_dir()}/chroot_deb/keys/qubes-debian-r{qubes_version}.asc "
+                    f"< {executor.get_plugins_dir()}/chroot_deb/keys/{keyring_file} "
                     f"> {executor.get_builder_dir()}/pbuilder/qubes-keyring.gpg"
                 ]
                 if self.config.use_qubes_repo.get("testing", False):
