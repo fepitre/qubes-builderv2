@@ -374,8 +374,14 @@ docker-vm-archlinux:
 
 docker-vm-jammy:
   extends: .component_docker_job
+  before_script:
+    - cp -Tr tests/gnupg ~/.gnupg
+    - chmod 700 ~/.gnupg
+    - docker build -f dockerfiles/debian.Dockerfile -t qubes-builder-debian:latest dockerfiles/
+    - tar xf artifacts.tar.xz
+    - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   variables:
-    QB_EXTRA_ARGS: "-o +components+vmm-xen-guest -c vmm-xen-guest -c core-vchan-xen"
+    QB_EXTRA_ARGS: "-o executor:options:image=qubes-builder-debian:latest -o +components+vmm-xen-guest -c vmm-xen-guest -c core-vchan-xen"
   needs:
     - cache-vm-jammy
 
