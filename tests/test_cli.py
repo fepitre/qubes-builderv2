@@ -1688,10 +1688,6 @@ def test_template_prep_fedora_36_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
-        "--option",
-        "executor:type=qubes",
-        "--option",
-        "executor:options:dispvm=builder-dvm",
         "-t",
         "fedora-36-xfce",
         "template",
@@ -1710,10 +1706,6 @@ def test_template_build_fedora_36_xfce(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
-        "--option",
-        "executor:type=qubes",
-        "--option",
-        "executor:options:dispvm=builder-dvm",
         "-t",
         "fedora-36-xfce",
         "template",
@@ -1884,10 +1876,6 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
         qb_call(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
-            "--option",
-            "executor:type=qubes",
-            "--option",
-            "executor:options:dispvm=builder-dvm",
             "-t",
             "fedora-36-xfce",
             "template",
