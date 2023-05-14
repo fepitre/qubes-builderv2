@@ -380,6 +380,8 @@ docker-vm-jammy:
     - docker build -f dockerfiles/debian.Dockerfile -t qubes-builder-debian:latest dockerfiles/
     - tar xf artifacts.tar.xz
     - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
+    # install an update manually built until https://bugzilla.redhat.com/show_bug.cgi?id=2108872 is handled
+    - sudo dnf update -y https://caviar.qubes-os.org/~marmarek/reprepro-5.4.2-1.fc37.x86_64.rpm
   variables:
     QB_EXTRA_ARGS: "-o executor:options:image=qubes-builder-debian:latest -o +components+vmm-xen-guest -c vmm-xen-guest -c core-vchan-xen"
   needs:
