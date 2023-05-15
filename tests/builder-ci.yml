@@ -123,9 +123,18 @@ stages:
   - sign:
       executor:
         type: local
+        options:
+          user: gitlab-runner
+          group: gitlab-runner
   - publish:
       executor:
         type: local
+        options:
+          user: gitlab-runner
+          group: gitlab-runner
   - upload:
       executor:
         type: local
+        options:
+          user: gitlab-runner
+          group: gitlab-runner

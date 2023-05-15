@@ -59,15 +59,6 @@ shellcheck:
   script:
     - shellcheck -x -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
 
-# 'qubes' is a shell executor so docker image will be stored in local docker system
-generate-container-image:
-  stage: test
-  tags:
-    - qubes
-  script:
-    - sudo dnf install -y mock
-    - tools/generate-container-image.sh docker fedora-38-x86_64
-
 .pytest:
   rules:
     - if: $CI_RUN_PYTEST_JOBS != "0" || $CI_RUN_ALL_JOBS == "1"
@@ -75,7 +66,7 @@ generate-container-image:
     - when: never
   stage: test
   tags:
-    - qubes
+    - vm
   artifacts:
     paths:
       - artifacts/htmlcov/
@@ -85,11 +76,10 @@ generate-container-image:
         coverage_format: cobertura
         path: artifacts/coverage.xml
   coverage: '/TOTAL.*\s(\d+)%/'
-  needs:
-    - generate-container-image
   variables:
     PYTHONPATH: .
-    TMPDIR: /home/user
+    ARTIFACTS_DIR: /var/tmp/artifacts
+    TMPDIR: /var/tmp
     PYTEST_ARGS: -v --color=yes --showlocals --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
   # https://gitlab.com/gitlab-org/gitlab/-/issues/15603
   before_script:
@@ -98,12 +88,14 @@ generate-container-image:
     - git clone https://github.com/qubesos/qubes-infrastructure-mirrors
     - (cd qubes-infrastructure-mirrors; pip3 install .)
     - export "PATH=$PATH:$HOME/.local/bin"
-    - export "PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python3.10/site-packages"
+    - export "PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python3.11/site-packages:$HOME/.local/lib/python3.10/site-packages"
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
 
 pytest:
   extends: .pytest
+  tags:
+    - qubes
   script:
     - echo "$PYTHONPATH"
     - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py
