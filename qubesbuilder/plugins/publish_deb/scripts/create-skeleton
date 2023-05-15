@@ -53,6 +53,13 @@ else
     exit 1
 fi
 
+reprepro_version="$(LC_ALL=C reprepro --version 2>&1)"
+reprepro_version="${reprepro_version#reprepro: This is reprepro version }"
+append_components=""
+if [ "$(printf '%s\n' "$reprepro_version" "5.4.0" | sort -V | head -n1)" = "5.4.0" ]; then
+    append_components=$'\nDDebComponents: main'
+fi
+
 mkdir -p "${output_dir}"
 
 if [[ $release =~ ^r[1-9]\.[0-9]$ ]]; then
@@ -81,7 +88,7 @@ Label: Qubes ${name}${label_suffix}
 Codename: ${dist}${codename_suffix}
 AlsoAcceptFor: ${dist}
 Architectures: amd64 source
-Components: main
+Components: main${append_components}
 Description: Apt repository with Qubes OS ${release} domU support tools for ${name} ${dist}
 Tracking: all includebuildinfos
 
