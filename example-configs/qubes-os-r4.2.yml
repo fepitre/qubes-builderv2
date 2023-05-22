@@ -75,7 +75,6 @@ components:
       branch: main
       timeout: 21600
   - artwork
-  - nautilus
   - grub2
   - grub2-theme
   - gui-common
@@ -127,7 +126,6 @@ components:
   - linux-pvgrub2
   - linux-gbulb
   - linux-scrypt
-  - xdotool
   - lvm2
   - qubes-release
   - pykickstart
