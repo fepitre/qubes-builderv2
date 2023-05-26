@@ -40,10 +40,14 @@ if [ "$(type -t set_rpm_defines)" = "function" ]; then
     set_rpm_defines "$DIST_TAG"
 fi
 
-RPM_OPS=("${rpm_defines[@]}" --nodebuginfo)
+RPM_OPS=("${rpm_defines[@]}")
 
-# Get builtrpms from rpmspec without debuginfo
+# Manually add debuginfo packages in addition to standard query, and then
+# filter duplicates. This way both static (defined expliticly in spec) and
+# dynamic ones are handled.
 # see https://github.com/rpm-software-management/rpm/issues/1878
+{
 rpmspec --builtrpms "${RPM_OPS[@]}" -q --qf '%{name}-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}"
-rpmspec --builtrpms "${RPM_OPS[@]}" -q --qf '%{name}-debuginfo-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel' 2>/dev/null || true
-rpmspec --builtrpms "${RPM_OPS[@]}" -q --qf '%{name}-debugsource-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel' 2>/dev/null || true
+rpmspec --builtrpms "${RPM_OPS[@]}" -q --qf '%{name}-debuginfo-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel\|-debuginfo-debuginfo\|-debugsource-debuginfo' 2>/dev/null || true
+rpmspec --builtrpms "${RPM_OPS[@]}" -q --qf '%{name}-debugsource-%{version}-%{release}.%{arch}.rpm\n' "${SPEC_FILE}" | grep -v -- '-devel\|-debuginfo-debugsource\|-debugsource-debugsource' 2>/dev/null || true
+} | sort | uniq
