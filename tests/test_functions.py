@@ -116,10 +116,7 @@ def test_parse_config_entry_from_array_02():
 
 
 def test_parse_config_entry_from_array_03():
-    array = [
-        "components+kernel:branch=stable-5.15",
-        "components+lvm2"
-    ]
+    array = ["components+kernel:branch=stable-5.15", "components+lvm2"]
     parsed_dict = parse_config_from_cli(array)
     expected_dict = {
         "components": [{"kernel": {"branch": "stable-5.15"}}, "lvm2"],
@@ -128,10 +125,7 @@ def test_parse_config_entry_from_array_03():
 
 
 def test_parse_config_entry_from_array_04():
-    array = [
-        "+components+kernel:branch=stable-5.15",
-        "+components+lvm2"
-    ]
+    array = ["+components+kernel:branch=stable-5.15", "+components+lvm2"]
     parsed_dict = parse_config_from_cli(array)
     expected_dict = {
         "+components": [{"kernel": {"branch": "stable-5.15"}}, "lvm2"],
