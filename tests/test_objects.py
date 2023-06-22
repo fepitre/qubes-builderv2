@@ -7,7 +7,7 @@ from qubesbuilder.common import VerificationMode
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.template import QubesTemplate
+from qubesbuilder.template import QubesTemplate, TemplateError
 from qubesbuilder.exc import ComponentError, DistributionError, ConfigError
 from qubesbuilder.plugins import DistributionComponentPlugin
 from qubesbuilder.pluginmanager import PluginManager
@@ -294,6 +294,88 @@ def test_template():
     assert repr(template) == repr_str
 
 
+def test_qubes_template_init_with_valid_template():
+    template_dict = {
+        "fedora-42": {
+            "dist": "fc42",
+            "flavor": "minimal",
+            "options": ["option1", "option2"],
+            "timeout": 1800,
+        }
+    }
+    qubes_template = QubesTemplate(template_dict)
+
+    assert qubes_template.name == "fedora-42"
+    assert isinstance(qubes_template.distribution, QubesDistribution)
+    assert qubes_template.flavor == "minimal"
+    assert qubes_template.options == ["option1", "option2"]
+    assert qubes_template.timeout == 1800
+
+
+def test_qubes_template_init_with_empty_template():
+    template_dict = {"": {}}
+    with pytest.raises(TemplateError) as exc_info:
+        QubesTemplate(template_dict)
+
+    assert str(exc_info.value) == "Empty template."
+
+
+def test_qubes_template_init_with_invalid_value():
+    template_dict = {"template_name": None}
+    with pytest.raises(TemplateError) as exc_info:
+        QubesTemplate(template_dict)
+
+    assert str(exc_info.value) == "Invalid value for template."
+
+
+def test_qubes_template_init_with_invalid_distribution():
+    template_dict = {"fedora-42": {"dist": "host-fedora-42"}}
+    with pytest.raises(TemplateError) as exc_info:
+        QubesTemplate(template_dict)
+
+    assert (
+        str(exc_info.value) == "Invalid provided distribution for template 'fedora-42'."
+    )
+
+
+def test_qubes_template_init_with_distribution_error():
+    template_dict = {"fedora-42": {"dist": "fedora-42"}}
+    with pytest.raises(TemplateError) as exc_info:
+        QubesTemplate(template_dict)
+
+    assert str(exc_info.value) == "Unsupported distribution 'vm-fedora-42'."
+
+
+def test_qubes_template_to_str():
+    template_dict = {"fedora-42": {"dist": "fc42"}}
+    qubes_template = QubesTemplate(template_dict)
+
+    assert qubes_template.to_str() == "fedora-42"
+
+
+def test_qubes_template_repr_with_options():
+    template_dict = {"fedora-42": {"dist": "fc42", "options": ["option1", "option2"]}}
+    qubes_template = QubesTemplate(template_dict)
+
+    assert (
+        repr(qubes_template) == "<QubesTemplate fedora-42 (options: option1,option2)>"
+    )
+
+
+def test_qubes_template_repr_without_options():
+    template_dict = {"fedora-42": {"dist": "fc42"}}
+    qubes_template = QubesTemplate(template_dict)
+
+    assert repr(qubes_template) == "<QubesTemplate fedora-42>"
+
+
+def test_qubes_template_str():
+    template_dict = {"fedora-42": {"dist": "fc42"}}
+    qubes_template = QubesTemplate(template_dict)
+
+    assert str(qubes_template) == "fedora-42"
+
+
 def test_config_verification():
     with tempfile.NamedTemporaryFile("w") as config_file:
         config_file.write(
@@ -457,7 +539,7 @@ def test_config_distributions_filter():
             "host-fc37",
         ]
         with pytest.raises(ConfigError):
-            config.get_distributions(["vm-fc32"])
+            config.get_distributions(["vm-fc42"])
 
 
 def test_config_templates_filter():
@@ -492,7 +574,7 @@ def test_config_templates_filter():
             "debian-11",
         ]
         with pytest.raises(ConfigError):
-            config.get_templates(["fedora-32"])
+            config.get_templates(["fedora-42"])
 
 
 def test_config_options():
