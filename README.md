@@ -666,6 +666,11 @@ Options available in `builder.yml`:
 
 - `skip-git-fetch: bool` --- When set, do not update already downloaded git repositories (those in `sources` artifacts dir). New components are still fetched (once). Useful when doing development builds from non-default branches, local modifications etc.
 
+- `increment-devel-versions: bool`  --- When set, each package built will have local build number appended to package release number. This way, it's easy to update test environment without manually forcing reinstall of packages with unchanged versions. Example versions with devel build number:
+
+  - `qubes-core-dom0-4.2.12-1.13.fc37.x86_64` (`.13` is the additional version here)
+  - `qubes-u2f_2.0.1+deb11u1+devel2_all.deb` (`+devel2` is the additional version here)
+
 - `artifacts-dir: str` --- Path to artifacts directory.
 
 - `plugins-dirs: List[str]` --- List of path to plugin directory. By default, the local plugins directory is prepended to the list.
