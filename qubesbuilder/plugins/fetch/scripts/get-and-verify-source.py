@@ -48,6 +48,7 @@ def verify_git_obj(keyring_dir, repository_dir, obj_type, obj_path):
             universal_newlines=True,
             cwd=repository_dir,
             env={"GNUPGHOME": str(keyring_dir)},
+            check=True,
         ).stderr
 
         # Count the occurrences of [GNUPG:] NEWSIG in the output
@@ -120,6 +121,7 @@ def main(args):
             capture_output=True,
             text=True,
             cwd=repo,
+            check=True,
         ).stdout.strip()
 
         if fetch_versions_only:
@@ -129,12 +131,13 @@ def main(args):
                     capture_output=True,
                     text=True,
                     cwd=repo,
+                    check=True,
                 )
                 .stdout.strip()
                 .startswith("v")
             ):
                 print("No version tag")
-                subprocess.run(["rm", "-f", ".git/FETCH_HEAD"], cwd=repo)
+                os.remove(repo / ".git/FETCH_HEAD")
                 return
 
         verify_ref = rev
@@ -165,6 +168,7 @@ def main(args):
                 capture_output=True,
                 text=True,
                 cwd=repo,
+                check=True,
             ).stdout.strip()
             if vtag:
                 verify_ref = f"{vtag}^{{commit}}"
@@ -186,6 +190,7 @@ def main(args):
         cwd=repo,
         capture_output=True,
         text=True,
+        check=True,
     ).stdout.strip()
     if not verify_ref:
         raise ValueError("Cannot determine reference to verify!")
@@ -230,7 +235,10 @@ def main(args):
 
         for keyid in maintainers:
             subprocess.run(
-                ["gpg", "--import", keys_dir / f"{keyid}.asc"], check=True, env=env
+                ["gpg", "--import", keys_dir / f"{keyid}.asc"],
+                check=True,
+                env=env,
+                capture_output=True,
             )
             subprocess.run(
                 ["gpg", "--import-ownertrust"],
@@ -241,7 +249,9 @@ def main(args):
                 check=True,
             )
 
-        subprocess.run(["gpgconf", "--kill", "gpg-agent"])
+        subprocess.run(
+            ["gpgconf", "--kill", "gpg-agent"], check=True, capture_output=True
+        )
         expected_hash = verify_ref
         hash_len = len(expected_hash)
 
@@ -263,6 +273,7 @@ def main(args):
             capture_output=True,
             text=True,
             cwd=repo,
+            check=True,
         ).stdout.strip()[:500]
 
         for tag in tags.split():
@@ -314,6 +325,7 @@ def main(args):
         capture_output=True,
         text=True,
         cwd=repo,
+        check=True,
     ).stdout.strip()
     if current_git_branch != git_branch or fresh_clone:
         if subprocess.run(
@@ -321,6 +333,7 @@ def main(args):
             capture_output=True,
             text=True,
             cwd=repo,
+            check=True,
         ).stdout.strip():
             print(
                 f"--> Switching branch from {current_git_branch} branch to {git_branch}"
@@ -334,14 +347,20 @@ def main(args):
                     check=True,
                 )
             subprocess.run(
-                ["git", "checkout", "-B", git_branch, verify_ref], check=True, cwd=repo
+                ["git", "checkout", "-B", git_branch, verify_ref],
+                check=True,
+                cwd=repo,
+                capture_output=True,
             )
         else:
             print(
                 f"--> Switching branch from {current_git_branch} branch to new {git_branch}"
             )
             subprocess.run(
-                ["git", "checkout", verify_ref, "-b", git_branch], check=True, cwd=repo
+                ["git", "checkout", verify_ref, "-b", git_branch],
+                check=True,
+                cwd=repo,
+                capture_output=True,
             )
 
     if not fresh_clone:
@@ -352,6 +371,7 @@ def main(args):
             + ["--commit", "-q", verify_ref],
             check=True,
             cwd=repo,
+            capture_output=True,
         )
         tracking_branch = f"refs/remotes/origin/{git_branch}"
         if os.path.isfile(repo / f".git/{tracking_branch}"):
@@ -359,78 +379,84 @@ def main(args):
                 ["git", "update-ref", "--", tracking_branch, verify_ref],
                 check=True,
                 cwd=repo,
+                capture_output=True,
             )
 
     if (repo / ".gitmodules").exists():
         print("--> Updating submodules")
-        subprocess.run(["git", "submodule", "init"], check=True, cwd=repo)
         subprocess.run(
-            ["git", "submodule", "update", "--recursive"], check=True, cwd=repo
+            ["git", "submodule", "init"], check=True, cwd=repo, capture_output=True
         )
+        subprocess.run(
+            ["git", "submodule", "update", "--recursive"],
+            check=True,
+            cwd=repo,
+            capture_output=True,
+        )
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+
+    # mandatory args
+    parser.add_argument("component_repository", help="The repository to clone from.")
+    parser.add_argument(
+        "component_directory",
+        help="The name of a new directory to clone into.",
+    )
+    parser.add_argument(
+        "git_keyring_dir",
+        metavar="git-keyring-dir",
+        help="Directory to create component Git keyring.",
+    )
+    parser.add_argument(
+        "keys_dir",
+        metavar="keys-dir",
+        help="Directory containing keys to the armor format.",
+    )
+
+    # optional args
+    parser.add_argument("--git-branch", help="Git branch.", default="main")
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Remove previous sources (use git up vs git clone).",
+    )
+    parser.add_argument(
+        "--fetch-only", action="store_true", help="Fetch sources but do not merge."
+    )
+    parser.add_argument(
+        "--fetch-versions-only",
+        action="store_true",
+        help="Fetch only version tags.",
+    )
+    parser.add_argument(
+        "--ignore-missing",
+        action="store_true",
+        help="Exit with code 0 if remote branch doesn't exist.",
+    )
+    parser.add_argument(
+        "--insecure-skip-checking",
+        action="store_true",
+        help="Disable signed tag checking.",
+    )
+    parser.add_argument(
+        "--less-secure-signed-commits-sufficient",
+        action="store_true",
+        help="Allow signed commits instead of requiring signed tags. This is less secure because only commits that have been reviewed are tagged.",
+    )
+    parser.add_argument(
+        "--maintainer",
+        action="append",
+        help="Allowed maintainer provided as KEYID assumed to be available as KEYID.asc under provided 'keys-dir' directory. Can be used multiple times.",
+    )
+
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
     try:
-        parser = argparse.ArgumentParser()
-
-        # mandatory args
-        parser.add_argument(
-            "component_repository", help="The repository to clone from."
-        )
-        parser.add_argument(
-            "component_directory",
-            help="The name of a new directory to clone into.",
-        )
-        parser.add_argument(
-            "git_keyring_dir",
-            metavar="git-keyring-dir",
-            help="Directory to create component Git keyring.",
-        )
-        parser.add_argument(
-            "keys_dir",
-            metavar="keys-dir",
-            help="Directory containing keys to the armor format.",
-        )
-
-        # optional args
-        parser.add_argument("--git-branch", help="Git branch.", default="main")
-        parser.add_argument(
-            "--clean",
-            action="store_true",
-            help="Remove previous sources (use git up vs git clone).",
-        )
-        parser.add_argument(
-            "--fetch-only", action="store_true", help="Fetch sources but do not merge."
-        )
-        parser.add_argument(
-            "--fetch-versions-only",
-            action="store_true",
-            help="Fetch only version tags.",
-        )
-        parser.add_argument(
-            "--ignore-missing",
-            action="store_true",
-            help="Exit with code 0 if remote branch doesn't exist.",
-        )
-        parser.add_argument(
-            "--insecure-skip-checking",
-            action="store_true",
-            help="Disable signed tag checking.",
-        )
-        parser.add_argument(
-            "--less-secure-signed-commits-sufficient",
-            action="store_true",
-            help="Allow signed commits instead of requiring signed tags. This is less secure because only commits that have been reviewed are tagged.",
-        )
-        parser.add_argument(
-            "--maintainer",
-            action="append",
-            help="Allowed maintainer provided as KEYID assumed to be available as KEYID.asc under provided 'keys-dir' directory. Can be used multiple times.",
-        )
-
-        args = parser.parse_args()
-
-        main(args)
+        main(get_args())
     except Exception as e:
         if isinstance(e, subprocess.CalledProcessError):
             print(f"args: {e.args}")
