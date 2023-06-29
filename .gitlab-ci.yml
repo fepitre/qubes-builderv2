@@ -91,6 +91,8 @@ shellcheck:
     - export "PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python3.11/site-packages:$HOME/.local/lib/python3.10/site-packages"
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+  after_script:
+  - ci/codecov-wrapper -f artifacts/coverage.xml
 
 pytest:
   extends: .pytest
