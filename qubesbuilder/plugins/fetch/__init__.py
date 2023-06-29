@@ -107,17 +107,13 @@ class FetchPlugin(ComponentPlugin):
         # Get GIT source for a given Qubes OS component
         copy_out = [(source_dir, self.get_sources_dir())]
         get_sources_cmd = [
-            str(executor.get_plugins_dir() / "fetch/scripts/get-and-verify-source"),
-            "--component",
-            self.component.name,
+            str(executor.get_plugins_dir() / "fetch/scripts/get-and-verify-source.py"),
+            self.component.url,  # clone from
+            str(source_dir),  # clone into
+            str(executor.get_builder_dir() / "keyring"),  # git keyring dir
+            str(executor.get_plugins_dir() / "fetch/keys"),  # keys for maintainers
             "--git-branch",
             self.component.branch,
-            "--git-url",
-            self.component.url,
-            "--keyring-dir-git",
-            str(executor.get_builder_dir() / "keyring"),
-            "--keys-dir",
-            str(executor.get_plugins_dir() / "fetch/keys"),
         ]
         for maintainer in self.component.maintainers:
             get_sources_cmd += ["--maintainer", maintainer]
