@@ -125,8 +125,8 @@ def main(args):
         ).stdout.strip()
 
         if fetch_versions_only:
-            if (
-                not subprocess.run(
+            tags = (
+                subprocess.run(
                     ["git", "tag", "--points-at", rev],
                     capture_output=True,
                     text=True,
@@ -134,12 +134,13 @@ def main(args):
                     check=True,
                 )
                 .stdout.strip()
-                .startswith("v")
-            ):
+                .splitlines()
+            )
+            version_tags = [tag for tag in tags if tag.startswith("v")]
+            if not version_tags:
                 print("No version tag")
                 os.remove(repo / ".git/FETCH_HEAD")
                 return
-
         verify_ref = rev
     else:
         if repo.exists():
