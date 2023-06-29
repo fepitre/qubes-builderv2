@@ -471,3 +471,9 @@ class ArchlinuxDistributionPlugin(DistributionPlugin):
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
         return distribution.is_archlinux()
+
+
+class GentooDistributionPlugin(DistributionPlugin):
+    @classmethod
+    def supported_distribution(cls, distribution: QubesDistribution):
+        return distribution.is_gentoo()

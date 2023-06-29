@@ -2036,17 +2036,20 @@ def test_template_for_iso(artifacts_dir):
         rpm = f"qubes-template-fedora-36-xfce-4.2.0-{template_timestamp}.noarch.rpm"
 
         DEFAULT_KICKSTART = (
-            PROJECT_PATH / "qubesbuilder/plugins/installer/conf/iso-online-testing-no-templates.ks"
+            PROJECT_PATH
+            / "qubesbuilder/plugins/installer/conf/iso-online-testing-no-templates.ks"
         )
 
         kickstart = tmpdir + "/tests-kickstart.cfg"
         with open(kickstart, "w") as kickstart_f:
             kickstart_f.write(DEFAULT_KICKSTART.read_text())
-            kickstart_f.write("""
+            kickstart_f.write(
+                """
 %packages
 qubes-template-fedora-36-xfce
 %end
-""")
+"""
+            )
 
         # make ISO cache with a single template
         qb_call(

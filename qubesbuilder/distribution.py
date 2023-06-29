@@ -60,6 +60,7 @@ class QubesDistribution:
         is_debian = DEBIAN.get(self.name, None)
         is_ubuntu = UBUNTU.get(self.name, None)
         is_archlinux = self.name == "archlinux"
+        is_gentoo = self.name == "gentoo"
         if is_fedora:
             self.fullname = "fedora"
             self.version = is_fedora.group(1)
@@ -91,6 +92,11 @@ class QubesDistribution:
             self.version = "rolling"
             self.tag = "archlinux"
             self.type = "archlinux"
+        elif is_gentoo:
+            self.fullname = "gentoo"
+            self.version = "rolling"
+            self.tag = "gentoo"
+            self.type = "gentoo"
         else:
             raise DistributionError(f"Unsupported distribution '{self.distribution}'.")
 
@@ -123,3 +129,6 @@ class QubesDistribution:
 
     def is_archlinux(self) -> bool:
         return self.name == "archlinux"
+
+    def is_gentoo(self) -> bool:
+        return self.name == "gentoo"

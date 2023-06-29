@@ -78,6 +78,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ),
                 template.distribution.is_archlinux(),
                 template.distribution.is_ubuntu(),
+                template.distribution.is_gentoo(),
             ]
         )
 
@@ -216,6 +217,18 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "KEYS_DIR": str(
                         executor.get_sources_dir() / "builder-archlinux/keys"
                     ),
+                }
+            )
+        elif self.template.distribution.is_gentoo():
+            self.source_dependencies += ["builder-gentoo"]
+            template_content_dir = str(
+                executor.get_sources_dir() / "builder-gentoo/scripts"
+            )
+            self.environment.update(
+                {
+                    "TEMPLATE_CONTENT_DIR": template_content_dir,
+                    "CACHE_DIR": str(executor.get_cache_dir()),
+                    "KEYS_DIR": str(executor.get_sources_dir() / "builder-gentoo/keys"),
                 }
             )
         else:

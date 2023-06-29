@@ -75,10 +75,10 @@ class Executor(ABC):
         pass
 
     def get_user(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def get_group(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def get_placeholders(self):
         return {

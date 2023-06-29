@@ -1,6 +1,7 @@
 import pytest
-
-from qubesbuilder.common import is_filename_valid, deep_check
+import tempfile
+from pathlib import Path
+from qubesbuilder.common import is_filename_valid, deep_check, sed
 from qubesbuilder.cli.cli_main import parse_config_from_cli
 
 
@@ -116,10 +117,7 @@ def test_parse_config_entry_from_array_02():
 
 
 def test_parse_config_entry_from_array_03():
-    array = [
-        "components+kernel:branch=stable-5.15",
-        "components+lvm2"
-    ]
+    array = ["components+kernel:branch=stable-5.15", "components+lvm2"]
     parsed_dict = parse_config_from_cli(array)
     expected_dict = {
         "components": [{"kernel": {"branch": "stable-5.15"}}, "lvm2"],
@@ -128,10 +126,7 @@ def test_parse_config_entry_from_array_03():
 
 
 def test_parse_config_entry_from_array_04():
-    array = [
-        "+components+kernel:branch=stable-5.15",
-        "+components+lvm2"
-    ]
+    array = ["+components+kernel:branch=stable-5.15", "+components+lvm2"]
     parsed_dict = parse_config_from_cli(array)
     expected_dict = {
         "+components": [{"kernel": {"branch": "stable-5.15"}}, "lvm2"],
@@ -157,3 +152,83 @@ def test_parse_config_entry_from_array_06():
         "tata": {"titi": {"toto": "many=equals"}},
     }
     assert parsed_dict == expected_dict
+
+
+def test_deep_check_dict():
+    data = {
+        "key1": "value1",
+        "key2": "value2",
+        "nested": {
+            "key3": "value3",
+            "key4": "value4",
+        },
+    }
+    deep_check(data)  # No exception should be raised
+
+
+def test_deep_check_list():
+    data = [1, 2, [3, 4], [5, [6, 7]]]
+    deep_check(data)  # No exception should be raised
+
+
+def test_deep_check_str():
+    data = "This is a .. test"
+    with pytest.raises(ValueError):
+        deep_check(data)  # Should raise ValueError for ".."
+
+
+def test_deep_check_int():
+    data = 123
+    deep_check(data)  # No exception should be raised
+
+
+def test_deep_check_unexpected():
+    data = None
+    with pytest.raises(ValueError):
+        deep_check(data)  # Should raise ValueError for unexpected data type
+
+
+def test_sed_with_destination():
+    # Prepare a temporary source file for testing
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as source_file:
+        source_file.write("Hello, World!")
+        source_file.flush()
+
+        # Define the test parameters
+        pattern = r"Hello"
+        replace = "Hi"
+        destination = tempfile.NamedTemporaryFile(mode="w", delete=False).name
+
+        # Execute the function being tested
+        sed(pattern, replace, source_file.name, destination)
+
+        # Check if the destination file contains the expected content
+        with open(destination, "r") as fd:
+            assert fd.read() == "Hi, World!"
+
+        # Clean up the temporary files
+        source_file.close()
+        Path(source_file.name).unlink()
+        Path(destination).unlink()
+
+
+def test_sed_without_destination():
+    # Prepare a temporary source file for testing
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as source_file:
+        source_file.write("Hello, World!")
+        source_file.flush()
+
+        # Define the test parameters
+        pattern = r"Hello"
+        replace = "Hi"
+
+        # Execute the function being tested
+        sed(pattern, replace, source_file.name)
+
+        # Check if the source file contains the expected content
+        with open(source_file.name, "r") as fd:
+            assert fd.read() == "Hi, World!"
+
+        # Clean up the temporary file
+        source_file.close()
+        Path(source_file.name).unlink()

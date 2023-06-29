@@ -4,10 +4,118 @@ from pathlib import Path, PurePath
 
 import pytest
 
-from qubesbuilder.executors import ExecutorError
+from qubesbuilder.exc import QubesBuilderError
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.executors.qubes import QubesExecutor
+
+
+class MockExecutor(Executor):
+    def copy_in(self, *args, **kwargs):
+        pass
+
+    def copy_out(self, *args, **kwargs):
+        pass
+
+    def run(self, *args, **kwargs):
+        pass
+
+    def get_user(self):
+        pass
+
+    def get_group(self):
+        pass
+
+
+class MockExecutorWithError(Executor):
+    def copy_in(self, *args, **kwargs):
+        raise ExecutorError("Copy in error")
+
+    def copy_out(self, *args, **kwargs):
+        raise ExecutorError("Copy out error")
+
+    def run(self, *args, **kwargs):
+        raise ExecutorError("Run error")
+
+    def get_user(self):
+        raise NotImplementedError
+
+    def get_group(self):
+        raise NotImplementedError
+
+
+def test_executor_get_builder_dir():
+    executor = MockExecutor()
+    assert executor.get_builder_dir() == Path("/builder")
+
+
+def test_executor_get_build_dir():
+    executor = MockExecutor()
+    assert executor.get_build_dir() == Path("/builder/build")
+
+
+def test_executor_get_plugins_dir():
+    executor = MockExecutor()
+    assert executor.get_plugins_dir() == Path("/builder/plugins")
+
+
+def test_executor_get_sources_dir():
+    executor = MockExecutor()
+    assert executor.get_sources_dir() == Path("/builder/sources")
+
+
+def test_executor_get_distfiles_dir():
+    executor = MockExecutor()
+    assert executor.get_distfiles_dir() == Path("/builder/distfiles")
+
+
+def test_executor_get_repository_dir():
+    executor = MockExecutor()
+    assert executor.get_repository_dir() == Path("/builder/repository")
+
+
+def test_executor_get_cache_dir():
+    executor = MockExecutor()
+    assert executor.get_cache_dir() == Path("/builder/cache")
+
+
+def test_executor_get_user_not_implemented():
+    executor = MockExecutorWithError()
+    with pytest.raises(NotImplementedError):
+        executor.get_user()
+
+
+def test_executor_get_group_not_implemented():
+    executor = MockExecutorWithError()
+    with pytest.raises(NotImplementedError):
+        executor.get_group()
+
+
+def test_executor_get_placeholders():
+    executor = MockExecutor()
+    placeholders = executor.get_placeholders()
+
+    assert placeholders["@BUILDER_DIR@"] == Path("/builder")
+    assert placeholders["@BUILD_DIR@"] == Path("/builder/build")
+    assert placeholders["@PLUGINS_DIR@"] == Path("/builder/plugins")
+    assert placeholders["@DISTFILES_DIR@"] == Path("/builder/distfiles")
+
+
+def test_executor_replace_placeholders():
+    executor = MockExecutor()
+    s = "@BUILDER_DIR@/@BUILD_DIR@"
+    replaced_s = executor.replace_placeholders(s)
+
+    assert replaced_s == "/builder//builder/build"
+
+
+def test_executor_error():
+    with pytest.raises(ExecutorError) as exc_info:
+        raise ExecutorError("Test error")
+
+    assert str(exc_info.value) == "Test error"
+    assert isinstance(exc_info.value, QubesBuilderError)
 
 
 def test_container_simple():
