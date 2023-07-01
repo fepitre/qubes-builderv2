@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import List, Any
 
 
 def verify_git_obj(keyring_dir, repository_dir, obj_type, obj_path):
@@ -66,8 +67,9 @@ def verify_git_obj(keyring_dir, repository_dir, obj_type, obj_path):
                     r"^\[GNUPG:\] VALIDSIG ([a-fA-F0-9]{40}) [0-9]{4}-[0-9]{2}-[0-9]{2}.*"
                 )
                 for line in output.splitlines():
-                    if valid_sig_re.match(line):
-                        valid_sig_key = valid_sig_re.match(line).group(1)
+                    parsed_sig = valid_sig_re.match(line)
+                    if parsed_sig:
+                        valid_sig_key = parsed_sig.group(1)
                 if valid_sig_key:
                     return valid_sig_key
     except subprocess.CalledProcessError:
@@ -102,7 +104,7 @@ def main(args):
             raise ValueError(f"Invalid maintainer provided: {maintainer}")
 
     # Define common git options
-    git_options = []
+    git_options: List[str] = []
     git_merge_opts = ["--ff-only"]
 
     fresh_clone = False
@@ -277,7 +279,7 @@ def main(args):
         format_str = (
             "%(if:equals=tag)%(objecttype)%(then)%(objectname):%(object):%(end)"
         )
-        tags = subprocess.run(
+        tags = subprocess.run(  # type: ignore
             ["git", "tag", f"--points-at={expected_hash}", f"--format={format_str}"],
             capture_output=True,
             text=True,
@@ -286,7 +288,7 @@ def main(args):
         ).stdout.strip()[:500]
 
         verified_tags = set()
-        for tag in tags.split():
+        for tag in tags.split():  # type: ignore
             if len(tag) != hash_len * 2 + 2:
                 raise ValueError("---> Bad Git hash value (wrong length); failing")
             elif tag[hash_len:] != f":{expected_hash}:":
