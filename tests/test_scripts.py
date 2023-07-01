@@ -40,7 +40,7 @@ def home_directory(temp_directory):
     yield temp_directory
 
 
-def create_git_repository(repo_dir, env):
+def create_git_repository(repo_dir, env, sign_commit=False, sign_key=None):
     # Initialize the repository
     subprocess.run(
         ["git", "clone", "https://github.com/qubesos/qubes-core-qrexec", repo_dir],
@@ -56,8 +56,19 @@ def create_git_repository(repo_dir, env):
         subprocess.run(
             ["git", "add", f"file{i}.txt"], check=True, cwd=repo_dir, env=env
         )
+        commit_cmd = ["git", "commit", "-m", f"Commit {i}"]
+        if sign_commit and sign_key:
+            subprocess.run(
+                ["git", "config", "user.signingkey", sign_key],
+                capture_output=True,
+                text=True,
+                check=True,
+                env=env,
+                cwd=repo_dir,
+            )
+            commit_cmd += ["-S"]
         subprocess.run(
-            ["git", "commit", "-m", f"Commit {i}"],
+            commit_cmd,
             check=True,
             capture_output=True,
             cwd=repo_dir,
@@ -162,7 +173,7 @@ def test_repository_invalid_branch(temp_directory):
     )
 
 
-def test_non_qubesos_repository(temp_directory):
+def test_non_qubesos_repository(capsys, temp_directory):
     args = create_dummy_args(
         component_directory=temp_directory,
         component_repository="https://github.com/fepitre/qubes-core-qrexec",
@@ -395,4 +406,100 @@ def test_repository_with_multiple_non_distinct_signatures(
     with pytest.raises(ValueError) as e:
         get_and_verify_source(args)
     (msg,) = e.value.args
-    assert msg == f"Not enough distinct maintainer signatures. Found only 2."
+    assert (
+        msg == f"Not enough distinct tag signatures. Found 2, mandatory minimum is 3."
+    )
+
+
+def test_repository_with_multiple_distinct_signatures_not_in_maintainers(
+    temp_directory, home_directory
+):
+    gnupg_dir = home_directory / ".gnupg"
+    remote_repo_dir = temp_directory / "remote_repo"
+    repo_dir = temp_directory / "repo"
+    key_ids = [
+        "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",
+        "466110A602D13C7A5CD9DDF690A99E7695483BFE",
+    ]
+    env = {"GNUPGHOME": gnupg_dir, "HOME": home_directory}
+    create_git_repository(remote_repo_dir, env)
+    create_keys_dir(home_directory / "keys", key_ids, gnupg_dir)
+
+    for key_id in key_ids:
+        subprocess.run(
+            ["git", "config", "user.signingkey", key_id],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+            cwd=remote_repo_dir,
+        )
+        subprocess.run(
+            [
+                "git",
+                "tag",
+                "-s",
+                f"{get_random_string(8)}",
+                "-m",
+                f"Tag from {key_id}",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+            cwd=remote_repo_dir,
+        )
+    args = create_dummy_args(
+        component_directory=repo_dir,
+        component_repository=f"file://{remote_repo_dir}/",
+        keys_dir=home_directory / "keys",
+        minimum_distinct_maintainers=1,
+    )
+    with pytest.raises(ValueError) as e:
+        get_and_verify_source(args)
+    (msg,) = e.value.args
+    assert (
+        msg == f"Not enough distinct tag signatures. Found 0, mandatory minimum is 1."
+    )
+
+
+def test_repository_with_signed_commit(capsys, temp_directory, home_directory):
+    gnupg_dir = home_directory / ".gnupg"
+    remote_repo_dir = temp_directory / "remote_repo"
+    repo_dir = temp_directory / "repo"
+    key_ids = [
+        "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",
+    ]
+    env = {"GNUPGHOME": gnupg_dir, "HOME": home_directory}
+    create_git_repository(
+        remote_repo_dir,
+        env,
+        sign_commit=True,
+        sign_key="8B080B3E649B153AA44FE43E722F2B7B164FDEF7",
+    )
+    create_keys_dir(home_directory / "keys", key_ids, gnupg_dir)
+
+    args = create_dummy_args(
+        component_directory=repo_dir,
+        component_repository=f"file://{remote_repo_dir}/",
+        keys_dir=home_directory / "keys",
+        minimum_distinct_maintainers=3,
+        maintainers=[
+            "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",  # Key 1
+        ],
+        less_secure_signed_commits_sufficient=True,
+    )
+    get_and_verify_source(args)
+    assert (
+        "does not have a signed tag. However, it is signed by a trusted key, and CHECK is set to signed-tag-or-commit. Accepting it anyway."
+        in capsys.readouterr().out
+    )
+
+
+def test_repository_with_submodules(capsys, temp_directory, home_directory):
+    args = create_dummy_args(
+        component_repository="https://github.com/qubesos/qubes-vmm-xen-stubdom-linux",
+        component_directory=temp_directory,
+    )
+    get_and_verify_source(args)
+    assert "--> Updating submodules" in capsys.readouterr().out

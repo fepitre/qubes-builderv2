@@ -304,11 +304,11 @@ def main(args):
                 verified_tags.add(valid_sig_key)
                 print(f"---> Good tag {tag}.")
             else:
-                raise ValueError(f"---> Invalid tag {tag}.")
+                print(f"---> Invalid tag {tag}.")
 
         if tags and len(verified_tags) < minimum_distinct_maintainers:
             raise ValueError(
-                f"Not enough distinct maintainer signatures. Found only {len(verified_tags)}."
+                f"Not enough distinct tag signatures. Found {len(verified_tags)}, mandatory minimum is {minimum_distinct_maintainers}."
             )
 
         if not tags:
