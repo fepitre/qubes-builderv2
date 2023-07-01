@@ -1,6 +1,9 @@
 import importlib
+import os
 import pathlib
+import random
 import shutil
+import string
 import subprocess
 import tempfile
 from argparse import Namespace
@@ -8,7 +11,6 @@ from argparse import Namespace
 import pytest
 
 from qubesbuilder.common import PROJECT_PATH
-
 
 get_and_verify_source = importlib.import_module(
     "qubesbuilder.plugins.fetch.scripts.get-and-verify-source"
@@ -25,6 +27,69 @@ def temp_directory():
         shutil.rmtree(temp_dir)
 
 
+@pytest.fixture
+def home_directory(temp_directory):
+    gnupghome = f"{temp_directory}/.gnupg"
+    shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+    os.chmod(gnupghome, 0o700)
+    # Initialize the conf
+    with open(f"{temp_directory}/.gitconfig", "w") as gitconfig:
+        gitconfig.write(
+            "[user]\nname=testuser\nemail=test@localhost\n[gpg]\nprogram=gpg2"
+        )
+    yield temp_directory
+
+
+def create_git_repository(repo_dir, env):
+    # Initialize the repository
+    subprocess.run(
+        ["git", "clone", "https://github.com/qubesos/qubes-core-qrexec", repo_dir],
+        check=True,
+        capture_output=True,
+        env=env,
+    )
+
+    # Add some commits to the repository
+    for i in range(1, 5):
+        with open(repo_dir / f"file{i}.txt", "w") as file:
+            file.write(f"Content of file {i}")
+        subprocess.run(
+            ["git", "add", f"file{i}.txt"], check=True, cwd=repo_dir, env=env
+        )
+        subprocess.run(
+            ["git", "commit", "-m", f"Commit {i}"],
+            check=True,
+            capture_output=True,
+            cwd=repo_dir,
+            env=env,
+        )
+
+
+def export_key_to_file(key_id, output_dir, gnupg_dir):
+    result = subprocess.run(
+        ["gpg", "--export", "--armor", key_id],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={"GNUPGHOME": gnupg_dir},
+    )
+    exported_key = result.stdout.strip()
+    fingerprint = key_id
+    output_filename = f"{output_dir}/{fingerprint}.asc"
+    with open(output_filename, "w") as fd:
+        fd.write(exported_key)
+
+
+def create_keys_dir(destination_dir, key_ids, gnupg_dir):
+    shutil.copytree(PROJECT_PATH / "qubesbuilder/plugins/fetch/keys", destination_dir)
+    for key_id in key_ids:
+        export_key_to_file(key_id, destination_dir, gnupg_dir)
+
+
+def get_random_string(length):
+    return "".join(random.choice(string.ascii_lowercase) for _ in range(length))
+
+
 #
 # get_and_verify_source
 #
@@ -34,6 +99,7 @@ def create_dummy_args(
     component_repository,
     component_directory,
     git_branch="main",
+    keys_dir=str(PROJECT_PATH / "qubesbuilder/plugins/fetch/keys"),
     fetch_only=False,
     fetch_versions_only=False,
     ignore_missing=False,
@@ -41,12 +107,13 @@ def create_dummy_args(
     insecure_skip_checking=False,
     less_secure_signed_commits_sufficient=False,
     maintainers=None,
+    minimum_distinct_maintainers=1,
 ):
     args = Namespace()
 
     args.component_repository = component_repository
     args.component_directory = str(component_directory)
-    args.keys_dir = str(PROJECT_PATH / "qubesbuilder/plugins/fetch/keys")
+    args.keys_dir = keys_dir
     args.git_keyring_dir = str(component_directory / ".keyring")
 
     args.git_branch = git_branch
@@ -59,7 +126,7 @@ def create_dummy_args(
     args.maintainer = (
         maintainers if maintainers and isinstance(maintainers, list) else []
     )
-
+    args.minimum_distinct_maintainers = minimum_distinct_maintainers
     return args
 
 
@@ -104,7 +171,7 @@ def test_non_qubesos_repository(temp_directory):
     with pytest.raises(ValueError) as e:
         get_and_verify_source(args)
     (msg,) = e.value.args
-    assert msg == "---> Invalid commit 961bf3c7bd8cc5dc5335ee91afefbf7feb92c982"
+    assert msg == "---> Invalid commit 961bf3c7bd8cc5dc5335ee91afefbf7feb92c982."
 
 
 def test_non_qubesos_repository_with_maintainer_and_no_signed_tags(
@@ -141,7 +208,7 @@ def test_repository_no_version_tags(temp_directory):
     assert "fatal: No names found, cannot describe anything.\n" == e.value.stderr
 
 
-def test_existing_repository_no_version_tags(temp_directory):
+def test_existing_repository_no_version_tags(capsys, temp_directory):
     component_repository = "https://github.com/fepitre/qubes-core-qrexec"
     git_branch = "builderv2-tests-1"
     subprocess.run(
@@ -156,10 +223,11 @@ def test_existing_repository_no_version_tags(temp_directory):
         fetch_versions_only=True,
     )
     get_and_verify_source(args)
+    assert capsys.readouterr().out == "No version tag.\n"
     assert not (temp_directory / ".git/FETCH_HEAD").exists()
 
 
-def test_existing_repository_with_version_tags(temp_directory):
+def test_existing_repository_with_version_tags(capsys, temp_directory):
     component_repository = "https://github.com/fepitre/qubes-core-qrexec"
     git_branch = "builderv2-tests-2"
     subprocess.run(
@@ -174,6 +242,31 @@ def test_existing_repository_with_version_tags(temp_directory):
         fetch_versions_only=True,
     )
     get_and_verify_source(args)
+    assert (
+        capsys.readouterr().out
+        == "--> Verifying tags...\n---> Good tag 83fc687c10da7ca5625b13d4d1fadd400748c427.\n---> Good tag 76d34269f7910a17f186c4f819583faae404bb83.\n---> Good tag 644dd42e21b788abb7483c1ec0d4ab3a7d9d20aa.\n--> Merging...\n"
+    )
+    assert (temp_directory / ".git/FETCH_HEAD").exists()
+
+
+def test_existing_repository_with_switching_branch(capsys, temp_directory):
+    component_repository = "https://github.com/qubesos/qubes-core-qrexec"
+    subprocess.run(
+        ["git", "clone", component_repository, temp_directory],
+        check=True,
+        capture_output=True,
+    )
+    args = create_dummy_args(
+        component_repository=component_repository,
+        component_directory=temp_directory,
+        git_branch="release4.1",
+        fetch_versions_only=True,
+    )
+    get_and_verify_source(args)
+    assert (
+        "--> Switching branch from main branch to new release4.1\n--> Merging...\n"
+        in capsys.readouterr().out
+    )
     assert (temp_directory / ".git/FETCH_HEAD").exists()
 
 
@@ -196,3 +289,110 @@ def test_non_qubesos_repository_with_maintainer_and_signed_tag(
         ).stdout.strip()
         == "builderv2-tests-3"
     )
+
+
+def test_repository_with_multiple_distinct_signatures(temp_directory, home_directory):
+    gnupg_dir = home_directory / ".gnupg"
+    remote_repo_dir = temp_directory / "remote_repo"
+    repo_dir = temp_directory / "repo"
+    key_ids = [
+        "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",
+        "466110A602D13C7A5CD9DDF690A99E7695483BFE",
+        "C1261D4BA94026D4EEBDCB485811E93DE307C3CE",
+    ]
+    env = {"GNUPGHOME": gnupg_dir, "HOME": home_directory}
+    create_git_repository(remote_repo_dir, env)
+    create_keys_dir(home_directory / "keys", key_ids, gnupg_dir)
+
+    for key_id in key_ids:
+        subprocess.run(
+            ["git", "config", "user.signingkey", key_id],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+            cwd=remote_repo_dir,
+        )
+        subprocess.run(
+            [
+                "git",
+                "tag",
+                "-s",
+                f"{get_random_string(8)}",
+                "-m",
+                f"Tag from {key_id}",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+            cwd=remote_repo_dir,
+        )
+    args = create_dummy_args(
+        component_directory=repo_dir,
+        component_repository=f"file://{remote_repo_dir}/",
+        keys_dir=home_directory / "keys",
+        minimum_distinct_maintainers=3,
+        maintainers=[
+            "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",  # Key 1
+            "466110A602D13C7A5CD9DDF690A99E7695483BFE",  # Key 2
+            "C1261D4BA94026D4EEBDCB485811E93DE307C3CE",  # Key 3
+        ],
+    )
+    get_and_verify_source(args)
+
+
+def test_repository_with_multiple_non_distinct_signatures(
+    temp_directory, home_directory
+):
+    gnupg_dir = home_directory / ".gnupg"
+    remote_repo_dir = temp_directory / "remote_repo"
+    repo_dir = temp_directory / "repo"
+    key_ids = [
+        "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",
+        "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",
+        "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",
+        "466110A602D13C7A5CD9DDF690A99E7695483BFE",
+    ]
+    env = {"GNUPGHOME": gnupg_dir, "HOME": home_directory}
+    create_git_repository(remote_repo_dir, env)
+    create_keys_dir(home_directory / "keys", key_ids, gnupg_dir)
+
+    for key_id in key_ids:
+        subprocess.run(
+            ["git", "config", "user.signingkey", key_id],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+            cwd=remote_repo_dir,
+        )
+        subprocess.run(
+            [
+                "git",
+                "tag",
+                "-s",
+                f"{get_random_string(8)}",
+                "-m",
+                f"Tag from {key_id}",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+            env=env,
+            cwd=remote_repo_dir,
+        )
+    args = create_dummy_args(
+        component_directory=repo_dir,
+        component_repository=f"file://{remote_repo_dir}/",
+        keys_dir=home_directory / "keys",
+        minimum_distinct_maintainers=3,
+        maintainers=[
+            "8B080B3E649B153AA44FE43E722F2B7B164FDEF7",  # Key 1
+            "466110A602D13C7A5CD9DDF690A99E7695483BFE",  # Key 2
+        ],
+    )
+    with pytest.raises(ValueError) as e:
+        get_and_verify_source(args)
+    (msg,) = e.value.args
+    assert msg == f"Not enough distinct maintainer signatures. Found only 2."

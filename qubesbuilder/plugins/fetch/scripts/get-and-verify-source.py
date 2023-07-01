@@ -56,15 +56,22 @@ def verify_git_obj(keyring_dir, repository_dir, obj_type, obj_path):
 
         # Check if there is exactly one [GNUPG:] NEWSIG and if TRUST_FULLY or TRUST_ULTIMATE is 0
         if newsig_number == 1:
-            return any(
+            if any(
                 line.startswith("[GNUPG:] TRUST_FULLY 0 pgp")
                 or line.startswith("[GNUPG:] TRUST_ULTIMATE 0 pgp")
                 for line in output.splitlines()
-            )
+            ):
+                valid_sig_key = None
+                valid_sig_re = re.compile(
+                    r"^\[GNUPG:\] VALIDSIG ([a-fA-F0-9]{40}) [0-9]{4}-[0-9]{2}-[0-9]{2}.*"
+                )
+                for line in output.splitlines():
+                    if valid_sig_re.match(line):
+                        valid_sig_key = valid_sig_re.match(line).group(1)
+                if valid_sig_key:
+                    return valid_sig_key
     except subprocess.CalledProcessError:
         pass
-
-    return False
 
 
 def main(args):
@@ -87,6 +94,7 @@ def main(args):
     less_secure_signed_commits_sufficient = args.less_secure_signed_commits_sufficient
     fetch_versions_only = args.fetch_versions_only
     maintainers = args.maintainer
+    minimum_distinct_maintainers = args.minimum_distinct_maintainers
 
     # Validity check on provided maintainers
     for maintainer in maintainers:
@@ -138,7 +146,7 @@ def main(args):
             )
             version_tags = [tag for tag in tags if tag.startswith("v")]
             if not version_tags:
-                print("No version tag")
+                print("No version tag.")
                 os.remove(repo / ".git/FETCH_HEAD")
                 return
         verify_ref = rev
@@ -277,6 +285,7 @@ def main(args):
             check=True,
         ).stdout.strip()[:500]
 
+        verified_tags = set()
         for tag in tags.split():
             if len(tag) != hash_len * 2 + 2:
                 raise ValueError("---> Bad Git hash value (wrong length); failing")
@@ -285,15 +294,22 @@ def main(args):
                     f"---> Tag has wrong hash (found {tag[hash_len + 1:hash_len]}, expected {expected_hash})"
                 )
             tag = tag[:hash_len]
-            if verify_git_obj(
+            valid_sig_key = verify_git_obj(
                 keyring_dir=git_keyring_dir,
                 repository_dir=repo,
                 obj_type="tag",
                 obj_path=tag,
-            ):
-                print(f"---> Good tag {tag}")
+            )
+            if valid_sig_key:
+                verified_tags.add(valid_sig_key)
+                print(f"---> Good tag {tag}.")
             else:
-                raise ValueError(f"---> Invalid tag {tag}")
+                raise ValueError(f"---> Invalid tag {tag}.")
+
+        if tags and len(verified_tags) < minimum_distinct_maintainers:
+            raise ValueError(
+                f"Not enough distinct maintainer signatures. Found only {len(verified_tags)}."
+            )
 
         if not tags:
             print(f"---> No tag pointing at {expected_hash}")
@@ -304,19 +320,17 @@ def main(args):
                 obj_path=expected_hash,
             ):
                 if check == "signed-tag-or-commit":
-                    print(f"---> {expected_hash} does not have a signed tag")
                     print(
-                        f"---> However, it is signed by a trusted key, and CHECK is set to {check}"
+                        f"---> {expected_hash} does not have a signed tag. However, it is signed by a trusted key, and CHECK is set to {check}. Accepting it anyway."
                     )
-                    print("---> Accepting it anyway")
                 elif check == "signed-tag":
                     raise ValueError(
-                        f"---> {expected_hash} is a commit signed by a trusted key ― did the signer forget to add a tag?"
+                        f"---> {expected_hash} is a commit signed by a trusted key. Did the signer forget to add a tag?"
                     )
                 else:
-                    raise ValueError("---> internal error (this is a bug)")
+                    raise ValueError("---> Internal error (this is a bug).")
             else:
-                raise ValueError(f"---> Invalid commit {expected_hash}")
+                raise ValueError(f"---> Invalid commit {expected_hash}.")
 
     if fetch_only:
         return
@@ -451,7 +465,11 @@ def get_args():
         action="append",
         help="Allowed maintainer provided as KEYID assumed to be available as KEYID.asc under provided 'keys-dir' directory. Can be used multiple times.",
     )
-
+    parser.add_argument(
+        "--minimum-distinct-maintainers",
+        help="Minimum of mandatory distinct maintainer signatures.",
+        default=1,
+    )
     return parser.parse_args()
 
 
