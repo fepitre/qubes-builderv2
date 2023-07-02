@@ -179,12 +179,11 @@ def main(args):
                 capture_output=True,
                 text=True,
                 cwd=repo,
-                check=True,
             ).stdout.strip()
-            if vtag:
+            if vtag and vtag.startswith("v"):
                 verify_ref = f"{vtag}^{{commit}}"
             else:
-                raise ValueError("No version tag")
+                raise ValueError("No version tag.")
         else:
             verify_ref = "HEAD"
         fresh_clone = True

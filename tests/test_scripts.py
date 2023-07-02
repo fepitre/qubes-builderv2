@@ -208,15 +208,17 @@ def test_non_qubesos_repository_with_maintainer_and_no_signed_tags(
 
 
 def test_repository_no_version_tags(temp_directory):
+    # We created a branch where we have deleted all version tags
     args = create_dummy_args(
         component_repository="https://github.com/fepitre/qubes-core-qrexec",
         component_directory=temp_directory,
         git_branch="builderv2-tests-1",
         fetch_versions_only=True,
     )
-    with pytest.raises(subprocess.CalledProcessError) as e:
+    with pytest.raises(ValueError) as e:
         get_and_verify_source(args)
-    assert "fatal: No names found, cannot describe anything.\n" == e.value.stderr
+    (msg,) = e.value.args
+    assert "No version tag." == msg
 
 
 def test_existing_repository_no_version_tags(capsys, temp_directory):
@@ -255,7 +257,7 @@ def test_existing_repository_with_version_tags(capsys, temp_directory):
     get_and_verify_source(args)
     assert (
         capsys.readouterr().out
-        == "--> Verifying tags...\n---> Good tag 83fc687c10da7ca5625b13d4d1fadd400748c427.\n---> Good tag 76d34269f7910a17f186c4f819583faae404bb83.\n---> Good tag 644dd42e21b788abb7483c1ec0d4ab3a7d9d20aa.\n--> Merging...\n"
+        == "--> Verifying tags...\n---> Good tag 83fc687c10da7ca5625b13d4d1fadd400748c427.\n---> Good tag 76d34269f7910a17f186c4f819583faae404bb83.\n---> Good tag 644dd42e21b788abb7483c1ec0d4ab3a7d9d20aa.\nEnough distinct tag signatures. Found 1, mandatory minimum is 1.\n--> Merging...\n"
     )
     assert (temp_directory / ".git/FETCH_HEAD").exists()
 
