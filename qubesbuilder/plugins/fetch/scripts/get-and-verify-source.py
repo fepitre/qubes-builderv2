@@ -308,10 +308,15 @@ def main(args):
             else:
                 print(f"---> Invalid tag {tag}.")
 
-        if tags and len(verified_tags) < minimum_distinct_maintainers:
-            raise ValueError(
-                f"Not enough distinct tag signatures. Found {len(verified_tags)}, mandatory minimum is {minimum_distinct_maintainers}."
-            )
+        if tags:
+            if len(verified_tags) < minimum_distinct_maintainers:
+                raise ValueError(
+                    f"Not enough distinct tag signatures. Found {len(verified_tags)}, mandatory minimum is {minimum_distinct_maintainers}."
+                )
+            else:
+                print(
+                    f"Enough distinct tag signatures. Found {len(verified_tags)}, mandatory minimum is {minimum_distinct_maintainers}."
+                )
 
         if not tags:
             print(f"---> No tag pointing at {expected_hash}")
