@@ -114,6 +114,8 @@ class FetchPlugin(ComponentPlugin):
             str(executor.get_plugins_dir() / "fetch/keys"),  # keys for maintainers
             "--git-branch",
             self.component.branch,
+            "--minimum-distinct-maintainers",
+            str(self.component.min_distinct_maintainers),
         ]
         for maintainer in self.component.maintainers:
             get_sources_cmd += ["--maintainer", maintainer]

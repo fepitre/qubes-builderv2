@@ -96,7 +96,7 @@ def main(args):
     less_secure_signed_commits_sufficient = args.less_secure_signed_commits_sufficient
     fetch_versions_only = args.fetch_versions_only
     maintainers = args.maintainer
-    minimum_distinct_maintainers = args.minimum_distinct_maintainers
+    minimum_distinct_maintainers = int(args.minimum_distinct_maintainers)
 
     # Validity check on provided maintainers
     for maintainer in maintainers:

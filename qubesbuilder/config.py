@@ -363,6 +363,7 @@ class Config:
         branch = self.get("git", {}).get("branch", "main")
         maintainers = self.get("git", {}).get("maintainers", [])
         timeout = self.get("timeout", 3600)
+        min_distinct_maintainers = self.get("min-distinct-maintainers", 1)
 
         if isinstance(component_name, str):
             component_name = {component_name: {}}
@@ -393,6 +394,9 @@ class Config:
             "fetch_versions_only": fetch_versions_only,
             "is_plugin": is_plugin,
             "has_packages": has_packages,
+            "min_distinct_maintainers": options.get(
+                "min-distinct-maintainers", min_distinct_maintainers
+            ),
         }
         if self.increment_devel_versions:
             component_kwargs["devel_path"] = (
