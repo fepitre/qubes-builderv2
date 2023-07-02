@@ -172,7 +172,7 @@ def main(args):
                 [
                     "git",
                     "describe",
-                    "--match='v*'",
+                    "--match=v*",
                     "--abbrev=0",
                     "HEAD",
                 ],

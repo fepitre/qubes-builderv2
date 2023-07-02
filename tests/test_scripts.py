@@ -262,11 +262,47 @@ def test_existing_repository_with_version_tags(capsys, temp_directory):
 
 def test_existing_repository_with_switching_branch(capsys, temp_directory):
     component_repository = "https://github.com/qubesos/qubes-core-qrexec"
+
+    # Manually clone the repo
     subprocess.run(
         ["git", "clone", component_repository, temp_directory],
         check=True,
         capture_output=True,
     )
+
+    # Ensure we are not on a version tag
+    subprocess.run(
+        ["git", "checkout", "53351ebf68d88e2fee06c761a9d5b1669b5713fc"],
+        check=True,
+        capture_output=True,
+        cwd=temp_directory,
+    )
+
+    # Fetch latest version
+    args = create_dummy_args(
+        component_repository=component_repository,
+        component_directory=temp_directory,
+        fetch_versions_only=True,
+    )
+    get_and_verify_source(args)
+
+    # Check if we have a version tag on HEAD
+    vtag = subprocess.run(
+        [
+            "git",
+            "describe",
+            "--match=v*",
+            "--abbrev=0",
+            "HEAD",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=temp_directory,
+        check=True,
+    ).stdout.strip()
+    assert vtag.startswith("v")
+
+    # Switch branch
     args = create_dummy_args(
         component_repository=component_repository,
         component_directory=temp_directory,
@@ -274,11 +310,28 @@ def test_existing_repository_with_switching_branch(capsys, temp_directory):
         fetch_versions_only=True,
     )
     get_and_verify_source(args)
+
     assert (
         "--> Switching branch from main branch to new release4.1\n--> Merging...\n"
         in capsys.readouterr().out
     )
     assert (temp_directory / ".git/FETCH_HEAD").exists()
+
+    # Check if we have a version tag on HEAD
+    vtag = subprocess.run(
+        [
+            "git",
+            "describe",
+            "--match=v*",
+            "--abbrev=0",
+            "HEAD",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=temp_directory,
+        check=True,
+    ).stdout.strip()
+    assert vtag.startswith("v")
 
 
 def test_non_qubesos_repository_with_maintainer_and_signed_tag(
