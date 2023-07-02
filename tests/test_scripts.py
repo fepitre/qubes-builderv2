@@ -556,3 +556,31 @@ def test_repository_with_submodules(capsys, temp_directory, home_directory):
     )
     get_and_verify_source(args)
     assert "--> Updating submodules" in capsys.readouterr().out
+
+
+def test_repository_fetch_version_tag_earlier(capsys, temp_directory):
+    component_repository = "https://github.com/fepitre/qubes-core-qrexec"
+    # Fresh clone on branch having signed tag not being version tag
+    args = create_dummy_args(
+        component_repository=component_repository,
+        component_directory=temp_directory,
+        git_branch="builderv2-tests-4",
+        fetch_versions_only=True,
+    )
+    get_and_verify_source(args)
+
+    # Check if we have a version tag on HEAD
+    vtag = subprocess.run(
+        [
+            "git",
+            "describe",
+            "--match=v*",
+            "--abbrev=0",
+            "HEAD",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=temp_directory,
+        check=True,
+    ).stdout.strip()
+    assert vtag.startswith("v")
