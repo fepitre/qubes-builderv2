@@ -232,7 +232,8 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             )
             # extra_sources = ""
             cmd = [
-                f"{executor.get_plugins_dir()}/build_deb/scripts/create-local-repo {executor.get_repository_dir()} {self.dist.fullname} {self.dist.name}"
+                f"mkdir -p {executor.get_cache_dir()}/aptcache",
+                f"{executor.get_plugins_dir()}/build_deb/scripts/create-local-repo {executor.get_repository_dir()} {self.dist.fullname} {self.dist.name}",
             ]
 
             if self.config.use_qubes_repo.get("version", None):
@@ -256,8 +257,15 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             # FIXME: We disable black here because it removes escaped quotes.
             #  This is until we use shlex.quote.
 
-            # Add prepared chroot cache
-            base_tgz = self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder/base.tgz"
+            # Add downloaded packages and prepared chroot cache
+            chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
+            aptcache_dir = chroot_dir / "pbuilder/aptcache"
+            base_tgz = chroot_dir / "pbuilder/base.tgz"
+            if aptcache_dir.exists():
+                copy_in += [(
+                    chroot_dir / "pbuilder/aptcache",
+                    executor.get_cache_dir(),
+                )]
             if base_tgz.exists():
                 copy_in += [
                     (base_tgz, executor.get_builder_dir() / "pbuilder")

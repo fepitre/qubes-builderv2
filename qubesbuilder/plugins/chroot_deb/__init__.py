@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 import os
+import shutil
 
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
@@ -63,6 +64,8 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
 
         if (chroot_dir / "base.tgz").exists():
             os.remove(chroot_dir / "base.tgz")
+        if (chroot_dir / "aptcache").exists():
+            shutil.rmtree(chroot_dir / "aptcache")
 
         copy_in = [
             (
@@ -81,6 +84,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         ]
         cmd = [
             f"sed -i '\#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+            f"mkdir -p {executor.get_cache_dir()}/aptcache",
         ]
         pbuilder_cmd = [
             f"sudo -E pbuilder create --distribution {self.dist.name}",
@@ -98,6 +102,50 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         except ExecutorError as e:
             msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
             raise ChrootError(msg) from e
+
+        additional_packages = (
+            self.config.get("cache", {})
+            .get(self.dist.distribution, {})
+            .get("packages", [])
+        )
+        if additional_packages:
+            copy_in = [
+                (
+                    self.manager.entities["chroot_deb"].directory,
+                    executor.get_plugins_dir(),
+                ),
+                (
+                    chroot_dir / "base.tgz",
+                    executor.get_builder_dir() / "pbuilder",
+                ),
+            ]
+            copy_out = [
+                (
+                    executor.get_cache_dir() / "aptcache",
+                    chroot_dir,
+                )
+            ]
+            cmd = [
+                f"sed -i '\#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+                f"mkdir -p {executor.get_cache_dir()}/aptcache",
+            ]
+            pbuilder_cmd = [
+                f"sudo -E pbuilder update --distribution {self.dist.name}",
+                f"--configfile {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+                f"--extrapackages '{' '.join(additional_packages)}'",
+            ]
+            cmd.append(" ".join(pbuilder_cmd))
+            try:
+                executor.run(
+                    cmd,
+                    copy_in,
+                    copy_out,
+                    environment=self.environment,
+                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                )
+            except ExecutorError as e:
+                msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
+                raise ChrootError(msg) from e
 
 
 PLUGINS = [DEBChrootPlugin]

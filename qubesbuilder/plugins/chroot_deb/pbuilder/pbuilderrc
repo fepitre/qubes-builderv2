@@ -69,7 +69,7 @@ case ${DISTRIBUTION} in
         ;;
 esac
 #specify the cache for APT
-APTCACHE="$CACHEDIR"
+APTCACHE="@BUILDER_DIR@/cache/aptcache"
 APTCACHEHARDLINK="yes"
 REMOVEPACKAGES=""
 HOOKDIR="@BUILDER_DIR@/pbuilder/hooks"
