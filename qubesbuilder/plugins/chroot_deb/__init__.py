@@ -67,6 +67,9 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         if (chroot_dir / "aptcache").exists():
             shutil.rmtree(chroot_dir / "aptcache")
 
+        files_inside_executor_with_placeholders = [
+            "@PLUGINS_DIR@/chroot_deb/pbuilder/pbuilderrc"
+        ]
         copy_in = [
             (
                 self.manager.entities["chroot_deb"].directory,
@@ -78,9 +81,6 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
                 executor.get_builder_dir() / "pbuilder/base.tgz",
                 chroot_dir,
             )
-        ]
-        files_inside_executor_with_placeholders = [
-            "@PLUGINS_DIR@/chroot_deb/pbuilder/pbuilderrc"
         ]
         cmd = [
             f"sed -i '\#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
@@ -130,9 +130,10 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
                 f"mkdir -p {executor.get_cache_dir()}/aptcache",
             ]
             pbuilder_cmd = [
-                f"sudo -E pbuilder update --distribution {self.dist.name}",
+                f"sudo -E pbuilder execute --distribution {self.dist.name}",
                 f"--configfile {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
-                f"--extrapackages '{' '.join(additional_packages)}'",
+                f"--bindmounts {executor.get_cache_dir()}/aptcache:/tmp/aptcache",
+                f"-- {executor.get_plugins_dir()}/chroot_deb/scripts/apt-download-packages {' '.join(additional_packages)}",
             ]
             cmd.append(" ".join(pbuilder_cmd))
             try:
