@@ -70,6 +70,8 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         files_inside_executor_with_placeholders = [
             "@PLUGINS_DIR@/chroot_deb/pbuilder/pbuilderrc"
         ]
+
+        # Create a first cage to generate the base.tgz
         copy_in = [
             (
                 self.manager.entities["chroot_deb"].directory,
@@ -103,6 +105,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
             msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
             raise ChrootError(msg) from e
 
+        # Create a second cage for downloading the packages
         additional_packages = (
             self.config.get("cache", {})
             .get(self.dist.distribution, {})
@@ -145,7 +148,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
                     files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
                 )
             except ExecutorError as e:
-                msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
+                msg = f"{self.dist}: Failed to download extra packages: {str(e)}."
                 raise ChrootError(msg) from e
 
 
