@@ -290,13 +290,7 @@ def test_existing_repository_with_switching_branch(capsys, temp_directory):
 
     # Check if we have a version tag on HEAD
     vtag = subprocess.run(
-        [
-            "git",
-            "describe",
-            "--match=v*",
-            "--abbrev=0",
-            "HEAD",
-        ],
+        ["git", "tag", "--points-at=HEAD", "v*"],
         capture_output=True,
         text=True,
         cwd=temp_directory,
@@ -321,13 +315,7 @@ def test_existing_repository_with_switching_branch(capsys, temp_directory):
 
     # Check if we have a version tag on HEAD
     vtag = subprocess.run(
-        [
-            "git",
-            "describe",
-            "--match=v*",
-            "--abbrev=0",
-            "HEAD",
-        ],
+        ["git", "tag", "--points-at=HEAD", "v*"],
         capture_output=True,
         text=True,
         cwd=temp_directory,
@@ -573,13 +561,7 @@ def test_repository_fetch_version_tag_earlier(capsys, temp_directory):
 
     # Check if we have a version tag on HEAD
     vtag = subprocess.run(
-        [
-            "git",
-            "describe",
-            "--match=v*",
-            "--abbrev=0",
-            "HEAD",
-        ],
+        ["git", "tag", "--points-at=HEAD", "v*"],
         capture_output=True,
         text=True,
         cwd=temp_directory,
