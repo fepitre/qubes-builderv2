@@ -75,6 +75,7 @@ class QubesComponent:
         devel_path: Path = None,
         is_plugin: bool = False,
         has_packages: bool = True,
+        min_distinct_maintainers: int = 1,
     ):
         self.source_dir: Path = (
             Path(source_dir) if isinstance(source_dir, str) else source_dir
@@ -86,6 +87,7 @@ class QubesComponent:
         self.url = url or f"https://github.com/QubesOS/qubes-{self.name}"
         self.branch = branch
         self.maintainers = maintainers or []
+        self.min_distinct_maintainers = min_distinct_maintainers
         self.verification_mode = verification_mode
         self.timeout = timeout
         self.fetch_versions_only = fetch_versions_only

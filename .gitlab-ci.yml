@@ -100,7 +100,7 @@ pytest:
     - qubes
   script:
     - echo "$PYTHONPATH"
-    - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py
+    - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py tests/test_scripts.py
 
 pytest-cli-component:
   extends: .pytest

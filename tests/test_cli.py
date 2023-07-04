@@ -160,7 +160,13 @@ def test_component_init_cache(artifacts_dir):
 
 
 def test_component_fetch(artifacts_dir):
-    qb_call(DEFAULT_BUILDER_CONF, artifacts_dir, "package", "fetch")
+    result = qb_call_output(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "package",
+        "fetch",
+        stderr=subprocess.STDOUT,
+    ).decode()
 
     assert (artifacts_dir / "distfiles/python-qasync/qasync-0.23.0.tar.gz").exists()
     assert (
@@ -175,6 +181,7 @@ def test_component_fetch(artifacts_dir):
         "app-linux-split-gpg",
     ]:
         assert (artifacts_dir / "sources" / component / ".qubesbuilder").exists()
+    assert "Enough distinct tag signatures. Found 2, mandatory minimum is 2." in result
 
 
 def test_component_fetch_updating(artifacts_dir):

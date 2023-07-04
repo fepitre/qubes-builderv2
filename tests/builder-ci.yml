@@ -60,7 +60,9 @@ components:
   - desktop-linux-xfce4-xfwm4:
       branch: v4.16.1-3
   - app-linux-split-gpg:
-      branch: v2.0.67
+      branch: v2.0.67-builderv2-tests
+      url: https://github.com/fepitre/qubes-app-linux-split-gpg
+      min-distinct-maintainers: 2
 
 templates:
   - fedora-36-xfce:
