@@ -311,6 +311,8 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 mock_cmd.append("--plugin-option=root_cache:age_check=False")
             if self.config.increment_devel_versions:
                 mock_cmd.append(f"--define 'dist .{dist_tag}'")
+            if chroot_cache.exists():
+                mock_cmd.append("--no-clean")
 
             files_inside_executor_with_placeholders = [
                 f"@PLUGINS_DIR@/chroot_rpm/mock/{mock_conf}"
