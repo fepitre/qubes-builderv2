@@ -27,6 +27,14 @@ sign-key:
 iso:
   kickstart: conf/iso-online-testing.ks
 
+cache:
+  host-fc37:
+    packages:
+      - gcc
+  vm-bookworm:
+    packages:
+      - quilt
+
 distributions:
   - host-fc37
   - vm-bullseye

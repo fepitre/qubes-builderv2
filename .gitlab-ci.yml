@@ -22,42 +22,8 @@ variables:
     description: "Run all jobs, default: 0"
 
 #
-# test
+# job skeletons
 #
-
-lint:
-  stage: test
-  image: fedora:37
-  tags:
-    - docker
-  before_script:
-    - sudo dnf install -y python3-black
-  script:
-    - black -v --diff --color --check qubesbuilder
-
-mypy:
-  stage: test
-  image: fedora:37
-  tags:
-    - docker
-  before_script:
-    - sudo dnf install -y python3-mypy python3-pip
-    - sudo python3 -m pip install types-PyYAML types-python-dateutil
-  script:
-    - mypy --install-types --non-interactive --junit-xml mypy.xml qubesbuilder
-  artifacts:
-    reports:
-      junit: mypy.xml
-
-shellcheck:
-  stage: test
-  image: fedora:37
-  tags:
-    - docker
-  before_script:
-    - sudo dnf install -y ShellCheck git
-  script:
-    - shellcheck -x -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
 
 .pytest:
   rules:
@@ -93,33 +59,6 @@ shellcheck:
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
   after_script:
   - ci/codecov-wrapper -f artifacts/coverage.xml
-
-pytest:
-  extends: .pytest
-  tags:
-    - qubes
-  script:
-    - echo "$PYTHONPATH"
-    - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py tests/test_scripts.py
-
-pytest-cli-component:
-  extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_
-
-pytest-cli-increment-component:
-  extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_increment_component_
-
-pytest-cli-template:
-  extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_
-
-#
-# build job skeleton
-#
 
 .init_cache_job:
   rules:
@@ -260,7 +199,6 @@ pytest-cli-template:
     - ./qb -c builder-rpm -c builder-debian -c template-whonix package fetch
     - ./qb -t "${CI_JOB_NAME#qubes-template-}" --option executor:type=qubes --option executor:options:dispvm=builder-dvm template all
 
-
 .installer_iso:
   rules:
     - if: $CI_RUN_ISO_JOBS == "1" || $CI_RUN_ALL_JOBS == "1"
@@ -285,7 +223,66 @@ pytest-cli-template:
     - rm -rf artifacts/cache
     - tree artifacts
 
+#
+# test
+#
 
+lint:
+  stage: test
+  image: fedora:37
+  tags:
+    - docker
+  before_script:
+    - sudo dnf install -y python3-black
+  script:
+    - black -v --diff --color --check qubesbuilder
+
+mypy:
+  stage: test
+  image: fedora:37
+  tags:
+    - docker
+  before_script:
+    - sudo dnf install -y python3-mypy python3-pip
+    - sudo python3 -m pip install types-PyYAML types-python-dateutil
+  script:
+    - mypy --install-types --non-interactive --junit-xml mypy.xml qubesbuilder
+  artifacts:
+    reports:
+      junit: mypy.xml
+
+shellcheck:
+  stage: test
+  image: fedora:37
+  tags:
+    - docker
+  before_script:
+    - sudo dnf install -y ShellCheck git
+  script:
+    - shellcheck -x -e SC1117 $(grep -l '^#!/bin/\(ba\)\?sh' $(git ls-files))
+
+pytest:
+  extends: .pytest
+  tags:
+    - qubes
+  script:
+    - echo "$PYTHONPATH"
+    - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py tests/test_scripts.py
+
+pytest-cli-component:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_
+
+pytest-cli-increment-component:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_increment_component_
+
+pytest-cli-template:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_
 
 #
 # Components
@@ -295,9 +292,9 @@ pytest-cli-template:
 
 cache-host-fc37:
   extends: .init_cache_job
-
-cache-vm-fc36:
-  extends: .init_cache_job
+  script:
+    - !reference [.init_cache_job, script ]
+    - tests/scripts/check-chroot-content.sh artifacts "${CI_JOB_NAME#cache-}" /usr/bin/gcc
 
 cache-vm-fc37:
   extends: .init_cache_job
@@ -310,6 +307,9 @@ cache-vm-centos-stream8:
 
 cache-vm-bullseye:
   extends: .init_cache_job
+  script:
+    - !reference [.init_cache_job, script ]
+    - tests/scripts/check-chroot-content.sh artifacts "${CI_JOB_NAME#cache-}" /usr/bin/quilt
 
 cache-vm-bookworm:
   extends: .init_cache_job
@@ -446,8 +446,8 @@ qubes-template-whonix-workstation-16:
   extends: .template_qubes_job
   allow_failure: true
 
-#qubes-template-archlinux:
-#  extends: .template_qubes_job
+qubes-template-archlinux:
+  extends: .template_qubes_job
 
 #
 # ISO
