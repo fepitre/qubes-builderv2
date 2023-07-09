@@ -436,13 +436,13 @@ qubes-template-fedora-38-xfce:
 qubes-template-centos-stream-8:
   extends: .template_qubes_job
 
-qubes-template-debian-11:
+qubes-template-debian-12:
   extends: .template_qubes_job
 
-qubes-template-whonix-gateway-16:
+qubes-template-whonix-gateway-17:
   extends: .template_qubes_job
 
-qubes-template-whonix-workstation-16:
+qubes-template-whonix-workstation-17:
   extends: .template_qubes_job
   allow_failure: true
 
