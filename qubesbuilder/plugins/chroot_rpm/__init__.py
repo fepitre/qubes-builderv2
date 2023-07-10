@@ -68,15 +68,10 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
 
         # FIXME: Parse from mock cfg?
         mock_chroot_name = mock_conf.replace(".cfg", "")
+
+        # Delete previous chroot
         if (chroot_dir / mock_chroot_name).exists():
             shutil.rmtree(chroot_dir / mock_chroot_name)
-
-        copy_in = [
-            (
-                self.manager.entities["chroot_rpm"].directory,
-                executor.get_plugins_dir(),
-            ),
-        ]
 
         self.environment.update(
             {
@@ -85,11 +80,8 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             }
         )
 
-        copy_out = [
-            (
-                executor.get_cache_dir() / f"mock/{mock_chroot_name}",
-                chroot_dir,
-            )
+        files_inside_executor_with_placeholders = [
+            f"@PLUGINS_DIR@/chroot_rpm/mock/{mock_conf}"
         ]
 
         mock_cmd = [
@@ -97,7 +89,6 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             f"/usr/libexec/mock/mock",
             f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
             "--disablerepo=builder-local",
-            "--init",
         ]
         if isinstance(executor, ContainerExecutor):
             msg = (
@@ -111,11 +102,20 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
         if self.config.verbose:
             mock_cmd.append("--verbose")
 
-        files_inside_executor_with_placeholders = [
-            f"@PLUGINS_DIR@/chroot_rpm/mock/{mock_conf}"
+        # Create a first cage to generate the mock chroot
+        copy_in = [
+            (
+                self.manager.entities["chroot_rpm"].directory,
+                executor.get_plugins_dir(),
+            ),
         ]
-        cmd = [" ".join(mock_cmd)]
-
+        copy_out = [
+            (
+                executor.get_cache_dir() / f"mock/{mock_chroot_name}",
+                chroot_dir,
+            )
+        ]
+        cmd = [" ".join(mock_cmd + ["--init"])]
         try:
             executor.run(
                 cmd,
@@ -127,6 +127,44 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
         except ExecutorError as e:
             msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
             raise ChrootError(msg) from e
+
+        # Create a second cage for downloading the packages
+        additional_packages = (
+            self.config.get("cache", {})
+            .get(self.dist.distribution, {})
+            .get("packages", [])
+        )
+        if additional_packages:
+            # Remove dnf_cache
+            if (chroot_dir / mock_chroot_name / "dnf_cache").exists():
+                shutil.rmtree(chroot_dir / mock_chroot_name / "dnf_cache")
+            copy_in = [
+                (
+                    self.manager.entities["chroot_rpm"].directory,
+                    executor.get_plugins_dir(),
+                ),
+                (chroot_dir / mock_chroot_name, executor.get_cache_dir() / f"mock"),
+            ]
+            copy_out = [
+                (
+                    executor.get_cache_dir() / f"mock/{mock_chroot_name}/dnf_cache",
+                    chroot_dir / mock_chroot_name,
+                )
+            ]
+            for package in additional_packages:
+                mock_cmd += ["--install", package]
+            cmd.append(" ".join(mock_cmd))
+            try:
+                executor.run(
+                    cmd,
+                    copy_in,
+                    copy_out,
+                    environment=self.environment,
+                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                )
+            except ExecutorError as e:
+                msg = f"{self.dist}: Failed to download extra packages: {str(e)}."
+                raise ChrootError(msg) from e
 
 
 PLUGINS = [RPMChrootPlugin]

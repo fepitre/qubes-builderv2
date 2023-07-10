@@ -27,6 +27,14 @@ sign-key:
 iso:
   kickstart: conf/iso-online-testing.ks
 
+cache:
+  host-fc37:
+    packages:
+      - gcc
+  vm-bookworm:
+    packages:
+      - quilt
+
 distributions:
   - host-fc37
   - vm-bullseye
@@ -43,6 +51,8 @@ components:
   - builder-rpm:
       packages: False
   - builder-debian:
+      packages: False
+  - builder-archlinux:
       packages: False
   - template-whonix:
       packages: False
@@ -73,19 +83,19 @@ templates:
       flavor: xfce
   - centos-stream-8:
       dist: centos-stream8
-  - debian-11:
-      dist: bullseye
+  - debian-12:
+      dist: bookworm
       options:
         - standard
         - firmware
-  - whonix-gateway-16:
-      dist: bullseye
+  - whonix-gateway-17:
+      dist: bookworm
       flavor: whonix-gateway
       options:
         - minimal
         - no-recommends
-  - whonix-workstation-16:
-      dist: bullseye
+  - whonix-workstation-17:
+      dist: bookworm
       flavor: whonix-workstation
       options:
         - minimal
@@ -125,18 +135,9 @@ stages:
   - sign:
       executor:
         type: local
-        options:
-          user: gitlab-runner
-          group: gitlab-runner
   - publish:
       executor:
         type: local
-        options:
-          user: gitlab-runner
-          group: gitlab-runner
   - upload:
       executor:
         type: local
-        options:
-          user: gitlab-runner
-          group: gitlab-runner
