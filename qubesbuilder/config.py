@@ -103,6 +103,7 @@ class Config:
     iso_use_kernel_latest: Union[bool, property]         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))
     iso_is_final: Union[bool, property]                  = property(lambda self: self.get("iso", {}).get("is-final", False))
     increment_devel_versions: Union[bool, property]      = property(lambda self: self.get("increment-devel-versions", False))
+    automatic_upload_on_publish: Union[bool, property]   = property(lambda self: self.get("automatic-upload-on-publish", False))
     # fmt: on
 
     def __repr__(self):
