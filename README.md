@@ -711,7 +711,7 @@ Options available in `builder.yml`:
   - `components: str` --- Components . This is either `current-testing`, `security-testing` or `unstable`.
   - `templates: str` --- Testing repository for templates at publish stage. This is either `templates-itl-testing` or `templates-community-testing`.
 
-- `distributions: List[str]` --- Distribution for packages provided as <package-set>-<distribution>.<architecture>. Default architecture is `x86_64` and can be ommited. Some examples: host-fc32, host-fc42.ppc64 or vm-trixie.
+- `distributions: List[str]` --- Distribution for packages provided as <package-set>-<distribution>.<architecture>. Default architecture is `x86_64` and can be omitted. Some examples: host-fc32, host-fc42.ppc64 or vm-trixie.
 
 - `components: List[Union[str, Dict]]` -- List of components you want to build. See example configs for sensible lists. The order of components is important - it should reflect build dependencies, otherwise build would fail.
   - `<component_name>` --- Component name provided as string
@@ -746,3 +746,7 @@ Options available in `builder.yml`:
   - `<stage_name>: str` --- Stage name
   - `<stage_name>: Dict` --- Stage name provided as dict to override executor to use.
     - `executor: Dict` --- Specify executor to use for this stage
+
+- `cache: List[Dict]` --- List of distributions cache options.
+  - `<distribution_name>: Dict` --- Distribution name provided as in `distributions`.
+    - `packages: List[str]` --- List of packages to download and to put in cache. These packages won't be installed into the base chroot.
