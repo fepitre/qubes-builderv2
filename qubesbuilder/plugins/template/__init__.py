@@ -108,6 +108,11 @@ class TemplateBuilderPlugin(TemplatePlugin):
         executor = self.config.get_executor_from_config(stage_name=stage)
         template_options = [self.template.flavor] + self.template.options
         template_flavor_dir = []
+        parsed_release = QUBES_RELEASE_RE.match(
+            self.config.qubes_release
+        ) or QUBES_RELEASE_RE.match(QUBES_RELEASE_DEFAULT)
+        if not parsed_release:
+            raise TemplateError(f"Cannot parse template version.")
         self.environment.update(
             {
                 "DIST": self.dist.name,  # legacy value
@@ -126,6 +131,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "DISCARD_PREPARED_IMAGE": "1",
                 "BUILDER_TURBO_MODE": "1",
                 "CACHE_DIR": str(executor.get_cache_dir() / f"cache_{self.dist.name}"),
+                "RELEASE": parsed_release.group(1),
                 "TEMPLATE_SCRIPTS_DIR": str(
                     executor.get_plugins_dir() / "template/scripts"
                 ),
