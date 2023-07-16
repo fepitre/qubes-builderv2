@@ -759,18 +759,21 @@ def test_component_unpublish_host_fc37(artifacts_dir):
         env["HOME"] = tmpdir
 
         # publish into unstable
-        qb_call(
+        result = qb_call_output(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-c",
             "core-qrexec",
             "-d",
             "host-fc37",
+            "-o",
+            "automatic-upload-on-publish=true",
             "repository",
             "unpublish",
             "current",
             env=env,
-        )
+            stderr=subprocess.STDOUT,
+        ).decode()
 
         rpms = {
             "qubes-core-qrexec-4.2.4-1.fc37.x86_64.rpm",
@@ -838,6 +841,10 @@ def test_component_unpublish_host_fc37(artifacts_dir):
             assert packages == []
         else:
             assert set(rpms) == set(packages)
+
+    assert "[publish_rpm]" in result
+    assert "[upload]" in result
+
 
 
 #
