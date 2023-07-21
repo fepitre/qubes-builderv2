@@ -26,7 +26,10 @@ templates:
   - debian-11:
       dist: bullseye
       options:
-        - standard
+        - firmware
+  - debian-12:
+      dist: bookworm
+      options:
         - firmware
   - whonix-gateway-17:
       dist: bookworm
