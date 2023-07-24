@@ -51,3 +51,7 @@ fi
 # shellcheck disable=SC1090
 # shellcheck disable=SC2154
 (source "${PKGBUILD}" && printf '%s\n' "${pkgname[@]}" > "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_packages.list" 2>$ERR_OUTPUT)
+
+# shellcheck disable=SC1090
+# shellcheck disable=SC2154
+(source "${PKGBUILD}" && printf '%s\n' "${arch[0]}" > "${SOURCE_DIR}/${DIRECTORY_MANGLE_PATH}_package_arch" 2>$ERR_OUTPUT)

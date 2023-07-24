@@ -130,6 +130,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
 
             copy_out = [
                 (source_dir / f"{build_bn}_packages.list", temp_dir),
+                (source_dir / f"{build_bn}_package_arch", temp_dir),
             ]
 
             cmd = [
@@ -156,14 +157,22 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 msg = f"{self.component}:{self.dist}:{build}: No package names defined."
                 raise SourceError(msg)
 
-            # Create packages list
-            packages_list = []
-            for pkgname in pkgnames:
-                pkg = f"{pkgname}-{self.component.verrel}-{self.dist.architecture}.pkg.tar.zst"
-                packages_list.append(pkg)
+            # Read architecture
+            with open(temp_dir / f"{build_bn}_package_arch") as f:
+                package_arch = f.read().splitlines()[0]
+
+            # See https://wiki.archlinux.org/title/PKGBUILD#arch
+            if package_arch not in ("any", "x86_64"):
+                raise SourceError("Invalid architecture value.")
 
             # Source archive name is based on first package name
             source_orig = f"{pkgnames[0]}-{self.component.verrel}.tar.gz"
+
+            # Create packages list
+            packages_list = []
+            for pkgname in pkgnames:
+                pkg = f"{pkgname}-{self.component.verrel}-{package_arch}.pkg.tar.zst"
+                packages_list.append(pkg)
 
             # Create source archive
             copy_in = [
