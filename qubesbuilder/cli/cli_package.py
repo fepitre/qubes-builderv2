@@ -43,13 +43,16 @@ def _component_stage(
 @click.command(name="all", short_help="Run all package stages.")
 @click.pass_obj
 def _all_package_stage(obj: ContextObj):
-    for s in STAGES:
+    stages = STAGES
+    if obj.config.automatic_upload_on_publish:
+        stages.remove("upload")
+    for stage in stages:
         _component_stage(
             config=obj.config,
             manager=obj.manager,
             components=obj.components,
             distributions=obj.distributions,
-            stage_name=s,
+            stage_name=stage,
         )
 
 
@@ -135,6 +138,14 @@ def publish(obj: ContextObj):
         distributions=obj.distributions,
         stage_name="publish",
     )
+    if obj.config.automatic_upload_on_publish:
+        _component_stage(
+            config=obj.config,
+            manager=obj.manager,
+            components=obj.components,
+            distributions=obj.distributions,
+            stage_name="upload",
+        )
 
 
 @package.command()

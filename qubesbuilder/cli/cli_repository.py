@@ -84,6 +84,14 @@ def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = Fal
         repository_publish=repository_publish,
         ignore_min_age=ignore_min_age,
     )
+    if obj.config.automatic_upload_on_publish:
+        _upload(
+            config=obj.config,
+            manager=obj.manager,
+            distributions=obj.distributions,
+            templates=obj.templates,
+            repository_publish=repository_publish,
+        )
 
 
 #
@@ -107,6 +115,14 @@ def unpublish(obj: ContextObj, repository_publish: str):
         repository_publish=repository_publish,
         unpublish=True,
     )
+    if obj.config.automatic_upload_on_publish:
+        _upload(
+            config=obj.config,
+            manager=obj.manager,
+            distributions=obj.distributions,
+            templates=obj.templates,
+            repository_publish=repository_publish,
+        )
 
 
 #

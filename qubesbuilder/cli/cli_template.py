@@ -39,7 +39,10 @@ def _template_stage(
 @click.command(name="all", short_help="Run all template stages.")
 @click.pass_obj
 def _all_template_stage(obj: ContextObj):
-    for s in STAGES:
+    stages = STAGES
+    if obj.config.automatic_upload_on_publish:
+        stages.remove("upload")
+    for s in stages:
         _template_stage(
             config=obj.config,
             manager=obj.manager,
@@ -129,6 +132,13 @@ def publish(obj: ContextObj):
         templates=obj.templates,
         stage_name="publish",
     )
+    if obj.config.automatic_upload_on_publish:
+        _template_stage(
+            config=obj.config,
+            manager=obj.manager,
+            templates=obj.templates,
+            stage_name="upload",
+        )
 
 
 @template.command()
