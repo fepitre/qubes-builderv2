@@ -115,6 +115,8 @@ iso-parse-tmpl:
 
 iso-packages-anaconda:
 	$(DNF) $(DNF_OPTS) clean all
+	# workaround for https://github.com/rpm-software-management/dnf/issues/1974
+	rpmkeys --root=$(DNF_ROOT) --import $$(sed -n '/gpgkey *= *file:/{s,.*file://,,;p}' $(DNF_ROOT)/etc/yum.repos.d/*.repo)
 	umask 022; $(DNF) $(DNF_OPTS) --downloaddir=$(BASE_DIR)/os/Packages --downloadonly install $(shell cat $(DNF_PACKAGES))
 	pushd $(BASE_DIR)/os/ && $(CREATEREPO) -q -g $(TMP_DIR)/comps.xml .
 
