@@ -724,6 +724,7 @@ Options available in `builder.yml`:
     - `timeout: int` --- Abort build after given timeout, in seconds.
     - `plugin: bool` --- Component being actually an extra plugin. No `.qubesbuilder` file is needed.
     - `packages: bool` --- Component that generate packages (default: True). If set to False (e.g. `builder-rpm`), no `.qubesbuilder` file is allowed.
+    - `verification-mode: str` --- component source code verification mode, supported values are: `signed-tag` (this is default), `less-secure-signed-commits-sufficient`, `insecure-skip-checking`. This option takes precedence over top level `less-secure-signed-commits-sufficient`.
 
 - `templates: List[Dict]` -- List of templates you want to build. See example configs for sensible lists.
   - `<template_name>`: --- Template name
