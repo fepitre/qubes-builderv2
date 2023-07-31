@@ -47,6 +47,9 @@ distributions:
   - vm-focal
   - vm-jammy
 
+key-dirs:
+  - tests/keys
+
 components:
   - builder-rpm:
       packages: False
@@ -72,7 +75,10 @@ components:
   - app-linux-split-gpg:
       branch: v2.0.67-builderv2-tests
       url: https://github.com/fepitre/qubes-app-linux-split-gpg
-      min-distinct-maintainers: 2
+      min-distinct-maintainers: 3
+      maintainers:
+      - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
+      - C4A2E4615A16BD191110DEE17320B2D2134763F3
 
 templates:
   - fedora-36-xfce:

@@ -103,6 +103,20 @@ class FetchPlugin(ComponentPlugin):
         copy_in = [
             (self.manager.entities["fetch"].directory, executor.get_plugins_dir())
         ]
+        for key_dir_str in self.config.get("key-dirs", []):
+            key_dir = Path(key_dir_str)
+            if not key_dir.is_dir():
+                log.warn(f"Key directory '{key_dir!s}' is not a directory")
+                continue
+            for key_file in key_dir.iterdir():
+                if key_file.suffix != ".asc":
+                    continue
+                copy_in += [
+                    (
+                        key_file,
+                        executor.get_plugins_dir() / "fetch/keys",
+                    )
+                ]
 
         # Get GIT source for a given Qubes OS component
         copy_out = [(source_dir, self.get_sources_dir())]

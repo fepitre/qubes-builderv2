@@ -662,7 +662,7 @@ Options available in `builder.yml`:
   - `prefix: str` --- Which repository to clone (default: QubesOS/qubes-).
   - `suffix: str` --- git suffix (default: .git).
   - `branch: str` --- git branch (default: main).
-  - `maintainers: List[str]` --- List of extra fingerprint allowed for signature verification of git commit and tag.
+  - `maintainers: List[str]` --- List of extra fingerprint allowed for signature verification of git commit and tag. See `key-dirs` option for providing the public keys.
 
 - `skip-git-fetch: bool` --- When set, do not update already downloaded git repositories (those in `sources` artifacts dir). New components are still fetched (once). Useful when doing development builds from non-default branches, local modifications etc.
 
@@ -686,6 +686,8 @@ Options available in `builder.yml`:
 - `min-age-days: int` --- Minimum days for testing component or template allowed to reach stable repositories (default: 5).
 
 - `gpg-client: str`: GPG client to use, either `gpg` or `qubes-gpg-client-wrapper`.
+
+- `key-dirs: List[str]`: additional directories with maintainer's keys; keys needs to be named after full fingerprint plus `.asc` extension
 
 - `iso: Dict`:
   - `kickstart: str` --- Image installer kickstart.

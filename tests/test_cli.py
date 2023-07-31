@@ -181,7 +181,7 @@ def test_component_fetch(artifacts_dir):
         "app-linux-split-gpg",
     ]:
         assert (artifacts_dir / "sources" / component / ".qubesbuilder").exists()
-    assert "Enough distinct tag signatures. Found 2, mandatory minimum is 2." in result
+    assert "Enough distinct tag signatures. Found 3, mandatory minimum is 3." in result
 
 
 def test_component_fetch_updating(artifacts_dir):
