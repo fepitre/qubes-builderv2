@@ -490,6 +490,12 @@ class InstallerPlugin(DistributionPlugin):
                 for plugin in self.dependencies
             ]
 
+            # copy kickstart file if given by absolute path
+            if self.kickstart_path.is_absolute():
+                copy_in += [
+                    (self.kickstart_path, executor.get_plugins_dir() / "installer/conf")
+                ]
+
             # Copy-in builder local repository
             if repository_dir.exists():
                 copy_in += [(repository_dir, executor.get_repository_dir())]
