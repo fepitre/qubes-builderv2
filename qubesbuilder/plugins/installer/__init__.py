@@ -70,9 +70,11 @@ class InstallerPlugin(DistributionPlugin):
         self.templates = templates
         self.kickstart_path = Path(config.installer_kickstart)
 
+        if config.installer_kickstart.startswith('./'):
+            self.kickstart_path = self.kickstart_path.resolve()
         if not (
             self.manager.entities["installer"].directory
-            / self.config.installer_kickstart
+            / self.kickstart_path
         ).exists():
             raise InstallerError(
                 f"Cannot find kickstart: '{self.config.installer_kickstart}'"
