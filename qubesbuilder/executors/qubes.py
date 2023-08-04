@@ -129,7 +129,6 @@ class QubesExecutor(Executor):
         no_fail_copy_out_allowed_patterns=None,
         dig_holes: bool = False,
     ):
-
         dispvm = None
         try:
             result = subprocess.run(
@@ -137,9 +136,13 @@ class QubesExecutor(Executor):
                 capture_output=True,
                 stdin=subprocess.DEVNULL,
             )
-            dispvm = result.stdout.decode("utf8").replace("0\x00", "")
-            if not re.match(r"disp[0-9]{1,4}", dispvm):
+            stdout = result.stdout
+            if not stdout.startswith(b"0\x00"):
+                raise ExecutorError("Failed to create disposable qube")
+            stdout = stdout[2:]
+            if not re.match(rb"\Adisp(0|[1-9][0-9]{0,8})\Z", stdout):
                 raise ExecutorError("Failed to create disposable qube.")
+            dispvm = stdout.decode("ascii", "strict")
 
             # Adjust log namespace
             log.name = f"executor:qubes:{dispvm}"
