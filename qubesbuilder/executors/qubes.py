@@ -242,6 +242,10 @@ class QubesExecutor(Executor):
             bash_env = []
             if environment:
                 for key, val in environment.items():
+                    if "=" in str(key):
+                        raise ExecutorError(
+                            "Environment variable name cannot contain '='"
+                        )
                     bash_env.append(f"{str(key)}={str(val)}")
 
             qvm_run_cmd = build_run_cmd(
