@@ -77,6 +77,7 @@ class QubesExecutor(Executor):
         )
         copy_to_incoming = [
             "/usr/lib/qubes/qrexec-client-vm",
+            "--",
             vm,
             "qubesbuilder.FileCopyIn",
             "/usr/lib/qubes/qfile-agent",
@@ -162,7 +163,7 @@ class QubesExecutor(Executor):
         dispvm = None
         try:
             result = subprocess.run(
-                ["qrexec-client-vm", self._dispvm, "admin.vm.CreateDisposable"],
+                ["qrexec-client-vm", "--", self._dispvm, "admin.vm.CreateDisposable"],
                 capture_output=True,
                 stdin=subprocess.DEVNULL,
             )
@@ -297,7 +298,7 @@ class QubesExecutor(Executor):
             # Kill the DispVM to prevent hanging for while
             if dispvm and self._clean:
                 subprocess.run(
-                    ["qrexec-client-vm", dispvm, "admin.vm.Kill"],
+                    ["qrexec-client-vm", "--", dispvm, "admin.vm.Kill"],
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL,
                 )
