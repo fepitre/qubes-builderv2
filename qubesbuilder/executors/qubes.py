@@ -20,14 +20,33 @@ import os
 import re
 import shutil
 import subprocess
+from shlex import quote
 from pathlib import Path, PurePath
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Iterable
 
 from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 
 log = get_logger("executor:qubes")
+
+
+def quote_list(args: List[Union[str, Path]]) -> str:
+    return " ".join(map(lambda x: quote(str(x)), args))
+
+
+def quote_and_list(cmd: List[List[Union[str, Path]]]) -> str:
+    return " && ".join(map(quote_list, args))
+
+
+def build_run_cmd(vm_name: str, cmd: List[Union[str, Path]]) -> List[str]:
+    return ["/usr/bin/qvm-run-vm", "--", vm_name, quote_list(cmd)]
+
+
+def build_run_cmd_and_list(
+    vm_name: str, cmd: List[List[Union[str, Path]]]
+) -> List[str]:
+    return ["/usr/bin/qvm-run-vm", "--", vm_name, quote_and_list(cmd)]
 
 
 class QubesExecutor(Executor):
@@ -46,11 +65,16 @@ class QubesExecutor(Executor):
         src = source_path.expanduser().resolve()
         dst = destination_dir
         # FIXME: Refactor the qvm-run and qrexec commandlines.
-        prepare_incoming_and_destination = [
-            "/usr/bin/qvm-run-vm",
+        prepare_incoming_and_destination = build_run_cmd(
             vm,
-            f"bash -c 'rm -rf {self.get_builder_dir()}/incoming/{src.name} {dst.as_posix()}/{src.name}'",
-        ]
+            [
+                "rm",
+                "-rf",
+                "--",
+                f"{str(self.get_builder_dir())}/incoming/{src.name}",
+                f"{str(dst.as_posix())}/{src.name}",
+            ],
+        )
         copy_to_incoming = [
             "/usr/lib/qubes/qrexec-client-vm",
             vm,
@@ -58,11 +82,17 @@ class QubesExecutor(Executor):
             "/usr/lib/qubes/qfile-agent",
             str(src),
         ]
-        move_to_destination = [
-            "/usr/bin/qvm-run-vm",
-            vm,
-            f"bash -c 'mkdir -p {dst.as_posix()} && mv {self.get_builder_dir()}/incoming/{src.name} {dst.as_posix()}'",
-        ]
+        move_to_destination = build_run_cmd_and_list(
+            [
+                ["mkdir", "-p", "--", str(dst.as_posix())],
+                [
+                    "mv",
+                    "--",
+                    f"{str(self.get_builder_dir())}/incoming/{src.name}",
+                    f"{str(dst.as_posix())}",
+                ],
+            ]
+        )
         try:
             log.debug(f"copy-in (cmd): {' '.join(prepare_incoming_and_destination)}")
             subprocess.run(prepare_incoming_and_destination, check=True)
@@ -148,14 +178,29 @@ class QubesExecutor(Executor):
             log.name = f"executor:qubes:{dispvm}"
 
             # Start the DispVM by running creation of builder directory
-            start_cmd = [
-                "/usr/bin/qvm-run-vm",
+            start_cmd = build_run_cmd_and_list(
                 dispvm,
-                f"bash -c 'sudo mkdir -p {self.get_builder_dir()} {self.get_builder_dir()} "
-                f"{self.get_builder_dir()/'build'} {self.get_builder_dir()/'plugins'} "
-                f"{self.get_builder_dir()/'distfiles'} "
-                f"&& sudo chown -R {self.get_user()}:{self.get_group()} {self.get_builder_dir()}'",
-            ]
+                [
+                    [
+                        "sudo",
+                        "mkdir",
+                        "-p",
+                        "--",
+                        str(self.get_builder_dir()),
+                        str(self.get_builder_dir() / "build"),
+                        str(self.get_builder_dir() / "plugins"),
+                        str(self.get_builder_dir() / "distfiles"),
+                    ],
+                    [
+                        "sudo",
+                        "chown",
+                        "-R",
+                        "--",
+                        f"{self.get_user()}:{self.get_group()}",
+                        str(self.get_builder_dir()),
+                    ],
+                ],
+            )
             subprocess.run(start_cmd, stdin=subprocess.DEVNULL)
 
             # copy-in hook
@@ -170,29 +215,45 @@ class QubesExecutor(Executor):
                     self.replace_placeholders(str(f))
                     for f in files_inside_executor_with_placeholders
                 ]
-                sed_cmd = [
-                    f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {' '.join(files)}"
-                ]
-                if sed_cmd:
-                    sed_cmd = [c.replace("'", "'\\''") for c in sed_cmd]
-                    sed_cmd = [
-                        "/usr/bin/qvm-run-vm",
-                        dispvm,
-                        f'bash -c \'{" && ".join(sed_cmd)}\'',
+                builder_dir = str(self.get_builder_dir())
+                if "@" in builder_dir:
+                    raise ExecutorError(
+                        f"'@' not permitted in builder directory (got {builder_dir!r})"
+                    )
+                sed_rhs = (
+                    builder_dir.replace("\\", "\\\\")
+                    .replace("&", "\\&")
+                    .replace("#", "\\#")
+                    .replace("\n", "\\\n")
+                )
+                sed_cmd = build_run_cmd(
+                    dispvm,
+                    [
+                        "sed",
+                        "-i",
+                        "--",
+                        f"s#@BUILDER_DIR@#{sed_rhs}#g",
                     ]
-                    subprocess.run(sed_cmd, stdin=subprocess.DEVNULL)
+                    + files,
+                )
+                subprocess.run(sed_cmd, stdin=subprocess.DEVNULL, check=True)
 
             bash_env = []
             if environment:
                 for key, val in environment.items():
-                    bash_env.append(f"{str(key)}='{str(val)}'")
+                    bash_env.append(f"{str(key)}={str(val)}")
 
-            cmd = [c.replace("'", "'\\''") for c in cmd]
-            qvm_run_cmd = [
-                "/usr/bin/qvm-run-vm",
+            qvm_run_cmd = build_run_cmd(
                 dispvm,
-                f'env {" ".join(bash_env)} bash -c \'{" && ".join(cmd)}\'',
-            ]
+                [
+                    "env",
+                    "--",
+                    *bash_env,
+                    "bash",
+                    "-c",
+                    " && ".join(cmd),
+                ],
+            )
 
             log.info(f"Executing '{' '.join(qvm_run_cmd)}'.")
 
