@@ -35,8 +35,8 @@ def quote_list(args: List[Union[str, Path]]) -> str:
     return " ".join(map(lambda x: quote(str(x)), args))
 
 
-def quote_and_list(cmd: List[List[Union[str, Path]]]) -> str:
-    return " && ".join(map(quote_list, args))
+def quote_and_list(cmds: List[List[Union[str, Path]]]) -> str:
+    return " && ".join(map(quote_list, cmds))
 
 
 def build_run_cmd(vm_name: str, cmd: List[Union[str, Path]]) -> List[str]:
@@ -44,9 +44,9 @@ def build_run_cmd(vm_name: str, cmd: List[Union[str, Path]]) -> List[str]:
 
 
 def build_run_cmd_and_list(
-    vm_name: str, cmd: List[List[Union[str, Path]]]
+    vm_name: str, cmds: List[List[Union[str, Path]]]
 ) -> List[str]:
-    return ["/usr/bin/qvm-run-vm", "--", vm_name, quote_and_list(cmd)]
+    return ["/usr/bin/qvm-run-vm", "--", vm_name, quote_and_list(cmds)]
 
 
 class QubesExecutor(Executor):
@@ -84,6 +84,7 @@ class QubesExecutor(Executor):
             str(src),
         ]
         move_to_destination = build_run_cmd_and_list(
+            vm,
             [
                 ["mkdir", "-p", "--", str(dst.as_posix())],
                 [
@@ -92,7 +93,7 @@ class QubesExecutor(Executor):
                     f"{str(self.get_builder_dir())}/incoming/{src.name}",
                     f"{str(dst.as_posix())}",
                 ],
-            ]
+            ],
         )
         try:
             log.debug(f"copy-in (cmd): {' '.join(prepare_incoming_and_destination)}")
