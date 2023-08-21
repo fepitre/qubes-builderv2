@@ -103,7 +103,7 @@ for building components inside a disposable qube is `fedora-35`. Install the
 following dependencies inside the template:
 
 ```bash
-$ sudo dnf install -y createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev
+$ sudo dnf install -y dnf-plugins-core createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev
 ```
 
 Then, clone the disposable template based on Fedora 35, `fedora-35-dvm`, to
@@ -222,7 +222,7 @@ Remark:
     components will produce template packages to be installed via qvm-template.
 ```
 
-You can use the provided development `builder-devel.yml` configuration file
+You can use the provided `qubes-os-r4.2.yml` configuration file
 under `example-configs` named `builder.yml` in the root of `qubes-builderv2`
 (like the legacy `qubes-builder`).
 
