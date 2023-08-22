@@ -1,5 +1,5 @@
 +components:
-  - qube-manager:
+  - manager:
       maintainers:
         - 7D22413EF3DB07612CF738087D779BFA6C806F69
   - kernel-latest:
