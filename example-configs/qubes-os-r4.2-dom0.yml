@@ -22,7 +22,8 @@ distributions:
   - host-fc37
 
 +components:
-  - release-configs
+  - release-configs:
+      packages: false
 
 executor:
   type: qubes
