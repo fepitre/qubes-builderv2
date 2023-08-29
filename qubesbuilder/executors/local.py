@@ -168,10 +168,25 @@ class LocalExecutor(Executor):
             if self._temporary_dir.exists() and self._clean:
                 try:
                     subprocess.run(
-                        ["rm", "-rf", "--", self._temporary_dir],
+                        [
+                            "sudo",
+                            "--non-interactive",
+                            "rm",
+                            "-rf",
+                            "--",
+                            self._temporary_dir,
+                        ],
                         check=True,
                     )
                 except subprocess.CalledProcessError as e:
-                    raise ExecutorError(
-                        f"Failed to clean executor temporary directory: {str(e)}"
-                    )
+                    try:
+                        # retry without sudo, as local executor for many
+                        # actions doesn't really need it
+                        subprocess.run(
+                            ["rm", "-rf", "--", self._temporary_dir],
+                            check=True,
+                        )
+                    except subprocess.CalledProcessError as e:
+                        raise ExecutorError(
+                            f"Failed to clean executor temporary directory: {str(e)}"
+                        )
