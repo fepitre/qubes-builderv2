@@ -147,6 +147,7 @@ iso-installer-mkisofs:
 		-eltorito-alt-boot \
 		-e '--interval:appended_partition_2:all::' -no-emul-boot \
 		-graft-points \
+		-part_like_isohybrid \
 		.=$(BASE_DIR)/os \
 		boot/grub2/i386-pc=/usr/lib/grub/i386-pc
 	/usr/bin/implantisomd5 $(BASE_DIR)/iso/$(ISO_NAME).iso
