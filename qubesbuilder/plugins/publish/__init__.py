@@ -105,6 +105,9 @@ class PublishPlugin(DistributionComponentPlugin):
 
         return True
 
+    def create(self, repository_publish: str):
+        return
+
     def run(self, stage: str):
         self.update_parameters(stage)
 

@@ -33,6 +33,7 @@ def _publish(
     repository_publish: str,
     ignore_min_age: bool = False,
     unpublish: bool = False,
+    create_and_sign_metadata_only: bool = False,
 ):
     if repository_publish in COMPONENT_REPOSITORIES:
         plugins = manager.get_component_instances(
@@ -49,12 +50,15 @@ def _publish(
         raise CliError(f"Unknown repository '{repository_publish}'")
 
     for p in plugins:
-        p.run(
-            stage="publish",
-            repository_publish=repository_publish,
-            ignore_min_age=ignore_min_age,
-            unpublish=unpublish,
-        )
+        if create_and_sign_metadata_only:
+            p.create(repository_publish=repository_publish)
+        else:
+            p.run(
+                stage="publish",
+                repository_publish=repository_publish,
+                ignore_min_age=ignore_min_age,
+                unpublish=unpublish,
+            )
 
 
 #
@@ -367,6 +371,33 @@ def _upload(
         p.run(stage="upload", repository_publish=repository_publish)
 
 
+@click.command(
+    name="create",
+    short_help="Create repository metadata.",
+)
+@click.argument("repository_publish", nargs=1)
+@click.pass_obj
+def create(obj: ContextObj, repository_publish: str):
+    _publish(
+        config=obj.config,
+        manager=obj.manager,
+        components=obj.components,
+        distributions=obj.distributions,
+        templates=obj.templates,
+        repository_publish=repository_publish,
+        create_and_sign_metadata_only=True,
+    )
+    if obj.config.automatic_upload_on_publish:
+        _upload(
+            config=obj.config,
+            manager=obj.manager,
+            distributions=obj.distributions,
+            templates=obj.templates,
+            repository_publish=repository_publish,
+        )
+
+
+repository.add_command(create)
 repository.add_command(publish)
 repository.add_command(unpublish)
 repository.add_command(check_release_status_for_component)

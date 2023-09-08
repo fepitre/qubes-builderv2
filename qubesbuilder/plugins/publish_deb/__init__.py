@@ -66,38 +66,92 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             debian_suite += "-unstable"
         return debian_suite
 
-    def sign_metadata(self, executor, target_dir, debian_suite, sign_key):
+    def get_target_dir(self):
+        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        return artifacts_dir / f"{self.config.qubes_release}/{self.dist.package_set}"
+
+    def create_repository_skeleton(self):
+        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+
+        # Create publish repository skeleton
+        create_skeleton_cmd = [
+            f"{self.manager.entities['publish_deb'].directory}/scripts/create-skeleton",
+            self.config.qubes_release,
+            self.dist.fullname,
+            str(artifacts_dir),
+        ]
+        cmd = [" ".join(create_skeleton_cmd)]
+        try:
+            executor = self.config.get_executor_from_config("publish")
+            executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
+            raise PublishError(msg) from e
+
+    def create_metadata(self, repository_publish):
+        try:
+            reprepro_options = f"-b {self.get_target_dir()}"
+
+            debian_suite = self.get_debian_suite_from_repository_publish(
+                self.dist, repository_publish
+            )
+
+            # reprepro command
+            cmd = [f"reprepro {reprepro_options} export {debian_suite}"]
+            executor = self.config.get_executor_from_config("publish")
+            executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.component}:{self.dist}: Failed to create metadata."
+            raise PublishError(msg) from e
+
+    def sign_metadata(self, repository_publish):
         """Sign repository metadata
 
         Do it manually, as reprepro does not support alternative gpg client"""
+
+        # Check if we have a signing key provided
+        sign_key = self.config.sign_key.get(
+            self.dist.distribution, None
+        ) or self.config.sign_key.get("deb", None)
+
+        if not sign_key:
+            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            return
+
+        # Check if we have a gpg client provided
+        if not self.config.gpg_client:
+            log.info(f"{self.component}: Please specify GPG client to use!")
+            return
+
+        debian_suite = self.get_debian_suite_from_repository_publish(
+            dist=self.dist, repository_publish=repository_publish
+        )
 
         for (opt, out_name) in (
             ("--detach-sign", "Release.gpg"),
             ("--clearsign", "InRelease"),
         ):
             try:
-                release_dir = target_dir / "dists" / debian_suite
+                release_dir = self.get_target_dir() / "dists" / debian_suite
                 cmd = [
                     f"{self.config.gpg_client} {opt} --armor --local-user {sign_key} "
                     f"--batch --no-tty --output {release_dir / out_name} {release_dir / 'Release'}"
                 ]
                 log.info(
-                    f"{self.component}:{self.dist}:{debian_suite}: Signing metadata ({out_name})."
+                    f"{self.component}:{self.dist}: Signing metadata ({out_name})."
                 )
+                executor = self.config.get_executor_from_config("publish")
                 executor.run(cmd)
             except ExecutorError as e:
-                msg = f"{self.component}:{self.dist}:{debian_suite}: Failed to sign metadata ({out_name})."
+                msg = f"{self.component}:{self.dist}: Failed to sign metadata ({out_name})."
                 raise PublishError(msg) from e
 
-    def publish(self, executor, directory, keyring_dir, repository_publish, sign_key):
+    def publish(self, executor, directory, keyring_dir, repository_publish):
         # directory basename will be used as prefix for some artifacts
         directory_bn = directory.mangle()
 
         # Build artifacts (source included)
         build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
-
-        # Publish repository
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
         # Read information from build stage
         build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
@@ -125,9 +179,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         # Publishing packages
         try:
             changes_file = build_artifacts_dir / build_info["changes"]
-            target_dir = (
-                artifacts_dir / f"{self.config.qubes_release}/{self.dist.package_set}"
-            )
+            target_dir = self.get_target_dir()
 
             # reprepro options to ignore surprising binary and arch
             reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch --keepunreferencedfiles -b {target_dir}"
@@ -145,23 +197,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             )
             raise PublishError(msg) from e
 
-        self.sign_metadata(
-            executor=executor,
-            target_dir=target_dir,
-            debian_suite=debian_suite,
-            sign_key=sign_key,
-        )
+        self.sign_metadata(repository_publish=repository_publish)
 
-    def unpublish(
-        self,
-        executor,
-        directory,
-        repository_publish,
-        sign_key,
-    ):
-        # Publish repository
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
-
+    def unpublish(self, executor, directory, repository_publish):
         # directory basename will be used as prefix for some artifacts
         directory_bn = directory.mangle()
 
@@ -176,9 +214,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
 
         # Unpublishing packages
         try:
-            target_dir = (
-                artifacts_dir / f"{self.config.qubes_release}/{self.dist.package_set}"
-            )
+            target_dir = self.get_target_dir()
 
             # reprepro options to ignore surprising binary and arch
             reprepro_options = (
@@ -186,13 +222,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             )
 
             # set debian suite according to publish repository
-            debian_suite = self.dist.name
-            if repository_publish == "current-testing":
-                debian_suite += "-testing"
-            elif repository_publish == "security-testing":
-                debian_suite += "-securitytesting"
-            elif repository_publish == "unstable":
-                debian_suite += "-unstable"
+            debian_suite = self.get_debian_suite_from_repository_publish(
+                self.dist, repository_publish
+            )
 
             # reprepro command
             source_name, source_version = build_info["package-release-name-full"].split(
@@ -206,12 +238,17 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             msg = f"{self.component}:{self.dist}:{directory}: Failed to unpublish packages."
             raise PublishError(msg) from e
 
-        self.sign_metadata(
-            executor=executor,
-            target_dir=target_dir,
-            debian_suite=debian_suite,
-            sign_key=sign_key,
-        )
+        self.sign_metadata(repository_publish=repository_publish)
+
+    def create(self, repository_publish: str):
+        # Create skeleton
+        self.create_repository_skeleton()
+
+        # Create metadata
+        self.create_metadata(repository_publish=repository_publish)
+
+        # Sign metadata
+        self.sign_metadata(repository_publish=repository_publish)
 
     def run(
         self,
@@ -237,6 +274,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         sign_key = self.config.sign_key.get(
             self.dist.distribution, None
         ) or self.config.sign_key.get("deb", None)
+
         if not sign_key:
             log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
@@ -260,25 +298,12 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
 
         if not unpublish:
 
-            # repository-publish directory
-            artifacts_dir = self.get_repository_publish_dir() / self.dist.type
-
             if not sign_artifacts_dir.exists():
                 raise PublishError("Cannot find keyring from sign stage.")
 
-            # Create publish repository skeleton
-            create_skeleton_cmd = [
-                f"{self.manager.entities['publish_deb'].directory}/scripts/create-skeleton",
-                self.config.qubes_release,
-                self.dist.fullname,
-                str(artifacts_dir),
-            ]
-            cmd = [" ".join(create_skeleton_cmd)]
-            try:
-                executor.run(cmd)
-            except ExecutorError as e:
-                msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
-                raise PublishError(msg) from e
+            # Create skeleton
+            self.create_repository_skeleton()
+
             # Check if publish repository is valid
             self.validate_repository_publish(repository_publish)
 
@@ -341,7 +366,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                                 executor=executor,
                                 directory=directory,
                                 repository_publish=repository,
-                                sign_key=sign_key,
                             )
                     else:
                         info = publish_info
@@ -351,7 +375,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     directory=directory,
                     keyring_dir=keyring_dir,
                     repository_publish=repository_publish,
-                    sign_key=sign_key,
                 )
 
                 # Save package information we published for committing into current
@@ -390,7 +413,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     executor=executor,
                     directory=directory,
                     repository_publish=repository_publish,
-                    sign_key=sign_key,
                 )
 
                 # Save package information we published for committing into current. If the packages
@@ -429,7 +451,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                             directory=directory,
                             keyring_dir=keyring_dir,
                             repository_publish=repository_publish,
-                            sign_key=sign_key,
                         )
                         break
 

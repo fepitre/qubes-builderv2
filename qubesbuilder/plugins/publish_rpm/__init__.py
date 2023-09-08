@@ -56,18 +56,53 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
     ):
         super().__init__(component=component, dist=dist, config=config, manager=manager)
 
-    def createrepo(self, executor, build, target_dir):
-        log.info(f"{self.component}:{self.dist}:{build}: Updating metadata.")
+    def get_target_dir(self, repository_publish):
+        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        return (
+            artifacts_dir
+            / f"{self.config.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
+        )
+
+    def create_repository_skeleton(self):
+        # marmarek: should this be done only if not exists yet?
+        # fepitre: creating skeleton is harmless and allows to update comps.xml if needed
+
+        # Create publish repository skeleton
+        comps = (
+            self.manager.entities["publish_rpm"].directory
+            / f"comps/comps-{self.dist.package_set}.xml"
+        )
+        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+
+        create_skeleton_cmd = [
+            f"{self.manager.entities['publish_rpm'].directory}/scripts/create-skeleton",
+            self.config.qubes_release,
+            self.dist.package_set,
+            self.dist.name,
+            str(artifacts_dir.absolute()),
+            str(comps.absolute()),
+        ]
+        cmd = [" ".join(create_skeleton_cmd)]
+
+        try:
+            executor = self.config.get_executor_from_config("publish")
+            executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
+            raise PublishError(msg) from e
+
+    def createrepo(self, executor, target_dir):
+        log.info(f"{self.component}:{self.dist}: Updating metadata.")
         cmd = [f"cd {target_dir}", "createrepo_c -g comps.xml ."]
         try:
             shutil.rmtree(target_dir / "repodata")
             executor.run(cmd)
         except (ExecutorError, OSError) as e:
-            msg = f"{self.component}:{self.dist}:{build}: Failed to 'createrepo_c'"
+            msg = f"{self.component}:{self.dist}: Failed to 'createrepo_c'"
             raise PublishError(msg) from e
 
-    def sign_metadata(self, executor, build, sign_key, target_dir):
-        log.info(f"{self.component}:{self.dist}:{build}: Signing metadata.")
+    def sign_metadata(self, executor, sign_key, target_dir):
+        log.info(f"{self.component}:{self.dist}: Signing metadata.")
         repomd = target_dir / "repodata/repomd.xml"
         cmd = [
             f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
@@ -75,8 +110,60 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         try:
             executor.run(cmd)
         except (ExecutorError, OSError) as e:
-            msg = f"{self.component}:{self.dist}:{build}:  Failed to sign metadata"
+            msg = f"{self.component}:{self.dist}: Failed to sign metadata."
             raise PublishError(msg) from e
+
+    def create_metalink(self, executor, repository_publish):
+        repo_basedir = self.get_repository_publish_dir() / self.dist.type
+        repository_dir = (
+            repo_basedir
+            / self.config.qubes_release
+            / repository_publish
+            / self.dist.package_set
+            / self.dist.name
+        )
+        repomd = repository_dir / "repodata/repomd.xml"
+        if not repomd.exists():
+            msg = f"{self.component}:{self.dist}: Cannot find repomd '{repomd}'."
+            raise PublishError(msg)
+
+        log.info(f"Creating metalink for {repomd}.")
+        try:
+            cmd = [
+                f"mkmetalink -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
+            ]
+            executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.component}:{self.dist}: Failed to create metalink for '{repomd}': {str(e)}"
+            log.error(msg)
+
+    def create_and_sign_repository_metadata(self, repository_publish):
+        executor = self.config.get_executor_from_config("publish")
+        target_dir = self.get_target_dir(repository_publish=repository_publish)
+        (target_dir / "repodata").mkdir(parents=True, exist_ok=True)
+
+        # Check if we have a signing key provided
+        sign_key = self.config.sign_key.get(
+            self.dist.distribution, None
+        ) or self.config.sign_key.get("rpm", None)
+
+        if not sign_key:
+            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            return
+
+        # Check if we have a gpg client provided
+        if not self.config.gpg_client:
+            log.info(f"{self.component}: Please specify GPG client to use!")
+            return
+
+        # Createrepo unpublished RPMs
+        self.createrepo(executor=executor, target_dir=target_dir)
+
+        # Sign metadata
+        self.sign_metadata(executor=executor, sign_key=sign_key, target_dir=target_dir)
+
+        # Create metalink
+        self.create_metalink(executor=executor, repository_publish=repository_publish)
 
     def publish(self, executor, build, sign_key, db_path, repository_publish):
         # spec file basename will be used as prefix for some artifacts
@@ -98,8 +185,6 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
         # Build artifacts
         build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
-        # Publish repository
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
         packages_list = [
             build_artifacts_dir / "rpm" / rpm for rpm in build_info["rpms"]
@@ -119,10 +204,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             msg = f"{self.component}:{self.dist}:{build}: Failed to check signatures."
             raise PublishError(msg) from e
 
-        target_dir = (
-            artifacts_dir
-            / f"{self.config.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
-        )
+        target_dir = self.get_target_dir(repository_publish=repository_publish)
         try:
             # srpc and rpms
             for rpm in packages_list:
@@ -139,15 +221,10 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             msg = f"{self.component}:{self.dist}:{build}: Failed to publish packages."
             raise PublishError(msg) from e
 
-        # Createrepo published RPMs
-        self.createrepo(executor=executor, build=build, target_dir=target_dir)
+        # Create and sign metadata
+        self.create_and_sign_repository_metadata(repository_publish=repository_publish)
 
-        # Sign metadata
-        self.sign_metadata(
-            executor=executor, build=build, sign_key=sign_key, target_dir=target_dir
-        )
-
-    def unpublish(self, executor, build, sign_key, repository_publish):
+    def unpublish(self, build, repository_publish):
         # spec file basename will be used as prefix for some artifacts
         build_bn = build.mangle()
         # Read information from build stage
@@ -172,11 +249,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         packages_list += [prep_artifacts_dir / build_info["srpm"]]
 
         # If exists, remove hardlinks to built RPMs
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
-        target_dir = (
-            artifacts_dir
-            / f"{self.config.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
-        )
+        target_dir = self.get_target_dir(repository_publish=repository_publish)
         try:
             for rpm in packages_list:
                 target_path = target_dir / "rpm" / rpm.name
@@ -185,37 +258,15 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             msg = f"{self.component}:{self.dist}:{build}: Failed to unpublish packages."
             raise PublishError(msg) from e
 
-        # Createrepo unpublished RPMs
-        self.createrepo(executor=executor, build=build, target_dir=target_dir)
+        # Create and sign metadata
+        self.create_and_sign_repository_metadata(repository_publish=repository_publish)
 
-        # Sign metadata
-        self.sign_metadata(
-            executor=executor, build=build, sign_key=sign_key, target_dir=target_dir
-        )
+    def create(self, repository_publish: str):
+        # Create skeleton
+        self.create_repository_skeleton()
 
-    def create_metalink(self, executor, repository_publish):
-        repo_basedir = self.get_repository_publish_dir() / self.dist.type
-        repository_dir = (
-            repo_basedir
-            / self.config.qubes_release
-            / repository_publish
-            / self.dist.package_set
-            / self.dist.name
-        )
-        repomd = repository_dir / "repodata/repomd.xml"
-        if not repomd.exists():
-            msg = f"{self.component}:{self.dist}: Cannot find repomd '{repomd}'."
-            raise PublishError(msg)
-
-        log.info(f"Creating metalink for {repomd}.")
-        try:
-            cmd = [
-                f"mkmetalink -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
-            ]
-            executor.run(cmd)
-        except ExecutorError as e:
-            msg = f"{self.component}:{self.dist}: Failed to create metalink for '{repomd}'."
-            log.error(msg)
+        # Create and sign metadata
+        self.create_and_sign_repository_metadata(repository_publish=repository_publish)
 
     def run(
         self,
@@ -241,6 +292,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         sign_key = self.config.sign_key.get(
             self.dist.distribution, None
         ) or self.config.sign_key.get("rpm", None)
+
         if not sign_key:
             log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
@@ -270,26 +322,8 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 msg = f"{self.component}: {self.dist}: Failed to find RPM DB path."
                 raise PublishError(msg)
 
-            # marmarek: should this be done only if not exists yet?
-            # Create publish repository skeleton
-            comps = (
-                self.manager.entities["publish_rpm"].directory
-                / f"comps/comps-{self.dist.package_set}.xml"
-            )
-            create_skeleton_cmd = [
-                f"{self.manager.entities['publish_rpm'].directory}/scripts/create-skeleton",
-                self.config.qubes_release,
-                self.dist.package_set,
-                self.dist.name,
-                str(artifacts_dir.absolute()),
-                str(comps.absolute()),
-            ]
-            cmd = [" ".join(create_skeleton_cmd)]
-            try:
-                executor.run(cmd)
-            except ExecutorError as e:
-                msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
-                raise PublishError(msg) from e
+            # Create skeleton
+            self.create_repository_skeleton()
 
             # Check if publish repository is valid
             self.validate_repository_publish(repository_publish)
@@ -347,9 +381,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                     if build_info["source-hash"] != publish_info["source-hash"]:
                         for repository in publish_info.get("repository-publish", []):
                             self.unpublish(
-                                executor=executor,
                                 build=build,
-                                sign_key=sign_key,
                                 repository_publish=repository,
                             )
                     else:
@@ -361,10 +393,6 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                     sign_key=sign_key,
                     db_path=db_path,
                     repository_publish=repository_publish,
-                )
-
-                self.create_metalink(
-                    executor=executor, repository_publish=repository_publish
                 )
 
                 # Save package information we published for committing into current
@@ -397,14 +425,8 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 )
 
                 self.unpublish(
-                    executor=executor,
                     build=build,
-                    sign_key=sign_key,
                     repository_publish=repository_publish,
-                )
-
-                self.create_metalink(
-                    executor=executor, repository_publish=repository_publish
                 )
 
                 # Save package information we published for committing into current. If the packages
