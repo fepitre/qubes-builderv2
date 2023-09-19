@@ -65,6 +65,7 @@ components:
   - plymouth
   - python-objgraph
   - python-u2flib-host
+  - python-fido2
   - python-qasync
   - python-panflute
   - rpm-oxide
