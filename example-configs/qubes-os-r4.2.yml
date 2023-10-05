@@ -16,7 +16,7 @@ qubes-release: r4.2
 distributions:
   - host-fc37
   - vm-bullseye
-  - vm-fc37
+  - vm-fc38
 
 templates:
   - fedora-37:
