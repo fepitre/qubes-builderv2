@@ -4,4 +4,9 @@ set -e
 
 sudo bash -c "mkdir -p /builder/incoming && chown -R user:user /builder"
 
-exec /usr/lib/qubes/qfile-unpacker "$(id -u user)" "/builder/incoming"
+id=$(id -u user)
+
+if [ -x /usr/lib/qubes/qfile-unpacker ]; then
+    PATH=${PATH+"$PATH:"}/usr/lib/qubes
+fi
+exec qfile-unpacker "$id" "/builder/incoming"
