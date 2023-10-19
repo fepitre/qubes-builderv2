@@ -5,8 +5,8 @@ leverages container or disposable qube isolation to perform every stage of the
 build and release process. From fetching sources to building them, everything
 is executed inside a "cage" (either a disposable or a container) with the
 help of what we call an "executor." For every command that needs to perform an
-action on sources, like cloning and verifying Git repos, rendering a SPEC file,
-generating SRPM or Debian source packages, a new cage is used. Only the
+action on sources, like cloning and verifying Git repos, rendering a SPEC
+file, generating SRPM or Debian source packages, a new cage is used. Only the
 signing, publishing, and uploading processes are executed locally outside a
 cage. (This will be improved in the future.) For now, only Docker, Podman,
 Local, and Qubes executors are available.
@@ -17,13 +17,13 @@ Local, and Qubes executors are available.
 Fedora:
 
 ```bash
-$ sudo dnf install python3-packaging createrepo_c devscripts gpg python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec rpm-sign mktorrent openssl tree mock python3-jinja2-cli pacman m4 asciidoc rsync
+$ sudo dnf install python3-packaging python3-click python3-lxml createrepo_c devscripts gpg python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec rpm-sign mktorrent openssl tree mock python3-jinja2-cli pacman m4 asciidoc rsync
 ```
 
 Debian:
 
 ```bash
-$ sudo apt install python3-packaging createrepo-c devscripts gpg python3-yaml rpm docker.io python3-docker reprepro python3-pathspec mktorrent openssl tree python3-setuptools python3-lxml python3-dateutil
+$ sudo apt install python3-packaging python3-click python3-lxml createrepo-c devscripts gpg python3-yaml rpm docker.io python3-docker reprepro python3-pathspec mktorrent openssl tree python3-setuptools python3-dateutil
 ```
 
 If your host OS is Qubes OS, install `qubes-gpg-split`.
@@ -83,8 +83,8 @@ docker image based on the Fedora docker image.
 
 You may want to customize your `mock` build process instead of using `generate-container-image.sh`.
 
-First, build Mock chroot according to your own configuration or use 
-default ones provided. For example, to build a Fedora 36 x86-64 mock 
+First, build Mock chroot according to your own configuration or use
+default ones provided. For example, to build a Fedora 36 x86-64 mock
 chroot from scratch:
 ```bash
 $ sudo mock --init --no-bootstrap-chroot --config-opts chroot_setup_cmd='install dnf @buildsys-build' -r fedora-36-x86_64
