@@ -1,7 +1,9 @@
+# Config for most recent development version ("main" aka "master" branch)
+
 git:
   baseurl: https://github.com
   prefix: QubesOS/qubes-
-  branch: release4.2
+  branch: main
   maintainers:
     # marmarek
     - '0064428F455451B3EBE78A7F063938BA42CFA724'
