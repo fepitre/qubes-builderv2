@@ -83,8 +83,8 @@ docker image based on the Fedora docker image.
 
 You may want to customize your `mock` build process instead of using `generate-container-image.sh`.
 
-First, build Mock chroot according to your own configuration or use 
-default ones provided. For example, to build a Fedora 36 x86-64 mock 
+First, build Mock chroot according to your own configuration or use
+default ones provided. For example, to build a Fedora 36 x86-64 mock
 chroot from scratch:
 ```bash
 $ sudo mock --init --no-bootstrap-chroot --config-opts chroot_setup_cmd='install dnf @buildsys-build' -r fedora-36-x86_64
@@ -110,7 +110,7 @@ Then, clone the disposable template based on Fedora 35, `fedora-35-dvm`, to
 `qubes-builder-dvm`. Set its private volume storage space to at least 30 GB.
 You must install `rpc/qubesbuilder.FileCopyIn` and
 `rpc/qubesbuilder.FileCopyOut` in `qubes-builder-dvm` in
-`/usr/local/etc/qubes-rpc`.
+`/usr/local/etc/qubes-rpc` with the executable permission set (`chmod +x`).
 
 Let's assume that the qube hosting `qubes-builder` is called `work-qubesos`.
 (If you're using a different name, make sure to adjust your policies.) In
