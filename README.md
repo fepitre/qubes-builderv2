@@ -110,7 +110,7 @@ Then, clone the disposable template based on Fedora 35, `fedora-35-dvm`, to
 `qubes-builder-dvm`. Set its private volume storage space to at least 30 GB.
 You must install `rpc/qubesbuilder.FileCopyIn` and
 `rpc/qubesbuilder.FileCopyOut` in `qubes-builder-dvm` in
-`/usr/local/etc/qubes-rpc`.
+`/usr/local/etc/qubes-rpc` with the executable permission set (`chmod +x`).
 
 Let's assume that the qube hosting `qubes-builder` is called `work-qubesos`.
 (If you're using a different name, make sure to adjust your policies.) In
