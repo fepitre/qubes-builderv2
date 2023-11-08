@@ -23,13 +23,12 @@ def _installer_stage(
     manager: PluginManager,
     stage_name: str,
     iso_timestamp: str = None,
-    templates: List[QubesTemplate] = [],
+    templates: List[QubesTemplate] = None,
 ):
     """
     Generic function to trigger stage for a template component
     """
     click.echo(f"Running installer stage: {stage_name}")
-    executor = config.get_executor_from_config(stage_name=stage_name)
 
     host_distributions = [
         d for d in config.get_distributions() if d.package_set == "host"
@@ -40,7 +39,7 @@ def _installer_stage(
 
     dist = host_distributions[0]
     installer_plugin = InstallerPlugin(
-        dist=dist, config=config, manager=manager, templates=templates
+        dist=dist, config=config, manager=manager, templates=templates or []
     )
     installer_plugin.run(stage=stage_name, iso_timestamp=iso_timestamp)
 

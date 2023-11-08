@@ -76,6 +76,7 @@ class QubesComponent:
         is_plugin: bool = False,
         has_packages: bool = True,
         min_distinct_maintainers: int = 1,
+        **kwargs,
     ):
         self.source_dir: Path = (
             Path(source_dir) if isinstance(source_dir, str) else source_dir
@@ -95,6 +96,7 @@ class QubesComponent:
         self.has_packages = has_packages
         self._source_hash = ""
         self._devel_path = devel_path
+        self.kwargs = kwargs
 
     @property
     def verrel(self):

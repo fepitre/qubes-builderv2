@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
-
+from typing import Dict
 from qubesbuilder.exc import DistributionError
 
 FEDORA_RE = re.compile("^fc([0-9]+)$")
@@ -44,7 +44,7 @@ DEBIAN_ARCHITECTURE = {"x86_64": "amd64", "ppc64le": "ppc64el"}
 
 
 class QubesDistribution:
-    def __init__(self, distribution: str):
+    def __init__(self, distribution: str, **kwargs):
         self.distribution = distribution
         if not distribution.startswith("vm-") and not distribution.startswith("host-"):
             raise DistributionError("Please specify package set either 'host' or 'vm'.")
@@ -99,6 +99,8 @@ class QubesDistribution:
             self.type = "gentoo"
         else:
             raise DistributionError(f"Unsupported distribution '{self.distribution}'.")
+
+        self.kwargs = kwargs or {}
 
     def to_str(self) -> str:
         return f"{self.package_set}-{self.fullname}-{self.version}.{self.architecture}"

@@ -92,7 +92,7 @@ class Plugin:
 
     def update_placeholders(self, stage: str):
         # Executor
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
 
         # Default placeholders
         self._placeholders.update(executor.get_placeholders())
@@ -185,7 +185,7 @@ class ComponentPlugin(Plugin):
     def update_placeholders(self, stage: str):
         super().update_placeholders(stage)
 
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
         self._placeholders.update(
             {
                 "@SOURCE_DIR@": executor.get_builder_dir() / self.component.name,

@@ -213,7 +213,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         if stage != "publish" or not self.has_component_packages("publish"):
             return
 
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
         parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided

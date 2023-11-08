@@ -70,11 +70,10 @@ class InstallerPlugin(DistributionPlugin):
         self.templates = templates
         self.kickstart_path = Path(config.installer_kickstart)
 
-        if config.installer_kickstart.startswith('./'):
+        if config.installer_kickstart.startswith("./"):
             self.kickstart_path = self.kickstart_path.resolve()
         if not (
-            self.manager.entities["installer"].directory
-            / self.kickstart_path
+            self.manager.entities["installer"].directory / self.kickstart_path
         ).exists():
             raise InstallerError(
                 f"Cannot find kickstart: '{self.config.installer_kickstart}'"
@@ -117,7 +116,7 @@ class InstallerPlugin(DistributionPlugin):
         return self.iso_timestamp
 
     def update_parameters(self, stage: str, iso_timestamp: str = None):
-        executor = self.config.get_executor_from_config(stage_name=stage)
+        executor = self.config.get_executor_from_config(stage, self)
         self.environment.update(
             {
                 "DIST": self.dist.name,
@@ -232,7 +231,7 @@ class InstallerPlugin(DistributionPlugin):
 
         self.update_parameters(stage=stage, iso_timestamp=iso_timestamp)
 
-        executor = self.config.get_executor_from_config(stage_name=stage)
+        executor = self.config.get_executor_from_config(stage, self)
 
         mock_conf = (
             f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"

@@ -64,7 +64,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
         if stage != "prep" or not self.has_component_packages("prep"):
             return
 
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
         parameters = self.get_parameters(stage)
 
         # Check if we have Archlinux related content defined

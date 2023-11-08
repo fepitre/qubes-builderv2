@@ -57,7 +57,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
         if stage != "init-cache":
             return
 
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
 
         mock_conf = (
             f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"

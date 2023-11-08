@@ -82,7 +82,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         ]
         cmd = [" ".join(create_skeleton_cmd)]
         try:
-            executor = self.config.get_executor_from_config("publish")
+            executor = self.config.get_executor_from_config("publish", self)
             executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
@@ -98,7 +98,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
 
             # reprepro command
             cmd = [f"reprepro {reprepro_options} export {debian_suite}"]
-            executor = self.config.get_executor_from_config("publish")
+            executor = self.config.get_executor_from_config("publish", self)
             executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}: Failed to create metadata."
@@ -140,7 +140,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 log.info(
                     f"{self.component}:{self.dist}: Signing metadata ({out_name})."
                 )
-                executor = self.config.get_executor_from_config("publish")
+                executor = self.config.get_executor_from_config("publish", self)
                 executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}: Failed to sign metadata ({out_name})."
@@ -267,7 +267,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         if stage != "publish" or not self.has_component_packages("publish"):
             return
 
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
         parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided

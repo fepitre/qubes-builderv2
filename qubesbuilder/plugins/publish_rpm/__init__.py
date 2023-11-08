@@ -85,7 +85,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         cmd = [" ".join(create_skeleton_cmd)]
 
         try:
-            executor = self.config.get_executor_from_config("publish")
+            executor = self.config.get_executor_from_config("publish", self)
             executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
@@ -138,7 +138,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             log.error(msg)
 
     def create_and_sign_repository_metadata(self, repository_publish):
-        executor = self.config.get_executor_from_config("publish")
+        executor = self.config.get_executor_from_config("publish", self)
         target_dir = self.get_target_dir(repository_publish=repository_publish)
         (target_dir / "repodata").mkdir(parents=True, exist_ok=True)
 
@@ -285,7 +285,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         if stage != "publish" or not self.has_component_packages("publish"):
             return
 
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
         parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided

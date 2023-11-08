@@ -87,7 +87,7 @@ class FetchPlugin(ComponentPlugin):
         if stage != "fetch":
             return
 
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
 
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name

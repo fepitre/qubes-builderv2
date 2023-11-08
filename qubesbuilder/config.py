@@ -33,6 +33,12 @@ from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.executors.qubes import QubesExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.template import QubesTemplate
+from qubesbuilder.plugins import (
+    DistributionPlugin,
+    DistributionComponentPlugin,
+    ComponentPlugin,
+    TemplatePlugin,
+)
 
 log = get_logger("config")
 
@@ -240,7 +246,13 @@ class Config:
     def get_distributions(self, filtered_distributions=None):
         if not self._dists:
             distributions = self._conf.get("distributions", [])
-            self._dists = [QubesDistribution(dist) for dist in distributions]
+            for dist in distributions:
+                dist_name = dist
+                dist_options = {}
+                if isinstance(dist, dict):
+                    dist_name = next(iter(dist.keys()))
+                    dist_options = next(iter(dist.values()))
+                self._dists.append(QubesDistribution(dist_name, **dist_options))
         if filtered_distributions:
             result = []
             for fd in filtered_distributions:
@@ -321,39 +333,91 @@ class Config:
                 plugins_dirs = plugins_dirs + [str(d_path)]
         return plugins_dirs
 
-    def get_executor_from_config(self, stage_name: str):
-        if self._stages.get(stage_name, {}).get("executor", None):
-            return self._stages[stage_name]["executor"]
+    def get_executor_options_from_config(
+        self,
+        stage_name: str,
+        plugin: Union[
+            DistributionPlugin,
+            DistributionComponentPlugin,
+            ComponentPlugin,
+            TemplatePlugin,
+        ] = None,
+    ):
 
-        self._stages.setdefault(stage_name, {}).setdefault("executor", None)
-        default_executor = self._conf.get("executor", {})
-        executor_type = default_executor.get("type", "docker")
-        executor_options = default_executor.get(
-            "options", {"image": "qubes-builder-fedora:latest"}
-        )
+        dist = None
+        component = None
+        distribution_executor_options = {}
+        component_executor_options = {}
+        default_executor_options = self._conf.get("executor", {}) or {}
+        stage_executor_options = {}
+        executor_options = {}
 
-        for s in self._conf.get("stages", []):
-            if isinstance(s, str):
-                continue
-            if stage_name != next(iter(s.keys())):
-                continue
-            stage_options = next(iter(s.values()))
-            if stage_options.get("executor", None) and stage_options["executor"].get(
-                "type", None
-            ):
-                executor_type = stage_options["executor"]["type"]
-                executor_options = stage_options["executor"].get("options", {})
-                self._stages[stage_name]["executor"] = self.get_executor(
-                    executor_type, executor_options
-                )
+        if hasattr(plugin, "dist"):
+            dist = plugin.dist
+        if hasattr(plugin, "component"):
+            component = plugin.component
+
+        if dist and isinstance(dist, QubesDistribution):
+            for distribution in self.get_distributions():
+                if dist == distribution:
+                    for stage in distribution.kwargs.get("stages", []):
+                        if (
+                            isinstance(stage, dict)
+                            and next(iter(stage)) == stage_name
+                            and isinstance(stage[stage_name], dict)
+                        ):
+                            distribution_executor_options = stage[stage_name].get(
+                                "executor", {}
+                            )
+                            break
+
+        if component and isinstance(component, QubesComponent):
+            for comp in self.get_components():
+                if comp == component:
+                    if dist and dist.distribution in comp.kwargs:
+                        stages = comp.kwargs[dist.distribution].get("stages", [])
+                    elif dist and dist.package_set in comp.kwargs:
+                        stages = comp.kwargs.get(dist.package_set, {}).get("stages", [])
+                    else:
+                        stages = comp.kwargs.get("stages", [])
+                    for stage in stages:
+                        if (
+                            isinstance(stage, dict)
+                            and next(iter(stage)) == stage_name
+                            and isinstance(stage[stage_name], dict)
+                        ):
+                            component_executor_options = stage[stage_name].get(
+                                "executor", {}
+                            )
+                            break
+
+        for stage in self._conf.get("stages", []):
+            if stage == stage_name and isinstance(stage, dict):
+                stage_executor_options = stage
                 break
-        if not self._stages[stage_name]["executor"]:
-            # FIXME: Review and enhance default executor definition
-            self._stages[stage_name]["executor"] = self.get_executor(
-                executor_type, executor_options
-            )
 
-        return self._stages[stage_name]["executor"]
+        for options in [
+            default_executor_options,
+            stage_executor_options,
+            component_executor_options,
+            distribution_executor_options,
+        ]:
+            executor_options = deep_merge(executor_options, options)
+
+        return executor_options
+
+    def get_executor_from_config(
+        self,
+        stage_name: str,
+        plugin: Union[
+            DistributionPlugin,
+            DistributionComponentPlugin,
+            ComponentPlugin,
+            TemplatePlugin,
+        ] = None,
+    ):
+        executor_options = self.get_executor_options_from_config(stage_name, plugin)
+        return self.get_executor(executor_options)
 
     def get_component_from_dict_or_string(
         self, component_name: Union[str, Dict]
@@ -398,6 +462,7 @@ class Config:
             "min_distinct_maintainers": options.get(
                 "min-distinct-maintainers", min_distinct_maintainers
             ),
+            **options,
         }
         if self.increment_devel_versions:
             component_kwargs["devel_path"] = (
@@ -408,11 +473,12 @@ class Config:
             if options.get("content-dir", None):
                 plugin_dir = source_dir / options["content-dir"]
             self._plugins_dirs.append(plugin_dir)
-        component = QubesComponent(**component_kwargs)
-        return component
+        return QubesComponent(**component_kwargs)
 
     @staticmethod
-    def get_executor(executor_type, executor_options):
+    def get_executor(options):
+        executor_type = options.get("type")
+        executor_options = options.get("options", {})
         if executor_type in ("podman", "docker"):
             executor = ContainerExecutor(executor_type, **executor_options)
         elif executor_type == "local":

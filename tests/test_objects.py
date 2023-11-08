@@ -1,4 +1,4 @@
-import os.path
+import os
 import tempfile
 
 import pytest
@@ -604,3 +604,96 @@ executor:
         assert component.branch == "stable-5.15"
         assert config.force_fetch == True
         assert config.get("executor").get("options").get("image") == "fedora"
+
+
+def test_config_executor():
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(
+            """executor:
+  type: qubes
+  options:
+    dispvm: qubes-builder-dvm
+    clean: False
+
+distributions:
+  - vm-jammy:
+      stages:
+        - build:
+            executor:
+              options:
+                dispvm: qubes-builder-debian-dvm
+
+stages:
+  - fetch
+  - sign:
+      executor:
+        type: local
+
+components:
+- linux-kernel:
+    stages:
+      - sign:
+          executor:
+            options:
+              dispvm: signing-access-dvm
+"""
+        )
+        config_file.flush()
+        config = Config(config_file.name)
+
+        manager = PluginManager([])
+        fcdist = QubesDistribution("vm-fc42")
+        debdist = QubesDistribution("vm-jammy")
+        with tempfile.TemporaryDirectory() as tmp_source_dir:
+            source_dir = f"{tmp_source_dir}/linux-kernel"
+            os.mkdir(source_dir)
+            with open(f"{source_dir}/version", "w") as f:
+                f.write("1.2.3")
+            with open(f"{source_dir}/rel", "w") as f:
+                f.write("1")
+
+            # .qubesbuilder
+            with open(f"{source_dir}/.qubesbuilder", "w") as f:
+                f.write(
+                    """
+    vm:
+      rpm:
+        build:
+          - toto.spec
+      deb:
+        build:
+          - debian
+    """
+                )
+
+            component = QubesComponent(source_dir)
+
+            # build for RPM
+            plugin = DistributionComponentPlugin(
+                component=component, dist=fcdist, config=config, manager=manager
+            )
+            assert plugin.has_component_packages(stage="sign")
+
+            fetch_options = config.get_executor_options_from_config("fetch")
+            assert fetch_options == {
+                "type": "qubes",
+                "options": {"clean": False, "dispvm": "qubes-builder-dvm"},
+            }
+
+            sign_options = config.get_executor_options_from_config("sign", plugin)
+            assert sign_options == {
+                "type": "qubes",
+                "options": {"clean": False, "dispvm": "signing-access-dvm"},
+            }
+
+            # build for DEB
+            plugin = DistributionComponentPlugin(
+                component=component, dist=debdist, config=config, manager=manager
+            )
+            assert plugin.has_component_packages(stage="build")
+
+            build_options = config.get_executor_options_from_config("build", plugin)
+            assert build_options == {
+                "type": "qubes",
+                "options": {"clean": False, "dispvm": "qubes-builder-debian-dvm"},
+            }

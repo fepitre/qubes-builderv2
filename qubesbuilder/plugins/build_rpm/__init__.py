@@ -159,7 +159,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         if stage != "build" or not self.has_component_packages("build"):
             return
 
-        executor = self.config.get_executor_from_config(stage)
+        executor = self.config.get_executor_from_config(stage, self)
         parameters = self.get_parameters(stage)
         distfiles_dir = self.get_component_distfiles_dir()
         artifacts_dir = self.get_dist_component_artifacts_dir(stage)
