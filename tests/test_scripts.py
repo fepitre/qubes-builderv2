@@ -285,6 +285,7 @@ def test_existing_repository_with_switching_branch(capsys, temp_directory):
         component_repository=component_repository,
         component_directory=temp_directory,
         fetch_versions_only=True,
+        git_branch="release4.2",
     )
     get_and_verify_source(args)
 
@@ -308,7 +309,7 @@ def test_existing_repository_with_switching_branch(capsys, temp_directory):
     get_and_verify_source(args)
 
     assert (
-        "--> Switching branch from main branch to new release4.1\n--> Merging...\n"
+        "--> Switching branch from release4.2 branch to new release4.1\n--> Merging...\n"
         in capsys.readouterr().out
     )
     assert (temp_directory / ".git/FETCH_HEAD").exists()
