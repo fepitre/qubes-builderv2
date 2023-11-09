@@ -153,7 +153,14 @@ def test_component_no_packages_1():
     debdist = QubesDistribution("vm-bullseye")
 
     with tempfile.NamedTemporaryFile("w") as config_file:
-        config_file.write("{}")
+        config_file.write(
+            """
+executor:
+  type: docker
+  options:
+    image: qubes-builder-fedora
+"""
+        )
         config_file.flush()
         config = Config(config_file.name)
 

@@ -393,8 +393,14 @@ class Config:
                             break
 
         for stage in self._conf.get("stages", []):
-            if stage == stage_name and isinstance(stage, dict):
-                stage_executor_options = stage
+            if isinstance(stage, str):
+                continue
+            if (
+                isinstance(stage, dict)
+                and next(iter(stage)) == stage_name
+                and isinstance(stage[stage_name], dict)
+            ):
+                stage_executor_options = stage[stage_name].get("executor", {})
                 break
 
         for options in [
@@ -418,7 +424,10 @@ class Config:
         ] = None,
     ):
         executor_options = self.get_executor_options_from_config(stage_name, plugin)
-        return self.get_executor(executor_options)
+        executor = self.get_executor(executor_options)
+        if not executor:
+            raise ConfigError("No defined executor found in configuration file.")
+        return executor
 
     def get_component_from_dict_or_string(
         self, component_name: Union[str, Dict]
