@@ -61,7 +61,7 @@ def deep_merge(a: dict, b: dict, allow_append: bool = False) -> dict:
 
 
 class Config:
-    def __init__(self, conf_file: Union[Path, str], options: dict = None):
+    def __init__(self, conf_file: Union[Path, str], options: dict = None):  # type: ignore
         # Keep path of configuration file
         self._conf_file = conf_file
 
@@ -350,12 +350,13 @@ class Config:
         component_executor_options = {}
         default_executor_options = self._conf.get("executor", {}) or {}
         stage_executor_options = {}
-        executor_options = {}
+        executor_options: Dict[Any, Any] = {}
 
-        if hasattr(plugin, "dist"):
-            dist = plugin.dist
-        if hasattr(plugin, "component"):
-            component = plugin.component
+        if plugin:
+            if hasattr(plugin, "dist"):
+                dist = plugin.dist
+            if hasattr(plugin, "component"):
+                component = plugin.component
 
         if dist and isinstance(dist, QubesDistribution):
             for distribution in self.get_distributions():
