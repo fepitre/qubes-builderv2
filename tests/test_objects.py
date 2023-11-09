@@ -641,6 +641,7 @@ components:
     stages:
       - sign:
           executor:
+            type: qubes
             options:
               dispvm: signing-access-dvm
 """
