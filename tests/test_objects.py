@@ -623,6 +623,7 @@ def test_config_executor():
     clean: False
 
 distributions:
+  - vm-fc42
   - vm-jammy:
       stages:
         - build:

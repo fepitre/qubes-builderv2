@@ -762,10 +762,62 @@ Options available in `builder.yml`:
 
 - `automatic-upload-on-publish: bool` --- Automatic upload on publish/unpublish.
 
+### Fine-grained control of executors
+To enable a more detailed control over executor options passed to stages, values are assigned and updated for the `stages` parameter according to the following order:
+1. The primary definition of `stages` at the top level,
+2. Definitions within the context of `distributions`,
+3. The inclusion of `stages` within `components`,
+4. The specification of `stages` within a particular package set in `components`,
+5. The delineation of `stages` within a specific distribution in `components`.
 
-**Note:** To enable a more detailed control over executor options passed to stages, values are assigned and updated for the `stages` parameter according to the following order:
-  - The primary definition of `stages` at the top level,
-  - Definitions within the context of `distributions`,
-  - The inclusion of `stages` within `components`,
-  - The specification of `stages` within a particular package set in `components`,
-  - The delineation of `stages` within a specific distribution in `components`.
+Assuming part of builder configuration file looks like:
+```yaml
+executor:
+  type: qubes
+  options:
+    dispvm: qubes-builder-dvm
+    clean: False
+
+distributions:
+  - vm-fc42
+  - vm-jammy:
+      stages:
+        - build:
+            executor:
+              options:
+                dispvm: qubes-builder-debian-dvm
+
+stages:
+  - fetch
+  - sign:
+      executor:
+        type: local
+
+components:
+- linux-kernel:
+    stages:
+      - sign:
+          executor:
+            type: qubes
+            options:
+              dispvm: signing-access-dvm
+    vm-jammy:
+      stages:
+        - prep:
+            executor:
+              type: local
+              options:
+                directory: /some/path
+    vm:
+      stages:
+        - build:
+            executor:
+              type: podman
+              options:
+                image: fedoraimg
+```
+
+For the `fetch` stage, the Qubes executor with disposable template `qubes-builder-debian-dvm` will be used for both `vm-fc42` and `vm-jammy`.
+For the `build` stage of `vm-fc42`, the Podman executor with container image `fedoraimg` will be used.
+For the `sign` stage, the Qubes executor with disposable template `signing-access-dvm` will be used for both `vm-fc42` and `vm-jammy`
+For the `prep` stage of `vm-jammy`, the Local executor with base directory `/some/path` will be used.
