@@ -713,11 +713,27 @@ Options available in `builder.yml`:
   - `components: str` --- Components . This is either `current-testing`, `security-testing` or `unstable`.
   - `templates: str` --- Testing repository for templates at publish stage. This is either `templates-itl-testing` or `templates-community-testing`.
 
-- `distributions: List[str]` --- Distribution for packages provided as <package-set>-<distribution>.<architecture>. Default architecture is `x86_64` and can be omitted. Some examples: host-fc32, host-fc42.ppc64 or vm-trixie.
+- `executor: Dict` --- Specify default executor to use.
+  - `type: str` --- Executor type: qubes, docker, podman or local.
+  - `options: Dict`:
+    - `image: str` --- Container image to use. Specific to docker or podman type.
+    - `dispvm: str` --- Disposable template VM to use (NOT IMPLEMENTED YET. HARDCODED TO 'qubes-builder-dvm').
+    - `directory: str` --- Base directory for local executor to create temporary directories.
+    - `clean: bool` --- Do not clean container, disposable qube or temporary local folder.
+
+- `stages: List[str, Dict]` --- List of stages to trigger.
+  - `<stage_name>: str` --- Stage name.
+  - `<stage_name>: Dict` --- Stage name provided as dict to override executor to use.
+    - `executor: Dict` --- Specify executor to use for this stage.
+
+- `distributions: List[Union[str, Dict]]` --- Distribution for packages provided as <package-set>-<distribution>.<architecture>. Default architecture is `x86_64` and can be omitted. Some examples: host-fc32, host-fc42.ppc64 or vm-trixie.
+  - `<distribution_name>` --- Distribution name provided as string.
+  - `<distribution_name>`: --- Distribution name provided as dict to pass or override values.
+    - `stages: List[Dict]` --- Allow to override stages options.
 
 - `components: List[Union[str, Dict]]` -- List of components you want to build. See example configs for sensible lists. The order of components is important - it should reflect build dependencies, otherwise build would fail.
-  - `<component_name>` --- Component name provided as string
-  - `<component_name>`: --- Component name provided as dict to pass or override values
+  - `<component_name>` --- Component name provided as string.
+  - `<component_name>`: --- Component name provided as dict to pass or override values.
     - `branch: str` --- override default git branch.
     - `url: str` --- provide the full url of the component.
     - `maintainers: List[str]` --- List of extra fingerprint allowed for signature verification of git commit and tag.
@@ -725,33 +741,31 @@ Options available in `builder.yml`:
     - `plugin: bool` --- Component being actually an extra plugin. No `.qubesbuilder` file is needed.
     - `packages: bool` --- Component that generate packages (default: True). If set to False (e.g. `builder-rpm`), no `.qubesbuilder` file is allowed.
     - `verification-mode: str` --- component source code verification mode, supported values are: `signed-tag` (this is default), `less-secure-signed-commits-sufficient`, `insecure-skip-checking`. This option takes precedence over top level `less-secure-signed-commits-sufficient`.
+    - `stages: List[Dict]` --- Allow to override stages options.
+    - `distribution_name: List[Dict]` -- Allow to override per distribution, stages options.
+    - `package_set: List[Dict]` -- Allow to override per distribution package set, stages options.
 
 - `templates: List[Dict]` -- List of templates you want to build. See example configs for sensible lists.
-  - `<template_name>`: --- Template name
+  - `<template_name>`: --- Template name.
     - `dist: str` --- Underlying distribution, e.g. fc42, bullseye, etc.
     - `flavor: str` --- If applies, specify template flavor, e.g. minimal, xfce, whonix-gateway, whonix-workstation, etc.
     - `options: List[str]` --- Provides template build options, e.g. minimal, no-recommends, firmware, etc.
 
-- `repository-upload-remote-host: Dict` --- Rsync URL for uploading local repository content
-  - `rpm: str` --- RPM content
-  - `deb: str` --- Debian content
-  - `iso: str` --- ISO content
-
-- `executor: Dict` --- Specify default executor to use
-  - `type: str` --- Executor type: qubes, docker, podman or local.
-  - `options: Dict`:
-    - `image: str` --- Container image to use. Specific to docker or podman type.
-    - `dispvm: str` --- Disposable template VM to use (NOT IMPLEMENTED YET. HARDCODED TO 'qubes-builder-dvm').
-    - `directory: str` --- Base directory for local executor to create temporary directories.
-    - `clean: bool` --- Do not clean container, disposible qube or temporary local folder.
-
-- `stages: List[str, Dict]` --- List of stages to trigger.
-  - `<stage_name>: str` --- Stage name
-  - `<stage_name>: Dict` --- Stage name provided as dict to override executor to use.
-    - `executor: Dict` --- Specify executor to use for this stage
+- `repository-upload-remote-host: Dict` --- Rsync URL for uploading local repository content.
+  - `rpm: str` --- RPM content.
+  - `deb: str` --- Debian content.
+  - `iso: str` --- ISO content.
 
 - `cache: List[Dict]` --- List of distributions cache options.
   - `<distribution_name>: Dict` --- Distribution name provided as in `distributions`.
     - `packages: List[str]` --- List of packages to download and to put in cache. These packages won't be installed into the base chroot.
 
 - `automatic-upload-on-publish: bool` --- Automatic upload on publish/unpublish.
+
+
+**Note:** To enable a more detailed control over executor options passed to stages, values are assigned and updated for the `stages` parameter according to the following order:
+  - The primary definition of `stages` at the top level,
+  - Definitions within the context of `distributions`,
+  - The inclusion of `stages` within `components`,
+  - The specification of `stages` within a particular package set in `components`,
+  - The delineation of `stages` within a specific distribution in `components`.

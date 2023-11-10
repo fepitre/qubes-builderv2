@@ -347,7 +347,7 @@ class Config:
         dist = None
         component = None
         distribution_executor_options = {}
-        component_executor_options = {}
+        component_executor_options: Dict[Any, Any] = {}
         default_executor_options = self._conf.get("executor", {}) or {}
         stage_executor_options = {}
         executor_options: Dict[Any, Any] = {}
@@ -375,22 +375,30 @@ class Config:
         if component and isinstance(component, QubesComponent):
             for comp in self.get_components():
                 if comp == component:
+                    distribution_stages = []
+                    package_set_stages = []
                     if dist and dist.distribution in comp.kwargs:
-                        stages = comp.kwargs[dist.distribution].get("stages", [])
-                    elif dist and dist.package_set in comp.kwargs:
-                        stages = comp.kwargs.get(dist.package_set, {}).get("stages", [])
-                    else:
-                        stages = comp.kwargs.get("stages", [])
-                    for stage in stages:
+                        distribution_stages = comp.kwargs[dist.distribution].get(
+                            "stages", []
+                        )
+                    if dist and dist.package_set in comp.kwargs:
+                        package_set_stages = comp.kwargs.get(dist.package_set, {}).get(
+                            "stages", []
+                        )
+                    component_stages = comp.kwargs.get("stages", [])
+
+                    for stage in (
+                        component_stages + package_set_stages + distribution_stages
+                    ):
                         if (
                             isinstance(stage, dict)
                             and next(iter(stage)) == stage_name
                             and isinstance(stage[stage_name], dict)
                         ):
-                            component_executor_options = stage[stage_name].get(
-                                "executor", {}
+                            component_executor_options = deep_merge(
+                                component_executor_options,
+                                stage[stage_name].get("executor", {}),
                             )
-                            break
 
         for stage in self._conf.get("stages", []):
             if isinstance(stage, str):

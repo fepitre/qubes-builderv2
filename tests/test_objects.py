@@ -644,6 +644,20 @@ components:
             type: qubes
             options:
               dispvm: signing-access-dvm
+    vm-jammy:
+      stages:
+        - prep:
+            executor:
+              type: local
+              options:
+                directory: /some/path
+    vm:
+      stages:
+        - build:
+            executor:
+              type: podman
+              options:
+                image: totoimg
 """
         )
         config_file.flush()
@@ -676,16 +690,24 @@ components:
 
             component = QubesComponent(source_dir)
 
-            # build for RPM
             plugin = DistributionComponentPlugin(
                 component=component, dist=fcdist, config=config, manager=manager
             )
-            assert plugin.has_component_packages(stage="sign")
 
             fetch_options = config.get_executor_options_from_config("fetch")
             assert fetch_options == {
                 "type": "qubes",
                 "options": {"clean": False, "dispvm": "qubes-builder-dvm"},
+            }
+
+            build_options = config.get_executor_options_from_config("build", plugin)
+            assert build_options == {
+                "type": "podman",
+                "options": {
+                    "clean": False,
+                    "image": "totoimg",
+                    "dispvm": "qubes-builder-dvm",
+                },
             }
 
             sign_options = config.get_executor_options_from_config("sign", plugin)
@@ -698,10 +720,13 @@ components:
             plugin = DistributionComponentPlugin(
                 component=component, dist=debdist, config=config, manager=manager
             )
-            assert plugin.has_component_packages(stage="build")
 
             build_options = config.get_executor_options_from_config("build", plugin)
             assert build_options == {
-                "type": "qubes",
-                "options": {"clean": False, "dispvm": "qubes-builder-debian-dvm"},
+                "type": "podman",
+                "options": {
+                    "clean": False,
+                    "dispvm": "qubes-builder-debian-dvm",
+                    "image": "totoimg",
+                },
             }
