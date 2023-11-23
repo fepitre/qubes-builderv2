@@ -104,6 +104,7 @@ class Config:
     template_root_size: Union[str, property]             = property(lambda self: self.get("template-root-size", "20G"))
     template_root_with_partitions: Union[bool, property] = property(lambda self: self.get("template-root-with-partitions", True))
     installer_kickstart: Union[str, property]            = property(lambda self: self.get("iso", {}).get("kickstart", "conf/qubes-kickstart.cfg"))
+    installer_comps: Union[str, property]                = property(lambda self: self.get("iso", {}).get("comps", "meta-packages/comps/comps-dom0.xml"))
     iso_version: Union[str, property]                    = property(lambda self: self.get("iso", {}).get("version", ""))
     iso_flavor: Union[str, property]                     = property(lambda self: self.get("iso", {}).get("flavor", ""))
     iso_use_kernel_latest: Union[bool, property]         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))

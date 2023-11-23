@@ -26,6 +26,7 @@ INSTALLER_DIR ?= $(PLUGINS_DIR)/installer
 INSTALLER_KICKSTART ?= $(INSTALLER_DIR)/conf/qubes-kickstart.cfg
 CREATEREPO := $(shell which createrepo_c createrepo 2>/dev/null |head -1)
 ISO_VERSION ?= $(shell date +%Y%m%d)
+COMPS_FILE ?= $(INSTALLER_DIR)/meta-packages/comps/comps-dom0.xml
 
 ifneq (,$(ISO_FLAVOR))
 ISO_NAME := Qubes-$(ISO_VERSION)-$(ISO_FLAVOR)-x86_64
@@ -70,10 +71,7 @@ iso-prepare:
 
 	# Copy the comps file
 	mkdir -p $(TMP_DIR)
-	cp $(INSTALLER_DIR)/meta-packages/comps/comps-dom0.xml $(TMP_DIR)/comps.xml
-	if [ "$(ISO_USE_KERNEL_LATEST)" == 1 ]; then \
-		sed -i 's#optional">kernel-latest#mandatory">kernel-latest#g' $(TMP_DIR)/comps.xml; \
-	fi;
+	cp $(COMPS_FILE) $(TMP_DIR)/comps.xml
 
 	mkdir /tmp/qubes-installer
 	mount --bind $(INSTALLER_DIR) /tmp/qubes-installer

@@ -691,6 +691,7 @@ Options available in `builder.yml`:
 
 - `iso: Dict`:
   - `kickstart: str` --- Image installer kickstart. The path usually points at a file in `qubesbuilder/plugins/installer`, in a `conf/` directory - example value: `conf/iso-online-testing.ks`. To use path outside of that directory, either set absolute path, or a path starting with `./` (path relative to qubes-builderv2 directory).
+  - `comps: str` --- Image installer groups (comps) file. The path usually points at a file in `qubesbuilder/plugins/installer`, in a `meta-packages/comps/` directory - example value: `meta-packages/comps/comps-dom0.xml`. To use path outside of that directory, either set absolute path, or a path starting with `./` (path relative to qubes-builderv2 directory).
   - `flavor: str` --- Image name will be named as `Qubes-<iso-version>-<iso-flavor>-<arch>.iso`.
   - `use-kernel-latest: bool` --- If True, use `kernel-latest` when building installer runtime and superseed `kernel` in the installation. It allows to boot installer and QubesOS with the latest drivers provided by stable kernels and not only long term supported ones by default.
   - `version: str` --- Define specific version to embed, by default current date is used.

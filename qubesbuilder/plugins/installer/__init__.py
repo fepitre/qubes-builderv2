@@ -79,6 +79,16 @@ class InstallerPlugin(DistributionPlugin):
                 f"Cannot find kickstart: '{self.config.installer_kickstart}'"
             )
 
+        self.comps_path = Path(config.installer_comps)
+        if config.installer_comps.startswith("./"):
+            self.comps_path = self.comps_path.resolve()
+        if not (
+            self.manager.entities["installer"].directory / self.comps_path
+        ).exists():
+            raise InstallerError(
+                f"Cannot find kickstart: '{self.config.installer_comps}'"
+            )
+
     def get_iso_timestamp(self, stage: str, iso_timestamp: str = None) -> str:
         if not self.iso_timestamp:
             # Determine latest timestamp filename
@@ -152,6 +162,16 @@ class InstallerPlugin(DistributionPlugin):
             self.environment[
                 "INSTALLER_KICKSTART"
             ] = f"{executor.get_plugins_dir()}/installer/{self.kickstart_path}"
+
+        # Comps will be copied under builder directory
+        if self.comps_path.is_absolute():
+            self.environment[
+                "COMPS_FILE"
+            ] = f"{executor.get_plugins_dir()}/installer/conf/{self.comps_path.name}"
+        else:
+            self.environment[
+                "COMPS_FILE"
+            ] = f"{executor.get_plugins_dir()}/installer/{self.comps_path}"
 
         # We don't need to process more ISO information
         if stage == "init-cache":
@@ -352,10 +372,14 @@ class InstallerPlugin(DistributionPlugin):
                 (self.manager.entities[plugin].directory, executor.get_plugins_dir())
                 for plugin in self.dependencies
             ]
-            # copy kickstart file if given by absolute path
+            # copy kickstart and comps file if given by absolute path
             if self.kickstart_path.is_absolute():
                 copy_in += [
                     (self.kickstart_path, executor.get_plugins_dir() / "installer/conf")
+                ]
+            if self.comps_path.is_absolute():
+                copy_in += [
+                    (self.comps_path, executor.get_plugins_dir() / "installer/conf")
                 ]
 
             # Copy-in builder local repository
@@ -491,10 +515,14 @@ class InstallerPlugin(DistributionPlugin):
                 for plugin in self.dependencies
             ]
 
-            # copy kickstart file if given by absolute path
+            # copy kickstart and comps file if given by absolute path
             if self.kickstart_path.is_absolute():
                 copy_in += [
                     (self.kickstart_path, executor.get_plugins_dir() / "installer/conf")
+                ]
+            if self.comps_path.is_absolute():
+                copy_in += [
+                    (self.comps_path, executor.get_plugins_dir() / "installer/conf")
                 ]
 
             # Copy-in builder local repository
