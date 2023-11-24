@@ -135,8 +135,10 @@ iso-installer-mkisofs:
 	xorrisofs -o $(BASE_DIR)/iso/$(ISO_NAME).iso \
 		-R -J -V $(ISO_VOLID) \
 		--grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \
+		--mbr-force-bootable \
+		--gpt-iso-bootable \
 		-partition_offset 16 \
-		-append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B $(BASE_DIR)/os/images/efiboot.img \
+		-append_partition 2 0xef $(BASE_DIR)/os/images/efiboot.img \
 		-iso_mbr_part_type EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 \
 		-appended_part_as_gpt \
 		-c boot.cat --boot-catalog-hide \
@@ -145,7 +147,6 @@ iso-installer-mkisofs:
 		-eltorito-alt-boot \
 		-e '--interval:appended_partition_2:all::' -no-emul-boot \
 		-graft-points \
-		-part_like_isohybrid \
 		.=$(BASE_DIR)/os \
 		boot/grub2/i386-pc=/usr/lib/grub/i386-pc
 	/usr/bin/implantisomd5 $(BASE_DIR)/iso/$(ISO_NAME).iso
