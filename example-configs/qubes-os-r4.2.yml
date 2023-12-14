@@ -65,6 +65,7 @@ components:
   - core-qrexec
   - linux-utils
   - plymouth
+  - dracut
   - python-objgraph:
       branch: main
   - python-fido2:
