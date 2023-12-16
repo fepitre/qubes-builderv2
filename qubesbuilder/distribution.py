@@ -42,6 +42,12 @@ UBUNTU = {
 
 DEBIAN_ARCHITECTURE = {"x86_64": "amd64", "ppc64le": "ppc64el"}
 
+WINDOWS = {
+    "win10": ("windows", "10"),
+    "win11": ("windows", "11"),
+    "win2k22": ("windows-server", "2022"),
+}
+
 
 class QubesDistribution:
     def __init__(self, distribution: str, **kwargs):
@@ -61,6 +67,7 @@ class QubesDistribution:
         is_ubuntu = UBUNTU.get(self.name, None)
         is_archlinux = self.name == "archlinux"
         is_gentoo = self.name == "gentoo"
+        is_windows = WINDOWS.get(self.name, None)
         if is_fedora:
             self.fullname = "fedora"
             self.version = is_fedora.group(1)
@@ -97,6 +104,10 @@ class QubesDistribution:
             self.version = "rolling"
             self.tag = "gentoo"
             self.type = "gentoo"
+        elif is_windows:
+            self.fullname, self.version = WINDOWS[self.name]
+            self.tag = "windows"
+            self.type = "windows"
         else:
             raise DistributionError(f"Unsupported distribution '{self.distribution}'.")
 
@@ -134,3 +145,8 @@ class QubesDistribution:
 
     def is_gentoo(self) -> bool:
         return self.name == "gentoo"
+
+    def is_windows(self) -> bool:
+        if WINDOWS.get(self.name, None):
+            return True
+        return False
