@@ -92,11 +92,17 @@ class QubesExecutor(Executor):
 
         dst.mkdir(parents=True, exist_ok=True)
 
+        old_unpacker_path = "/usr/lib/qubes/qfile-unpacker"
+        new_unpacker_path = "/usr/bin/qfile-unpacker"
+        if os.path.exists(new_unpacker_path):
+            unpacker_path = new_unpacker_path
+        else:
+            unpacker_path = old_unpacker_path
         cmd = [
             "/usr/lib/qubes/qrexec-client-vm",
             vm,
             f"qubesbuilder.FileCopyOut+{str(src).replace('/', '__')}",
-            "/usr/lib/qubes/qfile-unpacker",
+            unpacker_path,
             str(os.getuid()),
             str(dst),
         ]
