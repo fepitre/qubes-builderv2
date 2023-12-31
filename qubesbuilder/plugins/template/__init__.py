@@ -76,6 +76,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "whonix-gateway",
                     "whonix-workstation",
                 ),
+                template.distribution.is_deb() and template.flavor.startswith("kali"),
                 template.distribution.is_archlinux(),
                 template.distribution.is_ubuntu(),
                 template.distribution.is_gentoo(),
@@ -207,6 +208,21 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 template_flavor_dir += [
                     f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix",
                     f"+whonix-workstation:{executor.get_sources_dir()}/template-whonix",
+                ]
+            if self.template.flavor.startswith("kali"):
+                self.source_dependencies += ["template-kali"]
+                template_content_dir = str(executor.get_sources_dir() / "template-kali")
+                self.environment.update(
+                    {
+                        "APPMENUS_DIR": template_content_dir,
+                        "FLAVORS_DIR": template_content_dir,
+                    }
+                )
+                template_flavor_dir += [
+                    f"+kali:{executor.get_sources_dir()}/template-kali",
+                    f"+kali-core:{executor.get_sources_dir()}/template-kali",
+                    f"+kali-large:{executor.get_sources_dir()}/template-kali",
+                    f"+kali-everything:{executor.get_sources_dir()}/template-kali",
                 ]
 
         elif self.template.distribution.is_archlinux():
