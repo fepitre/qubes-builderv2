@@ -70,13 +70,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
             [
                 template.distribution.is_rpm(),
                 template.distribution.is_deb(),
-                template.distribution.is_deb()
-                and template.flavor
-                in (
-                    "whonix-gateway",
-                    "whonix-workstation",
-                ),
-                template.distribution.is_deb() and template.flavor.startswith("kali"),
                 template.distribution.is_archlinux(),
                 template.distribution.is_ubuntu(),
                 template.distribution.is_gentoo(),
