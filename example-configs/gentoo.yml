@@ -1,0 +1,45 @@
+git:
+  baseurl: https://github.com
+  prefix: qubesos/qubes-
+  branch: main
+
+backend-vmm: xen
+debug: true
+verbose: true
+qubes-release: r4.2
+
+template-root-size: "30G"
+
+templates:
+  - gentoo:
+      dist: gentoo
+      timeout: 86400
+  - gentoo-minimal:
+      dist: gentoo
+      flavor: minimal
+      timeout: 86400
+  - gentoo-xfce:
+      dist: gentoo
+      flavor: xfce
+      timeout: 86400
+
+components:
+  - builder-gentoo:
+      packages: False
+      url: https://github.com/fepitre/qubes-builder-gentoo
+      maintainers:
+        # fepitre's @qubes-os.org
+        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
+        # fepitre's @invisiblethingslab.com
+        - 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+
+executor:
+ type: docker
+ options:
+   image: "qubes-builder-fedora:latest"
+
+stages:
+  - fetch
+  - prep
+  - build
+
