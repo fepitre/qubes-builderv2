@@ -1883,7 +1883,7 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
         # bump timestamp, without re-running "prep" stage
-        new_timestamp = str(int(template_timestamp) + 1)
+        new_timestamp = (parsedate(data[0]) + timedelta(minutes=1)).strftime("%Y%m%d%H%M")
         with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce", "w") as f:
             f.write(new_timestamp)
 
