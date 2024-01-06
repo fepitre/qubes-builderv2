@@ -1,0 +1,47 @@
+git:
+  baseurl: https://github.com
+  prefix: qubesos/qubes-
+  branch: main
+
+backend-vmm: xen
+debug: true
+verbose: true
+qubes-release: r4.2
+use-qubes-repo:
+  version: 4.2
+  testing: true
+template-root-size: "30G"
+
+templates:
+  - kali:
+      dist: bookworm
+      flavor: kali
+  - kali-core:
+      dist: bookworm
+      flavor: kali-core
+  - kali-large:
+      dist: bookworm
+      flavor: kali-large
+
+components:
+  - builder-debian:
+      packages: False
+  - template-kali:
+      packages: False
+      url: https://github.com/fepitre/qubes-template-kali
+      maintainers:
+        # fepitre's @qubes-os.org
+        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
+        # fepitre's @invisiblethingslab.com
+        - 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
+
+executor:
+ type: docker
+ options:
+   image: "qubes-builder-fedora:latest"
+
+stages:
+  - fetch
+  - prep
+  - build
+
