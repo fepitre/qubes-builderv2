@@ -689,6 +689,8 @@ Options available in `builder.yml`:
 
 - `key-dirs: List[str]`: additional directories with maintainer's keys; keys needs to be named after full fingerprint plus `.asc` extension
 
+- `template-root-size: str` --- Template root size as an integer and optional unit (example: 10K is 10*1024).  Units are K,M,G,T,P,E,Z,Y (powers of 1024) or KB,MB,... (powers of 1000). Binary prefixes can be used, too: KiB=K, MiB=M, and so on.
+
 - `iso: Dict`:
   - `kickstart: str` --- Image installer kickstart. The path usually points at a file in `qubesbuilder/plugins/installer`, in a `conf/` directory - example value: `conf/iso-online-testing.ks`. To use path outside of that directory, either set absolute path, or a path starting with `./` (path relative to qubes-builderv2 directory).
   - `comps: str` --- Image installer groups (comps) file. The path usually points at a file in `qubesbuilder/plugins/installer`, in a `meta-packages/comps/` directory - example value: `meta-packages/comps/comps-dom0.xml`. To use path outside of that directory, either set absolute path, or a path starting with `./` (path relative to qubes-builderv2 directory).
