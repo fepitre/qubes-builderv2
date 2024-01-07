@@ -99,18 +99,15 @@ $ docker build -f dockerfiles/fedora.Dockerfile -t qubes-builder-fedora /var/cac
 ## Qubes executor
 
 We assume that the [template](https://www.qubes-os.org/doc/templates/) chosen
-for building components inside a disposable qube is `fedora-35`. Install the
+for building components inside a disposable qube is `fedora-39`. Install the
 following dependencies inside the template:
 
 ```bash
 $ sudo dnf install -y dnf-plugins-core createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev
 ```
 
-Then, clone the disposable template based on Fedora 35, `fedora-35-dvm`, to
+Then, clone the disposable template based on Fedora 39, `fedora-39-dvm`, to
 `qubes-builder-dvm`. Set its private volume storage space to at least 30 GB.
-You must install `rpc/qubesbuilder.FileCopyIn` and
-`rpc/qubesbuilder.FileCopyOut` in `qubes-builder-dvm` in
-`/usr/local/etc/qubes-rpc` with the executable permission set (`chmod +x`).
 
 Let's assume that the qube hosting `qubes-builder` is called `work-qubesos`.
 (If you're using a different name, make sure to adjust your policies.) In

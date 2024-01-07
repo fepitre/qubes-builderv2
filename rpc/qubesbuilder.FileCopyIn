@@ -1,12 +1,74 @@
-#!/usr/bin/sh
+#!/usr/bin/python3
 
-set -e
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
 
-sudo bash -c "mkdir -p /builder/incoming && chown -R user:user /builder"
 
-id=$(id -u user)
+class DecodeError(ValueError):
+    pass
 
-if [ -x /usr/lib/qubes/qfile-unpacker ]; then
-    PATH=${PATH+"$PATH:"}/usr/lib/qubes
-fi
-exec qfile-unpacker "$id" "/builder/incoming"
+
+ESCAPE_RE = re.compile(rb"--|-([A-F0-9]{2})")
+
+
+def decode_part(part):
+    if not re.match(r"^[a-zA-Z0-9._-]*$", part):
+        raise DecodeError("illegal characters found")
+
+    part = part.encode("ascii")
+
+    # Check if no '-' remains outside of legal escape sequences.
+    if b"-" in ESCAPE_RE.sub(b"", part):
+        raise DecodeError("'-' can be used only in '-HH' or '--'")
+
+    def convert(m):
+        if m.group(0) == b"--":
+            return b"-"
+        num = int(m.group(1), 16)
+        return bytes([num])
+
+    return ESCAPE_RE.sub(convert, part)
+
+
+def main():
+    if len(sys.argv) != 2:
+        print("Please provide destination.", file=sys.stderr)
+        sys.exit(1)
+
+    decoded_arg = decode_part(sys.argv[1]).decode("utf-8")
+    dst = Path(decoded_arg).resolve()
+
+    # Get destination path and extract components
+    bn = dst.name
+    dn = dst.parent
+
+    # Get user and group ID
+    uid = os.getuid()
+    gid = os.getgid()
+
+    # Add Qubes path to the environment if qfile-unpacker is available
+    env = os.environ.copy()
+    if os.path.exists("/usr/lib/qubes/qfile-unpacker"):
+        env["PATH"] = os.pathsep.join([env.get("PATH", ""), "/usr/lib/qubes"])
+
+    # Clean and prepare directories
+    shutil.rmtree("/builder/incoming", ignore_errors=True)
+    os.makedirs("/builder/incoming")
+    os.chown("/builder", uid, gid)
+
+    # Run qfile-unpacker
+    subprocess.run(
+        ["qfile-unpacker", str(uid), "/builder/incoming"], check=True, env=env
+    )
+
+    # Move the file to the destination directory
+    dn.mkdir(parents=True, exist_ok=True)
+    shutil.move(f"/builder/incoming/{bn}", dn)
+
+
+if __name__ == "__main__":
+    main()

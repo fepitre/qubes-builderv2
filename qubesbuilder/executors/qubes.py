@@ -24,11 +24,23 @@ from shlex import quote
 from pathlib import Path, PurePath
 from typing import List, Tuple, Union, Iterable
 
-from qubesbuilder.common import sanitize_line, str_to_bool
+from qubesbuilder.common import sanitize_line, str_to_bool, PROJECT_PATH
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.log import get_logger
 
 log = get_logger("executor:qubes")
+
+
+# From https://github.com/QubesOS/qubes-core-admin-client/blob/main/qubesadmin/utils.py#L159-L173
+def encode_for_vmexec(input_string):
+    def encode(part):
+        if part.group(0) == b"-":
+            return b"--"
+        return "-{:02X}".format(ord(part.group(0))).encode("ascii")
+
+    part = re.sub(rb"[^a-zA-Z0-9_.]", encode, input_string.encode("utf-8"))
+
+    return part.decode("ascii")
 
 
 def quote_list(args: List[Union[str, Path]]) -> str:
@@ -64,53 +76,28 @@ class QubesExecutor(Executor):
     def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):  # type: ignore
         src = source_path.expanduser().resolve()
         dst = destination_dir
-        # FIXME: Refactor the qvm-run and qrexec commandlines.
-        prepare_incoming_and_destination = build_run_cmd(
-            vm,
-            [
-                "rm",
-                "-rf",
-                "--",
-                f"{str(self.get_builder_dir())}/incoming/{src.name}",
-                f"{str(dst.as_posix())}/{src.name}",
-            ],
-        )
-        copy_to_incoming = [
+        encoded_dst_path = encode_for_vmexec(str((dst / src.name).as_posix()))
+        copy_in_cmd = [
             "/usr/lib/qubes/qrexec-client-vm",
             "--",
             vm,
-            "qubesbuilder.FileCopyIn",
+            f"qubesbuilder.FileCopyIn+{encoded_dst_path}",
             "/usr/lib/qubes/qfile-agent",
             str(src),
         ]
-        move_to_destination = build_run_cmd_and_list(
-            vm,
-            [
-                ["mkdir", "-p", "--", str(dst.as_posix())],
-                [
-                    "mv",
-                    "--",
-                    f"{str(self.get_builder_dir())}/incoming/{src.name}",
-                    f"{str(dst.as_posix())}",
-                ],
-            ],
-        )
         try:
-            log.debug(f"copy-in (cmd): {' '.join(prepare_incoming_and_destination)}")
-            subprocess.run(prepare_incoming_and_destination, check=True)
 
-            log.debug(f"copy-in (cmd): {' '.join(copy_to_incoming)}")
-            subprocess.run(copy_to_incoming, check=True)
-
-            log.debug(f"copy-in (cmd): {' '.join(move_to_destination)}")
-            subprocess.run(move_to_destination, check=True)
+            log.debug(f"copy-in (cmd): {' '.join(copy_in_cmd)}")
+            subprocess.run(copy_in_cmd, check=True)
         except subprocess.CalledProcessError as e:
             if e.stderr is not None:
                 msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
                 log.error(msg)
             raise ExecutorError from e
 
-    def copy_out(self, vm, source_path: PurePath, destination_dir: Path, dig_holes=False):  # type: ignore
+    def copy_out(
+        self, vm, source_path: PurePath, destination_dir: Path, dig_holes=False
+    ):  # type: ignore
         src = source_path
         dst = destination_dir.resolve()
 
@@ -130,10 +117,11 @@ class QubesExecutor(Executor):
             unpacker_path = new_unpacker_path
         else:
             unpacker_path = old_unpacker_path
+        encoded_src_path = encode_for_vmexec(str(src))
         cmd = [
             "/usr/lib/qubes/qrexec-client-vm",
             vm,
-            f"qubesbuilder.FileCopyOut+{str(src).replace('/', '__')}",
+            f"qubesbuilder.FileCopyOut+{encoded_src_path}",
             unpacker_path,
             str(os.getuid()),
             str(dst),
@@ -151,6 +139,11 @@ class QubesExecutor(Executor):
                 log.error(msg)
             raise ExecutorError from e
 
+
+class LinuxQubesExecutor(QubesExecutor):
+    def __init__(self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs):
+        super().__init__(dispvm=dispvm, clean=clean, **kwargs)
+
     def run(  # type: ignore
         self,
         cmd: List[str],
@@ -161,6 +154,7 @@ class QubesExecutor(Executor):
         no_fail_copy_out_allowed_patterns=None,
         dig_holes: bool = False,
     ):
+
         dispvm = None
         try:
             result = subprocess.run(
@@ -179,8 +173,21 @@ class QubesExecutor(Executor):
             # Adjust log namespace
             log.name = f"executor:qubes:{dispvm}"
 
-            # Start the DispVM by running creation of builder directory
-            start_cmd = build_run_cmd_and_list(
+            # Start the DispVM by copying qubes-builder RPC
+            copy_rpc_cmd = [
+                "/usr/lib/qubes/qrexec-client-vm",
+                "--filter-escape-chars-stderr",
+                dispvm,
+                "qubes.Filecopy",
+                "/usr/lib/qubes/qfile-agent",
+                str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyIn"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyOut"),
+            ]
+            subprocess.run(
+                copy_rpc_cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True
+            )
+
+            prep_cmd = build_run_cmd_and_list(
                 dispvm,
                 [
                     [
@@ -192,6 +199,24 @@ class QubesExecutor(Executor):
                         str(self.get_builder_dir() / "build"),
                         str(self.get_builder_dir() / "plugins"),
                         str(self.get_builder_dir() / "distfiles"),
+                        "/usr/local/etc/qubes-rpc",
+                    ],
+                    [
+                        "sudo",
+                        "mv",
+                        "-f",
+                        "--",
+                        f"/home/{self.get_user()}/QubesIncoming/{os.uname().nodename}/qubesbuilder.FileCopyIn",
+                        f"/home/{self.get_user()}/QubesIncoming/{os.uname().nodename}/qubesbuilder.FileCopyOut",
+                        "/usr/local/etc/qubes-rpc/",
+                    ],
+                    [
+                        "sudo",
+                        "chmod",
+                        "+x",
+                        "--",
+                        "/usr/local/etc/qubes-rpc/qubesbuilder.FileCopyIn",
+                        "/usr/local/etc/qubes-rpc/qubesbuilder.FileCopyOut",
                     ],
                     [
                         "sudo",
@@ -203,7 +228,7 @@ class QubesExecutor(Executor):
                     ],
                 ],
             )
-            subprocess.run(start_cmd, stdin=subprocess.DEVNULL)
+            subprocess.run(prep_cmd, stdin=subprocess.DEVNULL)
 
             # copy-in hook
             for src_in, dst_in in copy_in or []:

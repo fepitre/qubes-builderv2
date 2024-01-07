@@ -8,7 +8,7 @@ from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.executors.qubes import QubesExecutor
+from qubesbuilder.executors.qubes import LinuxQubesExecutor
 
 
 class MockExecutor(Executor):
@@ -191,7 +191,7 @@ def test_local_simple():
     reason="Qubes Admin VM is required!",
 )
 def test_qubes_simple():
-    executor = QubesExecutor(os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm"))
+    executor = LinuxQubesExecutor(os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm"))
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a local file with some content
         hello = Path(temp_dir) / "hello.md"
@@ -207,6 +207,7 @@ def test_qubes_simple():
         cmd = ["echo It works! >> /tmp/hello.md"]
 
         # Execute the command
+
         executor.run(cmd, copy_in, copy_out)
 
         # Read modified file that has been copied out from the container
@@ -222,7 +223,7 @@ def test_qubes_simple():
     reason="Qubes Admin VM is required!",
 )
 def test_qubes_environment():
-    executor = QubesExecutor(os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm"))
+    executor = LinuxQubesExecutor(os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm"))
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a local file with some content
         hello = Path(temp_dir) / "hello.md"

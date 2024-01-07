@@ -6,5 +6,6 @@ admin.vm.Kill * work-qubesos @tag:disp-created-by-work-qubesos allow target=dom0
 qubesbuilder.FileCopyIn * work-qubesos @tag:disp-created-by-work-qubesos allow
 qubesbuilder.FileCopyOut * work-qubesos @tag:disp-created-by-work-qubesos allow
 
+qubes.Filecopy * work-qubesos @tag:disp-created-by-work-qubesos allow
 qubes.WaitForSession * work-qubesos @tag:disp-created-by-work-qubesos allow
 qubes.VMShell * work-qubesos @tag:disp-created-by-work-qubesos allow

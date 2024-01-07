@@ -30,7 +30,7 @@ from qubesbuilder.exc import ConfigError
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.executors.qubes import QubesExecutor
+from qubesbuilder.executors.qubes import LinuxQubesExecutor
 from qubesbuilder.log import get_logger
 from qubesbuilder.template import QubesTemplate
 from qubesbuilder.plugins import (
@@ -503,7 +503,7 @@ class Config:
         elif executor_type == "local":
             executor = LocalExecutor(**executor_options)  # type: ignore
         elif executor_type == "qubes":
-            executor = QubesExecutor(**executor_options)  # type: ignore
+            executor = LinuxQubesExecutor(**executor_options)  # type: ignore
         else:
             raise ExecutorError("Cannot determine which executor to use.")
         return executor

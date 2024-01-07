@@ -1,5 +1,48 @@
-#!/usr/bin/bash
+#!/usr/bin/python3
 
-path="${1//__/\//}"
+import re
+import subprocess
+import sys
+from pathlib import Path
 
-exec /usr/lib/qubes/qfile-agent "$path"
+
+class DecodeError(ValueError):
+    pass
+
+
+ESCAPE_RE = re.compile(rb"--|-([A-F0-9]{2})")
+
+
+def decode_part(part):
+    if not re.match(r"^[a-zA-Z0-9._-]*$", part):
+        raise DecodeError("illegal characters found")
+
+    part = part.encode("ascii")
+
+    # Check if no '-' remains outside of legal escape sequences.
+    if b"-" in ESCAPE_RE.sub(b"", part):
+        raise DecodeError("'-' can be used only in '-HH' or '--'")
+
+    def convert(m):
+        if m.group(0) == b"--":
+            return b"-"
+        num = int(m.group(1), 16)
+        return bytes([num])
+
+    return ESCAPE_RE.sub(convert, part)
+
+
+def main():
+    if len(sys.argv) != 2:
+        print("Please provide source.", file=sys.stderr)
+        sys.exit(1)
+
+    decoded_arg = decode_part(sys.argv[1]).decode("utf-8")
+    src = Path(decoded_arg).resolve()
+
+    # Run qfile-agent
+    subprocess.run(["/usr/lib/qubes/qfile-agent", str(src)], check=True)
+
+
+if __name__ == "__main__":
+    main()
