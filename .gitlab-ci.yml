@@ -319,6 +319,9 @@ cache-vm-bullseye:
 cache-vm-bookworm:
   extends: .init_cache_job
 
+cache-vm-trixie:
+  extends: .init_cache_job
+
 cache-vm-archlinux:
   extends: .init_cache_job
 
