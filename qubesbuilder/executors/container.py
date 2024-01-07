@@ -21,6 +21,7 @@ from contextlib import contextmanager
 from pathlib import Path, PurePath
 import tempfile
 from typing import List, Tuple, Union
+from shlex import quote
 
 from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
@@ -165,8 +166,8 @@ class ContainerExecutor(Executor):
 
                 # fix permissions and user group
                 permissions_cmd = [
-                    f"sudo mkdir -p {self.get_builder_dir()} {self.get_builder_dir()/'build'} {self.get_builder_dir()/'plugins'} {self.get_builder_dir()/'distfiles'}",
-                    f"sudo chown -R {self._user}:{self._group} {self.get_builder_dir()}",
+                    f"sudo mkdir -p -- {quote(str(self.get_builder_dir()))} {quote(str(self.get_builder_dir()/'build'))} {quote(str(self.get_builder_dir()/'plugins'))} {quote(str(self.get_builder_dir()/'distfiles'))}",
+                    f"sudo chown -R -- {quote(self._user)}:{quote(self._group)} {quote(str(self.get_builder_dir()))}",
                 ]
 
                 # replace placeholders
