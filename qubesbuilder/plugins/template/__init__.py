@@ -496,11 +496,11 @@ class TemplateBuilderPlugin(TemplatePlugin):
                         self.manager.entities[plugin].directory,
                         executor.get_plugins_dir(),
                     )
-                    for plugin in self.dependencies
+                    for plugin in set(self.dependencies)
                 ]
                 + [
                     (self.get_sources_dir() / source, executor.get_sources_dir())
-                    for source in self.source_dependencies
+                    for source in set(self.source_dependencies)
                 ]
             )
 
