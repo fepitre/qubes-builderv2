@@ -353,8 +353,7 @@ class WindowsQubesExecutor(QubesExecutor):
         try:
             src = (PROJECT_PATH / "README.md").expanduser().resolve()
             dst = PureWindowsPath("C:\\somewhere")
-            orig = str((dst / src.name))
-            encoded_dst_path = encode_for_vmexec(orig)
+            encoded_dst_path = encode_for_vmexec(str(dst))
             # Start the DispVM by copying qubes-builder RPC
             copy_rpc_cmd = [
                 "/usr/lib/qubes/qrexec-client-vm",

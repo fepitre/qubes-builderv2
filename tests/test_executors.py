@@ -1,6 +1,6 @@
 import os.path
 import tempfile
-from pathlib import Path, PurePath
+from pathlib import Path, PurePath, PureWindowsPath
 
 import pytest
 
@@ -231,12 +231,13 @@ def test_qubes_windows_simple():
             f.write("Hello!\n")
 
         # Copy-in the previously created local file
-        copy_in = [(hello, PurePath("/tmp"))]
+        copy_in = [(hello, PureWindowsPath("C:\\temp"))]
 
         # Copy-out the modified file
-        copy_out = [(PurePath("/tmp/hello.md"), Path(temp_dir))]
+        copy_out = [(PureWindowsPath("C:\\temp\\hello.md"), Path(temp_dir))]
+
         # Command that appends a line to the file
-        cmd = ["echo It works! >> /tmp/hello.md"]
+        cmd = ["echo It works! >> C:\\temp\\hello.md"]
 
         # Execute the command
 
@@ -248,7 +249,6 @@ def test_qubes_windows_simple():
 
         # Check expected content
         assert data == "Hello!\nIt works!\n"
-
 
 
 @pytest.mark.skipif(
