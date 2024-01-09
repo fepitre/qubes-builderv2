@@ -351,142 +351,25 @@ class WindowsQubesExecutor(QubesExecutor):
 
         dispvm = None
         try:
-            src = (PROJECT_PATH / "README.md").expanduser().resolve()
-            dst = PureWindowsPath("C:\\somewhere")
-            encoded_dst_path = encode_for_vmexec(str(dst))
+            # src = (PROJECT_PATH / "README.md").expanduser().resolve()
+            # dst = PureWindowsPath("C:\\somewhere")
+            # encoded_dst_path = encode_for_vmexec(str(dst))
+
             # Start the DispVM by copying qubes-builder RPC
             copy_rpc_cmd = [
                 "/usr/lib/qubes/qrexec-client-vm",
                 "--filter-escape-chars-stderr",
                 "windows-10-build",
-                f"qubes.Filecopy+{encoded_dst_path}",
+                f"qubes.Filecopy",
                 "/usr/lib/qubes/qfile-agent",
-                str(src),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyIn"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyOut"),
             ]
-            r = subprocess.run(
+            subprocess.run(
                 copy_rpc_cmd, stdin=subprocess.DEVNULL, capture_output=True
             )
-            print(r.stderr)
-            # result = subprocess.run(
-            #     ["qrexec-client-vm", self._dispvm, "admin.vm.CreateDisposable"],
-            #     capture_output=True,
-            #     stdin=subprocess.DEVNULL,
-            # )
-            # dispvm = result.stdout.decode("utf8").replace("0\x00", "")
-            # if not re.match(r"disp[0-9]{1,4}", dispvm):
-            #     raise ExecutorError("Failed to create disposable qube.")
-            #
-            # # Adjust log namespace
-            # log.name = f"executor:qubes:{dispvm}"
-            #
-            # # Start the DispVM by copying qubes-builder RPC
-            # copy_rpc_cmd = [
-            #     "/usr/lib/qubes/qrexec-client-vm",
-            #     "--filter-escape-chars-stderr",
-            #     dispvm,
-            #     "qubes.Filecopy",
-            #     "/usr/lib/qubes/qfile-agent",
-            #     str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyIn"),
-            #     str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyOut"),
-            # ]
-            # subprocess.run(
-            #     copy_rpc_cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True
-            # )
-            #
-            # # Preparation steps
-            # prep_cmd = [
-            #     "/usr/bin/qvm-run-vm",
-            #     dispvm,
-            #     f"bash -c "
-            #     f"'sudo mkdir -p /usr/local/etc/qubes-rpc"
-            #     f"&& sudo mv -f /home/{self.get_user()}/QubesIncoming/{os.uname().nodename}/qubesbuilder.FileCopy{{In,Out}} /usr/local/etc/qubes-rpc/"
-            #     f"&& sudo chmod +x /usr/local/etc/qubes-rpc/qubesbuilder.FileCopy{{In,Out}}"
-            #     f"&& sudo mkdir -p {self.get_builder_dir()} {self.get_builder_dir()} {self.get_builder_dir() / 'build'} {self.get_builder_dir() / 'plugins'} {self.get_builder_dir() / 'distfiles'} "
-            #     f"&& sudo chown -R {self.get_user()}:{self.get_group()} {self.get_builder_dir()}'",
-            # ]
-            # subprocess.run(
-            #     prep_cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True
-            # )
-            #
-            # # copy-in hook
-            # for src_in, dst_in in copy_in or []:
-            #     self.copy_in(dispvm, source_path=src_in, destination_dir=dst_in)
-            #
-            # # replace placeholders
-            # if files_inside_executor_with_placeholders and isinstance(
-            #     files_inside_executor_with_placeholders, list
-            # ):
-            #     files = [
-            #         self.replace_placeholders(str(f))
-            #         for f in files_inside_executor_with_placeholders
-            #     ]
-            #     sed_cmd = [
-            #         f"sed -i 's#@BUILDER_DIR@#{self.get_builder_dir()}#g' {' '.join(files)}"
-            #     ]
-            #     if sed_cmd:
-            #         sed_cmd = [c.replace("'", "'\\''") for c in sed_cmd]
-            #         sed_cmd = [
-            #             "/usr/bin/qvm-run-vm",
-            #             dispvm,
-            #             f'bash -c \'{" && ".join(sed_cmd)}\'',
-            #         ]
-            #         subprocess.run(
-            #             sed_cmd,
-            #             stdin=subprocess.DEVNULL,
-            #             capture_output=True,
-            #             check=True,
-            #         )
-            #
-            # bash_env = []
-            # if environment:
-            #     for key, val in environment.items():
-            #         bash_env.append(f"{str(key)}='{str(val)}'")
-            #
-            # cmd = [c.replace("'", "'\\''") for c in cmd]
-            # qvm_run_cmd = [
-            #     "/usr/bin/qvm-run-vm",
-            #     dispvm,
-            #     f'env {" ".join(bash_env)} bash -c \'{" && ".join(cmd)}\'',
-            # ]
-            #
-            # log.info(f"Executing '{' '.join(qvm_run_cmd)}'.")
-            #
-            # # stream output for command
-            # process = subprocess.Popen(
-            #     qvm_run_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-            # )
-            # while True:
-            #     if not process.stdout:
-            #         log.error(f"No output!")
-            #         break
-            #     for line in process.stdout:
-            #         line = sanitize_line(line.rstrip(b"\n")).rstrip()
-            #         log.info(f"output: {str(line)}")
-            #     if process.poll() is not None:
-            #         break
-            # rc = process.poll()
-            # if rc != 0:
-            #     raise ExecutorError(
-            #         f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
-            #     )
-            #
-            # # copy-out hook
-            # for src_out, dst_out in copy_out or []:
-            #     try:
-            #         self.copy_out(
-            #             dispvm,
-            #             source_path=src_out,
-            #             destination_dir=dst_out,
-            #             dig_holes=dig_holes,
-            #         )
-            #     except ExecutorError as e:
-            #         # Ignore copy-out failure if requested
-            #         if isinstance(no_fail_copy_out_allowed_patterns, list) and any(
-            #             [p in src_out.name for p in no_fail_copy_out_allowed_patterns]
-            #         ):
-            #             log.warning(f"File not found inside container: {src_out}.")
-            #             continue
-            #         raise e
+
+
         finally:
             # Kill the DispVM to prevent hanging for while
             if dispvm and self._clean:
