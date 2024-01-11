@@ -39,6 +39,7 @@ distributions:
   - host-fc37
   - vm-bullseye
   - vm-bookworm
+  - vm-trixie
   - vm-fc36
   - vm-fc37
   - vm-fc38
