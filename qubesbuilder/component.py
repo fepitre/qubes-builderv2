@@ -20,9 +20,14 @@
 import hashlib
 import re
 import subprocess
-from _sha512 import sha512
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    try:
+        from _hashlib import HASH
+    except ModuleNotFoundError:
+        from _sha512 import sha512 as HASH
 
 import pathspec
 import yaml
@@ -219,13 +224,13 @@ class QubesComponent:
         return rendered_data
 
     @staticmethod
-    def _update_hash_from_file(filename: Path, hash: sha512):
+    def _update_hash_from_file(filename: Path, hash: "HASH"):
         with open(str(filename), "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash.update(chunk)
         return hash
 
-    def _update_hash_from_dir(self, directory: Path, hash: sha512):
+    def _update_hash_from_dir(self, directory: Path, hash: "HASH"):
         if not directory.exists() or not directory.is_dir():
             raise ComponentError(f"Cannot find '{directory}'.")
         paths = [name for name in Path(directory).iterdir()]
