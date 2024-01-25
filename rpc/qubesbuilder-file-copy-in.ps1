@@ -47,7 +47,7 @@ try {
     # Recreate directory
     New-Item -ItemType Directory -Path "Q:\builder\incoming" | Out-Null
 
-    $fileReceiver = $env:QUBES_TOOLS + "qubes-rpc-services\file-receiver.exe"
+    $fileReceiver = Join-Path $env:QUBES_TOOLS "qubes-rpc-services\file-receiver.exe"
     Start-Process -FilePath $fileReceiver -ArgumentList "Q:\builder\incoming" -LoadUserProfile -NoNewWindow -Wait
 
     # Create destination directory
