@@ -32,15 +32,14 @@ function Decode {
 
 try {
     $decodedPart = Decode $args[0]
-    $dst = Get-Item $decodedPart
 
     # Get destination path and extract components
-    $bn = $dst.Name
-    $dn = $dst.Directory.FullName
+    $dstLeaf = Split-Path $decodedPart -Leaf
+    $dstPath = Split-Path $decodedPart -Parent
 
     # Get user and group ID
-    $uid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-    $gid = [System.Security.Principal.WindowsIdentity]::GetCurrent().Groups[0].Value
+    #$uid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    #$gid = [System.Security.Principal.WindowsIdentity]::GetCurrent().Groups[0].Value
 
     # Remove directory and ignore errors
     Remove-Item -Path "Q:\builder\incoming" -Recurse -ErrorAction SilentlyContinue
@@ -49,7 +48,14 @@ try {
     New-Item -ItemType Directory -Path "Q:\builder\incoming" | Out-Null
 
     $fileReceiver = $env:QUBES_TOOLS + "qubes-rpc-services\file-receiver.exe"
-    Start-Process -FilePath $fileReceiver -ArgumentList $decodedPart -LoadUserProfile -NoNewWindow -PassThru -Wait
+    Start-Process -FilePath $fileReceiver -ArgumentList "Q:\builder\incoming" -LoadUserProfile -NoNewWindow -Wait
+
+    # Create destination directory
+    New-Item -ItemType Directory -Path $dstPath -Force | Out-Null
+
+    # Move incoming content to the destination directory
+    $incomingPath = Join-Path "Q:\builder\incoming" $dstLeaf
+    Move-Item -Force $incomingPath $dstPath
 } catch [DecodeError] {
     Write-Output $_.Exception.Message
 }
