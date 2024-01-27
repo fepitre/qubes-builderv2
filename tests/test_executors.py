@@ -237,7 +237,7 @@ def test_qubes_windows_simple():
         copy_out = [(PureWindowsPath("C:\\temp\\hello.md"), Path(temp_dir))]
 
         # Command that appends a line to the file
-        cmd = ["echo It works! >> C:\\temp\\hello.md"]
+        cmd = ["echo It works!>> C:\\temp\\hello.md"]
 
         # Execute the command
 

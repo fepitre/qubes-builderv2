@@ -39,10 +39,8 @@ class Executor(ABC):
     Base executor class
     """
 
-    _builder_dir = Path("/builder")
-
     def get_builder_dir(self):
-        return self._builder_dir
+        raise NotImplementedError
 
     def get_build_dir(self):
         return self.get_builder_dir() / "build"

@@ -56,9 +56,36 @@ def build_run_cmd(vm_name: str, cmd: List[Union[str, Path]]) -> List[str]:
 
 
 def build_run_cmd_and_list(
-    vm_name: str, cmds: List[List[Union[str, Path]]]
+        vm_name: str, cmds: List[List[Union[str, Path]]]
 ) -> List[str]:
     return ["/usr/bin/qvm-run-vm", "--", vm_name, quote_and_list(cmds)]
+
+
+def winquote_list(args: List[Union[str, Path]]) -> str:
+    # FIXME
+    return " ".join(args)
+
+
+def winquote_and_list(cmds: List[List[Union[str, Path]]]) -> str:
+    return " && ".join(map(winquote_list, cmds))
+
+
+def winbuild_run_cmd(vm_name: str, cmd: List[Union[str, Path]]) -> List[str]:
+    return [
+        "/usr/lib/qubes/qrexec-client-vm",
+        "--filter-escape-chars-stderr",
+        vm_name,
+        f"qubes.VMExec+{encode_for_vmexec(winquote_list(cmd))}",
+    ]
+
+
+def winbuild_run_cmd_and_list(vm_name: str, cmds: List[List[Union[str, Path]]]) -> List[str]:
+    return [
+        "/usr/lib/qubes/qrexec-client-vm",
+        "--filter-escape-chars-stderr",
+        vm_name,
+        f"qubes.VMExec+{encode_for_vmexec(winquote_and_list(cmds))}"
+    ]
 
 
 class QubesExecutor(Executor):
@@ -96,7 +123,7 @@ class QubesExecutor(Executor):
             raise ExecutorError from e
 
     def copy_out(
-        self, vm, source_path: PurePath, destination_dir: Path, dig_holes=False
+            self, vm, source_path: PurePath, destination_dir: Path, dig_holes=False
     ):  # type: ignore
         src = source_path
         dst = destination_dir.resolve()
@@ -144,15 +171,18 @@ class LinuxQubesExecutor(QubesExecutor):
     def __init__(self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs):
         super().__init__(dispvm=dispvm, clean=clean, **kwargs)
 
+    def get_builder_dir(self):
+        return PurePath("/builder")
+
     def run(  # type: ignore
-        self,
-        cmd: List[str],
-        copy_in: List[Tuple[Path, PurePath]] = None,
-        copy_out: List[Tuple[PurePath, Path]] = None,
-        files_inside_executor_with_placeholders: List[Path] = None,
-        environment: dict = None,
-        no_fail_copy_out_allowed_patterns=None,
-        dig_holes: bool = False,
+            self,
+            cmd: List[str],
+            copy_in: List[Tuple[Path, PurePath]] = None,
+            copy_out: List[Tuple[PurePath, Path]] = None,
+            files_inside_executor_with_placeholders: List[Path] = None,
+            environment: dict = None,
+            no_fail_copy_out_allowed_patterns=None,
+            dig_holes: bool = False,
     ):
 
         dispvm = None
@@ -236,7 +266,7 @@ class LinuxQubesExecutor(QubesExecutor):
 
             # replace placeholders
             if files_inside_executor_with_placeholders and isinstance(
-                files_inside_executor_with_placeholders, list
+                    files_inside_executor_with_placeholders, list
             ):
                 files = [
                     self.replace_placeholders(str(f))
@@ -319,7 +349,7 @@ class LinuxQubesExecutor(QubesExecutor):
                 except ExecutorError as e:
                     # Ignore copy-out failure if requested
                     if isinstance(no_fail_copy_out_allowed_patterns, list) and any(
-                        [p in src_out.name for p in no_fail_copy_out_allowed_patterns]
+                            [p in src_out.name for p in no_fail_copy_out_allowed_patterns]
                     ):
                         log.warning(f"File not found inside container: {src_out}.")
                         continue
@@ -338,43 +368,179 @@ class WindowsQubesExecutor(QubesExecutor):
     def __init__(self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs):
         super().__init__(dispvm=dispvm, clean=clean, **kwargs)
 
+    def get_builder_dir(self):
+        return PureWindowsPath("Q:\\builder")
+
     def run(  # type: ignore
-        self,
-        cmd: List[str],
-        copy_in: List[Tuple[Path, PurePath]] = None,
-        copy_out: List[Tuple[PurePath, Path]] = None,
-        files_inside_executor_with_placeholders: List[Path] = None,
-        environment: dict = None,
-        no_fail_copy_out_allowed_patterns=None,
-        dig_holes: bool = False,
+            self,
+            cmd: List[str],
+            copy_in: List[Tuple[Path, PurePath]] = None,
+            copy_out: List[Tuple[PurePath, Path]] = None,
+            files_inside_executor_with_placeholders: List[Path] = None,
+            environment: dict = None,
+            no_fail_copy_out_allowed_patterns=None,
+            dig_holes: bool = False,
     ):
 
         dispvm = None
         try:
-            # src = (PROJECT_PATH / "README.md").expanduser().resolve()
-            # dst = PureWindowsPath("C:\\somewhere")
-            # encoded_dst_path = encode_for_vmexec(str(dst))
+            # result = subprocess.run(
+            #     ["qrexec-client-vm", "--", self._dispvm, "admin.vm.CreateDisposable"],
+            #     capture_output=True,
+            #     stdin=subprocess.DEVNULL,
+            # )
+            # stdout = result.stdout
+            # if not stdout.startswith(b"0\x00"):
+            #     raise ExecutorError("Failed to create disposable qube")
+            # stdout = stdout[2:]
+            # if not re.match(rb"\Adisp(0|[1-9][0-9]{0,8})\Z", stdout):
+            #     raise ExecutorError("Failed to create disposable qube.")
+            # dispvm = stdout.decode("ascii", "strict")
+            dispvm = "windows-10-build"
+
+            # Adjust log namespace
+            log.name = f"executor:qubes:{dispvm}"
 
             # Start the DispVM by copying qubes-builder RPC
             copy_rpc_cmd = [
                 "/usr/lib/qubes/qrexec-client-vm",
                 "--filter-escape-chars-stderr",
-                "windows-10-build",
-                f"qubes.Filecopy",
+                dispvm,
+                "qubes.Filecopy",
                 "/usr/lib/qubes/qfile-agent",
-                str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyIn"),
-                str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyOut"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder.WinFileCopyIn"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder.WinFileCopyOut"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder-file-copy-in.ps1"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder-file-copy-out.ps1"),
             ]
-            subprocess.run(
-                copy_rpc_cmd, stdin=subprocess.DEVNULL, capture_output=True
+            # subprocess.run(
+            #     copy_rpc_cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True
+            # )
+            incoming_path = PureWindowsPath(
+                f"C:\\Users\\{self.get_user()}\\Documents\\QubesIncoming\\{os.uname().nodename}")
+            qubes_tools_path = PureWindowsPath(
+                "C:\\Program Files\\Invisible Things Lab\\Qubes Tools")
+            rpc_path = qubes_tools_path / "qubes-rpc"
+            rpc_services_path = qubes_tools_path / "qubes-rpc-services"
+            prep_cmd = winbuild_run_cmd_and_list(
+                dispvm,
+                [
+                    [
+                        "move",
+                        "/Y",
+                        f'"{str(incoming_path / "qubesbuilder.WinFileCopyIn")}"',
+                        f'"{str(rpc_path / "qubesbuilder.FileCopyIn")}"'
+                    ],
+                    [
+                        "move",
+                        "/Y",
+                        f'"{str(incoming_path / "qubesbuilder.WinFileCopyOut")}"',
+                        f'"{str(rpc_path / "qubesbuilder.FileCopyOut")}"'
+                    ],
+                    [
+                        "move",
+                        "/Y",
+                        f'"{str(incoming_path / "qubesbuilder-file-copy-*.ps1")}"',
+                        f'"{str(rpc_services_path)}"'
+                    ]
+                ],
+            )
+            subprocess.run(prep_cmd, capture_output=True, stdin=subprocess.DEVNULL, check=True)
+
+            # copy-in hook
+            for src_in, dst_in in copy_in or []:
+                self.copy_in(dispvm, source_path=src_in, destination_dir=dst_in)
+
+            # FIXME: replace placeholders
+
+            batch_cmd = []
+            if environment:
+                for key, val in environment.items():
+                    if "=" in str(key):
+                        raise ExecutorError(
+                            "Environment variable name cannot contain '='"
+                        )
+                    batch_cmd.append(f"set {str(key)}={str(val)}")
+
+            qvm_run_cmd = winbuild_run_cmd(
+                dispvm,
+                [
+                    "cmd",
+                    "/C",
+                    " && ".join(batch_cmd + cmd),
+                ],
             )
 
+            log.info(f"Executing '{' '.join(qvm_run_cmd)}'.")
 
+            # stream output for command
+            process = subprocess.Popen(
+                qvm_run_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+            )
+            while True:
+                if not process.stdout:
+                    log.error(f"No output!")
+                    break
+                for line in process.stdout:
+                    line = sanitize_line(line.rstrip(b"\n")).rstrip()
+                    log.info(f"output: {str(line)}")
+                if process.poll() is not None:
+                    break
+            rc = process.poll()
+            if rc != 0:
+                raise ExecutorError(
+                    f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
+                )
+
+            # copy-out hook
+            for src_out, dst_out in copy_out or []:
+                try:
+                    self.copy_out(
+                        dispvm,
+                        source_path=src_out,
+                        destination_dir=dst_out,
+                        dig_holes=dig_holes,
+                    )
+                except ExecutorError as e:
+                    # Ignore copy-out failure if requested
+                    if isinstance(no_fail_copy_out_allowed_patterns, list) and any(
+                            [p in src_out.name for p in no_fail_copy_out_allowed_patterns]
+                    ):
+                        log.warning(f"File not found inside container: {src_out}.")
+                        continue
+                    raise e
         finally:
             # Kill the DispVM to prevent hanging for while
             if dispvm and self._clean:
                 subprocess.run(
-                    ["qrexec-client-vm", dispvm, "admin.vm.Kill"],
+                    ["qrexec-client-vm", "--", dispvm, "admin.vm.Kill"],
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL,
                 )
+        # dispvm = None
+        # try:
+        #     # src = (PROJECT_PATH / "README.md").expanduser().resolve()
+        #     # dst = PureWindowsPath("C:\\somewhere")
+        #     # encoded_dst_path = encode_for_vmexec(str(dst))
+        #
+        #     # Start the DispVM by copying qubes-builder RPC
+        #     copy_rpc_cmd = [
+        #         "/usr/lib/qubes/qrexec-client-vm",
+        #         "--filter-escape-chars-stderr",
+        #         "windows-10-build",
+        #         f"qubes.Filecopy",
+        #         "/usr/lib/qubes/qfile-agent",
+        #         str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyIn"),
+        #         str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyOut"),
+        #     ]
+        #     subprocess.run(
+        #         copy_rpc_cmd, stdin=subprocess.DEVNULL, capture_output=True
+        #     )
+        # finally:
+        #     # Kill the DispVM to prevent hanging for while
+        #     if dispvm and self._clean:
+        #         subprocess.run(
+        #             ["qrexec-client-vm", dispvm, "admin.vm.Kill"],
+        #             stdin=subprocess.DEVNULL,
+        #             stdout=subprocess.DEVNULL,
+        #         )

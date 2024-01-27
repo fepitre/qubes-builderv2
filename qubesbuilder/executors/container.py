@@ -83,6 +83,9 @@ class ContainerExecutor(Executor):
 
         self.attrs = docker_image.attrs
 
+    def get_builder_dir(self):
+        return PurePath("/builder")
+
     @contextmanager
     def get_client(self):
         try:
