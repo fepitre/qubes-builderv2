@@ -211,7 +211,7 @@ class ContainerExecutor(Executor):
                 log.info(f"Executing '{final_cmd}'.")
 
                 # copy-in hook
-                for src_in, dst_in in set(copy_in) or []:
+                for src_in, dst_in in set(copy_in or []):
                     self.copy_in(container, source_path=src_in, destination_dir=dst_in)
 
                 # FIXME: Use attach method when podman-py will implement.
@@ -235,7 +235,7 @@ class ContainerExecutor(Executor):
                     raise ExecutorError(f"Failed to run '{final_cmd}' (status={rc}).")
 
                 # copy-out hook
-                for src_out, dst_out in set(copy_out) or []:
+                for src_out, dst_out in set(copy_out or []):
                     try:
                         self.copy_out(
                             container, source_path=src_out, destination_dir=dst_out
