@@ -231,7 +231,7 @@ class LinuxQubesExecutor(QubesExecutor):
             subprocess.run(prep_cmd, stdin=subprocess.DEVNULL)
 
             # copy-in hook
-            for src_in, dst_in in copy_in or []:
+            for src_in, dst_in in set(copy_in) or []:
                 self.copy_in(dispvm, source_path=src_in, destination_dir=dst_in)
 
             # replace placeholders
@@ -308,7 +308,7 @@ class LinuxQubesExecutor(QubesExecutor):
                 )
 
             # copy-out hook
-            for src_out, dst_out in copy_out or []:
+            for src_out, dst_out in set(copy_out) or []:
                 try:
                     self.copy_out(
                         dispvm,
