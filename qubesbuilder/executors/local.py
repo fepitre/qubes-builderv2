@@ -102,7 +102,7 @@ class LocalExecutor(Executor):
             log.name = f"executor:local:{self._builder_dir}"
 
             # copy-in hook
-            for src, dst in set(copy_in or []):
+            for src, dst in sorted(set(copy_in or []), key=lambda x: x[1]):
                 self.copy_in(
                     source_path=src,
                     destination_dir=dst,
@@ -153,7 +153,7 @@ class LocalExecutor(Executor):
                 raise ExecutorError(f"Failed to run '{final_cmd}' (status={rc}).")
 
             # copy-out hook
-            for src, dst in set(copy_out or []):
+            for src, dst in sorted(set(copy_out or []), key=lambda x: x[1]):
                 try:
                     self.copy_out(source_path=src, destination_dir=dst)
                 except ExecutorError as e:
