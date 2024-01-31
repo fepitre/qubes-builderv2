@@ -180,6 +180,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_deb/keys"),
                 }
             )
+            self.environment.update(
+                {
+                    "DEBIAN_MIRRORS": " ".join(
+                        self.config.get("mirrors", {}).get(self.dist.fullname, [])
+                    )
+                }
+            )
             if self.template.flavor in (
                 "whonix-gateway",
                 "whonix-workstation",
@@ -232,6 +239,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "KEYS_DIR": str(
                         executor.get_sources_dir() / "builder-archlinux/keys"
                     ),
+                }
+            )
+            self.environment.update(
+                {
+                    "ARCHLINUX_MIRROR": ",".join(
+                        self.config.get("mirrors", {}).get(self.dist.name, [])
+                    )
                 }
             )
         elif self.template.distribution.is_gentoo():

@@ -762,6 +762,12 @@ Options available in `builder.yml`:
 
 - `automatic-upload-on-publish: bool` --- Automatic upload on publish/unpublish.
 
+- `mirrors: List[Dict]` --- List of distributions mirrors.
+  - `<distribution_name>: List[str]` --- List of mirrors to be used in builder plugins.
+
+> Remark: `mirrors` support is partially implemented for now. It supports ArchLinux and Debian for template build only.
+> With respect to legacy builder, it allows to provide values for `ARCHLINUX_MIRROR` and `DEBIAN_MIRRORS`.
+
 ### Fine-grained control of executors
 To enable a more detailed control over executor options passed to stages, values are assigned and updated for the `stages` parameter according to the following order:
 1. The primary definition of `stages` at the top level,
