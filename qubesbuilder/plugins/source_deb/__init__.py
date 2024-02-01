@@ -238,13 +238,14 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
 
             if package_type == "quilt":
                 if self.component.is_salt():
-                    copy_in += [
-                        (
-                            self.manager.entities["source"].directory
-                            / "salt/Makefile.install",
-                            source_dir,
-                        )
-                    ]
+                    if not (self.component.source_dir / "Makefile.install").exists():
+                        copy_in += [
+                            (
+                                self.manager.entities["source"].directory
+                                / "salt/Makefile.install",
+                                source_dir,
+                            )
+                        ]
                     cmd += [
                         f"{executor.get_plugins_dir()}/source/salt/yaml-dumper "
                         "--env VERBOSE "
