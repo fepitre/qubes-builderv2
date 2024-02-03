@@ -297,10 +297,12 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 # We don't need builder-local to create fresh chroot
                 cmd += [
                     f"sudo jinja2 {pacman_conf} -o /tmp/pacman-qubes.conf",
+                    f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-mirrorlist {executor.get_builder_dir()}",
                 ] + get_archchroot_cmd(
                     executor.get_cache_dir() / "qubes-x86_64/root",
                     "/tmp/pacman-qubes.conf",
                     "/usr/local/share/devtools/makepkg-x86_64.conf",
+                    executor.get_builder_dir() / "mirrorlist",
                 )
 
             if self.config.use_qubes_repo.get("version", None):

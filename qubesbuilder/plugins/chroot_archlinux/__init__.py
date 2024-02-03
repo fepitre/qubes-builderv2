@@ -28,7 +28,9 @@ from qubesbuilder.plugins.chroot import ChrootError, ChrootPlugin
 log = get_logger("chroot_archlinux")
 
 
-def get_archchroot_cmd(chroot_dir, pacman_conf, makepkg_conf, additional_packages=None):
+def get_archchroot_cmd(
+    chroot_dir, pacman_conf, makepkg_conf, mirrorlist, additional_packages=None
+):
     cmd = [f"sudo jinja2 {pacman_conf} -o /usr/local/share/devtools/qubes-x86_64.conf"]
     additional_packages = additional_packages or []
     mkarchchroot_cmd = [
@@ -36,6 +38,8 @@ def get_archchroot_cmd(chroot_dir, pacman_conf, makepkg_conf, additional_package
         "mkarchroot",
         "-C",
         "/usr/local/share/devtools/qubes-x86_64.conf",
+        "-f",
+        f"{mirrorlist}:/etc/pacman.d/mirrorlist",
         "-M",
         str(makepkg_conf),
         str(chroot_dir),
@@ -95,17 +99,21 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
                 executor.get_plugins_dir(),
             ),
         ] + [
-            (self.manager.entities[dependency].directory, executor.get_plugins_dir())
+            (
+                self.manager.entities[dependency].directory,
+                executor.get_plugins_dir(),
+            )
             for dependency in self.dependencies
         ]
-
         self.environment.update(
             {
                 "DIST": self.dist.name,
                 "PACKAGE_SET": self.dist.package_set,
+                "ARCHLINUX_MIRRORS": " ".join(
+                    self.config.get("mirrors", {}).get(self.dist.name, [])
+                ),
             }
         )
-
         copy_out = [
             (
                 executor.get_cache_dir() / chroot_archive,
@@ -125,12 +133,17 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
             .get(self.dist.distribution, {})
             .get("packages", [])
         )
-        cmd = get_archchroot_cmd(
+        cmd = [
+            f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-mirrorlist {executor.get_builder_dir()}"
+        ]
+        cmd += get_archchroot_cmd(
             chroot_dir,
             pacman_conf,
             makepkg_conf,
+            executor.get_builder_dir() / "mirrorlist",
             additional_packages=additional_packages,
-        ) + [
+        )
+        cmd += [
             f"cd {executor.get_cache_dir()}",
             f"sudo tar cf {chroot_archive} {chroot_name}",
         ]

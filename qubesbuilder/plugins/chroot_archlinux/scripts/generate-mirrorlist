@@ -1,0 +1,12 @@
+#!/bin/bash
+
+DESTDIR="$1"
+
+DEFAULT_ARCHLINUX_MIRRORS="https://mirror.rackspace.com/archlinux https://arch.mirror.constant.com https://mirror.f4st.host/archlinux https://mirrors.edge.kernel.org/archlinux"
+ARCHLINUX_MIRRORS="${ARCHLINUX_MIRRORS:-$DEFAULT_ARCHLINUX_MIRRORS}"
+
+read -r -a ARCHLINUX_MIRRORS <<< "$ARCHLINUX_MIRRORS"
+
+for MIRROR_ENTRY in "${ARCHLINUX_MIRRORS[@]}"; do
+    echo "Server = $MIRROR_ENTRY/\$repo/os/\$arch"
+done > "$DESTDIR/mirrorlist"
