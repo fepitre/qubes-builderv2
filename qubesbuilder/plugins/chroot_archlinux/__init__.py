@@ -31,13 +31,15 @@ log = get_logger("chroot_archlinux")
 def get_archchroot_cmd(
     chroot_dir, pacman_conf, makepkg_conf, mirrorlist, additional_packages=None
 ):
-    cmd = [f"sudo jinja2 {pacman_conf} -o /usr/local/share/devtools/qubes-x86_64.conf"]
+    cmd = [
+        f"sudo jinja2 {pacman_conf} -o /usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
+    ]
     additional_packages = additional_packages or []
     mkarchchroot_cmd = [
         "sudo",
         "mkarchroot",
         "-C",
-        "/usr/local/share/devtools/qubes-x86_64.conf",
+        "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf",
         "-f",
         f"{mirrorlist}:/etc/pacman.d/mirrorlist",
         "-M",

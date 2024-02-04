@@ -265,8 +265,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     )
 
             cmd = [
-                f"sudo jinja2 {pacman_conf} {' '.join(jinja2_options)} -o /usr/local/share/devtools/pacman-qubes.conf",
-                f"sudo cp {makepkg_conf} /usr/local/share/devtools/",
+                f"sudo jinja2 {pacman_conf} {' '.join(jinja2_options)} -o /usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf",
+                f"sudo cp {makepkg_conf} /usr/local/share/devtools/makepkg.conf.d/qubes-x86_64.conf",
             ]
 
             chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
