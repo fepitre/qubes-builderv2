@@ -15,7 +15,7 @@ RUN dnf -y update && \
 # Install devtools for Archlinux
 RUN git clone -n https://gitlab.archlinux.org/fepitre/devtools && \
 	cd devtools && \
-	git checkout devel20240203 && \
+	git checkout 69ecbff0d3425efcdb27a4789f184d4108c1a5c3 && \
 	make install DESTDIR=/ PREFIX=/usr/local && \
 	ln -s /usr/local/bin/archbuild /usr/local/bin/qubes-x86_64-build
 
