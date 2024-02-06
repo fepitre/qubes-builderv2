@@ -45,6 +45,7 @@ class LocalExecutor(Executor):
         self._directory = directory
         self._temporary_dir = Path(self._directory).expanduser().resolve() / random_path
         self._builder_dir = self._temporary_dir / "builder"
+        self._builder_dir_exists = False
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
 
@@ -90,7 +91,8 @@ class LocalExecutor(Executor):
         # Create temporary builder directory. In an unlikely case of conflict,
         # run will abort instead of using unsafe directory.
         try:
-            self._builder_dir.mkdir(parents=True)
+            self._builder_dir.mkdir(parents=True, exist_ok=self._builder_dir_exists)
+            self._builder_dir_exists = True
         except (FileNotFoundError, OSError) as e:
             raise ExecutorError(
                 f"Failed to create temporary builder directory: {str(e)}"
