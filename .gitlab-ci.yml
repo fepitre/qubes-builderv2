@@ -274,10 +274,25 @@ pytest-cli-repository:
   script:
     - pytest-3 $PYTEST_ARGS tests/test_cli_repository.py -k test_repository_
 
+pytest-cli-component-host-fc37:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_host_fc37_
+
+pytest-cli-component-vm-bullseye:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_vm_bullseye
+
+pytest-cli-component-vm-archlinux:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_vm_archlinux
+
 pytest-cli-component:
   extends: .pytest
   script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_common_
 
 pytest-cli-increment-component:
   extends: .pytest

@@ -16,7 +16,7 @@ from dateutil.parser import parse as parsedate
 from qubesbuilder.common import PROJECT_PATH
 
 DEFAULT_BUILDER_CONF = PROJECT_PATH / "tests/builder-ci.yml"
-HASH_RE = re.compile("[a-f0-9]{40}")
+HASH_RE = re.compile(r"[a-f0-9]{40}")
 
 
 @pytest.fixture

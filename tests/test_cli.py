@@ -16,7 +16,7 @@ from dateutil.parser import parse as parsedate
 from qubesbuilder.common import PROJECT_PATH
 
 DEFAULT_BUILDER_CONF = PROJECT_PATH / "tests/builder-ci.yml"
-HASH_RE = re.compile("[a-f0-9]{40}")
+HASH_RE = re.compile(r"[a-f0-9]{40}")
 
 
 @pytest.fixture(scope="session")
@@ -86,7 +86,7 @@ def rpm_packages_list(repository_dir):
 #
 
 
-def test_config(artifacts_dir):
+def test_common_config(artifacts_dir):
     with tempfile.TemporaryDirectory() as tmpdir:
         include_path = os.path.join(tmpdir, "include1.yml")
         with open(include_path, "w") as f:
@@ -142,24 +142,11 @@ def test_config(artifacts_dir):
 
 
 #
-# Init cache
-#
-
-
-def test_component_init_cache(artifacts_dir):
-    qb_call(DEFAULT_BUILDER_CONF, artifacts_dir, "package", "init-cache")
-
-    assert (artifacts_dir / "cache/chroot/fc37/mock/fedora-37-x86_64").exists()
-    assert (artifacts_dir / "cache/chroot/bullseye/pbuilder/base.tgz").exists()
-    assert (artifacts_dir / "cache/chroot/fc36/mock/fedora-36-x86_64").exists()
-
-
-#
 # Fetch
 #
 
 
-def test_component_fetch(artifacts_dir):
+def test_common_component_fetch(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -184,7 +171,7 @@ def test_component_fetch(artifacts_dir):
     assert "Enough distinct tag signatures. Found 3, mandatory minimum is 3." in result
 
 
-def test_component_fetch_updating(artifacts_dir):
+def test_common_component_fetch_updating(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -209,7 +196,14 @@ def test_component_fetch_updating(artifacts_dir):
 #
 
 
-def test_component_prep_host_fc37(artifacts_dir):
+def test_component_host_fc37_init_cache(artifacts_dir):
+    qb_call(
+        DEFAULT_BUILDER_CONF, artifacts_dir, "-d", "host-fc37", "package", "init-cache"
+    )
+    assert (artifacts_dir / "cache/chroot/fc37/mock/fedora-37-x86_64").exists()
+
+
+def test_component_host_fc37_prep(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -218,6 +212,7 @@ def test_component_prep_host_fc37(artifacts_dir):
         "-d",
         "host-fc37",
         "package",
+        "fetch",
         "prep",
     )
 
@@ -260,7 +255,7 @@ def test_component_prep_host_fc37(artifacts_dir):
     assert info.get("srpm", None) == srpm
 
 
-def test_component_build_host_fc37(artifacts_dir):
+def test_component_host_fc37_build(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -321,7 +316,7 @@ def test_component_build_host_fc37(artifacts_dir):
     ).exists()
 
 
-def test_component_sign_host_fc37(artifacts_dir):
+def test_component_host_fc37_sign(artifacts_dir):
     env = os.environ.copy()
 
     buildinfo = (
@@ -390,7 +385,7 @@ def test_component_sign_host_fc37(artifacts_dir):
     assert signed_buildinfo_number_lines > buildinfo_number_lines + 4
 
 
-def test_component_publish_host_fc37(artifacts_dir):
+def test_component_host_fc37_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -601,7 +596,7 @@ def test_component_publish_host_fc37(artifacts_dir):
         assert set(rpms) == set(packages)
 
 
-def test_component_upload_host_fc37(artifacts_dir):
+def test_component_host_fc37_upload(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -668,7 +663,7 @@ repository-upload-remote-host:
 # Check that we properly ignore already done stages.
 
 
-def test_component_prep_host_fc37_skip(artifacts_dir):
+def test_component_host_fc37_prep_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -687,7 +682,7 @@ def test_component_prep_host_fc37_skip(artifacts_dir):
     )
 
 
-def test_component_build_host_fc37_skip(artifacts_dir):
+def test_component_host_fc37_build_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -706,7 +701,7 @@ def test_component_build_host_fc37_skip(artifacts_dir):
     )
 
 
-def test_component_sign_host_fc37_skip(artifacts_dir):
+def test_component_host_fc37_sign_skip(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -748,7 +743,7 @@ def test_component_sign_host_fc37_skip(artifacts_dir):
 # Check that we unpublish properly from current-testing
 
 
-def test_component_unpublish_host_fc37(artifacts_dir):
+def test_component_host_fc37_unpublish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -846,13 +841,24 @@ def test_component_unpublish_host_fc37(artifacts_dir):
     assert "[upload]" in result
 
 
-
 #
 # Pipeline for python-qasync and vm-bullseye
 #
 
 
-def test_component_prep_vm_bullseye(artifacts_dir):
+def test_component_vm_bullseye_init_cache(artifacts_dir):
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "vm-bullseye",
+        "package",
+        "init-cache",
+    )
+    assert (artifacts_dir / "cache/chroot/bullseye/pbuilder/base.tgz").exists()
+
+
+def test_component_vm_bullseye_prep(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -861,6 +867,7 @@ def test_component_prep_vm_bullseye(artifacts_dir):
         "-d",
         "vm-bullseye",
         "package",
+        "fetch",
         "prep",
     )
 
@@ -890,7 +897,7 @@ def test_component_prep_vm_bullseye(artifacts_dir):
     assert info.get("package-release-name-full", None) == package_release_name_full
 
 
-def test_component_build_vm_bullseye(artifacts_dir):
+def test_component_vm_bullseye_build(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -940,7 +947,7 @@ def test_component_build_vm_bullseye(artifacts_dir):
         assert result.returncode == 0
 
 
-def test_component_sign_vm_bullseye(artifacts_dir):
+def test_component_vm_bullseye_sign(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -989,7 +996,7 @@ def test_component_sign_vm_bullseye(artifacts_dir):
         assert result.returncode == 0
 
 
-def test_component_publish_vm_bullseye(artifacts_dir):
+def test_component_vm_bullseye_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1126,7 +1133,7 @@ def test_component_publish_vm_bullseye(artifacts_dir):
 # Check that we properly ignore already done stages.
 
 
-def test_component_prep_vm_bullseye_skip(artifacts_dir):
+def test_component_vm_bullseye_prep_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -1145,7 +1152,7 @@ def test_component_prep_vm_bullseye_skip(artifacts_dir):
     )
 
 
-def test_component_build_vm_bullseye_skip(artifacts_dir):
+def test_component_vm_bullseye_build_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -1164,7 +1171,7 @@ def test_component_build_vm_bullseye_skip(artifacts_dir):
     )
 
 
-def test_component_sign_vm_bullseye_skip(artifacts_dir):
+def test_component_vm_bullseye_sign_skip(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1193,7 +1200,7 @@ def test_component_sign_vm_bullseye_skip(artifacts_dir):
 # Check that we unpublish properly from current-testing
 
 
-def test_component_unpublish_vm_bullseye(artifacts_dir):
+def test_component_vm_bullseye_unpublish(artifacts_dir):
     # FIXME: we rely on previous test_publish_vm_bullseye being ran before
     repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
     for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
@@ -1408,7 +1415,19 @@ def test_increment_component_build(artifacts_dir):
 #
 
 
-def test_component_prep_vm_archlinux(artifacts_dir):
+def test_component_vm_archlinux_init_cache(artifacts_dir):
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "vm-archlinux",
+        "package",
+        "init-cache",
+    )
+    assert (artifacts_dir / "cache/chroot/archlinux/root.tar.gz").exists()
+
+
+def test_component_vm_archlinux_prep(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -1417,6 +1436,7 @@ def test_component_prep_vm_archlinux(artifacts_dir):
         "-d",
         "vm-archlinux",
         "package",
+        "fetch",
         "prep",
     )
 
@@ -1431,7 +1451,7 @@ def test_component_prep_vm_archlinux(artifacts_dir):
     assert HASH_RE.match(info.get("source-hash", None))
 
 
-def test_component_build_vm_archlinux(artifacts_dir):
+def test_component_vm_archlinux_build(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -1460,7 +1480,7 @@ def test_component_build_vm_archlinux(artifacts_dir):
     assert pkg_path.exists()
 
 
-def test_component_sign_vm_archlinux(artifacts_dir):
+def test_component_vm_archlinux_sign(artifacts_dir):
     env = os.environ.copy()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -1503,7 +1523,7 @@ def test_component_sign_vm_archlinux(artifacts_dir):
         )
 
 
-def test_component_publish_vm_archlinux(artifacts_dir):
+def test_component_vm_archlinux_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1620,7 +1640,7 @@ def test_component_publish_vm_archlinux(artifacts_dir):
         assert qubesdb_sig.exists()
 
 
-def test_component_upload_vm_archlinux(artifacts_dir):
+def test_component_vm_archlinux_upload(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1689,7 +1709,7 @@ repository-upload-remote-host:
 #
 
 
-def test_template_prep_fedora_36_xfce(artifacts_dir):
+def test_template_fedora_36_xfce_prep(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -1716,7 +1736,7 @@ def test_template_prep_fedora_36_xfce(artifacts_dir):
     assert (artifacts_dir / "templates/fedora-36-xfce/template.conf").exists()
 
 
-def test_template_build_fedora_36_xfce(artifacts_dir):
+def test_template_fedora_36_xfce_build(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -1738,7 +1758,7 @@ def test_template_build_fedora_36_xfce(artifacts_dir):
     assert rpm_path.exists()
 
 
-def test_template_sign_fedora_36_xfce(artifacts_dir):
+def test_template_fedora_36_xfce_sign(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1781,7 +1801,7 @@ def test_template_sign_fedora_36_xfce(artifacts_dir):
     assert "digests signatures OK" in result.stdout.decode()
 
 
-def test_template_publish_fedora_36_xfce(artifacts_dir):
+def test_template_fedora_36_xfce_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1868,7 +1888,7 @@ def test_template_publish_fedora_36_xfce(artifacts_dir):
 
 
 # @pytest.mark.depends(on=['test_template_publish_fedora_36_xfce'])
-def test_template_publish_new_fedora_36_xfce(artifacts_dir):
+def test_template_fedora_36_xfce_publish_new(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1883,7 +1903,9 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
         # bump timestamp, without re-running "prep" stage
-        new_timestamp = (parsedate(data[0]) + timedelta(minutes=1)).strftime("%Y%m%d%H%M")
+        new_timestamp = (parsedate(data[0]) + timedelta(minutes=1)).strftime(
+            "%Y%m%d%H%M"
+        )
         with open(artifacts_dir / "templates/build_timestamp_fedora-36-xfce", "w") as f:
             f.write(new_timestamp)
 
@@ -1982,7 +2004,7 @@ def test_template_publish_new_fedora_36_xfce(artifacts_dir):
         )
 
 
-def test_template_unpublish_fedora_36_xfce(artifacts_dir):
+def test_template_fedora_36_xfce_unpublish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
