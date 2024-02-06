@@ -654,9 +654,9 @@ repository-upload-remote-host:
         # vm-fc36 shouldn't exist, as nothing was published into it
         assert not (pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/vm/fc36").exists()
 
-        # and vm-bullseye same
+        # and vm-bookworm same
         assert not (
-            pathlib.Path(tmpdir) / f"repo/deb/r4.2/vm/dists/bullseye-unstable"
+            pathlib.Path(tmpdir) / f"repo/deb/r4.2/vm/dists/bookworm-unstable"
         ).exists()
 
 
@@ -842,30 +842,30 @@ def test_component_host_fc37_unpublish(artifacts_dir):
 
 
 #
-# Pipeline for python-qasync and vm-bullseye
+# Pipeline for python-qasync and vm-bookworm
 #
 
 
-def test_component_vm_bullseye_init_cache(artifacts_dir):
+def test_component_vm_bookworm_init_cache(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-d",
-        "vm-bullseye",
+        "vm-bookworm",
         "package",
         "init-cache",
     )
-    assert (artifacts_dir / "cache/chroot/bullseye/pbuilder/base.tgz").exists()
+    assert (artifacts_dir / "cache/chroot/bookworm/pbuilder/base.tgz").exists()
 
 
-def test_component_vm_bullseye_prep(artifacts_dir):
+def test_component_vm_bookworm_prep(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
         "python-qasync",
         "-d",
-        "vm-bullseye",
+        "vm-bookworm",
         "package",
         "fetch",
         "prep",
@@ -873,20 +873,20 @@ def test_component_vm_bullseye_prep(artifacts_dir):
 
     with open(
         artifacts_dir
-        / "components/python-qasync/0.23.0-2/vm-bullseye/prep/debian-pkg_debian.prep.yml"
+        / "components/python-qasync/0.23.0-2/vm-bookworm/prep/debian-pkg_debian.prep.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
     packages = [
-        "python3-qasync_0.23.0-2+deb11u1_all.deb",
-        "python3-qasync-dbgsym_0.23.0-2+deb11u1_all.deb",
-        "python3-qasync-dbgsym_0.23.0-2+deb11u1_all.ddeb",
+        "python3-qasync_0.23.0-2+deb12u1_all.deb",
+        "python3-qasync-dbgsym_0.23.0-2+deb12u1_all.deb",
+        "python3-qasync-dbgsym_0.23.0-2+deb12u1_all.ddeb",
     ]
-    debian = "python-qasync_0.23.0-2+deb11u1.debian.tar.xz"
-    dsc = "python-qasync_0.23.0-2+deb11u1.dsc"
+    debian = "python-qasync_0.23.0-2+deb12u1.debian.tar.xz"
+    dsc = "python-qasync_0.23.0-2+deb12u1.dsc"
     orig = "python-qasync_0.23.0.orig.tar.gz"
     package_release_name = "python-qasync_0.23.0"
-    package_release_name_full = "python-qasync_0.23.0-2+deb11u1"
+    package_release_name_full = "python-qasync_0.23.0-2+deb12u1"
 
     assert info.get("packages", []) == packages
     assert HASH_RE.match(info.get("source-hash", None))
@@ -897,30 +897,30 @@ def test_component_vm_bullseye_prep(artifacts_dir):
     assert info.get("package-release-name-full", None) == package_release_name_full
 
 
-def test_component_vm_bullseye_build(artifacts_dir):
+def test_component_vm_bookworm_build(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
         "python-qasync",
         "-d",
-        "vm-bullseye",
+        "vm-bookworm",
         "package",
         "build",
     )
 
     with open(
         artifacts_dir
-        / "components/python-qasync/0.23.0-2/vm-bullseye/build/debian-pkg_debian.build.yml"
+        / "components/python-qasync/0.23.0-2/vm-bookworm/build/debian-pkg_debian.build.yml"
     ) as f:
         info = yaml.safe_load(f.read())
 
-    packages = ["python3-qasync_0.23.0-2+deb11u1_all.deb"]
-    debian = "python-qasync_0.23.0-2+deb11u1.debian.tar.xz"
-    dsc = "python-qasync_0.23.0-2+deb11u1.dsc"
+    packages = ["python3-qasync_0.23.0-2+deb12u1_all.deb"]
+    debian = "python-qasync_0.23.0-2+deb12u1.debian.tar.xz"
+    dsc = "python-qasync_0.23.0-2+deb12u1.dsc"
     orig = "python-qasync_0.23.0.orig.tar.gz"
     package_release_name = "python-qasync_0.23.0"
-    package_release_name_full = "python-qasync_0.23.0-2+deb11u1"
+    package_release_name_full = "python-qasync_0.23.0-2+deb12u1"
 
     assert info.get("packages", []) == packages
     assert HASH_RE.match(info.get("source-hash", None))
@@ -931,13 +931,13 @@ def test_component_vm_bullseye_build(artifacts_dir):
     assert info.get("package-release-name-full", None) == package_release_name_full
 
     files = [
-        "python-qasync_0.23.0-2+deb11u1.dsc",
-        "python-qasync_0.23.0-2+deb11u1_amd64.changes",
-        "python-qasync_0.23.0-2+deb11u1_amd64.buildinfo",
+        "python-qasync_0.23.0-2+deb12u1.dsc",
+        "python-qasync_0.23.0-2+deb12u1_amd64.changes",
+        "python-qasync_0.23.0-2+deb12u1_amd64.buildinfo",
     ]
     for f in files:
         file_path = (
-            artifacts_dir / f"components/python-qasync/0.23.0-2/vm-bullseye/build/{f}"
+            artifacts_dir / f"components/python-qasync/0.23.0-2/vm-bookworm/build/{f}"
         )
         assert file_path.exists()
         result = subprocess.run(
@@ -947,7 +947,7 @@ def test_component_vm_bullseye_build(artifacts_dir):
         assert result.returncode == 0
 
 
-def test_component_vm_bullseye_sign(artifacts_dir):
+def test_component_vm_bookworm_sign(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -963,25 +963,25 @@ def test_component_vm_bullseye_sign(artifacts_dir):
             "-c",
             "python-qasync",
             "-d",
-            "vm-bullseye",
+            "vm-bookworm",
             "package",
             "sign",
             env=env,
         )
 
     keyring_dir = (
-        artifacts_dir / "components/python-qasync/0.23.0-2/vm-bullseye/sign/keyring"
+        artifacts_dir / "components/python-qasync/0.23.0-2/vm-bookworm/sign/keyring"
     )
     assert keyring_dir.exists()
 
     files = [
-        "python-qasync_0.23.0-2+deb11u1.dsc",
-        "python-qasync_0.23.0-2+deb11u1_amd64.changes",
-        "python-qasync_0.23.0-2+deb11u1_amd64.buildinfo",
+        "python-qasync_0.23.0-2+deb12u1.dsc",
+        "python-qasync_0.23.0-2+deb12u1_amd64.changes",
+        "python-qasync_0.23.0-2+deb12u1_amd64.buildinfo",
     ]
     for f in files:
         file_path = (
-            artifacts_dir / f"components/python-qasync/0.23.0-2/vm-bullseye/build/{f}"
+            artifacts_dir / f"components/python-qasync/0.23.0-2/vm-bookworm/build/{f}"
         )
         assert file_path.exists()
         result = subprocess.run(
@@ -996,7 +996,7 @@ def test_component_vm_bullseye_sign(artifacts_dir):
         assert result.returncode == 0
 
 
-def test_component_vm_bullseye_publish(artifacts_dir):
+def test_component_vm_bookworm_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1013,7 +1013,7 @@ def test_component_vm_bullseye_publish(artifacts_dir):
             "-c",
             "python-qasync",
             "-d",
-            "vm-bullseye",
+            "vm-bookworm",
             "repository",
             "publish",
             "unstable",
@@ -1022,16 +1022,16 @@ def test_component_vm_bullseye_publish(artifacts_dir):
 
         with open(
             artifacts_dir
-            / "components/python-qasync/0.23.0-2/vm-bullseye/publish/debian-pkg_debian.publish.yml"
+            / "components/python-qasync/0.23.0-2/vm-bookworm/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
-        packages = ["python3-qasync_0.23.0-2+deb11u1_all.deb"]
-        debian = "python-qasync_0.23.0-2+deb11u1.debian.tar.xz"
-        dsc = "python-qasync_0.23.0-2+deb11u1.dsc"
+        packages = ["python3-qasync_0.23.0-2+deb12u1_all.deb"]
+        debian = "python-qasync_0.23.0-2+deb12u1.debian.tar.xz"
+        dsc = "python-qasync_0.23.0-2+deb12u1.dsc"
         orig = "python-qasync_0.23.0.orig.tar.gz"
         package_release_name = "python-qasync_0.23.0"
-        package_release_name_full = "python-qasync_0.23.0-2+deb11u1"
+        package_release_name_full = "python-qasync_0.23.0-2+deb12u1"
 
         assert info.get("packages", []) == packages
         assert HASH_RE.match(info.get("source-hash", None))
@@ -1049,7 +1049,7 @@ def test_component_vm_bullseye_publish(artifacts_dir):
             "-c",
             "python-qasync",
             "-d",
-            "vm-bullseye",
+            "vm-bookworm",
             "repository",
             "publish",
             "current-testing",
@@ -1057,7 +1057,7 @@ def test_component_vm_bullseye_publish(artifacts_dir):
         )
         with open(
             artifacts_dir
-            / "components/python-qasync/0.23.0-2/vm-bullseye/publish/debian-pkg_debian.publish.yml"
+            / "components/python-qasync/0.23.0-2/vm-bookworm/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
@@ -1077,7 +1077,7 @@ def test_component_vm_bullseye_publish(artifacts_dir):
         fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
         publish_file = (
             artifacts_dir
-            / "components/python-qasync/0.23.0-2/vm-bullseye/publish/debian-pkg_debian.publish.yml"
+            / "components/python-qasync/0.23.0-2/vm-bookworm/publish/debian-pkg_debian.publish.yml"
         )
 
         for r in info["repository-publish"]:
@@ -1094,7 +1094,7 @@ def test_component_vm_bullseye_publish(artifacts_dir):
             "-c",
             "python-qasync",
             "-d",
-            "vm-bullseye",
+            "vm-bookworm",
             "repository",
             "publish",
             "current",
@@ -1118,11 +1118,11 @@ def test_component_vm_bullseye_publish(artifacts_dir):
 
     # Check that packages are in the published repositories
     repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
-    for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
+    for codename in ["bookworm-unstable", "bookworm-testing", "bookworm"]:
         packages = deb_packages_list(repository_dir, codename)
         expected_packages = [
-            f"{codename}|main|amd64: python3-qasync 0.23.0-2+deb11u1",
-            f"{codename}|main|source: python-qasync 0.23.0-2+deb11u1",
+            f"{codename}|main|amd64: python3-qasync 0.23.0-2+deb12u1",
+            f"{codename}|main|source: python-qasync 0.23.0-2+deb12u1",
         ]
         assert set(packages) == set(expected_packages)
         # verify if repository is signed
@@ -1133,45 +1133,45 @@ def test_component_vm_bullseye_publish(artifacts_dir):
 # Check that we properly ignore already done stages.
 
 
-def test_component_vm_bullseye_prep_skip(artifacts_dir):
+def test_component_vm_bookworm_prep_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
         "python-qasync",
         "-d",
-        "vm-bullseye",
+        "vm-bookworm",
         "package",
         "prep",
         stderr=subprocess.STDOUT,
     ).decode()
     print(result)
     assert (
-        "python-qasync:vm-debian-11.amd64: Source hash is the same than already prepared source. Skipping."
+        "python-qasync:vm-debian-12.amd64: Source hash is the same than already prepared source. Skipping."
         in result
     )
 
 
-def test_component_vm_bullseye_build_skip(artifacts_dir):
+def test_component_vm_bookworm_build_skip(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
         "python-qasync",
         "-d",
-        "vm-bullseye",
+        "vm-bookworm",
         "package",
         "build",
         stderr=subprocess.STDOUT,
     ).decode()
     print(result)
     assert (
-        "python-qasync:vm-debian-11.amd64: Source hash is the same than already built source. Skipping."
+        "python-qasync:vm-debian-12.amd64: Source hash is the same than already built source. Skipping."
         in result
     )
 
 
-def test_component_vm_bullseye_sign_skip(artifacts_dir):
+def test_component_vm_bookworm_sign_skip(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -1187,7 +1187,7 @@ def test_component_vm_bullseye_sign_skip(artifacts_dir):
             "-c",
             "python-qasync",
             "-d",
-            "vm-bullseye",
+            "vm-bookworm",
             "package",
             "sign",
             stderr=subprocess.STDOUT,
@@ -1200,14 +1200,14 @@ def test_component_vm_bullseye_sign_skip(artifacts_dir):
 # Check that we unpublish properly from current-testing
 
 
-def test_component_vm_bullseye_unpublish(artifacts_dir):
-    # FIXME: we rely on previous test_publish_vm_bullseye being ran before
+def test_component_vm_bookworm_unpublish(artifacts_dir):
+    # FIXME: we rely on previous test_publish_vm_bookworm being ran before
     repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
-    for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
+    for codename in ["bookworm-unstable", "bookworm-testing", "bookworm"]:
         packages = deb_packages_list(repository_dir, codename)
         expected_packages = [
-            f"{codename}|main|amd64: python3-qasync 0.23.0-2+deb11u1",
-            f"{codename}|main|source: python-qasync 0.23.0-2+deb11u1",
+            f"{codename}|main|amd64: python3-qasync 0.23.0-2+deb12u1",
+            f"{codename}|main|source: python-qasync 0.23.0-2+deb12u1",
         ]
         assert set(packages) == set(expected_packages)
 
@@ -1227,23 +1227,23 @@ def test_component_vm_bullseye_unpublish(artifacts_dir):
             "-c",
             "python-qasync",
             "-d",
-            "vm-bullseye",
+            "vm-bookworm",
             "repository",
             "unpublish",
             "current",
             env=env,
         )
 
-        packages = ["python3-qasync_0.23.0-2+deb11u1_all.deb"]
-        debian = "python-qasync_0.23.0-2+deb11u1.debian.tar.xz"
-        dsc = "python-qasync_0.23.0-2+deb11u1.dsc"
+        packages = ["python3-qasync_0.23.0-2+deb12u1_all.deb"]
+        debian = "python-qasync_0.23.0-2+deb12u1.debian.tar.xz"
+        dsc = "python-qasync_0.23.0-2+deb12u1.dsc"
         orig = "python-qasync_0.23.0.orig.tar.gz"
         package_release_name = "python-qasync_0.23.0"
-        package_release_name_full = "python-qasync_0.23.0-2+deb11u1"
+        package_release_name_full = "python-qasync_0.23.0-2+deb12u1"
 
         with open(
             artifacts_dir
-            / "components/python-qasync/0.23.0-2/vm-bullseye/publish/debian-pkg_debian.publish.yml"
+            / "components/python-qasync/0.23.0-2/vm-bookworm/publish/debian-pkg_debian.publish.yml"
         ) as f:
             info = yaml.safe_load(f.read())
 
@@ -1261,14 +1261,14 @@ def test_component_vm_bullseye_unpublish(artifacts_dir):
 
     # Check that packages are in the published repositories
     repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
-    for codename in ["bullseye-unstable", "bullseye-testing", "bullseye"]:
+    for codename in ["bookworm-unstable", "bookworm-testing", "bookworm"]:
         packages = deb_packages_list(repository_dir, codename)
-        if codename == "bullseye":
+        if codename == "bookworm":
             expected_packages = []
         else:
             expected_packages = [
-                f"{codename}|main|amd64: python3-qasync 0.23.0-2+deb11u1",
-                f"{codename}|main|source: python-qasync 0.23.0-2+deb11u1",
+                f"{codename}|main|amd64: python3-qasync 0.23.0-2+deb12u1",
+                f"{codename}|main|source: python-qasync 0.23.0-2+deb12u1",
             ]
         assert set(packages) == set(expected_packages)
 
@@ -1361,7 +1361,7 @@ def test_increment_component_build(artifacts_dir):
             "-d",
             "host-fc37",
             "-d",
-            "vm-bullseye",
+            "vm-bookworm",
             "package",
             "all",
             stderr=subprocess.STDOUT,
@@ -1391,22 +1391,22 @@ def test_increment_component_build(artifacts_dir):
         assert (artifacts_dir / "repository/host-fc37/core-qrexec_4.2.4" / rpm).exists()
 
     deb_files = [
-        "libqrexec-utils-dev_4.2.4-1+deb11u1+devel42_amd64.deb",
-        "libqrexec-utils2-dbgsym_4.2.4-1+deb11u1+devel42_amd64.deb",
-        "libqrexec-utils2_4.2.4-1+deb11u1+devel42_amd64.deb",
-        "python3-qrexec_4.2.4-1+deb11u1+devel42_amd64.deb",
-        "qubes-core-qrexec-dbgsym_4.2.4-1+deb11u1+devel42_amd64.deb",
-        "qubes-core-qrexec_4.2.4-1+deb11u1+devel42.debian.tar.xz",
-        "qubes-core-qrexec_4.2.4-1+deb11u1+devel42.dsc",
-        "qubes-core-qrexec_4.2.4-1+deb11u1+devel42_amd64.buildinfo",
-        "qubes-core-qrexec_4.2.4-1+deb11u1+devel42_amd64.changes",
-        "qubes-core-qrexec_4.2.4-1+deb11u1+devel42_amd64.deb",
+        "libqrexec-utils-dev_4.2.4-1+deb12u1+devel42_amd64.deb",
+        "libqrexec-utils2-dbgsym_4.2.4-1+deb12u1+devel42_amd64.deb",
+        "libqrexec-utils2_4.2.4-1+deb12u1+devel42_amd64.deb",
+        "python3-qrexec_4.2.4-1+deb12u1+devel42_amd64.deb",
+        "qubes-core-qrexec-dbgsym_4.2.4-1+deb12u1+devel42_amd64.deb",
+        "qubes-core-qrexec_4.2.4-1+deb12u1+devel42.debian.tar.xz",
+        "qubes-core-qrexec_4.2.4-1+deb12u1+devel42.dsc",
+        "qubes-core-qrexec_4.2.4-1+deb12u1+devel42_amd64.buildinfo",
+        "qubes-core-qrexec_4.2.4-1+deb12u1+devel42_amd64.changes",
+        "qubes-core-qrexec_4.2.4-1+deb12u1+devel42_amd64.deb",
         "qubes-core-qrexec_4.2.4.orig.tar.gz",
     ]
 
     for file in deb_files:
         assert (
-            artifacts_dir / "repository/vm-bullseye/core-qrexec_4.2.4" / file
+            artifacts_dir / "repository/vm-bookworm/core-qrexec_4.2.4" / file
         ).exists()
 
 
@@ -1698,9 +1698,9 @@ repository-upload-remote-host:
         # vm-fc36 shouldn't exist, as nothing was published into it
         assert not (pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/vm/fc36").exists()
 
-        # and vm-bullseye same
+        # and vm-bookworm same
         assert not (
-            pathlib.Path(tmpdir) / f"repo/deb/r4.2/vm/dists/bullseye-unstable"
+            pathlib.Path(tmpdir) / f"repo/deb/r4.2/vm/dists/bookworm-unstable"
         ).exists()
 
 

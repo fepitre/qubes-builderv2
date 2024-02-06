@@ -279,10 +279,10 @@ pytest-cli-component-host-fc37:
   script:
     - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_host_fc37_
 
-pytest-cli-component-vm-bullseye:
+pytest-cli-component-vm-bookworm:
   extends: .pytest
   script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_vm_bullseye
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_vm_bookworm
 
 pytest-cli-component-vm-archlinux:
   extends: .pytest
@@ -325,7 +325,7 @@ cache-vm-fc38:
 cache-vm-centos-stream8:
   extends: .init_cache_job
 
-cache-vm-bullseye:
+cache-vm-bookworm:
   extends: .init_cache_job
   script:
     - !reference [.init_cache_job, script ]
@@ -360,7 +360,7 @@ podman-vm-centos-stream8:
   needs:
     - cache-vm-centos-stream8
 
-#podman-vm-bullseye:
+#podman-vm-bookworm:
 #  extends: .component_podman_job
 
 # Docker executor
@@ -380,10 +380,10 @@ docker-vm-centos-stream8:
   needs:
     - cache-vm-centos-stream8
 
-docker-vm-bullseye:
+docker-vm-bookworm:
   extends: .component_docker_job
   needs:
-    - cache-vm-bullseye
+    - cache-vm-bookworm
 
 docker-vm-archlinux:
   extends: .component_docker_job
@@ -422,10 +422,10 @@ qubes-vm-centos-stream8:
   needs:
     - cache-vm-centos-stream8
 
-qubes-vm-bullseye:
+qubes-vm-bookworm:
   extends: .component_qubes_job
   needs:
-    - cache-vm-bullseye
+    - cache-vm-bookworm
 
 # Local executor
 
@@ -444,10 +444,10 @@ local-vm-centos-stream8:
   needs:
     - cache-vm-centos-stream8
 
-local-vm-bullseye:
+local-vm-bookworm:
   extends: .component_local_job
   needs:
-    - cache-vm-bullseye
+    - cache-vm-bookworm
 
 #
 # Templates
