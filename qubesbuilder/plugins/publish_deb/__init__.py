@@ -231,7 +231,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 "_", 1
             )
             cmd = [
-                f"reprepro {reprepro_options} removesrc {debian_suite} {source_name} {source_version}"
+                f"reprepro {reprepro_options} removefilter {debian_suite} '$Source (=={source_name}), $Version (=={source_version})'"
             ]
             executor.run(cmd)
         except ExecutorError as e:
