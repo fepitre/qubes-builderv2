@@ -8,5 +8,5 @@ ARCHLINUX_MIRRORS="${ARCHLINUX_MIRRORS:-$DEFAULT_ARCHLINUX_MIRRORS}"
 read -r -a ARCHLINUX_MIRRORS <<< "$ARCHLINUX_MIRRORS"
 
 for MIRROR_ENTRY in "${ARCHLINUX_MIRRORS[@]}"; do
-    echo "Server = $MIRROR_ENTRY/\$repo/os/\$arch"
+    echo "Server = ${MIRROR_ENTRY%/}/\$repo/os/\$arch"
 done > "$DESTDIR/mirrorlist"

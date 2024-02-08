@@ -155,4 +155,4 @@ mirrors:
     - http://mirrors.gandi.net/archlinux
     - https://arch.yourlabs.org
   debian:
-    - http://ftp.fr.debian.org/debian/
+    - http://ftp.fr.debian.org/debian

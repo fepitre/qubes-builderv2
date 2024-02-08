@@ -297,7 +297,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 # We don't need builder-local to create fresh chroot
                 cmd += [
                     f"sudo jinja2 {pacman_conf} -o /tmp/pacman-qubes.conf",
-                    f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-mirrorlist {executor.get_builder_dir()}",
+                    f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-mirrorlist {executor.get_builder_dir()}",
                 ] + get_archchroot_cmd(
                     executor.get_cache_dir() / "qubes-x86_64/root",
                     "/tmp/pacman-qubes.conf",
@@ -317,6 +317,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             # Create local repository inside chroot
             cmd += [
                 f"sudo {executor.get_plugins_dir()}/build_archlinux/scripts/update-local-repo.sh {executor.get_cache_dir()}/qubes-x86_64/root {executor.get_repository_dir()}",
+                "echo '=> mirrorlist:'",
+                f"cat {executor.get_cache_dir()}/qubes-x86_64/root/etc/pacman.d/mirrorlist",
             ]
 
             for file in parameters.get("files", []):

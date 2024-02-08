@@ -136,7 +136,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
             .get("packages", [])
         )
         cmd = [
-            f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-mirrorlist {executor.get_builder_dir()}"
+            f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-mirrorlist {executor.get_builder_dir()}",
         ]
         cmd += get_archchroot_cmd(
             chroot_dir,
@@ -148,8 +148,9 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         cmd += [
             f"cd {executor.get_cache_dir()}",
             f"sudo tar cf {chroot_archive} {chroot_name}",
+            "echo '=> mirrorlist:'",
+            f"cat {executor.get_cache_dir()}/qubes-x86_64/root/etc/pacman.d/mirrorlist",
         ]
-
         try:
             executor.run(
                 cmd,
