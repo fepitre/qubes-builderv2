@@ -31,7 +31,7 @@ from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
-from qubesbuilder.plugins.chroot_archlinux import get_archchroot_cmd
+from qubesbuilder.plugins.chroot_archlinux import get_pacman_cmd, get_archchroot_cmd
 
 log = get_logger("build_archlinux")
 
@@ -245,32 +245,30 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             ]
 
             # pacman and makepkg configuration files
-            pacman_conf = (
+            pacman_conf_template = (
                 f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
             )
+
+            pacman_conf = "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
+
             makepkg_conf = f"{executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
 
-            # Host (cage) has access to builder-local repository that will be mounted bind into
-            # the archlinux chroot. Configurations will be copied-in by qubes-x86_64-build (archbuild).
-
-            # Build options to pass to jinja2-cli for generating pacman configuration file.
-            jinja2_options = ["-D enable_builder_local=1"]
-            if self.config.use_qubes_repo.get("version", None):
-                jinja2_options.append(
-                    f"-D use_qubes_repo_version={self.config.use_qubes_repo['version']}"
-                )
-                if self.config.use_qubes_repo.get("testing", None):
-                    jinja2_options.append(
-                        f"-D use_qubes_repo_testing={self.config.use_qubes_repo['testing']}"
-                    )
-
             cmd = [
-                f"sudo jinja2 {pacman_conf} {' '.join(jinja2_options)} -o /usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf",
                 f"sudo cp {makepkg_conf} /usr/local/share/devtools/makepkg.conf.d/qubes-x86_64.conf",
             ]
 
+            pacman_cmd = get_pacman_cmd(
+                gen_path=f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
+                conf_template=pacman_conf_template,
+                conf=pacman_conf,
+                servers=self.config.get("mirrors", {}).get(self.dist.name, []),
+                use_qubes_repo_version=self.config.use_qubes_repo.get("version", None),
+                use_qubes_repo_testing=self.config.use_qubes_repo.get("testing", False),
+            )
+
             chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
             chroot_archive = "root.tar.gz"
+
             if (chroot_dir / chroot_archive).exists():
                 log.info(
                     f"{self.component}:{self.dist}: Chroot cache exists. Will use it."
@@ -282,7 +280,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     f"sudo mkdir -p {executor.get_cache_dir()}/qubes-x86_64",
                     f"cd {executor.get_cache_dir()}/qubes-x86_64",
                     f"sudo tar xf {executor.get_cache_dir() / chroot_archive}",
-                ]
+                ] + pacman_cmd
 
                 # Ensure to regenerate pacman keyring
                 cmd += [
@@ -295,15 +293,23 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     f"{self.component}:{self.dist}: Chroot cache does not exists. Will create it."
                 )
                 # We don't need builder-local to create fresh chroot
-                cmd += [
-                    f"sudo jinja2 {pacman_conf} -o /tmp/pacman-qubes.conf",
-                    f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-mirrorlist {executor.get_builder_dir()}",
-                ] + get_archchroot_cmd(
-                    executor.get_cache_dir() / "qubes-x86_64/root",
-                    "/tmp/pacman-qubes.conf",
-                    "/usr/local/share/devtools/makepkg-x86_64.conf",
-                    executor.get_builder_dir() / "mirrorlist",
+                cmd += pacman_cmd + get_archchroot_cmd(
+                    chroot_dir,
+                    pacman_conf,
+                    makepkg_conf,
                 )
+
+            # Once we generated a normal configuration without builder-local needed
+            # we regenerate one with it enabled.
+            pacman_cmd = get_pacman_cmd(
+                gen_path=f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
+                conf_template=pacman_conf_template,
+                conf=pacman_conf,
+                servers=self.config.get("mirrors", {}).get(self.dist.name, []),
+                enable_builder_local=True,
+                use_qubes_repo_version=self.config.use_qubes_repo.get("version", None),
+                use_qubes_repo_testing=self.config.use_qubes_repo.get("testing", False),
+            )
 
             if self.config.use_qubes_repo.get("version", None):
                 files_inside_executor_with_placeholders += [
@@ -315,10 +321,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 ]
 
             # Create local repository inside chroot
-            cmd += [
+            cmd += pacman_cmd + [
                 f"sudo {executor.get_plugins_dir()}/build_archlinux/scripts/update-local-repo.sh {executor.get_cache_dir()}/qubes-x86_64/root {executor.get_repository_dir()}",
-                "echo '=> mirrorlist:'",
-                f"cat {executor.get_cache_dir()}/qubes-x86_64/root/etc/pacman.d/mirrorlist",
             ]
 
             for file in parameters.get("files", []):
