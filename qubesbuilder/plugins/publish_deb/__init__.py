@@ -127,7 +127,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             dist=self.dist, repository_publish=repository_publish
         )
 
-        for (opt, out_name) in (
+        for opt, out_name in (
             ("--detach-sign", "Release.gpg"),
             ("--clearsign", "InRelease"),
         ):
@@ -297,7 +297,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             raise PublishError("Cannot determine repository for publish")
 
         if not unpublish:
-
             if not sign_artifacts_dir.exists():
                 raise PublishError("Cannot find keyring from sign stage.")
 

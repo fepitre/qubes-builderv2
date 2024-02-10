@@ -31,7 +31,9 @@ if TYPE_CHECKING:
 
 import pathspec
 import yaml
-from packaging.version import Version, InvalidVersion, VERSION_PATTERN
+
+# pylint: disable=protected-access
+from packaging.version import Version, InvalidVersion, VERSION_PATTERN, _Version
 
 from qubesbuilder.common import sanitize_line, deep_check, VerificationMode
 from qubesbuilder.exc import ComponentError, NoQubesBuilderFileError
@@ -54,9 +56,9 @@ class QubesVersion(Version):
         super().__init__(version)
         if "-rc" in version:
             # pylint: disable=protected-access
-            self._version = self._version._replace(
+            self._version: _Version = self._version._replace(
                 pre=("-rc", self._version.pre[1])
-            )  # type: ignore
+            )
         match = self._regex.search(version)
         assert match  # already verified in parent
         if match.group("post_frac"):
@@ -65,7 +67,7 @@ class QubesVersion(Version):
                     self._version.post[0],
                     str(self._version.post[1]) + match.group("post_frac"),
                 )
-            )  # type: ignore
+            )
 
 
 class QubesComponent:

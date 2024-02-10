@@ -156,7 +156,6 @@ class ContainerExecutor(Executor):
         no_fail_copy_out_allowed_patterns=None,
         **kwargs,
     ):
-
         container = None
 
         try:

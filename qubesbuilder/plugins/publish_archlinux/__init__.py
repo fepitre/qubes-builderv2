@@ -184,7 +184,8 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
 
                 # repo-remove supports only package name as input, not version and release.
                 pkg_name = pkg.name.replace(
-                    f"-{self.component.get_version_release()}-{self.dist.architecture}.pkg.tar.zst", ""
+                    f"-{self.component.get_version_release()}-{self.dist.architecture}.pkg.tar.zst",
+                    "",
                 )
                 cmd += [f"repo-remove {repository_db} {pkg_name}"]
             executor.run(cmd)

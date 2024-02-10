@@ -144,7 +144,6 @@ def init_context_obj(
     template: Optional[List] = None,
     option: List = None,
 ):
-
     try:
         options = parse_config_from_cli(option) if option else {}
     except ValueError as e:

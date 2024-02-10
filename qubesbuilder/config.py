@@ -42,7 +42,7 @@ from qubesbuilder.plugins import (
 
 log = get_logger("config")
 
-QUBES_RELEASE_RE = re.compile("r([1-9]\.[0-9]+).*")
+QUBES_RELEASE_RE = re.compile(r"r([1-9]\.[0-9]+).*")
 QUBES_RELEASE_DEFAULT = "r4.2"
 
 
@@ -344,7 +344,6 @@ class Config:
             TemplatePlugin,
         ] = None,
     ):
-
         dist = None
         component = None
         distribution_executor_options = {}

@@ -143,9 +143,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                     "USE_QUBES_REPO_VERSION": str(
                         self.config.use_qubes_repo.get("version", None)
                     ),
-                    "USE_QUBES_REPO_TESTING": "1"
-                    if self.config.use_qubes_repo.get("testing", None)
-                    else "0",
+                    "USE_QUBES_REPO_TESTING": (
+                        "1" if self.config.use_qubes_repo.get("testing", None) else "0"
+                    ),
                 }
             )
 
@@ -267,7 +267,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             else:
                 dist_tag = self.dist.tag
 
-            dist_tag_regex = re.compile(f".*\.({dist_tag}.*)\.src\.rpm")
+            dist_tag_regex = re.compile(rf".*\.({dist_tag}.*)\.src\.rpm")
             parsed_dist_tag = dist_tag_regex.match(source_info["srpm"])
             if parsed_dist_tag and parsed_dist_tag.group(1) != dist_tag:
                 dist_tag = parsed_dist_tag.group(1)

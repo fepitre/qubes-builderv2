@@ -21,8 +21,8 @@ import re
 from typing import Dict
 from qubesbuilder.exc import DistributionError
 
-FEDORA_RE = re.compile("^fc([0-9]+)$")
-CENTOS_STREAM_RE = re.compile("^centos-stream([0-9]+)$")
+FEDORA_RE = re.compile(r"^fc([0-9]+)$")
+CENTOS_STREAM_RE = re.compile(r"^centos-stream([0-9]+)$")
 
 DEBIAN = {
     "stretch": "9",

@@ -87,7 +87,6 @@ class LocalExecutor(Executor):
         no_fail_copy_out_allowed_patterns=None,
         **kwargs,
     ):
-
         # Create temporary builder directory. In an unlikely case of conflict,
         # run will abort instead of using unsafe directory.
         try:

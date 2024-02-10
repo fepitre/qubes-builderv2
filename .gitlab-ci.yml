@@ -229,7 +229,7 @@ variables:
 
 lint:
   stage: test
-  image: fedora:37
+  image: fedora:39
   tags:
     - docker
   before_script:
