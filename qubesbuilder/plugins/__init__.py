@@ -202,7 +202,7 @@ class ComponentPlugin(Plugin):
             self.config.artifacts_dir
             / "components"
             / self.component.name
-            / self.component.verrel
+            / self.component.get_version_release()
             / "nodist"
             / stage
         )
@@ -343,7 +343,7 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
             self.config.artifacts_dir
             / "components"
             / self.component.name
-            / self.component.verrel
+            / self.component.get_version_release()
             / self.dist.distribution
             / stage
         )

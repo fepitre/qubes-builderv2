@@ -54,7 +54,9 @@ class QubesVersion(Version):
         super().__init__(version)
         if "-rc" in version:
             # pylint: disable=protected-access
-            self._version = self._version._replace(pre=("-rc", self._version.pre[1]))  # type: ignore
+            self._version = self._version._replace(
+                pre=("-rc", self._version.pre[1])
+            )  # type: ignore
         match = self._regex.search(version)
         assert match  # already verified in parent
         if match.group("post_frac"):
@@ -103,13 +105,15 @@ class QubesComponent:
         self._devel_path = devel_path
         self.kwargs = kwargs
 
-    @property
-    def verrel(self):
-        version_release = f"{self.version}-{self.release}"
-        if self.devel:
-            version_release = f"{version_release}.{self.devel}"
-        if self.is_plugin:
+    def get_version_release(self):
+        if self.is_plugin or not self.has_packages:
             version_release = "noversion"
+        elif self.get_version() and self.get_release():
+            version_release = f"{self.get_version()}-{self.get_release()}"
+            if self.get_devel():
+                version_release = f"{version_release}.{self.get_devel()}"
+        else:
+            raise ComponentError("Cannot determine version and release!")
         return version_release
 
     def increment_devel_versions(self):
@@ -128,19 +132,10 @@ class QubesComponent:
         self._devel_path.write_text(devel)
         self.devel = devel
 
-    def get_parameters(self, placeholders: dict = None):
-        if not self.source_dir.exists():
-            raise ComponentError(f"Cannot find source directory {self.source_dir}.")
-
-        build_file = self.source_dir / ".qubesbuilder"
-
-        if self.is_plugin or not self.has_packages:
-            return {}
-
+    def get_version(self):
+        if self.version:
+            return self.version
         version = ""
-        release = ""
-        devel = ""
-
         version_file = self.source_dir / "version"
         if version_file.exists():
             try:
@@ -165,35 +160,51 @@ class QubesComponent:
                 if len(version) > 255 or not version_re.match(version):
                     raise ComponentError(f"Invalid version for {self.source_dir}.")
                 version, release = version_re.match(version).groups()  # type: ignore
-
         if not version:
             raise ComponentError(f"Cannot determine version for {self.source_dir}.")
+        self.version = version
+        return self.version
 
+    def get_release(self):
         release_file = self.source_dir / "rel"
-        if not release:
-            if not release_file.exists():
-                release = "1"
-            else:
-                try:
-                    with open(release_file) as fd:
-                        release = fd.read().split("\n")[0]
-                    QubesVersion(f"{version}-{release}")
-                except (InvalidVersion, AssertionError) as e:
-                    raise ComponentError(
-                        f"Invalid release for {self.source_dir}."
-                    ) from e
+        if self.release:
+            return self.release
+        if not release_file.exists():
+            release = "1"
+        else:
+            try:
+                with open(release_file) as fd:
+                    release = fd.read().split("\n")[0]
+                QubesVersion(f"{self.get_version()}-{release}")
+            except (InvalidVersion, AssertionError) as e:
+                raise ComponentError(f"Invalid release for {self.source_dir}.") from e
+        self.release = release
+        return self.release
 
+    def get_devel(self):
         if self._devel_path and self._devel_path.exists():
             try:
                 with open(self._devel_path) as fd:
                     devel = fd.read().split("\n")[0]
                 assert re.fullmatch(r"[0-9]+", devel)
+                self.devel = devel
             except AssertionError as e:
                 raise ComponentError(f"Invalid devel version for {self.name}.") from e
+        return self.devel
 
-        self.version = version
-        self.release = release
-        self.devel = devel
+    def get_parameters(self, placeholders: dict = None):
+        if not self.source_dir.exists():
+            raise ComponentError(f"Cannot find source directory {self.source_dir}.")
+
+        build_file = self.source_dir / ".qubesbuilder"
+
+        if self.is_plugin or not self.has_packages:
+            return {}
+
+        placeholders = placeholders or {}
+        placeholders.update(
+            {"@VERSION@": self.get_version(), "@REL@": self.get_release()}
+        )
 
         if not build_file.exists():
             raise NoQubesBuilderFileError(
@@ -202,10 +213,6 @@ class QubesComponent:
 
         with open(build_file) as f:
             data = f.read()
-
-        if not placeholders:
-            placeholders = {}
-        placeholders.update({"@VERSION@": self.version, "@REL@": self.release})
 
         for key, val in placeholders.items():
             data = data.replace(key, str(val))
