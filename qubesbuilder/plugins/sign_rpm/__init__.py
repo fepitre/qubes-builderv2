@@ -71,7 +71,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
         if stage != "sign" or not self.has_component_packages("sign"):
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided

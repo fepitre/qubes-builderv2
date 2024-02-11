@@ -99,7 +99,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         return self.template_version
 
     def update_parameters(self, stage: str):
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         template_options = [self.template.flavor] + self.template.options
         template_flavor_dir = []
         parsed_release = QUBES_RELEASE_RE.match(
@@ -470,7 +470,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         template_timestamp: str = None,
     ):
         self.update_parameters(stage)
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         repository_dir = self.get_repository_dir() / self.dist.distribution
         template_artifacts_dir = self.get_templates_dir()
         qubeized_image = template_artifacts_dir / "qubeized_images" / self.template.name

@@ -126,7 +126,7 @@ class InstallerPlugin(DistributionPlugin):
         return self.iso_timestamp
 
     def update_parameters(self, stage: str, iso_timestamp: str = None):
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         self.environment.update(
             {
                 "DIST": self.dist.name,
@@ -251,7 +251,7 @@ class InstallerPlugin(DistributionPlugin):
 
         self.update_parameters(stage=stage, iso_timestamp=iso_timestamp)
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
 
         mock_conf = (
             f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"

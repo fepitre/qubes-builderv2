@@ -52,7 +52,8 @@ class BuildPlugin(DistributionComponentPlugin):
         super().__init__(component=component, dist=dist, config=config, manager=manager)
 
     def run(self, stage: str):
-        self.update_parameters(stage)
+        # Run stage defined by parent class
+        super().run(stage=stage)
 
         if stage != "build" or not self.has_component_packages("build"):
             return

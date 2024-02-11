@@ -69,7 +69,8 @@ class SourcePlugin(DistributionComponentPlugin):
         )
 
     def run(self, stage: str):
-        self.update_parameters(stage)
+        # Run stage defined by parent class
+        super().run(stage=stage)
 
         if stage != "prep" or not self.has_component_packages("prep"):
             return

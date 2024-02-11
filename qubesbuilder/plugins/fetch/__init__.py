@@ -88,13 +88,11 @@ class FetchPlugin(ComponentPlugin):
         """
         Run plugin for given stage.
         """
-        # Run stage defined by parent class
-        super().run(stage=stage)
 
         if stage != "fetch":
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
 
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name
@@ -169,6 +167,8 @@ class FetchPlugin(ComponentPlugin):
 
         # Update parameters based on previously fetched sources as .qubesbuilder
         # is now available.
+        super().run(stage)
+
         parameters = self.get_parameters(stage)
 
         distfiles_dir = self.get_component_distfiles_dir()

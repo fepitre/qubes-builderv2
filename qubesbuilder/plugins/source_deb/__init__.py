@@ -78,7 +78,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
         if stage != "prep" or not self.has_component_packages("prep"):
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         parameters = self.get_parameters(stage)
 
         # Check if we have Debian related content defined
@@ -234,6 +234,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 copy_out += [(executor.get_builder_dir() / source_orig, artifacts_dir)]
 
             # Init command with .qubesbuilder command entries
+            parameters = self.component.get_parameters(self.get_placeholders(stage))
             cmd = parameters.get("source", {}).get("commands", [])
 
             if package_type == "quilt":

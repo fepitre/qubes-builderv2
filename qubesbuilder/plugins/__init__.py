@@ -28,7 +28,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
-
+from qubesbuilder.executors import Executor
 
 # from qubesbuilder.config import Config
 
@@ -72,12 +72,12 @@ class Plugin:
         # Plugin parameters
         self._parameters: dict = {}
 
+        # Environment
         self.environment = {}
         if self.config.verbose:
             self.environment["VERBOSE"] = "1"
         if self.config.debug:
             self.environment["DEBUG"] = "1"
-
         self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
         for dependency in self.dependencies:
@@ -91,18 +91,16 @@ class Plugin:
         pass
 
     def update_placeholders(self, stage: str):
-        # Executor
-        executor = self.config.get_executor_from_config(stage, self)
-
         # Default placeholders
-        self._placeholders.update(executor.get_placeholders())
+        self._placeholders.update(self.get_executor(stage).get_placeholders())
+
+    def get_executor(self, stage: str):
+        return self.config.get_executor_from_config(stage, self)
 
     def get_parameters(self, stage: str):
-        self.update_parameters(stage)
         return self._parameters
 
     def get_placeholders(self, stage: str):
-        self.update_placeholders(stage)
         return self._placeholders
 
     def get_temp_dir(self):
@@ -184,14 +182,20 @@ class ComponentPlugin(Plugin):
 
     def update_placeholders(self, stage: str):
         super().update_placeholders(stage)
-
-        executor = self.config.get_executor_from_config(stage, self)
         self._placeholders.update(
             {
-                "@SOURCE_DIR@": executor.get_builder_dir() / self.component.name,
+                "@SOURCE_DIR@": self.get_executor(stage).get_builder_dir()
+                / self.component.name,
                 "@BACKEND_VMM@": self.config.backend_vmm,
             }
         )
+
+    def run(self, stage: str):
+        # Update placeholders
+        self.update_placeholders(stage)
+
+        # Update parameters
+        self.update_parameters(stage)
 
     def get_component_distfiles_dir(self):
         path = self.get_distfiles_dir() / self.component.name
@@ -384,6 +388,7 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         )
 
     def has_component_packages(self, stage: str):
+        self.update_parameters(stage=stage)
         return self.component.has_packages and self.get_parameters(stage=stage).get(
             "build", []
         )
