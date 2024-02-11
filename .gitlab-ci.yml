@@ -331,9 +331,6 @@ cache-vm-bookworm:
     - !reference [.init_cache_job, script ]
     - tests/scripts/check-chroot-content.sh artifacts "${CI_JOB_NAME#cache-}" /usr/bin/quilt
 
-cache-vm-bookworm:
-  extends: .init_cache_job
-
 cache-vm-trixie:
   extends: .init_cache_job
 
