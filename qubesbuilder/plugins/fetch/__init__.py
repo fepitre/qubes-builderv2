@@ -110,6 +110,8 @@ class FetchPlugin(ComponentPlugin):
         ]
         for key_dir_str in self.config.get("key-dirs", []):
             key_dir = Path(key_dir_str)
+            if not key_dir.is_absolute():
+                key_dir = self.config.get_conf_path().parent.joinpath(key_dir)
             if not key_dir.is_dir():
                 log.warn(f"Key directory '{key_dir!s}' is not a directory")
                 continue

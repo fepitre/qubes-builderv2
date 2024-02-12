@@ -49,7 +49,7 @@ distributions:
   - vm-jammy
 
 key-dirs:
-  - tests/keys
+  - keys
 
 components:
   - builder-rpm:

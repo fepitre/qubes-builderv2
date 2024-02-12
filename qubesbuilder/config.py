@@ -16,6 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import pathlib
 import re
 from copy import deepcopy
 from pathlib import Path
@@ -243,6 +244,12 @@ class Config:
 
     def set(self, key, value):
         self._conf[key] = value
+
+    def get_conf_path(self):
+        conf_file = self._conf_file
+        if isinstance(conf_file, str):
+            conf_file = Path(conf_file).expanduser().resolve()
+        return conf_file
 
     def get_distributions(self, filtered_distributions=None):
         if not self._dists:
