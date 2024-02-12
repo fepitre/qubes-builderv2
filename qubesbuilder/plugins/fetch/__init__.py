@@ -82,7 +82,7 @@ class FetchPlugin(ComponentPlugin):
             parameters = self.component.get_parameters(self.get_placeholders(stage))
         except NoQubesBuilderFileError:
             return
-        self._parameters.update(parameters.get("source", {}))
+        self._parameters[stage].update(parameters.get("source", {}))
 
     def run(self, stage: str):
         """

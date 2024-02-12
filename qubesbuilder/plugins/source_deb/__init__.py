@@ -234,7 +234,6 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 copy_out += [(executor.get_builder_dir() / source_orig, artifacts_dir)]
 
             # Init command with .qubesbuilder command entries
-            parameters = self.component.get_parameters(self.get_placeholders(stage))
             cmd = parameters.get("source", {}).get("commands", [])
 
             if package_type == "quilt":

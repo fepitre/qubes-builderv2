@@ -60,11 +60,11 @@ class SourcePlugin(DistributionComponentPlugin):
         # per package set and per distribution.
         parameters = self.component.get_parameters(self.get_placeholders(stage))
 
-        self._parameters.update(parameters.get("source", {}))
-        self._parameters.update(
+        self._parameters[stage].update(parameters.get("source", {}))
+        self._parameters[stage].update(
             parameters.get(self.dist.package_set, {}).get("source", {})
         )
-        self._parameters.update(
+        self._parameters[stage].update(
             parameters.get(self.dist.distribution, {}).get("source", {})
         )
 

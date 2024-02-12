@@ -70,7 +70,10 @@ class Plugin:
         self._placeholders: Dict[str, Any] = {}
 
         # Plugin parameters
-        self._parameters: dict = {}
+        self._parameters: Dict[str, Any] = {}
+
+        # Executors
+        self._executors: Dict[str, Executor] = {}
 
         # Environment
         self.environment = {}
@@ -88,20 +91,24 @@ class Plugin:
         pass
 
     def update_parameters(self, stage: str):
-        pass
+        self._parameters.setdefault(stage, {})
 
     def update_placeholders(self, stage: str):
-        # Default placeholders
-        self._placeholders.update(self.get_executor(stage).get_placeholders())
+        self._placeholders.setdefault(stage, {})
+        self._placeholders[stage].update(self.get_executor(stage).get_placeholders())
 
     def get_executor(self, stage: str):
-        return self.config.get_executor_from_config(stage, self)
-
-    def get_parameters(self, stage: str):
-        return self._parameters
+        if not self._executors.get(stage, None):
+            self._executors[stage] = self.config.get_executor_from_config(stage, self)
+        return self._executors[stage]
 
     def get_placeholders(self, stage: str):
-        return self._placeholders
+        self.update_placeholders(stage)
+        return self._placeholders[stage]
+
+    def get_parameters(self, stage: str):
+        self.update_parameters(stage)
+        return self._parameters[stage]
 
     def get_temp_dir(self):
         path = self.config.artifacts_dir / "tmp"
@@ -182,20 +189,13 @@ class ComponentPlugin(Plugin):
 
     def update_placeholders(self, stage: str):
         super().update_placeholders(stage)
-        self._placeholders.update(
+        self._placeholders[stage].update(
             {
                 "@SOURCE_DIR@": self.get_executor(stage).get_builder_dir()
                 / self.component.name,
                 "@BACKEND_VMM@": self.config.backend_vmm,
             }
         )
-
-    def run(self, stage: str):
-        # Update placeholders
-        self.update_placeholders(stage)
-
-        # Update parameters
-        self.update_parameters(stage)
 
     def get_component_distfiles_dir(self):
         path = self.get_distfiles_dir() / self.component.name
@@ -309,31 +309,33 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         parameters = self.component.get_parameters(self.get_placeholders(stage))
 
         # host/vm -> rpm/deb/archlinux
-        self._parameters.update(
+        self._parameters[stage].update(
             parameters.get(self.dist.package_set, {}).get(self.dist.type, {})
         )
         # host/vm -> fedora/debian/ubuntu/archlinux
-        self._parameters.update(
+        self._parameters[stage].update(
             parameters.get(self.dist.package_set, {}).get(self.dist.fullname, {})
         )
         # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
-        self._parameters.update(
+        self._parameters[stage].update(
             parameters.get(self.dist.distribution, {}).get(self.dist.type, {})
         )
 
-        self._parameters["build"] = [
-            PackagePath(build) for build in self._parameters.get("build", [])
+        self._parameters[stage]["build"] = [
+            PackagePath(build) for build in self._parameters[stage].get("build", [])
         ]
         # For retro-compatibility
         if self.dist.type == "rpm":
-            self._parameters["build"] += [
+            self._parameters[stage]["build"] += [
                 PackagePath(spec)
-                for spec in self._parameters.get("spec", [])
+                for spec in self._parameters[stage].get("spec", [])
                 if PackagePath(spec) not in self._parameters["build"]
             ]
         # Check conflicts when mangle paths
-        mangle_builds = [build.mangle() for build in self._parameters.get("build", [])]
-        if len(set(mangle_builds)) != len(self._parameters["build"]):
+        mangle_builds = [
+            build.mangle() for build in self._parameters[stage].get("build", [])
+        ]
+        if len(set(mangle_builds)) != len(self._parameters[stage]["build"]):
             raise PluginError(f"{self.component}:{self.dist}: Conflicting build paths")
 
     def get_dist_component_artifacts_dir_history(self, stage: str):
