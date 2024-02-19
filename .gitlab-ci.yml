@@ -186,6 +186,8 @@ variables:
   tags:
     - qubes
   before_script:
+    - docker pull fepitre/qubes-builder-fedora:latest
+    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
     - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
