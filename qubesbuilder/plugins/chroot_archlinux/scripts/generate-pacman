@@ -1,0 +1,44 @@
+#!/usr/bin/python3
+
+import argparse
+import pathlib
+from jinja2 import Environment, BaseLoader
+
+DEFAULT_SERVERS = [
+    "https://mirror.rackspace.com/archlinux",
+    "https://arch.mirror.constant.com",
+    "https://mirror.f4st.host/archlinux",
+    "https://mirrors.edge.kernel.org/archlinux",
+]
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_file")
+    parser.add_argument("output_file")
+    parser.add_argument("--enable-builder-local", action="store_true", default=False)
+    parser.add_argument("--use-qubes-repo-testing", action="store_true", default=False)
+    parser.add_argument("--use-qubes-repo-version", default=None)
+    parser.add_argument("--server", nargs="+", default=[])
+
+    args = parser.parse_args()
+
+    servers = args.server or DEFAULT_SERVERS
+
+    template = pathlib.Path(args.input_file).read_text()
+    env = Environment(loader=BaseLoader).from_string(template)
+
+    data = {
+        "enable_builder_local": args.enable_builder_local,
+        "use_qubes_repo_version": args.use_qubes_repo_version,
+        "use_qubes_repo_testing": args.use_qubes_repo_testing,
+        "servers": servers,
+    }
+
+    rendered_content = env.render(**data)
+    with open(args.output_file, "w") as f:
+        f.write(rendered_content)
+
+
+if __name__ == "__main__":
+    main()

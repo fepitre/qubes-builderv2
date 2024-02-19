@@ -28,7 +28,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
-
+from qubesbuilder.executors import Executor
 
 # from qubesbuilder.config import Config
 
@@ -70,14 +70,17 @@ class Plugin:
         self._placeholders: Dict[str, Any] = {}
 
         # Plugin parameters
-        self._parameters: dict = {}
+        self._parameters: Dict[str, Any] = {}
 
+        # Executors
+        self._executors: Dict[str, Executor] = {}
+
+        # Environment
         self.environment = {}
         if self.config.verbose:
             self.environment["VERBOSE"] = "1"
         if self.config.debug:
             self.environment["DEBUG"] = "1"
-
         self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
         for dependency in self.dependencies:
@@ -88,22 +91,24 @@ class Plugin:
         pass
 
     def update_parameters(self, stage: str):
-        pass
+        self._parameters.setdefault(stage, {})
 
     def update_placeholders(self, stage: str):
-        # Executor
-        executor = self.config.get_executor_from_config(stage, self)
+        self._placeholders.setdefault(stage, {})
+        self._placeholders[stage].update(self.get_executor(stage).get_placeholders())
 
-        # Default placeholders
-        self._placeholders.update(executor.get_placeholders())
-
-    def get_parameters(self, stage: str):
-        self.update_parameters(stage)
-        return self._parameters
+    def get_executor(self, stage: str):
+        if not self._executors.get(stage, None):
+            self._executors[stage] = self.config.get_executor_from_config(stage, self)
+        return self._executors[stage]
 
     def get_placeholders(self, stage: str):
         self.update_placeholders(stage)
-        return self._placeholders
+        return self._placeholders[stage]
+
+    def get_parameters(self, stage: str):
+        self.update_parameters(stage)
+        return self._parameters[stage]
 
     def get_temp_dir(self):
         path = self.config.artifacts_dir / "tmp"
@@ -184,11 +189,10 @@ class ComponentPlugin(Plugin):
 
     def update_placeholders(self, stage: str):
         super().update_placeholders(stage)
-
-        executor = self.config.get_executor_from_config(stage, self)
-        self._placeholders.update(
+        self._placeholders[stage].update(
             {
-                "@SOURCE_DIR@": executor.get_builder_dir() / self.component.name,
+                "@SOURCE_DIR@": self.get_executor(stage).get_builder_dir()
+                / self.component.name,
                 "@BACKEND_VMM@": self.config.backend_vmm,
             }
         )
@@ -202,7 +206,7 @@ class ComponentPlugin(Plugin):
             self.config.artifacts_dir
             / "components"
             / self.component.name
-            / self.component.verrel
+            / self.component.get_version_release()
             / "nodist"
             / stage
         )
@@ -305,31 +309,33 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         parameters = self.component.get_parameters(self.get_placeholders(stage))
 
         # host/vm -> rpm/deb/archlinux
-        self._parameters.update(
+        self._parameters[stage].update(
             parameters.get(self.dist.package_set, {}).get(self.dist.type, {})
         )
         # host/vm -> fedora/debian/ubuntu/archlinux
-        self._parameters.update(
+        self._parameters[stage].update(
             parameters.get(self.dist.package_set, {}).get(self.dist.fullname, {})
         )
         # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
-        self._parameters.update(
+        self._parameters[stage].update(
             parameters.get(self.dist.distribution, {}).get(self.dist.type, {})
         )
 
-        self._parameters["build"] = [
-            PackagePath(build) for build in self._parameters.get("build", [])
+        self._parameters[stage]["build"] = [
+            PackagePath(build) for build in self._parameters[stage].get("build", [])
         ]
         # For retro-compatibility
         if self.dist.type == "rpm":
-            self._parameters["build"] += [
+            self._parameters[stage]["build"] += [
                 PackagePath(spec)
-                for spec in self._parameters.get("spec", [])
+                for spec in self._parameters[stage].get("spec", [])
                 if PackagePath(spec) not in self._parameters["build"]
             ]
         # Check conflicts when mangle paths
-        mangle_builds = [build.mangle() for build in self._parameters.get("build", [])]
-        if len(set(mangle_builds)) != len(self._parameters["build"]):
+        mangle_builds = [
+            build.mangle() for build in self._parameters[stage].get("build", [])
+        ]
+        if len(set(mangle_builds)) != len(self._parameters[stage]["build"]):
             raise PluginError(f"{self.component}:{self.dist}: Conflicting build paths")
 
     def get_dist_component_artifacts_dir_history(self, stage: str):
@@ -343,7 +349,7 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
             self.config.artifacts_dir
             / "components"
             / self.component.name
-            / self.component.verrel
+            / self.component.get_version_release()
             / self.dist.distribution
             / stage
         )
@@ -384,6 +390,7 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         )
 
     def has_component_packages(self, stage: str):
+        self.update_parameters(stage=stage)
         return self.component.has_packages and self.get_parameters(stage=stage).get(
             "build", []
         )

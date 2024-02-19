@@ -38,21 +38,29 @@ ParallelDownloads = 5
 
 [core]
 SigLevel = Required DatabaseOptional
-Include = /etc/pacman.d/mirrorlist
+{%- for server in servers %}
+Server = {{ server }}/$repo/os/$arch
+{% endfor %}
 
 [community]
 SigLevel = Required DatabaseOptional
-Include = /etc/pacman.d/mirrorlist
+{%- for server in servers %}
+Server = {{ server }}/$repo/os/$arch
+{% endfor %}
 
 [extra]
 SigLevel = Required DatabaseOptional
-Include = /etc/pacman.d/mirrorlist
+{%- for server in servers %}
+Server = {{ server }}/$repo/os/$arch
+{% endfor %}
 
 [multilib]
 SigLevel = PackageRequired
-Include = /etc/pacman.d/mirrorlist
+{%- for server in servers %}
+Server = {{ server }}/$repo/os/$arch
+{% endfor %}
 
-{% if enable_builder_local == "1" %}
+{% if enable_builder_local %}
 [qubes]
 SigLevel = Optional TrustAll
 Server = file:///builder/repository/pkgs

@@ -115,7 +115,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
         if stage != "build" or not self.has_component_packages("build"):
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         parameters = self.get_parameters(stage)
         artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 
@@ -231,10 +231,18 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
                 f"deb [trusted=yes] file:///tmp/qubes-deb {self.dist.name} main"
             )
             # extra_sources = ""
+
             cmd = [
                 f"mkdir -p {executor.get_cache_dir()}/aptcache",
                 f"{executor.get_plugins_dir()}/build_deb/scripts/create-local-repo {executor.get_repository_dir()} {self.dist.fullname} {self.dist.name}",
             ]
+
+            # If provided, use the first mirror given in builder configuration mirrors list
+            mirrors = self.config.get("mirrors", {}).get(self.dist.fullname, [])
+            if mirrors:
+                cmd += [
+                    f"sed -i 's@MIRRORSITE=https://deb.debian.org/debian@MIRRORSITE={mirrors[0]}@' {executor.get_builder_dir()}/pbuilder/pbuilderrc"
+                ]
 
             if self.config.use_qubes_repo.get("version", None):
                 repo_server = (

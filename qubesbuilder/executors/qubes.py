@@ -86,7 +86,6 @@ class QubesExecutor(Executor):
             str(src),
         ]
         try:
-
             log.debug(f"copy-in (cmd): {' '.join(copy_in_cmd)}")
             subprocess.run(copy_in_cmd, check=True)
         except subprocess.CalledProcessError as e:
@@ -154,7 +153,6 @@ class LinuxQubesExecutor(QubesExecutor):
         no_fail_copy_out_allowed_patterns=None,
         dig_holes: bool = False,
     ):
-
         dispvm = None
         try:
             result = subprocess.run(

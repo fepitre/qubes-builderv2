@@ -49,7 +49,7 @@ distributions:
   - vm-jammy
 
 key-dirs:
-  - tests/keys
+  - keys
 
 components:
   - builder-rpm:
@@ -148,3 +148,11 @@ stages:
   - upload:
       executor:
         type: local
+
+mirrors:
+  archlinux:
+    - http://archlinux.mirrors.ovh.net/archlinux
+    - http://mirrors.gandi.net/archlinux
+    - https://arch.yourlabs.org
+  debian:
+    - http://ftp.fr.debian.org/debian

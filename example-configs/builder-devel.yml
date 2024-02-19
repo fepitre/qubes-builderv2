@@ -271,3 +271,15 @@ stages:
   - upload:
       executor:
         type: local
+
+mirrors:
+  # This is part of 'Server =' entries serving as base url before '$repo/os/$arch'.
+  archlinux:
+    - http://archlinux.mirrors.ovh.net/archlinux/
+    - http://mirrors.gandi.net/archlinux/
+    - https://arch.yourlabs.org/
+  # This is archive URL of Debian also called MIRRORSITE. For component build, only
+  # the first entry will be used. For template build, all the mirrors would be used
+  # in case where one of them fails.
+  debian:
+    - http://ftp.fr.debian.org/debian/

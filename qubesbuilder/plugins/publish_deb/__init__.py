@@ -127,7 +127,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             dist=self.dist, repository_publish=repository_publish
         )
 
-        for (opt, out_name) in (
+        for opt, out_name in (
             ("--detach-sign", "Release.gpg"),
             ("--clearsign", "InRelease"),
         ):
@@ -231,7 +231,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 "_", 1
             )
             cmd = [
-                f"reprepro {reprepro_options} removesrc {debian_suite} {source_name} {source_version}"
+                f"reprepro {reprepro_options} removefilter {debian_suite} '$Source (=={source_name}), $Version (=={source_version})'"
             ]
             executor.run(cmd)
         except ExecutorError as e:
@@ -267,7 +267,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         if stage != "publish" or not self.has_component_packages("publish"):
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided
@@ -297,7 +297,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             raise PublishError("Cannot determine repository for publish")
 
         if not unpublish:
-
             if not sign_artifacts_dir.exists():
                 raise PublishError("Cannot find keyring from sign stage.")
 

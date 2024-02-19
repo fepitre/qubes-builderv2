@@ -99,7 +99,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         return self.template_version
 
     def update_parameters(self, stage: str):
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         template_options = [self.template.flavor] + self.template.options
         template_flavor_dir = []
         parsed_release = QUBES_RELEASE_RE.match(
@@ -146,9 +146,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "USE_QUBES_REPO_VERSION": str(
                         self.config.use_qubes_repo.get("version", None)
                     ),
-                    "USE_QUBES_REPO_TESTING": "1"
-                    if self.config.use_qubes_repo.get("testing", None)
-                    else "0",
+                    "USE_QUBES_REPO_TESTING": (
+                        "1" if self.config.use_qubes_repo.get("testing", None) else "0"
+                    ),
                 }
             )
 
@@ -178,6 +178,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 {
                     "TEMPLATE_CONTENT_DIR": template_content_dir,
                     "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_deb/keys"),
+                }
+            )
+            self.environment.update(
+                {
+                    "DEBIAN_MIRRORS": " ".join(
+                        self.config.get("mirrors", {}).get(self.dist.fullname, [])
+                    )
                 }
             )
             if self.template.flavor in (
@@ -232,6 +239,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "KEYS_DIR": str(
                         executor.get_sources_dir() / "builder-archlinux/keys"
                     ),
+                }
+            )
+            self.environment.update(
+                {
+                    "ARCHLINUX_MIRROR": ",".join(
+                        self.config.get("mirrors", {}).get(self.dist.name, [])
+                    )
                 }
             )
         elif self.template.distribution.is_gentoo():
@@ -456,7 +470,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         template_timestamp: str = None,
     ):
         self.update_parameters(stage)
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         repository_dir = self.get_repository_dir() / self.dist.distribution
         template_artifacts_dir = self.get_templates_dir()
         qubeized_image = template_artifacts_dir / "qubeized_images" / self.template.name

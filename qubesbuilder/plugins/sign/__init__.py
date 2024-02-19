@@ -54,12 +54,13 @@ class SignPlugin(DistributionComponentPlugin):
         super().__init__(component=component, dist=dist, config=config, manager=manager)
 
     def run(self, stage: str):
-        self.update_parameters(stage)
+        # Run stage defined by parent class
+        super().run(stage=stage)
 
         if stage != "sign" or not self.has_component_packages("sign"):
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
 
         # Check if we have Debian related content defined
         if not self.get_parameters(stage).get("build", []):

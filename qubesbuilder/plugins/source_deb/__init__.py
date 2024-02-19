@@ -78,7 +78,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
         if stage != "prep" or not self.has_component_packages("prep"):
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         parameters = self.get_parameters(stage)
 
         # Check if we have Debian related content defined

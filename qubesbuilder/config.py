@@ -16,6 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import pathlib
 import re
 from copy import deepcopy
 from pathlib import Path
@@ -42,7 +43,7 @@ from qubesbuilder.plugins import (
 
 log = get_logger("config")
 
-QUBES_RELEASE_RE = re.compile("r([1-9]\.[0-9]+).*")
+QUBES_RELEASE_RE = re.compile(r"r([1-9]\.[0-9]+).*")
 QUBES_RELEASE_DEFAULT = "r4.2"
 
 
@@ -244,6 +245,12 @@ class Config:
     def set(self, key, value):
         self._conf[key] = value
 
+    def get_conf_path(self):
+        conf_file = self._conf_file
+        if isinstance(conf_file, str):
+            conf_file = Path(conf_file).expanduser().resolve()
+        return conf_file
+
     def get_distributions(self, filtered_distributions=None):
         if not self._dists:
             distributions = self._conf.get("distributions", [])
@@ -344,7 +351,6 @@ class Config:
             TemplatePlugin,
         ] = None,
     ):
-
         dist = None
         component = None
         distribution_executor_options = {}

@@ -28,21 +28,56 @@ from qubesbuilder.plugins.chroot import ChrootError, ChrootPlugin
 log = get_logger("chroot_archlinux")
 
 
+def get_pacman_cmd(
+    gen_path,
+    conf_template,
+    conf,
+    servers=None,
+    enable_builder_local=False,
+    use_qubes_repo_version=None,
+    use_qubes_repo_testing=False,
+):
+    # Prepare generate-pacman args
+    gen_pacman_cmd = [
+        "sudo",
+        gen_path,
+        conf_template,
+        conf,
+    ]
+    for server in servers or []:
+        gen_pacman_cmd += ["--server", server.rstrip("/")]
+
+    # Host (cage) has access to builder-local repository that will be mounted bind into
+    # the archlinux chroot. Configurations will be copied-in by qubes-x86_64-build (archbuild).
+    if enable_builder_local:
+        gen_pacman_cmd.append("--enable-builder-local")
+
+    if use_qubes_repo_version:
+        gen_pacman_cmd += [
+            "--use-qubes-repo-version",
+            str(use_qubes_repo_version),
+        ]
+        if use_qubes_repo_testing:
+            gen_pacman_cmd.append("--use-qubes-repo-testing")
+
+    return [" ".join(gen_pacman_cmd)]
+
+
 def get_archchroot_cmd(chroot_dir, pacman_conf, makepkg_conf, additional_packages=None):
-    cmd = [f"sudo jinja2 {pacman_conf} -o /usr/local/share/devtools/qubes-x86_64.conf"]
     additional_packages = additional_packages or []
+
     mkarchchroot_cmd = [
         "sudo",
         "mkarchroot",
         "-C",
-        "/usr/local/share/devtools/qubes-x86_64.conf",
+        str(pacman_conf),
         "-M",
         str(makepkg_conf),
         str(chroot_dir),
         "base-devel",
     ] + additional_packages
 
-    cmd += [
+    cmd = [
         "sudo rm -rf /etc/pacman.d/gnupg/private-keys-v1.d",
         "sudo pacman-key --init",
         "sudo pacman-key --populate",
@@ -80,7 +115,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         if stage != "init-cache":
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
 
         chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
         chroot_dir.mkdir(exist_ok=True, parents=True)
@@ -95,17 +130,18 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
                 executor.get_plugins_dir(),
             ),
         ] + [
-            (self.manager.entities[dependency].directory, executor.get_plugins_dir())
+            (
+                self.manager.entities[dependency].directory,
+                executor.get_plugins_dir(),
+            )
             for dependency in self.dependencies
         ]
-
         self.environment.update(
             {
                 "DIST": self.dist.name,
                 "PACKAGE_SET": self.dist.package_set,
             }
         )
-
         copy_out = [
             (
                 executor.get_cache_dir() / chroot_archive,
@@ -114,23 +150,38 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         ]
 
         chroot_dir = executor.get_cache_dir() / chroot_name
-        pacman_conf = (
+
+        pacman_conf_template = (
             f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
         )
+
+        pacman_conf = "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
+
         makepkg_conf = (
             f"{executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
         )
+
         additional_packages = (
             self.config.get("cache", {})
             .get(self.dist.distribution, {})
             .get("packages", [])
         )
-        cmd = get_archchroot_cmd(
+
+        pacman_cmd = get_pacman_cmd(
+            gen_path=f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
+            conf_template=pacman_conf_template,
+            conf=pacman_conf,
+            servers=self.config.get("mirrors", {}).get(self.dist.name, []),
+        )
+
+        cmd = pacman_cmd + get_archchroot_cmd(
             chroot_dir,
             pacman_conf,
             makepkg_conf,
             additional_packages=additional_packages,
-        ) + [
+        )
+
+        cmd += [
             f"cd {executor.get_cache_dir()}",
             f"sudo tar cf {chroot_archive} {chroot_name}",
         ]

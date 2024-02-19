@@ -184,7 +184,8 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
 
                 # repo-remove supports only package name as input, not version and release.
                 pkg_name = pkg.name.replace(
-                    f"-{self.component.verrel}-{self.dist.architecture}.pkg.tar.zst", ""
+                    f"-{self.component.get_version_release()}-{self.dist.architecture}.pkg.tar.zst",
+                    "",
                 )
                 cmd += [f"repo-remove {repository_db} {pkg_name}"]
             executor.run(cmd)
@@ -213,7 +214,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         if stage != "publish" or not self.has_component_packages("publish"):
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided

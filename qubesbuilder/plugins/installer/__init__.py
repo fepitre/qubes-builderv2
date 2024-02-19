@@ -126,7 +126,7 @@ class InstallerPlugin(DistributionPlugin):
         return self.iso_timestamp
 
     def update_parameters(self, stage: str, iso_timestamp: str = None):
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         self.environment.update(
             {
                 "DIST": self.dist.name,
@@ -135,9 +135,9 @@ class InstallerPlugin(DistributionPlugin):
                 "PLUGINS_DIR": str(executor.get_plugins_dir()),
                 "PACKAGES_DIR": str(executor.get_repository_dir()),
                 "CACHE_DIR": str(executor.get_cache_dir()),
-                "ISO_USE_KERNEL_LATEST": "1"
-                if self.config.iso_use_kernel_latest
-                else "0",
+                "ISO_USE_KERNEL_LATEST": (
+                    "1" if self.config.iso_use_kernel_latest else "0"
+                ),
                 "ISO_IS_FINAL": "1" if self.config.iso_is_final else "0",
             }
         )
@@ -147,31 +147,31 @@ class InstallerPlugin(DistributionPlugin):
                     "USE_QUBES_REPO_VERSION": str(
                         self.config.use_qubes_repo.get("version", None)
                     ),
-                    "USE_QUBES_REPO_TESTING": "1"
-                    if self.config.use_qubes_repo.get("testing", None)
-                    else "0",
+                    "USE_QUBES_REPO_TESTING": (
+                        "1" if self.config.use_qubes_repo.get("testing", None) else "0"
+                    ),
                 }
             )
 
         # Kickstart will be copied under builder directory
         if self.kickstart_path.is_absolute():
-            self.environment[
-                "INSTALLER_KICKSTART"
-            ] = f"{executor.get_plugins_dir()}/installer/conf/{self.kickstart_path.name}"
+            self.environment["INSTALLER_KICKSTART"] = (
+                f"{executor.get_plugins_dir()}/installer/conf/{self.kickstart_path.name}"
+            )
         else:
-            self.environment[
-                "INSTALLER_KICKSTART"
-            ] = f"{executor.get_plugins_dir()}/installer/{self.kickstart_path}"
+            self.environment["INSTALLER_KICKSTART"] = (
+                f"{executor.get_plugins_dir()}/installer/{self.kickstart_path}"
+            )
 
         # Comps will be copied under builder directory
         if self.comps_path.is_absolute():
-            self.environment[
-                "COMPS_FILE"
-            ] = f"{executor.get_plugins_dir()}/installer/conf/{self.comps_path.name}"
+            self.environment["COMPS_FILE"] = (
+                f"{executor.get_plugins_dir()}/installer/conf/{self.comps_path.name}"
+            )
         else:
-            self.environment[
-                "COMPS_FILE"
-            ] = f"{executor.get_plugins_dir()}/installer/{self.comps_path}"
+            self.environment["COMPS_FILE"] = (
+                f"{executor.get_plugins_dir()}/installer/{self.comps_path}"
+            )
 
         # We don't need to process more ISO information
         if stage == "init-cache":
@@ -251,7 +251,7 @@ class InstallerPlugin(DistributionPlugin):
 
         self.update_parameters(stage=stage, iso_timestamp=iso_timestamp)
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
 
         mock_conf = (
             f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"

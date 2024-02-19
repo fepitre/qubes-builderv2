@@ -57,7 +57,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         if stage != "init-cache":
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
 
         chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder"
         chroot_dir.mkdir(exist_ok=True, parents=True)
@@ -85,9 +85,15 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
             )
         ]
         cmd = [
-            f"sed -i '\#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+            f"sed -i '#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
             f"mkdir -p {executor.get_cache_dir()}/aptcache",
         ]
+        # If provided, use the first mirror given in builder configuration mirrors list
+        mirrors = self.config.get("mirrors", {}).get(self.dist.fullname, [])
+        if mirrors:
+            cmd += [
+                f"sed -i 's@MIRRORSITE=https://deb.debian.org/debian@MIRRORSITE={mirrors[0]}@' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc"
+            ]
         pbuilder_cmd = [
             f"sudo -E pbuilder create --distribution {self.dist.name}",
             f"--configfile {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
@@ -129,7 +135,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
                 )
             ]
             cmd = [
-                f"sed -i '\#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+                f"sed -i '#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
                 f"mkdir -p {executor.get_cache_dir()}/aptcache",
             ]
             pbuilder_cmd = [

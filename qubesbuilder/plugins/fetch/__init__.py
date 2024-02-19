@@ -82,19 +82,17 @@ class FetchPlugin(ComponentPlugin):
             parameters = self.component.get_parameters(self.get_placeholders(stage))
         except NoQubesBuilderFileError:
             return
-        self._parameters.update(parameters.get("source", {}))
+        self._parameters[stage].update(parameters.get("source", {}))
 
     def run(self, stage: str):
         """
         Run plugin for given stage.
         """
-        # Run stage defined by parent class
-        super().run(stage=stage)
 
         if stage != "fetch":
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
 
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name
@@ -112,6 +110,8 @@ class FetchPlugin(ComponentPlugin):
         ]
         for key_dir_str in self.config.get("key-dirs", []):
             key_dir = Path(key_dir_str)
+            if not key_dir.is_absolute():
+                key_dir = self.config.get_conf_path().parent.joinpath(key_dir)
             if not key_dir.is_dir():
                 log.warn(f"Key directory '{key_dir!s}' is not a directory")
                 continue
@@ -169,6 +169,8 @@ class FetchPlugin(ComponentPlugin):
 
         # Update parameters based on previously fetched sources as .qubesbuilder
         # is now available.
+        super().run(stage)
+
         parameters = self.get_parameters(stage)
 
         distfiles_dir = self.get_component_distfiles_dir()

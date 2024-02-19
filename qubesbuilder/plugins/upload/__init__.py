@@ -64,7 +64,7 @@ class UploadPlugin(DistributionPlugin):
         if stage != "upload":
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
 
         if not isinstance(executor, LocalExecutor):
             raise UploadError("This plugin only supports local executor.")

@@ -64,7 +64,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
         if stage != "prep" or not self.has_component_packages("prep"):
             return
 
-        executor = self.config.get_executor_from_config(stage, self)
+        executor = self.get_executor(stage)
         parameters = self.get_parameters(stage)
 
         # Check if we have Archlinux related content defined
@@ -166,12 +166,12 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 raise SourceError("Invalid architecture value.")
 
             # Source archive name is based on first package name
-            source_orig = f"{pkgnames[0]}-{self.component.verrel}.tar.gz"
+            source_orig = f"{pkgnames[0]}-{self.component.get_version_release()}.tar.gz"
 
             # Create packages list
             packages_list = []
             for pkgname in pkgnames:
-                pkg = f"{pkgname}-{self.component.verrel}-{package_arch}.pkg.tar.zst"
+                pkg = f"{pkgname}-{self.component.get_version_release()}-{package_arch}.pkg.tar.zst"
                 packages_list.append(pkg)
 
             # Create source archive
