@@ -257,14 +257,21 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 f"sudo cp {makepkg_conf} /usr/local/share/devtools/makepkg.conf.d/qubes-x86_64.conf",
             ]
 
-            pacman_cmd = get_pacman_cmd(
-                gen_path=f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
-                conf_template=pacman_conf_template,
-                conf=pacman_conf,
-                servers=self.config.get("mirrors", {}).get(self.dist.name, []),
-                use_qubes_repo_version=self.config.use_qubes_repo.get("version", None),
-                use_qubes_repo_testing=self.config.use_qubes_repo.get("testing", False),
-            )
+            pacman_base_args = {
+                "gen_path": f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
+                "conf_template": pacman_conf_template,
+                "conf": pacman_conf,
+                "servers": self.config.get("mirrors", {}).get(self.dist.name, []),
+            }
+            pacman_args = {
+                **pacman_base_args,
+                "use_qubes_repo_version": self.config.use_qubes_repo.get(
+                    "version", None
+                ),
+                "use_qubes_repo_testing": self.config.use_qubes_repo.get(
+                    "testing", False
+                ),
+            }
 
             chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
             chroot_archive = "root.tar.gz"
@@ -280,7 +287,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     f"sudo mkdir -p {executor.get_cache_dir()}/qubes-x86_64",
                     f"cd {executor.get_cache_dir()}/qubes-x86_64",
                     f"sudo tar xf {executor.get_cache_dir() / chroot_archive}",
-                ] + pacman_cmd
+                ] + get_pacman_cmd(
+                    **pacman_args,
+                )
 
                 # Ensure to regenerate pacman keyring
                 cmd += [
@@ -293,23 +302,15 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     f"{self.component}:{self.dist}: Chroot cache does not exists. Will create it."
                 )
                 # We don't need builder-local to create fresh chroot
-                cmd += pacman_cmd + get_archchroot_cmd(
-                    chroot_dir,
+                cmd += get_pacman_cmd(**pacman_base_args) + get_archchroot_cmd(
+                    executor.get_cache_dir() / "qubes-x86_64" / "root",
                     pacman_conf,
                     makepkg_conf,
                 )
 
             # Once we generated a normal configuration without builder-local needed
             # we regenerate one with it enabled.
-            pacman_cmd = get_pacman_cmd(
-                gen_path=f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
-                conf_template=pacman_conf_template,
-                conf=pacman_conf,
-                servers=self.config.get("mirrors", {}).get(self.dist.name, []),
-                enable_builder_local=True,
-                use_qubes_repo_version=self.config.use_qubes_repo.get("version", None),
-                use_qubes_repo_testing=self.config.use_qubes_repo.get("testing", False),
-            )
+            pacman_cmd = get_pacman_cmd(**pacman_args, enable_builder_local=True)
 
             if self.config.use_qubes_repo.get("version", None):
                 files_inside_executor_with_placeholders += [
