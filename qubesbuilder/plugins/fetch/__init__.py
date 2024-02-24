@@ -19,14 +19,13 @@
 
 import os.path
 import re
+import shlex
 import shutil
 import tempfile
 import urllib.parse
 from pathlib import Path
-from typing import Any, List, Union
-import subprocess
-import shlex
 from shlex import quote
+from typing import Any, List, Union
 
 from qubesbuilder.common import VerificationMode
 from qubesbuilder.component import QubesComponent
@@ -34,8 +33,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.exc import NoQubesBuilderFileError
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.log import get_logger
+from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ComponentPlugin, PluginError
 
 log = get_logger("fetch")
@@ -92,7 +91,11 @@ class FetchPlugin(ComponentPlugin):
         if stage != "fetch":
             return
 
-        executor = self.get_executor(stage)
+        # Override provided executor for git phase only
+        if self.config.get("git-run-inplace", False):
+            executor = LocalExecutor()
+        else:
+            executor = self.get_executor(stage)
 
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name
@@ -126,7 +129,6 @@ class FetchPlugin(ComponentPlugin):
                 ]
 
         # Get GIT source for a given Qubes OS component
-        copy_out = [(source_dir, self.get_sources_dir())]
         get_sources_cmd = [
             str(executor.get_plugins_dir() / "fetch/scripts/get-and-verify-source.py"),
             self.component.url,  # clone from
@@ -148,6 +150,9 @@ class FetchPlugin(ComponentPlugin):
         if self.component.fetch_versions_only:
             get_sources_cmd += ["--fetch-versions-only"]
 
+        cmd = []
+        copy_out = [(source_dir, self.get_sources_dir())]
+
         do_fetch = True
         if local_source_dir.exists():
             # If we already fetched sources previously and have modified them,
@@ -158,10 +163,14 @@ class FetchPlugin(ComponentPlugin):
                 do_fetch = False
             else:
                 log.info(f"{self.component}: source already fetched. Updating.")
-                copy_in += [(local_source_dir, executor.get_builder_dir())]
+                if self.config.get("git-run-inplace", False):
+                    cmd += [f"ln -s {local_source_dir} {source_dir}"]
+                    copy_out = []
+                else:
+                    copy_in += [(local_source_dir, executor.get_builder_dir())]
 
         if do_fetch:
-            cmd = [
+            cmd += [
                 f"cd {str(executor.get_builder_dir())}",
                 " ".join(get_sources_cmd),
             ]
@@ -171,8 +180,9 @@ class FetchPlugin(ComponentPlugin):
         # is now available.
         super().run(stage)
 
+        executor = self.get_executor(stage)
+        source_dir = executor.get_builder_dir() / self.component.name
         parameters = self.get_parameters(stage)
-
         distfiles_dir = self.get_component_distfiles_dir()
         distfiles_dir.mkdir(parents=True, exist_ok=True)
 

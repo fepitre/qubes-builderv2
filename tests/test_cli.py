@@ -146,6 +146,26 @@ def test_common_config(artifacts_dir):
 #
 
 
+def _get_infos(artifacts_dir):
+    infos = {}
+    for component in [
+        "core-qrexec",
+        "core-vchan-xen",
+        "desktop-linux-xfce4-xfwm4",
+        "python-qasync",
+        "app-linux-split-gpg",
+    ]:
+        dir_fd = os.open(artifacts_dir / "sources" / component, os.O_RDONLY)
+        infos[component] = {
+            "inodes": os.stat(
+                artifacts_dir / "sources" / component / ".qubesbuilder"
+            ).st_ino,
+            "fd": dir_fd,
+            "list": os.listdir(dir_fd),
+        }
+    return infos
+
+
 def test_common_component_fetch(artifacts_dir):
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
@@ -172,6 +192,8 @@ def test_common_component_fetch(artifacts_dir):
 
 
 def test_common_component_fetch_updating(artifacts_dir):
+    infos_before = _get_infos(artifacts_dir)
+
     result = qb_call_output(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
@@ -189,6 +211,71 @@ def test_common_component_fetch_updating(artifacts_dir):
         "desktop-linux-xfce4-xfwm4: file xfwm4-4.16.1.tar.bz2 already downloaded. Skipping.",
     ]:
         assert sentence in result
+
+    infos_after = _get_infos(artifacts_dir)
+
+    for component in infos_before:
+        assert infos_after[component]["inodes"] != infos_before[component]["inodes"]
+
+
+def test_common_component_fetch_inplace(artifacts_dir):
+    result = qb_call_output(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "--option",
+        "git-run-inplace=true",
+        "package",
+        "fetch",
+        stderr=subprocess.STDOUT,
+    ).decode()
+
+    assert (artifacts_dir / "distfiles/python-qasync/qasync-0.23.0.tar.gz").exists()
+    assert (
+        artifacts_dir / "distfiles/desktop-linux-xfce4-xfwm4/xfwm4-4.16.1.tar.bz2"
+    ).exists()
+
+    for component in [
+        "core-qrexec",
+        "core-vchan-xen",
+        "desktop-linux-xfce4-xfwm4",
+        "python-qasync",
+        "app-linux-split-gpg",
+    ]:
+        assert (artifacts_dir / "sources" / component / ".qubesbuilder").exists()
+    assert "Enough distinct tag signatures. Found 3, mandatory minimum is 3." in result
+
+
+def test_common_component_fetch_inplace_updating(artifacts_dir):
+    infos_before = _get_infos(artifacts_dir)
+
+    result = qb_call_output(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "--option",
+        "git-run-inplace=true",
+        "package",
+        "fetch",
+        stderr=subprocess.STDOUT,
+    ).decode()
+
+    for sentence in [
+        "python-qasync: source already fetched. Updating.",
+        "core-vchan-xen: source already fetched. Updating.",
+        "core-qrexec: source already fetched. Updating.",
+        "app-linux-split-gpg: source already fetched. Updating.",
+        "desktop-linux-xfce4-xfwm4: source already fetched. Updating.",
+        "python-qasync: file qasync-0.23.0.tar.gz already downloaded. Skipping.",
+        "desktop-linux-xfce4-xfwm4: file xfwm4-4.16.1.tar.bz2 already downloaded. Skipping.",
+    ]:
+        assert sentence in result
+
+    infos_after = _get_infos(artifacts_dir)
+
+    for component in infos_before:
+        assert infos_after[component]["inodes"] == infos_before[component]["inodes"]
+        assert os.listdir(infos_after[component]["fd"]) == os.listdir(
+            infos_before[component]["fd"]
+        )
 
 
 #
