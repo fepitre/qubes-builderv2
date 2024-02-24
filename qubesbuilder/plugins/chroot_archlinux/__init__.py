@@ -81,7 +81,7 @@ def get_archchroot_cmd(chroot_dir, pacman_conf, makepkg_conf, additional_package
         "sudo rm -rf /etc/pacman.d/gnupg/private-keys-v1.d",
         "sudo pacman-key --init",
         "sudo pacman-key --populate",
-        f"mkdir -p {chroot_dir.parent}",
+        f"sudo mkdir -p {chroot_dir.parent}",
         " ".join(mkarchchroot_cmd),
     ]
 
@@ -117,12 +117,12 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
 
         executor = self.get_executor(stage)
 
-        chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
-        chroot_dir.mkdir(exist_ok=True, parents=True)
+        cache_chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
+        cache_chroot_dir.mkdir(exist_ok=True, parents=True)
+
         chroot_name = "root"
         chroot_archive = f"{chroot_name}.tar.gz"
-        if (chroot_dir / chroot_archive).exists():
-            (chroot_dir / chroot_archive).unlink()
+        (cache_chroot_dir / chroot_archive).unlink(missing_ok=True)
 
         copy_in = [
             (
@@ -145,11 +145,9 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         copy_out = [
             (
                 executor.get_cache_dir() / chroot_archive,
-                chroot_dir,
+                cache_chroot_dir,
             )
         ]
-
-        chroot_dir = executor.get_cache_dir() / chroot_name
 
         pacman_conf_template = (
             f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
@@ -173,6 +171,8 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
             conf=pacman_conf,
             servers=self.config.get("mirrors", {}).get(self.dist.name, []),
         )
+
+        chroot_dir = executor.get_cache_dir() / chroot_name
 
         cmd = pacman_cmd + get_archchroot_cmd(
             chroot_dir,
