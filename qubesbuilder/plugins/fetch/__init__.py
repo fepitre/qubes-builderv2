@@ -327,9 +327,6 @@ class FetchPlugin(ComponentPlugin):
         # Temporary directory
         temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
 
-        # Source component directory inside executors
-        source_dir = executor.get_builder_dir() / self.component.name
-
         # Keep existing fetch info if it is up-to-date
         source_hash = self.component.get_source_hash(force_update=True)
         old_info = self.get_artifacts_info(stage=stage, basename="source")
@@ -341,6 +338,14 @@ class FetchPlugin(ComponentPlugin):
         # modify the source for development and at prep stage we would need to recompute
         # source hash based on those modifications.
         info: dict[str, Any] = {"source-hash": source_hash}
+
+        if self.config.get("git-run-inplace", False):
+            executor = LocalExecutor()
+        else:
+            executor = self.get_executor(stage)
+
+        # Source component directory inside executors
+        source_dir = executor.get_builder_dir() / self.component.name
 
         # Get git hash and tags
         copy_in = [
@@ -433,6 +438,12 @@ class FetchPlugin(ComponentPlugin):
                     ],
                 }
             )
+
+            #
+            # Create modules archives
+            #
+
+            executor = self.get_executor(stage)
 
             copy_in = [
                 (self.component.source_dir, executor.get_builder_dir()),
