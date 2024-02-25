@@ -171,7 +171,19 @@ class LinuxQubesExecutor(QubesExecutor):
             # Adjust log namespace
             log.name = f"executor:qubes:{dispvm}"
 
-            # Start the DispVM by copying qubes-builder RPC
+            # Start the DispVM
+            subprocess.run(
+                [
+                    "/usr/lib/qubes/qrexec-client-vm",
+                    dispvm,
+                    "admin.vm.Start",
+                ],
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=True,
+            )
+
+            # Copy qubes-builder RPC
             copy_rpc_cmd = [
                 "/usr/lib/qubes/qrexec-client-vm",
                 "--filter-escape-chars-stderr",
