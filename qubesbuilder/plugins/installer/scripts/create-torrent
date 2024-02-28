@@ -24,9 +24,7 @@ ln "$ISO" "$ISO_BASE"
 ln "$ISO.asc" "$ISO_BASE"
 ln "$ISO.DIGESTS" "$ISO_BASE"
 
-mktorrent -a udp://tracker.openbittorrent.com:80 \
-	-a udp://tracker.coppersurfer.tk:6969 \
-	-a udp://tracker.torrent.eu.org:451 \
+mktorrent -a udp://tracker.torrent.eu.org:451 \
 	-d -l 20 -v "$ISO_BASE" \
 	-w https://mirrors.kernel.org/qubes/iso/ \
 	-w https://ftp.qubes-os.org/iso/ \
