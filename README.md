@@ -17,7 +17,7 @@ Local, and Qubes executors are available.
 Fedora:
 
 ```bash
-$ sudo dnf install python3-packaging python3-click python3-lxml createrepo_c devscripts gpg python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec rpm-sign mktorrent openssl tree mock python3-jinja2-cli pacman m4 asciidoc rsync
+$ sudo dnf install python3-packaging python3-click python3-lxml createrepo_c devscripts gpg python3-pyyaml rpm docker python3-docker podman python3-podman reprepro python3-pathspec rpm-sign rb_libtorrent-examples openssl tree mock python3-jinja2-cli pacman m4 asciidoc rsync
 ```
 
 Debian:

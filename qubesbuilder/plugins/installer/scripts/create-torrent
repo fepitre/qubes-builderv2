@@ -24,13 +24,28 @@ ln "$ISO" "$ISO_BASE"
 ln "$ISO.asc" "$ISO_BASE"
 ln "$ISO.DIGESTS" "$ISO_BASE"
 
-mktorrent -a udp://tracker.torrent.eu.org:451 \
-	-a udp://tracker.opentrackr.org:1337/announce \
-	-a https://tracker.gbitt.info:443/announce \
-	-a http://tracker.gbitt.info:80/announce \
-	-d -l 20 -v "$ISO_BASE" \
-	-w https://mirrors.kernel.org/qubes/iso/ \
-	-w https://ftp.qubes-os.org/iso/ \
-	-o "$ISO_DIR/$ISO_BASE.torrent"
+# check the system is Fedora or not by checking make_torrent availability.
+if [ -f "/usr/bin/make_torrent" ]; then
+	# for Fedora system, use make_torrent to create v2 hybrid torrent.
+	make_torrent "$ISO_BASE" \
+		-t udp://tracker.torrent.eu.org:451 \
+		-t udp://tracker.opentrackr.org:1337/announce \
+		-t https://tracker.gbitt.info:443/announce \
+		-t http://tracker.gbitt.info:80/announce \
+		-s 1048576 \
+		-w https://mirrors.kernel.org/qubes/iso/ \
+		-w https://ftp.qubes-os.org/iso/ \
+		-o "$ISO_DIR/$ISO_BASE.torrent"
+else
+	# for Debian system, use mktorrent because make_torrent isn't available.
+	mktorrent -a udp://tracker.torrent.eu.org:451 \
+		-a udp://tracker.opentrackr.org:1337/announce \
+		-a https://tracker.gbitt.info:443/announce \
+		-a http://tracker.gbitt.info:80/announce \
+		-d -l 20 -v "$ISO_BASE" \
+		-w https://mirrors.kernel.org/qubes/iso/ \
+		-w https://ftp.qubes-os.org/iso/ \
+		-o "$ISO_DIR/$ISO_BASE.torrent"
+fi
 
 rm -r "$ISO_BASE"
