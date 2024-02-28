@@ -25,6 +25,9 @@ ln "$ISO.asc" "$ISO_BASE"
 ln "$ISO.DIGESTS" "$ISO_BASE"
 
 mktorrent -a udp://tracker.torrent.eu.org:451 \
+	-a udp://tracker.opentrackr.org:1337/announce \
+	-a https://tracker.gbitt.info:443/announce \
+	-a http://tracker.gbitt.info:80/announce \
 	-d -l 20 -v "$ISO_BASE" \
 	-w https://mirrors.kernel.org/qubes/iso/ \
 	-w https://ftp.qubes-os.org/iso/ \
