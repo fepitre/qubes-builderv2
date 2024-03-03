@@ -228,7 +228,12 @@ class LinuxQubesExecutor(QubesExecutor):
                         "/usr/local/etc/qubes-rpc/qubesbuilder.FileCopyIn",
                         "/usr/local/etc/qubes-rpc/qubesbuilder.FileCopyOut",
                     ],
-                    ["sudo", "restorecon", "-R", "/usr/local/etc/qubes-rpc/"],
+                    [
+                        "sudo",
+                        "bash",
+                        "-c",
+                        "if [ -x /usr/sbin/restorecon ]; then restorecon -R /usr/local/etc/qubes-rpc/; fi;",
+                    ],
                     [
                         "sudo",
                         "chown",
