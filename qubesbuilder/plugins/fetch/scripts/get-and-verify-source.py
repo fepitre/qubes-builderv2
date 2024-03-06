@@ -35,7 +35,7 @@ def verify_git_obj(keyring_dir, repository_dir, obj_type, obj_path):
         command = [
             "git",
             "-c",
-            "gpg.program=gpg",
+            "gpg.program=gpg-sq",
             "-c",
             "gpg.minTrustLevel=fully",
             f"verify-{obj_type}",
@@ -214,17 +214,26 @@ def main(args):
             print("--> Verifying tags...")
 
         env = {"GNUPGHOME": str(git_keyring_dir)}
-        if not (git_keyring_dir / "trustdb.gpg").exists():
+        trust_root = git_keyring_dir / "pubring.cert.d" / "trust-root"
+        if not trust_root.exists():
             git_keyring_dir.mkdir(parents=True, exist_ok=True)
             git_keyring_dir.chmod(0o700)
+            # We request a list to init the keyring. It looks like it does
+            # not do it on first import, so we just show available keys.
             subprocess.run(
-                ["gpg", "--import", keys_dir / "qubes-developers-keys.asc"],
+                ["gpg-sq", "-k"],
                 capture_output=True,
                 check=True,
                 env=env,
             )
             subprocess.run(
-                ["gpg", "--import-ownertrust"],
+                ["gpg-sq", "--import", keys_dir / "qubes-developers-keys.asc"],
+                capture_output=True,
+                check=True,
+                env=env,
+            )
+            subprocess.run(
+                ["gpg-sq", "--import-ownertrust"],
                 input="427F11FD0FAA4B080123F01CDDFA1A3E36879494:6:\n",
                 capture_output=True,
                 text=True,
@@ -233,25 +242,25 @@ def main(args):
             )
 
         if os.path.getmtime(keys_dir / "qubes-developers-keys.asc") > os.path.getmtime(
-            git_keyring_dir / "trustdb.gpg"
+            trust_root
         ):
             subprocess.run(
-                ["gpg", "--import", keys_dir / "qubes-developers-keys.asc"],
+                ["gpg-sq", "--import", keys_dir / "qubes-developers-keys.asc"],
                 capture_output=True,
                 check=True,
                 env=env,
             )
-            subprocess.run(["touch", git_keyring_dir / "trustdb.gpg"])
+            subprocess.run(["touch", trust_root])
 
         for keyid in maintainers:
             subprocess.run(
-                ["gpg", "--import", keys_dir / f"{keyid}.asc"],
+                ["gpg-sq", "--import", keys_dir / f"{keyid}.asc"],
                 check=True,
                 env=env,
                 capture_output=True,
             )
             subprocess.run(
-                ["gpg", "--import-ownertrust"],
+                ["gpg-sq", "--import-ownertrust"],
                 input=f"{keyid}:6:\n",
                 capture_output=True,
                 text=True,
