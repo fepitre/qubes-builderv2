@@ -214,14 +214,16 @@ def main(args):
             print("--> Verifying tags...")
 
         env = {"GNUPGHOME": str(git_keyring_dir)}
-        trust_root = git_keyring_dir / "pubring.cert.d" / "trust-root"
-        if not trust_root.exists():
+        qubes_stamp = (
+            git_keyring_dir / "pubring.cert.d" / "qubes-developers-keys-import.stamp"
+        )
+        if not qubes_stamp.exists():
             git_keyring_dir.mkdir(parents=True, exist_ok=True)
             git_keyring_dir.chmod(0o700)
             # We request a list to init the keyring. It looks like it does
             # not do it on first import, so we just show available keys.
             subprocess.run(
-                ["gpg-sq", "-k"],
+                ["gpg-sq", "--list-keys"],
                 capture_output=True,
                 check=True,
                 env=env,
@@ -240,9 +242,10 @@ def main(args):
                 env=env,
                 check=True,
             )
+            subprocess.run(["touch", qubes_stamp])
 
         if os.path.getmtime(keys_dir / "qubes-developers-keys.asc") > os.path.getmtime(
-            trust_root
+            qubes_stamp
         ):
             subprocess.run(
                 ["gpg-sq", "--import", keys_dir / "qubes-developers-keys.asc"],
@@ -250,7 +253,7 @@ def main(args):
                 check=True,
                 env=env,
             )
-            subprocess.run(["touch", trust_root])
+            subprocess.run(["touch", qubes_stamp])
 
         for keyid in maintainers:
             subprocess.run(
