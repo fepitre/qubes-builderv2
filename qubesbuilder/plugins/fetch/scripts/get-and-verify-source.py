@@ -29,13 +29,13 @@ from pathlib import Path
 from typing import List, Any
 
 
-def verify_git_obj(keyring_dir, repository_dir, obj_type, obj_path):
+def verify_git_obj(gpg_client, keyring_dir, repository_dir, obj_type, obj_path):
     try:
         # Run git command and capture the output
         command = [
             "git",
             "-c",
-            "gpg.program=gpg-sq",
+            f"gpg.program={gpg_client}",
             "-c",
             "gpg.minTrustLevel=fully",
             f"verify-{obj_type}",
@@ -97,6 +97,16 @@ def main(args):
     fetch_versions_only = args.fetch_versions_only
     maintainers = args.maintainer or []
     minimum_distinct_maintainers = int(args.minimum_distinct_maintainers)
+
+    gpg_sequoia = "/usr/bin/gpg-sq"
+    gpg = "/usr/bin/gpg"
+
+    if Path(gpg_sequoia).exists():
+        gpg_client = gpg_sequoia
+    elif Path(gpg).exists():
+        gpg_client = gpg
+    else:
+        raise ValueError("Cannot find GnuPG or GnuPG-compatible Sequoia Chameleon.")
 
     # Validity check on provided maintainers
     for maintainer in maintainers:
@@ -214,28 +224,33 @@ def main(args):
             print("--> Verifying tags...")
 
         env = {"GNUPGHOME": str(git_keyring_dir)}
-        qubes_stamp = (
-            git_keyring_dir / "pubring.cert.d" / "qubes-developers-keys-import.stamp"
-        )
+        if gpg_client == gpg_sequoia:
+            qubes_stamp = (
+                git_keyring_dir
+                / "pubring.cert.d"
+                / "qubes-developers-keys-import.stamp"
+            )
+        else:
+            qubes_stamp = git_keyring_dir / "qubes-developers-keys-import.stamp"
         if not qubes_stamp.exists():
             git_keyring_dir.mkdir(parents=True, exist_ok=True)
             git_keyring_dir.chmod(0o700)
             # We request a list to init the keyring. It looks like it does
             # not do it on first import, so we just show available keys.
             subprocess.run(
-                ["gpg-sq", "--list-keys"],
+                [gpg_client, "--list-keys"],
                 capture_output=True,
                 check=True,
                 env=env,
             )
             subprocess.run(
-                ["gpg-sq", "--import", keys_dir / "qubes-developers-keys.asc"],
+                [gpg_client, "--import", keys_dir / "qubes-developers-keys.asc"],
                 capture_output=True,
                 check=True,
                 env=env,
             )
             subprocess.run(
-                ["gpg-sq", "--import-ownertrust"],
+                [gpg_client, "--import-ownertrust"],
                 input="427F11FD0FAA4B080123F01CDDFA1A3E36879494:6:\n",
                 capture_output=True,
                 text=True,
@@ -248,7 +263,7 @@ def main(args):
             qubes_stamp
         ):
             subprocess.run(
-                ["gpg-sq", "--import", keys_dir / "qubes-developers-keys.asc"],
+                [gpg_client, "--import", keys_dir / "qubes-developers-keys.asc"],
                 capture_output=True,
                 check=True,
                 env=env,
@@ -257,13 +272,13 @@ def main(args):
 
         for keyid in maintainers:
             subprocess.run(
-                ["gpg-sq", "--import", keys_dir / f"{keyid}.asc"],
+                [gpg_client, "--import", keys_dir / f"{keyid}.asc"],
                 check=True,
                 env=env,
                 capture_output=True,
             )
             subprocess.run(
-                ["gpg-sq", "--import-ownertrust"],
+                [gpg_client, "--import-ownertrust"],
                 input=f"{keyid}:6:\n",
                 capture_output=True,
                 text=True,
@@ -308,6 +323,7 @@ def main(args):
                 )
             tag = tag[:hash_len]
             valid_sig_key = verify_git_obj(
+                gpg_client=gpg_client,
                 keyring_dir=git_keyring_dir,
                 repository_dir=repo,
                 obj_type="tag",
@@ -332,6 +348,7 @@ def main(args):
         if not tags:
             print(f"---> No tag pointing at {expected_hash}")
             if verify_git_obj(
+                gpg_client=gpg_client,
                 keyring_dir=git_keyring_dir,
                 repository_dir=repo,
                 obj_type="commit",
