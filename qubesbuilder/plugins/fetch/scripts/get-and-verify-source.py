@@ -224,14 +224,7 @@ def main(args):
             print("--> Verifying tags...")
 
         env = {"GNUPGHOME": str(git_keyring_dir)}
-        if gpg_client == gpg_sequoia:
-            qubes_stamp = (
-                git_keyring_dir
-                / "pubring.cert.d"
-                / "qubes-developers-keys-import.stamp"
-            )
-        else:
-            qubes_stamp = git_keyring_dir / "qubes-developers-keys-import.stamp"
+        qubes_stamp = git_keyring_dir / "qubes-developers-keys-import.stamp"
         if not qubes_stamp.exists():
             git_keyring_dir.mkdir(parents=True, exist_ok=True)
             git_keyring_dir.chmod(0o700)
