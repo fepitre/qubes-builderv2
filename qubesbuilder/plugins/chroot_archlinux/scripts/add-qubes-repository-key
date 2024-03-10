@@ -1,5 +1,5 @@
 #!/bin/bash
 
-key_fpr=$(gpg --with-colons --show-key @BUILDER_DIR@/qubes-repo-archlinux-key.asc -| grep ^fpr: | cut -d : -f 10)
+key_fpr=$(gpg --with-colons --show-key @BUILDER_DIR@/qubes-repo-archlinux-key.asc| grep ^fpr: | cut -d : -f 10)
 pacman-key --add - < @BUILDER_DIR@/qubes-repo-archlinux-key.asc
 pacman-key --lsign "$key_fpr"
