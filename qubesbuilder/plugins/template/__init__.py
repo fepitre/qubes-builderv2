@@ -271,6 +271,56 @@ class TemplateBuilderPlugin(TemplatePlugin):
             if not self.get_sources_dir() / dependency:
                 raise PluginError(f"Cannot find source directory '{dependency}'.")
 
+    def create_repository_skeleton(self):
+        # Create publish repository skeleton
+        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+
+        create_skeleton_cmd = [
+            f"{self.manager.entities['publish_rpm'].directory}/scripts/create-skeleton",
+            self.config.qubes_release,
+            "''",
+            "''",
+            str(artifacts_dir.absolute()),
+            "''",
+        ]
+        cmd = [" ".join(create_skeleton_cmd)]
+        try:
+            executor = self.get_executor("publish")
+            executor.run(cmd)
+        except ExecutorError as e:
+            msg = f"{self.template}: Failed to create repository skeleton."
+            raise TemplateError(msg) from e
+
+    def create_and_sign_repository_metadata(self, repository_publish):
+        executor = self.config.get_executor_from_config("publish", self)
+        artifacts_dir = self.get_repository_publish_dir() / "rpm"
+        target_dir = artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
+
+        (target_dir / "repodata").mkdir(parents=True, exist_ok=True)
+
+        # Check if we have a signing key provided
+        sign_key = self.config.sign_key.get(
+            self.dist.distribution, None
+        ) or self.config.sign_key.get("rpm", None)
+
+        if not sign_key:
+            log.info(f"{self.template}: No signing key found.")
+            return
+
+        # Check if we have a gpg client provided
+        if not self.config.gpg_client:
+            log.info(f"{self.template}: Please specify GPG client to use!")
+            return
+
+        # Createrepo unpublished RPMs
+        self.createrepo(executor=executor, target_dir=target_dir)
+
+        # Sign metadata
+        self.sign_metadata(executor=executor, sign_key=sign_key, target_dir=target_dir)
+
+        # Create metalink
+        self.create_metalink(executor=executor, repository_publish=repository_publish)
+
     def get_sign_key(self):
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -374,9 +424,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
             log.error(msg)
 
     def publish(self, executor, db_path, repository_publish):
-        # Read information from build stage
-        template_timestamp = self.get_template_timestamp()
-
         rpm = (
             self.get_templates_dir()
             / "rpm"
@@ -415,13 +462,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
             msg = f"{self.template}: Failed to publish template."
             raise TemplateError(msg) from e
 
-        # Createrepo published templates
-        self.createrepo(executor=executor, target_dir=target_dir)
-
-        # Sign metadata
-        self.sign_metadata(executor=executor, target_dir=target_dir, sign_key=sign_key)
-
-        self.create_metalink(executor=executor, repository_publish=repository_publish)
+        # Create and sign metadata
+        self.create_and_sign_repository_metadata(repository_publish)
 
     def unpublish(self, executor, repository_publish):
         # Read information from build stage
@@ -453,13 +495,15 @@ class TemplateBuilderPlugin(TemplatePlugin):
             msg = f"{self.template}: Failed to unpublish template."
             raise TemplateError(msg) from e
 
-        # Createrepo published templates
-        self.createrepo(executor=executor, target_dir=target_dir)
+        # Create and sign metadata
+        self.create_and_sign_repository_metadata(repository_publish)
 
-        # Sign metadata
-        self.sign_metadata(executor=executor, target_dir=target_dir, sign_key=sign_key)
+    def create(self, repository_publish: str):
+        # Create skeleton
+        self.create_repository_skeleton()
 
-        self.create_metalink(executor=executor, repository_publish=repository_publish)
+        # Create and sign metadata
+        self.create_and_sign_repository_metadata(repository_publish=repository_publish)
 
     def run(
         self,
@@ -705,9 +749,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         # Publish stage for template components
         if stage == "publish" and not unpublish:
-            # repository-publish directory
-            artifacts_dir = self.get_repository_publish_dir() / "rpm"
-
             self.validate_repository_publish(repository_publish)
 
             if self.is_published(repository_publish):
@@ -735,26 +776,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 msg = f"{self.template}: Failed to find RPM DB path."
                 raise TemplateError(msg)
 
-            # Create publish repository skeleton with at least underlying
-            # template distribution
-            comps = (
-                self.manager.entities["publish_rpm"].directory
-                / f"comps/comps-{self.dist.package_set}.xml"
-            )
-            create_skeleton_cmd = [
-                f"{self.manager.entities['publish_rpm'].directory}//scripts/create-skeleton",
-                self.config.qubes_release,
-                self.dist.package_set,
-                self.dist.name,
-                str(artifacts_dir.absolute()),
-                str(comps.absolute()),
-            ]
-            cmd = [" ".join(create_skeleton_cmd)]
-            try:
-                executor.run(cmd)
-            except ExecutorError as e:
-                msg = f"{self.template}: Failed to create repository skeleton."
-                raise TemplateError(msg) from e
+            # Create skeleton
+            self.create_repository_skeleton()
 
             publish_info = self.get_template_artifacts_info(stage=stage)
             build_info = self.get_template_artifacts_info(stage="build")

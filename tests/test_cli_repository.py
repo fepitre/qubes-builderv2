@@ -122,3 +122,40 @@ def test_repository_create_vm_bookworm(artifacts_dir):
         for codename in ["bookworm-unstable", "bookworm-testing", "bookworm"]:
             assert (repository_dir / "dists" / codename / "InRelease").exists()
             assert (repository_dir / "dists" / codename / "Release.gpg").exists()
+
+
+def test_repository_create_template(artifacts_dir):
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        gnupghome = f"{tmpdir}/.gnupg"
+        shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
+        os.chmod(gnupghome, 0o700)
+
+        env["GNUPGHOME"] = gnupghome
+        env["HOME"] = tmpdir
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-t",
+            "fedora-38-xfce",
+            "repository",
+            "create",
+            "templates-itl-testing",
+            env=env,
+        )
+
+        metadata_dir = (
+            artifacts_dir
+            / f"repository-publish/rpm/r4.2/templates-itl-testing/repodata"
+        )
+        assert (metadata_dir / "repomd.xml.metalink").exists()
+        with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
+            repomd_hash = hashlib.sha256(repomd_f.read()).hexdigest()
+        assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
+            encoding="ascii"
+        )
+        assert (
+            "/pub/os/qubes/repo/yum/r4.2/templates-itl-testing/repodata/repomd.xml"
+            in (metadata_dir / "repomd.xml.metalink").read_text(encoding="ascii")
+        )
