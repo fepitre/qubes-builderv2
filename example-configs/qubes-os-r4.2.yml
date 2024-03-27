@@ -124,6 +124,7 @@ components:
       branch: main
   - video-companion:
       branch: main
+  - notification-proxy
   - screenshot-helper
   - python-looseversion
   - salt
