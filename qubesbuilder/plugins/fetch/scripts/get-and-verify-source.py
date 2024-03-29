@@ -107,6 +107,9 @@ def main(args):
         gpg_client = gpg
     else:
         raise ValueError("Cannot find GnuPG or GnuPG-compatible Sequoia Chameleon.")
+    # XXX temporarily switch back to GnuPG, see
+    # https://github.com/QubesOS/qubes-issues/issues/9012#issuecomment-2026665655
+    gpg_client = gpg
 
     # Validity check on provided maintainers
     for maintainer in maintainers:
