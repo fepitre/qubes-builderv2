@@ -122,6 +122,13 @@ def create_dummy_args(
 ):
     args = Namespace()
 
+    maintainers = maintainers if maintainers and isinstance(maintainers, list) else []
+    # Add default maintainers being Marek and Simon
+    maintainers += [
+        "0064428F455451B3EBE78A7F063938BA42CFA724",
+        "274E12AB03F2FE293765FC06DA0434BC706E1FCF",
+    ]
+
     args.component_repository = component_repository
     args.component_directory = str(component_directory)
     args.keys_dir = keys_dir
@@ -134,9 +141,7 @@ def create_dummy_args(
     args.clean = clean
     args.insecure_skip_checking = insecure_skip_checking
     args.less_secure_signed_commits_sufficient = less_secure_signed_commits_sufficient
-    args.maintainer = (
-        maintainers if maintainers and isinstance(maintainers, list) else []
-    )
+    args.maintainer = maintainers
     args.minimum_distinct_maintainers = minimum_distinct_maintainers
     return args
 
