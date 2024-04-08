@@ -114,7 +114,7 @@ elif [ -n "${UNTRUSTED_SIGNATURE_FILE}" ] && [ -n "${PUBKEY_FILE}" ]; then
 
     # Import pubkey
     keyring="$(mktemp -u)"
-    sq keyring merge --output "$keyring" "${PUBKEY_FILE[@]}"
+    sq toolbox keyring merge --output "$keyring" "${PUBKEY_FILE[@]}"
 
     # Verify file
     sqv --keyring "$keyring" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
