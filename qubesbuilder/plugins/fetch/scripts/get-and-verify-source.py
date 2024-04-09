@@ -43,6 +43,7 @@ def verify_git_obj(gpg_client, keyring_dir, repository_dir, obj_type, obj_path):
             "--",
             obj_path,
         ]
+
         output = subprocess.run(
             command,
             capture_output=True,
@@ -72,8 +73,8 @@ def verify_git_obj(gpg_client, keyring_dir, repository_dir, obj_type, obj_path):
                         valid_sig_key = parsed_sig.group(1)
                 if valid_sig_key:
                     return valid_sig_key
-    except subprocess.CalledProcessError:
-        pass
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: {e!r}; stderr: {e.stderr}")
 
 
 def main(args):
@@ -107,9 +108,6 @@ def main(args):
         gpg_client = gpg
     else:
         raise ValueError("Cannot find GnuPG or GnuPG-compatible Sequoia Chameleon.")
-    # XXX temporarily switch back to GnuPG, see
-    # https://github.com/QubesOS/qubes-issues/issues/9012#issuecomment-2026665655
-    gpg_client = gpg
 
     # Validity check on provided maintainers
     for maintainer in maintainers:
@@ -227,46 +225,20 @@ def main(args):
             print("--> Verifying tags...")
 
         env = {"GNUPGHOME": str(git_keyring_dir)}
-        qubes_stamp = git_keyring_dir / "qubes-developers-keys-import.stamp"
-        if not qubes_stamp.exists():
-            git_keyring_dir.mkdir(parents=True, exist_ok=True)
-            git_keyring_dir.chmod(0o700)
-            # We request a list to init the keyring. It looks like it does
-            # not do it on first import, so we just show available keys.
-            subprocess.run(
-                [gpg_client, "--list-keys"],
-                capture_output=True,
-                check=True,
-                env=env,
-            )
-            subprocess.run(
-                [gpg_client, "--import", keys_dir / "qubes-developers-keys.asc"],
-                capture_output=True,
-                check=True,
-                env=env,
-            )
-            subprocess.run(
-                [gpg_client, "--import-ownertrust"],
-                input="427F11FD0FAA4B080123F01CDDFA1A3E36879494:6:\n",
-                capture_output=True,
-                text=True,
-                env=env,
-                check=True,
-            )
-            subprocess.run(["touch", qubes_stamp])
-
-        if os.path.getmtime(keys_dir / "qubes-developers-keys.asc") > os.path.getmtime(
-            qubes_stamp
-        ):
-            subprocess.run(
-                [gpg_client, "--import", keys_dir / "qubes-developers-keys.asc"],
-                capture_output=True,
-                check=True,
-                env=env,
-            )
-            subprocess.run(["touch", qubes_stamp])
-
+        git_keyring_dir.mkdir(parents=True, exist_ok=True)
+        git_keyring_dir.chmod(0o700)
+        # We request a list to init the keyring. It looks like it does
+        # not do it on first import, so we just show available keys.
+        subprocess.run(
+            [gpg_client, "--list-keys"],
+            capture_output=True,
+            check=True,
+            env=env,
+        )
         for keyid in maintainers:
+            key_path = keys_dir / f"{keyid}.asc"
+            if not key_path.exists():
+                raise ValueError(f"Cannot find {key_path}")
             subprocess.run(
                 [gpg_client, "--import", keys_dir / f"{keyid}.asc"],
                 check=True,
