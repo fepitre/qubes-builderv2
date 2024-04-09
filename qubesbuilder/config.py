@@ -148,6 +148,7 @@ class Config:
                     "+components",
                     "+stages",
                     "+plugins",
+                    "+git",
                 ):
                     combined_conf.setdefault(key, [])
                     combined_conf[key] += data[key]
@@ -170,6 +171,7 @@ class Config:
                 "+components",
                 "+stages",
                 "+plugins",
+                "+git",
             ):
                 combined_conf.setdefault(key, [])
                 combined_conf[key] += conf[key]
@@ -185,6 +187,7 @@ class Config:
                     "components",
                     "stages",
                     "plugins",
+                    "git",
                 ):
                     if isinstance(combined_conf[key], dict) and isinstance(
                         options[key], dict
