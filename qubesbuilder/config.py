@@ -216,6 +216,7 @@ class Config:
             "components",
             "stages",
             "plugins",
+            "git",
         ):
             if f"+{key}" in final_conf.keys():
                 merged_result: Dict[str, Dict] = {}

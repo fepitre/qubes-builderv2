@@ -613,6 +613,46 @@ executor:
         assert config.get("executor").get("options").get("image") == "fedora"
 
 
+def test_config_merge_include():
+    with tempfile.NamedTemporaryFile("w") as config_file_main, \
+            tempfile.NamedTemporaryFile("w") as config_file_included:
+        config_file_main.write(
+            f"""include:
+ - {config_file_included.name}
+
+git:
+  branch: main
+
+components:
+ - lvm2
+ - kernel
+
+executor:
+  type: podman
+  options:
+    image: myimage
+    something: else
+"""
+        )
+        config_file_main.flush()
+        config_file_included.write("""git:
+  branch: release4.2
+  maintainers:
+    # marmarek
+    - '0064428F455451B3EBE78A7F063938BA42CFA724'
+    # simon
+    - '274E12AB03F2FE293765FC06DA0434BC706E1FCF'
+""")
+        config_file_included.flush()
+        config = Config(config_file_main.name)
+        component = config.get_components(["kernel"])[0]
+        assert component.branch == "main"
+        assert component.maintainers == [
+            "0064428F455451B3EBE78A7F063938BA42CFA724",
+            "274E12AB03F2FE293765FC06DA0434BC706E1FCF"
+        ]
+
+
 def test_config_executor():
     with tempfile.NamedTemporaryFile("w") as config_file:
         config_file.write(
