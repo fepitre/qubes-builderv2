@@ -148,7 +148,6 @@ class Config:
                     "+components",
                     "+stages",
                     "+plugins",
-                    "+git",
                 ):
                     combined_conf.setdefault(key, [])
                     combined_conf[key] += data[key]
@@ -171,12 +170,16 @@ class Config:
                 "+components",
                 "+stages",
                 "+plugins",
-                "+git",
             ):
                 combined_conf.setdefault(key, [])
                 combined_conf[key] += conf[key]
             else:
-                combined_conf[key] = conf[key]
+                if not combined_conf.get(key, None) or isinstance(
+                    combined_conf[key], list
+                ):
+                    combined_conf[key] = conf[key]
+                elif isinstance(combined_conf[key], dict):
+                    combined_conf[key] = deep_merge(combined_conf[key], conf[key])
 
         # Allow options to override only values that can be merged
         if options and isinstance(options, dict):
@@ -187,7 +190,6 @@ class Config:
                     "components",
                     "stages",
                     "plugins",
-                    "git",
                 ):
                     if isinstance(combined_conf[key], dict) and isinstance(
                         options[key], dict
