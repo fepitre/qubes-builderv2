@@ -780,10 +780,8 @@ executor:
             assert isinstance(executor, ContainerExecutor)
 
 
-def test_config_executor():
-    with tempfile.NamedTemporaryFile("w") as config_file:
-        config_file.write(
-            """executor:
+CONFIG_WITH_PER_DIST_COMPONENT_STAGES = """
+executor:
   type: qubes
   options:
     dispvm: qubes-builder-dvm
@@ -827,7 +825,11 @@ components:
               options:
                 image: totoimg
 """
-        )
+
+
+def test_config_executor():
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(CONFIG_WITH_PER_DIST_COMPONENT_STAGES)
         config_file.flush()
         config = Config(config_file.name)
 
@@ -885,6 +887,135 @@ components:
             }
 
             # build for DEB
+            plugin = DistributionComponentPlugin(
+                component=component, dist=debdist, config=config, manager=manager
+            )
+
+            build_options = config.get_executor_options_from_config("build", plugin)
+            assert build_options == {
+                "type": "podman",
+                "options": {
+                    "clean": False,
+                    "dispvm": "qubes-builder-debian-dvm",
+                    "image": "totoimg",
+                },
+            }
+
+
+def test_config_executor_include_dist_no_dict():
+    with (tempfile.NamedTemporaryFile("w") as config_file_main,
+          tempfile.NamedTemporaryFile("w") as config_file_included):
+        config_file_main.write(
+            f"""include:
+ - {config_file_included.name}
+
+{CONFIG_WITH_PER_DIST_COMPONENT_STAGES}
+"""
+        )
+        config_file_main.flush()
+        config_file_included.write(
+            """
++distributions:
+  - vm-jammy
+"""
+        )
+        config_file_included.flush()
+        config = Config(config_file_main.name)
+
+        manager = PluginManager([])
+        debdist = QubesDistribution("vm-jammy")
+        with tempfile.TemporaryDirectory() as tmp_source_dir:
+            source_dir = f"{tmp_source_dir}/linux-kernel"
+            os.mkdir(source_dir)
+            with open(f"{source_dir}/version", "w") as f:
+                f.write("1.2.3")
+            with open(f"{source_dir}/rel", "w") as f:
+                f.write("1")
+
+            # .qubesbuilder
+            with open(f"{source_dir}/.qubesbuilder", "w") as f:
+                f.write(
+                    """
+    vm:
+      rpm:
+        build:
+          - toto.spec
+      deb:
+        build:
+          - debian
+    """
+                )
+
+            component = QubesComponent(source_dir)
+            plugin = DistributionComponentPlugin(
+                component=component, dist=debdist, config=config, manager=manager
+            )
+
+            build_options = config.get_executor_options_from_config("build", plugin)
+            assert build_options == {
+                "type": "podman",
+                "options": {
+                    "clean": False,
+                    "dispvm": "qubes-builder-debian-dvm",
+                    "image": "totoimg",
+                },
+            }
+
+
+def test_config_executor_include_dist_dict():
+    with (tempfile.NamedTemporaryFile("w") as config_file_main,
+          tempfile.NamedTemporaryFile("w") as config_file_included):
+        config_file_main.write(
+            f"""include:
+ - {config_file_included.name}
+
+{CONFIG_WITH_PER_DIST_COMPONENT_STAGES}
+"""
+        )
+        config_file_main.flush()
+        config_file_included.write(
+            """
++distributions:
+  - vm-jammy:
+      stages:
+        - fetch:
+            executor:
+              type: docker
+              options:
+                image: qubes-builder-fedora:latest
+        - build:
+            executor:
+              options:
+                dispvm: qubes-builder-fedora-dvm
+"""
+        )
+        config_file_included.flush()
+        config = Config(config_file_main.name)
+        manager = PluginManager([])
+        debdist = QubesDistribution("vm-jammy")
+        with tempfile.TemporaryDirectory() as tmp_source_dir:
+            source_dir = f"{tmp_source_dir}/linux-kernel"
+            os.mkdir(source_dir)
+            with open(f"{source_dir}/version", "w") as f:
+                f.write("1.2.3")
+            with open(f"{source_dir}/rel", "w") as f:
+                f.write("1")
+
+            # .qubesbuilder
+            with open(f"{source_dir}/.qubesbuilder", "w") as f:
+                f.write(
+                    """
+    vm:
+      rpm:
+        build:
+          - toto.spec
+      deb:
+        build:
+          - debian
+    """
+                )
+
+            component = QubesComponent(source_dir)
             plugin = DistributionComponentPlugin(
                 component=component, dist=debdist, config=config, manager=manager
             )
