@@ -69,7 +69,6 @@ class ContainerExecutor(Executor):
             self._client = DockerClient
         else:
             raise ExecutorError(f"Unknown container client '{self._container_client}'.")
-
         with self.get_client() as client:
             try:
                 # Check if we have the image locally
@@ -84,9 +83,9 @@ class ContainerExecutor(Executor):
         self.attrs = docker_image.attrs
 
     @contextmanager
-    def get_client(self):
+    def get_client(self, **kwargs):
         try:
-            yield self._client(**self._kwargs)
+            yield self._client(**kwargs)
         except (PodmanError, DockerException, ValueError) as e:
             raise ExecutorError("Cannot connect to container client.") from e
 
