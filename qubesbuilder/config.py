@@ -225,6 +225,7 @@ class Config:
                 final_conf.setdefault(key, [])
                 final_conf.setdefault(f"+{key}", [])
                 # Iterate over all key and +key in order to merge dicts
+                # FIXME: we should improve here how we merge
                 for s in final_conf[key] + final_conf[f"+{key}"]:
                     if isinstance(s, str) and not merged_result.get(s, None):
                         merged_result[s] = {}
