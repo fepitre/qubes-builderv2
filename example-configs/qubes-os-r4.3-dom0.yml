@@ -1,0 +1,63 @@
+include:
+  - example-configs/qubes-os-r4.3.yml
+#  - example-configs/github.yml
+#  - example-configs/github-maintainers.yml
+
+git:
+  baseurl: https://github.com
+  prefix: QubesOS/qubes-
+  branch: main
+
+backend-vmm: xen
+debug: true
+verbose: true
+qubes-release: r4.3
+timeout: 3600
+
+skip-git-fetch: false
+fetch-versions-only: true
+
+distributions:
+  - host-fc37
+
++components:
+  - release-configs:
+      packages: false
+
+executor:
+  type: qubes
+  options:
+    dispvm: "qubes-builder-dvm"
+
+stages:
+  - fetch
+  - pre:
+      executor:
+        type: local
+  - prep
+  - build
+  - post:
+      executor:
+        type: local
+  - verify
+  - sign:
+      executor:
+        type: local
+  - publish:
+      executor:
+        type: local
+  - upload:
+      executor:
+        type: local
+
+gpg-client: qubes-gpg-client-wrapper
+
+sign-key:
+  rpm: F3FA3F99D6281F7B3A3E5E871C3D9B627F3FADA4
+
+repository-publish:
+  components: current-testing
+
+#repository-upload-remote-host:
+#  rpm: user@yum.qubes-os.org:/some/path
+#  deb: user@deb.qubes-os.org:/another/path
