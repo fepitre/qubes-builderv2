@@ -117,12 +117,17 @@ elif [ -n "${UNTRUSTED_SIGNATURE_FILE}" ] && [ -n "${PUBKEY_FILE}" ]; then
     # Import pubkey
     if sq toolbox keyring merge </dev/null 2>/dev/null; then
         sq toolbox keyring merge --output "$keyring_dir/keyring" "${PUBKEY_FILE[@]}"
+        sq toolbox dearmor --output "$keyring_dir/keyring.gpg" "$keyring_dir/keyring"
     else
         sq keyring merge --output "$keyring_dir/keyring" "${PUBKEY_FILE[@]}"
+        sq dearmor --output "$keyring_dir/keyring.gpg" "$keyring_dir/keyring"
     fi
 
     # Verify file
-    sqv --keyring "$keyring_dir/keyring" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
+    # Temporarily switch back to GnuPG, too many keys are rejected by sqv :/
+    # https://gitlab.com/sequoia-pgp/sequoia-sqv/-/issues/4
+    #sqv --keyring "$keyring_dir/keyring" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
+    gpgv --keyring "$keyring_dir/keyring.gpg" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
 
     # Remove 'untrusted_' prefix
     mv "${UNTRUSTED_SIGNATURE_FILE}" "${OUTPUT_DIR}/${SIGNATURE_FILE_NAME}"
