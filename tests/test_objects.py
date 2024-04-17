@@ -1,9 +1,10 @@
 import os
+import shutil
 import tempfile
 
 import pytest
 
-from qubesbuilder.common import VerificationMode
+from qubesbuilder.common import VerificationMode, PROJECT_PATH
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
@@ -11,6 +12,7 @@ from qubesbuilder.template import QubesTemplate, TemplateError
 from qubesbuilder.exc import ComponentError, DistributionError, ConfigError
 from qubesbuilder.plugins import DistributionComponentPlugin
 from qubesbuilder.pluginmanager import PluginManager
+from qubesbuilder.executors.container import ContainerExecutor
 
 #
 # QubesComponent
@@ -613,10 +615,173 @@ executor:
         assert config.get("executor").get("options").get("image") == "fedora"
 
 
-def test_config_executor():
-    with tempfile.NamedTemporaryFile("w") as config_file:
-        config_file.write(
-            """executor:
+def test_config_merge_include():
+    with tempfile.NamedTemporaryFile(
+        "w"
+    ) as config_file_main, tempfile.NamedTemporaryFile("w") as config_file_included:
+        config_file_main.write(
+            f"""include:
+ - {config_file_included.name}
+
+git:
+  branch: main
+
+components:
+ - lvm2
+ - kernel
+
+executor:
+  type: podman
+  options:
+    image: myimage
+    something: else
+"""
+        )
+        config_file_main.flush()
+        config_file_included.write(
+            """git:
+  branch: release4.2
+  maintainers:
+    # marmarek
+    - '0064428F455451B3EBE78A7F063938BA42CFA724'
+    # simon
+    - '274E12AB03F2FE293765FC06DA0434BC706E1FCF'
+"""
+        )
+        config_file_included.flush()
+        config = Config(config_file_main.name)
+        component = config.get_components(["kernel"])[0]
+        assert component.branch == "main"
+        assert component.maintainers == [
+            "0064428F455451B3EBE78A7F063938BA42CFA724",
+            "274E12AB03F2FE293765FC06DA0434BC706E1FCF",
+        ]
+
+
+def test_config_merge_include_check_maintainers():
+    with tempfile.NamedTemporaryFile(
+        "w"
+    ) as config_file_main, tempfile.NamedTemporaryFile("w") as config_file_included:
+        config_file_main.write(
+            f"""include:
+ - {config_file_included.name}
+
+git:
+  branch: main
+  maintainers:
+    # marmarek
+    - '0064428F455451B3EBE78A7F063938BA42CFA724'
+    # simon
+    - '274E12AB03F2FE293765FC06DA0434BC706E1FCF'
+
+components:
+  - lvm2
+  - kernel
+
+executor:
+  type: podman
+  options:
+    image: myimage
+    something: else
+"""
+        )
+        config_file_main.flush()
+        config_file_included.write(
+            """git:
+branch: release4.2
+maintainers:
+  - '9FA64B92F95E706BF28E2CA6484010B5CDC576E2'
+  - '77EEEF6D0386962AEA8CF84A9B8273F80AC219E6'
+"""
+        )
+        config_file_included.flush()
+        config = Config(config_file_main.name)
+        component = config.get_components(["kernel"])[0]
+        assert component.branch == "main"
+        assert component.maintainers == [
+            "0064428F455451B3EBE78A7F063938BA42CFA724",
+            "274E12AB03F2FE293765FC06DA0434BC706E1FCF",
+        ]
+
+
+def test_config_merge_include_check_maintainers_component():
+    with tempfile.NamedTemporaryFile(
+        "w"
+    ) as config_file_main, tempfile.NamedTemporaryFile("w") as config_file_included:
+        config_file_main.write(
+            f"""include:
+ - {config_file_included.name}
+
+git:
+  branch: main
+  maintainers:
+    # marmarek
+    - '0064428F455451B3EBE78A7F063938BA42CFA724'
+    # simon
+    - '274E12AB03F2FE293765FC06DA0434BC706E1FCF'
+
+components:
+  - lvm2
+  - kernel-latest
+
+executor:
+  type: podman
+  options:
+    image: myimage
+    something: else
+"""
+        )
+        config_file_main.flush()
+        config_file_included.write(
+            """git:
+branch: release4.2
+
++components:
+  - kernel-latest:
+      maintainers:
+        - '77EEEF6D0386962AEA8CF84A9B8273F80AC219E6'
+"""
+        )
+        config_file_included.flush()
+        config = Config(config_file_main.name)
+        component = config.get_components(["kernel-latest"])[0]
+        assert component.branch == "main"
+        assert component.maintainers == ["77EEEF6D0386962AEA8CF84A9B8273F80AC219E6"]
+
+
+def test_config_example_configs():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        shutil.copytree(PROJECT_PATH / "example-configs", f"{tmpdir}/example-configs")
+        with tempfile.NamedTemporaryFile("w", dir=tmpdir) as config_file_main:
+            config_file_main.write(
+                f"""include:
+ - example-configs/qubes-os-r4.2.yml
+
+git:
+  branch: main
+
+executor:
+  type: docker
+  options:
+    image: "qubes-builder-fedora:latest"
+    something: "else"
+"""
+            )
+            config_file_main.flush()
+            config = Config(config_file_main.name)
+            manager = PluginManager(config.get_plugins_dirs())
+            plugins = manager.get_component_instances(
+                stage="build",
+                components=config.get_components(),
+                distributions=config.get_distributions(),
+                config=config,
+            )
+            executor = config.get_executor_from_config("build", plugins[0])
+            assert isinstance(executor, ContainerExecutor)
+
+
+CONFIG_WITH_PER_DIST_COMPONENT_STAGES = """
+executor:
   type: qubes
   options:
     dispvm: qubes-builder-dvm
@@ -660,7 +825,11 @@ components:
               options:
                 image: totoimg
 """
-        )
+
+
+def test_config_executor():
+    with tempfile.NamedTemporaryFile("w") as config_file:
+        config_file.write(CONFIG_WITH_PER_DIST_COMPONENT_STAGES)
         config_file.flush()
         config = Config(config_file.name)
 
@@ -728,6 +897,135 @@ components:
                 "options": {
                     "clean": False,
                     "dispvm": "qubes-builder-debian-dvm",
+                    "image": "totoimg",
+                },
+            }
+
+
+def test_config_executor_include_dist_no_dict():
+    with (tempfile.NamedTemporaryFile("w") as config_file_main,
+          tempfile.NamedTemporaryFile("w") as config_file_included):
+        config_file_main.write(
+            f"""include:
+ - {config_file_included.name}
+
+{CONFIG_WITH_PER_DIST_COMPONENT_STAGES}
+"""
+        )
+        config_file_main.flush()
+        config_file_included.write(
+            """
++distributions:
+  - vm-jammy
+"""
+        )
+        config_file_included.flush()
+        config = Config(config_file_main.name)
+
+        manager = PluginManager([])
+        debdist = QubesDistribution("vm-jammy")
+        with tempfile.TemporaryDirectory() as tmp_source_dir:
+            source_dir = f"{tmp_source_dir}/linux-kernel"
+            os.mkdir(source_dir)
+            with open(f"{source_dir}/version", "w") as f:
+                f.write("1.2.3")
+            with open(f"{source_dir}/rel", "w") as f:
+                f.write("1")
+
+            # .qubesbuilder
+            with open(f"{source_dir}/.qubesbuilder", "w") as f:
+                f.write(
+                    """
+    vm:
+      rpm:
+        build:
+          - toto.spec
+      deb:
+        build:
+          - debian
+    """
+                )
+
+            component = QubesComponent(source_dir)
+            plugin = DistributionComponentPlugin(
+                component=component, dist=debdist, config=config, manager=manager
+            )
+
+            build_options = config.get_executor_options_from_config("build", plugin)
+            assert build_options == {
+                "type": "podman",
+                "options": {
+                    "clean": False,
+                    "dispvm": "qubes-builder-debian-dvm",
+                    "image": "totoimg",
+                },
+            }
+
+
+def test_config_executor_include_dist_dict():
+    with (tempfile.NamedTemporaryFile("w") as config_file_main,
+          tempfile.NamedTemporaryFile("w") as config_file_included):
+        config_file_main.write(
+            f"""include:
+ - {config_file_included.name}
+
+{CONFIG_WITH_PER_DIST_COMPONENT_STAGES}
+"""
+        )
+        config_file_main.flush()
+        config_file_included.write(
+            """
++distributions:
+  - vm-jammy:
+      stages:
+        - fetch:
+            executor:
+              type: docker
+              options:
+                image: qubes-builder-fedora:latest
+        - build:
+            executor:
+              options:
+                dispvm: qubes-builder-fedora-dvm
+"""
+        )
+        config_file_included.flush()
+        config = Config(config_file_main.name)
+        manager = PluginManager([])
+        debdist = QubesDistribution("vm-jammy")
+        with tempfile.TemporaryDirectory() as tmp_source_dir:
+            source_dir = f"{tmp_source_dir}/linux-kernel"
+            os.mkdir(source_dir)
+            with open(f"{source_dir}/version", "w") as f:
+                f.write("1.2.3")
+            with open(f"{source_dir}/rel", "w") as f:
+                f.write("1")
+
+            # .qubesbuilder
+            with open(f"{source_dir}/.qubesbuilder", "w") as f:
+                f.write(
+                    """
+    vm:
+      rpm:
+        build:
+          - toto.spec
+      deb:
+        build:
+          - debian
+    """
+                )
+
+            component = QubesComponent(source_dir)
+            plugin = DistributionComponentPlugin(
+                component=component, dist=debdist, config=config, manager=manager
+            )
+
+            build_options = config.get_executor_options_from_config("build", plugin)
+            assert build_options == {
+                "type": "podman",
+                "options": {
+                    "clean": False,
+                    "dispvm": "qubes-builder-fedora-dvm",
                     "image": "totoimg",
                 },
             }

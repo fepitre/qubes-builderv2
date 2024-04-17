@@ -148,7 +148,6 @@ class Config:
                     "+components",
                     "+stages",
                     "+plugins",
-                    "+git",
                 ):
                     combined_conf.setdefault(key, [])
                     combined_conf[key] += data[key]
@@ -171,12 +170,16 @@ class Config:
                 "+components",
                 "+stages",
                 "+plugins",
-                "+git",
             ):
                 combined_conf.setdefault(key, [])
                 combined_conf[key] += conf[key]
             else:
-                combined_conf[key] = conf[key]
+                if not combined_conf.get(key, None) or isinstance(
+                    combined_conf[key], list
+                ):
+                    combined_conf[key] = conf[key]
+                elif isinstance(combined_conf[key], dict):
+                    combined_conf[key] = deep_merge(combined_conf[key], conf[key])
 
         # Allow options to override only values that can be merged
         if options and isinstance(options, dict):
@@ -187,7 +190,6 @@ class Config:
                     "components",
                     "stages",
                     "plugins",
-                    "git",
                 ):
                     if isinstance(combined_conf[key], dict) and isinstance(
                         options[key], dict
@@ -216,12 +218,14 @@ class Config:
             "components",
             "stages",
             "plugins",
+            "git",
         ):
             if f"+{key}" in final_conf.keys():
                 merged_result: Dict[str, Dict] = {}
                 final_conf.setdefault(key, [])
                 final_conf.setdefault(f"+{key}", [])
                 # Iterate over all key and +key in order to merge dicts
+                # FIXME: we should improve here how we merge
                 for s in final_conf[key] + final_conf[f"+{key}"]:
                     if isinstance(s, str) and not merged_result.get(s, None):
                         merged_result[s] = {}
