@@ -85,7 +85,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
             )
         ]
         cmd = [
-            f"sed -i '#/tmp/qubes-deb#d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+            f"sed -i '/qubes-deb/d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
             f"mkdir -p {executor.get_cache_dir()}/aptcache",
         ]
         # If provided, use the first mirror given in builder configuration mirrors list
