@@ -112,22 +112,23 @@ elif [ -n "${UNTRUSTED_SIGNATURE_FILE}" ] && [ -n "${PUBKEY_FILE}" ]; then
     UNTRUSTED_SIGNATURE_FILE_NAME="$(basename "$UNTRUSTED_SIGNATURE_FILE")"
     SIGNATURE_FILE_NAME="${UNTRUSTED_SIGNATURE_FILE_NAME#untrusted_}"
 
+    keyring_dir="$(mktemp -d)"
+
     # Import pubkey
-    keyring="$(mktemp -u)"
     if sq toolbox keyring merge </dev/null 2>/dev/null; then
-        sq toolbox keyring merge --output "$keyring" "${PUBKEY_FILE[@]}"
+        sq toolbox keyring merge --output "$keyring_dir/keyring" "${PUBKEY_FILE[@]}"
     else
-        sq keyring merge --output "$keyring" "${PUBKEY_FILE[@]}"
+        sq keyring merge --output "$keyring_dir/keyring" "${PUBKEY_FILE[@]}"
     fi
 
     # Verify file
-    sqv --keyring "$keyring" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
+    sqv --keyring "$keyring_dir/keyring" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
 
     # Remove 'untrusted_' prefix
     mv "${UNTRUSTED_SIGNATURE_FILE}" "${OUTPUT_DIR}/${SIGNATURE_FILE_NAME}"
 
     # Remove temporary keyring
-    rm -rf "$keyring"
+    rm -rf "$keyring_dir"
 else
     exit 1
 fi
