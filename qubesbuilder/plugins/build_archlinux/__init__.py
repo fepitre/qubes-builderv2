@@ -166,6 +166,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
         source_dir = executor.get_builder_dir() / self.component.name
         pkgs_dir = artifacts_dir / "pkgs"
 
+        qubes_repo_version = self.config.use_qubes_repo.get("version", None)
+
         # Compare previous artifacts hash with current source hash
         if all(
             self.component.get_source_hash()
@@ -221,11 +223,6 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     self.manager.entities["build_archlinux"].directory,
                     executor.get_plugins_dir(),
                 ),
-                (
-                    self.manager.entities["chroot_archlinux"].directory
-                    / "keys/qubes-repo-archlinux-key.asc",
-                    executor.get_builder_dir(),
-                ),
             ] + [
                 (
                     self.manager.entities[dependency].directory,
@@ -233,6 +230,15 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 )
                 for dependency in self.dependencies
             ]
+
+            if qubes_repo_version:
+                copy_in += [
+                    (
+                        self.manager.entities["chroot_archlinux"].directory
+                        / f"keys/qubes-repo-archlinux-key-r{qubes_repo_version}.asc",
+                        executor.get_builder_dir(),
+                    )
+                ]
 
             if source_info.get("source-archive", None):
                 copy_in.append(
@@ -312,13 +318,13 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             # we regenerate one with it enabled.
             pacman_cmd = get_pacman_cmd(**pacman_args, enable_builder_local=True)
 
-            if self.config.use_qubes_repo.get("version", None):
+            if qubes_repo_version:
                 files_inside_executor_with_placeholders += [
                     executor.get_plugins_dir()
                     / "chroot_archlinux/scripts/add-qubes-repository-key"
                 ]
                 cmd += [
-                    f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/add-qubes-repository-key"
+                    f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/add-qubes-repository-key {qubes_repo_version}"
                 ]
 
             # Create local repository inside chroot
