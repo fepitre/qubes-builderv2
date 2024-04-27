@@ -444,6 +444,7 @@ class FetchPlugin(ComponentPlugin):
             #
 
             executor = self.get_executor(stage)
+            source_dir = executor.get_builder_dir() / self.component.name
 
             copy_in = [
                 (self.component.source_dir, executor.get_builder_dir()),
