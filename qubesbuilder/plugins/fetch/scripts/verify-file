@@ -123,11 +123,17 @@ elif [ -n "${UNTRUSTED_SIGNATURE_FILE}" ] && [ -n "${PUBKEY_FILE}" ]; then
         sq dearmor --output "$keyring_dir/keyring.gpg" "$keyring_dir/keyring"
     fi
 
-    # Verify file
-    # Temporarily switch back to GnuPG, too many keys are rejected by sqv :/
+    # Verify file, use sequoia if >= 1.2.0 (for crypto policy support),
+    # otherwise gpg
     # https://gitlab.com/sequoia-pgp/sequoia-sqv/-/issues/4
-    #sqv --keyring "$keyring_dir/keyring" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
-    gpgv --keyring "$keyring_dir/keyring.gpg" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
+    sqv_version=$(sqv --version || :)
+    if printf "%s\n" "sqv 1.2.0" "$sqv_version" | sort -VC; then
+        script_dir=$(dirname "$0")
+        export SEQUOIA_CRYPTO_POLICY=$script_dir/sequoia-crypto-policy.toml
+        sqv --keyring "$keyring_dir/keyring" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
+    else
+        gpgv --keyring "$keyring_dir/keyring.gpg" "${UNTRUSTED_SIGNATURE_FILE}" "${UNTRUSTED_FILE}"
+    fi
 
     # Remove 'untrusted_' prefix
     mv "${UNTRUSTED_SIGNATURE_FILE}" "${OUTPUT_DIR}/${SIGNATURE_FILE_NAME}"

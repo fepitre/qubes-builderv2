@@ -1,0 +1,4 @@
+[hash_algorithms]
+sha1.second_preimage_resistance = "always"
+sha1.collision_resistance = "never"
+
