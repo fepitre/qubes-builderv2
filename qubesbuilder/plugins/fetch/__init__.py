@@ -348,24 +348,23 @@ class FetchPlugin(ComponentPlugin):
         source_dir = executor.get_builder_dir() / self.component.name
 
         # Get git hash and tags
-        copy_in = [
-            (self.component.source_dir, executor.get_builder_dir()),
-        ]
+        if self.config.get("git-run-inplace", False):
+            cmd = [f"ln -s {local_source_dir} {source_dir}"]
+            copy_in = []
+        else:
+            cmd = []
+            copy_in = [(local_source_dir, executor.get_builder_dir())]
         copy_out = [
-            (source_dir / "hash", temp_dir),
-            (source_dir / "vtags", temp_dir),
+            (executor.get_builder_dir() / "hash", temp_dir),
+            (executor.get_builder_dir() / "vtags", temp_dir),
         ]
-        cmd = [
-            quote_list(["rm", "-f", "--", source_dir / "hash", source_dir / "vtags"]),
+        cmd += [
             quote_list(["cd", "--", executor.get_builder_dir()]),
-            quote_list(["git", "-C", source_dir, "rev-parse", "HEAD^{}"])
-            + " >> "
-            + quote_list([source_dir / "hash"]),
+            quote_list(["git", "-C", source_dir, "rev-parse", "HEAD^{}"]) + " >> hash",
             quote_list(
                 ["git", "-C", source_dir, "tag", "--points-at", "HEAD", "--list", "v*"]
             )
-            + " >> "
-            + quote_list([source_dir / "vtags"]),
+            + " >> vtags",
         ]
         log.error(cmd)
         try:
@@ -398,19 +397,21 @@ class FetchPlugin(ComponentPlugin):
         modules = parameters.get("modules", [])
         if modules:
             # Get git module hashes
-            copy_in = [
-                (self.component.source_dir, executor.get_builder_dir()),
-            ]
-            copy_out = [(source_dir / "modules", temp_dir)]
-            cmd = [
-                quote_list(["rm", "-f", "--", source_dir / "modules"]),
-                quote_list(["cd", "--", source_dir]),
+            if self.config.get("git-run-inplace", False):
+                cmd = [f"ln -s {local_source_dir} {source_dir}"]
+                copy_in = []
+            else:
+                cmd = []
+                copy_in = [(local_source_dir, executor.get_builder_dir())]
+            copy_out = [(executor.get_builder_dir() / "modules", temp_dir)]
+            cmd += [
+                quote_list(["rm", "-f", "--", executor.get_builder_dir() / "modules"]),
+                quote_list(["cd", "--", executor.get_builder_dir()]),
             ]
             for module in modules:
                 cmd += [
                     quote_list(["git", "-C", source_dir / module, "rev-parse", "HEAD"])
-                    + " >> "
-                    + quote_list([source_dir / "modules"]),
+                    + " >> modules",
                 ]
             try:
                 executor.run(cmd, copy_in, copy_out, environment=self.environment)
