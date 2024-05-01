@@ -48,12 +48,19 @@ calc_sha1() {
 mkdir -p "$REPO_DIR/conf"
 cd "$REPO_DIR"
 
+reprepro_version="$(LC_ALL=C reprepro --version 2>&1)"
+reprepro_version="${reprepro_version#reprepro: This is reprepro version }"
+append_components=""
+if [ "$(printf '%s\n' "$reprepro_version" "5.4.0" | sort -V | head -n1)" = "5.4.0" ]; then
+    append_components=$'\nDDebComponents: main'
+fi
+
 cat << EOF > "${REPO_DIR}/conf/distributions"
 Origin: Qubes OS $DISTRIBUTION
 Label: Qubes OS $DISTRIBUTION
 Codename: $SUITE
 Architectures: amd64 source
-Components: main
+Components: main${append_components}
 Description: APT repository with Qubes OS domU support tools for $DISTRIBUTION $SUITE
 Tracking: all includebuildinfos
 EOF
