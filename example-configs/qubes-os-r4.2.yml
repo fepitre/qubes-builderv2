@@ -15,18 +15,19 @@ qubes-release: r4.2
 
 distributions:
   - host-fc37
-  - vm-bullseye
-  - vm-fc38
+  - vm-bookworm
+  - vm-fc39
+  - vm-fc40
 
 templates:
-  - fedora-37:
-      dist: fc37
+  - fedora-39:
+      dist: fc39
       options:
         - selinux
-  - debian-11:
-      dist: bullseye
+  - fedora-40:
+      dist: fc40
       options:
-        - firmware
+        - selinux
   - debian-12:
       dist: bookworm
       options:
