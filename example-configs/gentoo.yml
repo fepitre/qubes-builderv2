@@ -26,7 +26,7 @@ templates:
 components:
   - builder-gentoo:
       packages: False
-      url: https://github.com/fepitre/qubes-builder-gentoo
+      url: https://github.com/QubesOS/qubes-builder-gentoo
       maintainers:
         # fepitre's @qubes-os.org
         - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
