@@ -165,11 +165,15 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
             .get("packages", [])
         )
 
+        servers = self.config.get("mirrors", {}).get(
+            self.dist.distribution, []
+        ) or self.config.get("mirrors", {}).get(self.dist.name, [])
+
         pacman_cmd = get_pacman_cmd(
             gen_path=f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
             conf_template=pacman_conf_template,
             conf=pacman_conf,
-            servers=self.config.get("mirrors", {}).get(self.dist.name, []),
+            servers=servers,
         )
 
         chroot_dir = executor.get_cache_dir() / chroot_name

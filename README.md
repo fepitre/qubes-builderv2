@@ -764,8 +764,8 @@ Options available in `builder.yml`:
 
 - `automatic-upload-on-publish: bool` --- Automatic upload on publish/unpublish.
 
-- `mirrors: List[Dict]` --- List of distributions mirrors.
-  - `<distribution_name>: List[str]` --- List of mirrors to be used in builder plugins.
+- `mirrors: List[Dict]` --- List of distributions mirrors where key refers to <package-set>-<distribution> or <distribution>. The former overrides the latter.
+  `<distribution_name | distribution>: List[str]` --- List of mirrors to be used in builder plugins.
 
 > Remark: `mirrors` support is partially implemented for now. It supports ArchLinux and Debian for template build only.
 > With respect to legacy builder, it allows to provide values for `ARCHLINUX_MIRROR` and `DEBIAN_MIRRORS`.
