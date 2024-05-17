@@ -40,38 +40,35 @@ ParallelDownloads = 5
 SigLevel = Required DatabaseOptional
 {%- for server in servers %}
 Server = {{ server }}/$repo/os/$arch
-{% endfor %}
+{%- endfor %}
 
 [community]
 SigLevel = Required DatabaseOptional
 {%- for server in servers %}
 Server = {{ server }}/$repo/os/$arch
-{% endfor %}
+{%- endfor %}
 
 [extra]
 SigLevel = Required DatabaseOptional
 {%- for server in servers %}
 Server = {{ server }}/$repo/os/$arch
-{% endfor %}
+{%- endfor %}
 
 [multilib]
 SigLevel = PackageRequired
 {%- for server in servers %}
 Server = {{ server }}/$repo/os/$arch
-{% endfor %}
-
+{%- endfor %}
 {% if enable_builder_local %}
 [qubes]
 SigLevel = Optional TrustAll
 Server = file:///builder/repository/pkgs
-{% endif %}
-
+{%- endif %}
 {% if use_qubes_repo_testing %}
 [qubes-r{{use_qubes_repo_version}}-current-testing]
 Server = https://archlinux.qubes-os.org/r{{use_qubes_repo_version}}/current-testing/vm/archlinux/pkgs
-{% endif %}
-
+{%- endif %}
 {% if use_qubes_repo_version %}
 [qubes-r{{use_qubes_repo_version}}-current]
 Server = https://archlinux.qubes-os.org/r{{use_qubes_repo_version}}/current/vm/archlinux/pkgs
-{% endif %}
+{%- endif %}

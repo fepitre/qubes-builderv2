@@ -89,7 +89,9 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
             f"mkdir -p {executor.get_cache_dir()}/aptcache",
         ]
         # If provided, use the first mirror given in builder configuration mirrors list
-        mirrors = self.config.get("mirrors", {}).get(self.dist.fullname, [])
+        mirrors = self.config.get("mirrors", {}).get(
+            self.dist.distribution, []
+        ) or self.config.get("mirrors", {}).get(self.dist.fullname, [])
         if mirrors:
             cmd += [
                 f"sed -i 's@MIRRORSITE=https://deb.debian.org/debian@MIRRORSITE={mirrors[0]}@' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc"

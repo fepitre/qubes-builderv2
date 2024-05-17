@@ -19,7 +19,7 @@ def main():
     parser.add_argument("--enable-builder-local", action="store_true", default=False)
     parser.add_argument("--use-qubes-repo-testing", action="store_true", default=False)
     parser.add_argument("--use-qubes-repo-version", default=None)
-    parser.add_argument("--server", nargs="+", default=[])
+    parser.add_argument("--server", action="append")
 
     args = parser.parse_args()
 
