@@ -758,13 +758,13 @@ Options available in `builder.yml`:
   - `deb: str` --- Debian content.
   - `iso: str` --- ISO content.
 
-- `cache: List[Dict]` --- List of distributions cache options.
+- `cache: Dict` --- List of distributions cache options.
   - `<distribution_name>: Dict` --- Distribution name provided as in `distributions`.
     - `packages: List[str]` --- List of packages to download and to put in cache. These packages won't be installed into the base chroot.
 
 - `automatic-upload-on-publish: bool` --- Automatic upload on publish/unpublish.
 
-- `mirrors: List[Dict]` --- List of distributions mirrors where key refers to <package-set>-<distribution> or <distribution>. The former overrides the latter.
+- `mirrors: Dict` --- List of distributions mirrors where key refers to <package-set>-<distribution> or <distribution>. The former overrides the latter.
   `<distribution_name | distribution>: List[str]` --- List of mirrors to be used in builder plugins.
 
 > Remark: `mirrors` support is partially implemented for now. It supports ArchLinux and Debian for template build only.
