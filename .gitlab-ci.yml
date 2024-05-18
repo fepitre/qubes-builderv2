@@ -347,11 +347,6 @@ podman-vm-fc38:
   needs:
     - cache-vm-fc38
 
-podman-vm-centos-stream8:
-  extends: .component_podman_job
-  needs:
-    - cache-vm-centos-stream8
-
 #podman-vm-bookworm:
 #  extends: .component_podman_job
 
@@ -366,11 +361,6 @@ docker-vm-fc38:
   extends: .component_docker_job
   needs:
     - cache-vm-fc38
-
-docker-vm-centos-stream8:
-  extends: .component_docker_job
-  needs:
-    - cache-vm-centos-stream8
 
 docker-vm-bookworm:
   extends: .component_docker_job
@@ -409,11 +399,6 @@ qubes-vm-fc38:
   needs:
     - cache-vm-fc38
 
-qubes-vm-centos-stream8:
-  extends: .component_qubes_job
-  needs:
-    - cache-vm-centos-stream8
-
 qubes-vm-bookworm:
   extends: .component_qubes_job
   needs:
@@ -431,11 +416,6 @@ local-vm-fc38:
   needs:
     - cache-vm-fc38
 
-local-vm-centos-stream8:
-  extends: .component_local_job
-  needs:
-    - cache-vm-centos-stream8
-
 local-vm-bookworm:
   extends: .component_local_job
   needs:
@@ -446,9 +426,6 @@ local-vm-bookworm:
 #
 
 qubes-template-fedora-38-xfce:
-  extends: .template_qubes_job
-
-qubes-template-centos-stream-8:
   extends: .template_qubes_job
 
 qubes-template-debian-12:
