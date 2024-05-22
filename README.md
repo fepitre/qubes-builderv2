@@ -705,6 +705,7 @@ Options available in `builder.yml`:
 - `sign-key: Dict` --- Fingerprint for signing content.
   - `rpm: str` --- RPM content.
   - `deb: str` --- Debian content.
+  - `archlinux: str` --- Archlinux content.
   - `iso: str` --- ISO content.
 
 - `less-secure-signed-commits-sufficient: list` --- List of component names where signed commits is allowed instead of requiring signed tags. This is less secure because only commits that have been reviewed are tagged.
