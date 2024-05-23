@@ -71,6 +71,16 @@ def test_repository_create_vm_fc38(artifacts_dir):
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-c",
+            "qubes-release",
+            "package",
+            "fetch",
+            env=env,
+        )
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
             "builder-rpm",
             "-d",
             "vm-fc38",
@@ -133,6 +143,16 @@ def test_repository_create_template(artifacts_dir):
 
         env["GNUPGHOME"] = gnupghome
         env["HOME"] = tmpdir
+
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "qubes-release",
+            "package",
+            "fetch",
+            env=env,
+        )
 
         qb_call(
             DEFAULT_BUILDER_CONF,

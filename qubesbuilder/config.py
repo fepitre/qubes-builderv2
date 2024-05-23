@@ -105,7 +105,7 @@ class Config:
     template_root_size: Union[str, property]             = property(lambda self: self.get("template-root-size", "20G"))
     template_root_with_partitions: Union[bool, property] = property(lambda self: self.get("template-root-with-partitions", True))
     installer_kickstart: Union[str, property]            = property(lambda self: self.get("iso", {}).get("kickstart", "conf/qubes-kickstart.cfg"))
-    installer_comps: Union[str, property]                = property(lambda self: self.get("iso", {}).get("comps", "meta-packages/comps/comps-dom0.xml"))
+    installer_comps: Union[str, property]                = property(lambda self: self.get("iso", {}).get("comps", "comps/comps-dom0.xml"))
     iso_version: Union[str, property]                    = property(lambda self: self.get("iso", {}).get("version", ""))
     iso_flavor: Union[str, property]                     = property(lambda self: self.get("iso", {}).get("flavor", ""))
     iso_use_kernel_latest: Union[bool, property]         = property(lambda self: self.get("iso", {}).get("use-kernel-latest", False))
@@ -252,7 +252,7 @@ class Config:
     def set(self, key, value):
         self._conf[key] = value
 
-    def get_conf_path(self):
+    def get_conf_path(self) -> Path:
         conf_file = self._conf_file
         if isinstance(conf_file, str):
             conf_file = Path(conf_file).expanduser().resolve()
@@ -520,3 +520,18 @@ class Config:
         else:
             raise ExecutorError("Cannot determine which executor to use.")
         return executor
+
+    def get_absolute_path_from_config(self, config_path_str, relative_to=None):
+        if config_path_str.startswith("./"):
+            config_path = self.get_conf_path().parent / config_path_str
+        elif config_path_str.startswith("~"):
+            config_path = Path(config_path_str).expanduser()
+        elif not config_path_str.startswith("/"):
+            if not relative_to:
+                raise ConfigError(
+                    "Cannot determine path: please provide relative path."
+                )
+            config_path = relative_to / config_path_str
+        else:
+            config_path = Path(config_path_str).resolve()
+        return config_path

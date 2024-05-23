@@ -69,9 +69,13 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
 
         # Create publish repository skeleton
         comps = (
-            self.manager.entities["publish_rpm"].directory
-            / f"comps/comps-{self.dist.package_set}.xml"
+            self.get_sources_dir()
+            / f"qubes-release/comps/comps-{self.dist.package_set}.xml"
         )
+        if not comps.exists():
+            raise PublishError(
+                f"Cannot find {comps}. Have you added qubes-release to components?"
+            )
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
         create_skeleton_cmd = [

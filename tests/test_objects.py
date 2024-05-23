@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -8,11 +9,31 @@ from qubesbuilder.common import VerificationMode, PROJECT_PATH
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.template import QubesTemplate, TemplateError
 from qubesbuilder.exc import ComponentError, DistributionError, ConfigError
-from qubesbuilder.plugins import DistributionComponentPlugin
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.executors.container import ContainerExecutor
+from qubesbuilder.pluginmanager import PluginManager
+from qubesbuilder.plugins import DistributionComponentPlugin
+from qubesbuilder.template import QubesTemplate, TemplateError
+
+
+@pytest.fixture
+def temp_config_dir():
+    dir_path = tempfile.mkdtemp()
+    yield Path(dir_path)
+    shutil.rmtree(dir_path)
+
+
+@pytest.fixture
+def temp_config_file(temp_config_dir):
+    config_file_path = temp_config_dir / "config.yml"
+    config_file_path.write_text("{}")  # Write an empty config for testing
+    return config_file_path
+
+
+@pytest.fixture
+def config(temp_config_file):
+    return Config(temp_config_file)
+
 
 #
 # QubesComponent
@@ -616,9 +637,10 @@ executor:
 
 
 def test_config_merge_include():
-    with tempfile.NamedTemporaryFile(
-        "w"
-    ) as config_file_main, tempfile.NamedTemporaryFile("w") as config_file_included:
+    with (
+        tempfile.NamedTemporaryFile("w") as config_file_main,
+        tempfile.NamedTemporaryFile("w") as config_file_included,
+    ):
         config_file_main.write(
             f"""include:
  - {config_file_included.name}
@@ -659,9 +681,10 @@ executor:
 
 
 def test_config_merge_include_check_maintainers():
-    with tempfile.NamedTemporaryFile(
-        "w"
-    ) as config_file_main, tempfile.NamedTemporaryFile("w") as config_file_included:
+    with (
+        tempfile.NamedTemporaryFile("w") as config_file_main,
+        tempfile.NamedTemporaryFile("w") as config_file_included,
+    ):
         config_file_main.write(
             f"""include:
  - {config_file_included.name}
@@ -705,9 +728,10 @@ maintainers:
 
 
 def test_config_merge_include_check_maintainers_component():
-    with tempfile.NamedTemporaryFile(
-        "w"
-    ) as config_file_main, tempfile.NamedTemporaryFile("w") as config_file_included:
+    with (
+        tempfile.NamedTemporaryFile("w") as config_file_main,
+        tempfile.NamedTemporaryFile("w") as config_file_included,
+    ):
         config_file_main.write(
             f"""include:
  - {config_file_included.name}
@@ -903,8 +927,10 @@ def test_config_executor():
 
 
 def test_config_executor_include_dist_no_dict():
-    with (tempfile.NamedTemporaryFile("w") as config_file_main,
-          tempfile.NamedTemporaryFile("w") as config_file_included):
+    with (
+        tempfile.NamedTemporaryFile("w") as config_file_main,
+        tempfile.NamedTemporaryFile("w") as config_file_included,
+    ):
         config_file_main.write(
             f"""include:
  - {config_file_included.name}
@@ -963,8 +989,10 @@ def test_config_executor_include_dist_no_dict():
 
 
 def test_config_executor_include_dist_dict():
-    with (tempfile.NamedTemporaryFile("w") as config_file_main,
-          tempfile.NamedTemporaryFile("w") as config_file_included):
+    with (
+        tempfile.NamedTemporaryFile("w") as config_file_main,
+        tempfile.NamedTemporaryFile("w") as config_file_included,
+    ):
         config_file_main.write(
             f"""include:
  - {config_file_included.name}
@@ -1029,3 +1057,38 @@ def test_config_executor_include_dist_dict():
                     "image": "totoimg",
                 },
             }
+
+
+def test_config_path_from_config_with_dot_slash(config, temp_config_dir):
+    config_path_str = "./relative/path"
+    result = config.get_absolute_path_from_config(config_path_str)
+    expected = temp_config_dir / config_path_str
+    assert result == expected
+
+
+def test_configpath_from_config_with_relative_path_and_relative_to(config):
+    config_path_str = "relative/path"
+    relative_to = Path("/base/path")
+    result = config.get_absolute_path_from_config(config_path_str, relative_to)
+    expected = relative_to / config_path_str
+    assert result == expected
+
+
+def test_config_path_from_config_with_absolute_path(config):
+    config_path_str = "/absolute/path"
+    result = config.get_absolute_path_from_config(config_path_str)
+    expected = Path(config_path_str).expanduser().resolve()
+    assert result == expected
+
+
+def test_config_path_from_config_with_relative_path_without_relative_to(config):
+    config_path_str = "relative/path"
+    with pytest.raises(ConfigError):
+        config.get_absolute_path_from_config(config_path_str)
+
+
+def test_config_path_from_config_with_home_relative_path(config):
+    config_path_str = "~/home/relative/path"
+    result = config.get_absolute_path_from_config(config_path_str)
+    expected = Path(config_path_str).expanduser().resolve()
+    assert result == expected

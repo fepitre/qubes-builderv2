@@ -65,6 +65,8 @@ components:
       packages: False
   - builder-archlinux:
       packages: False
+  - qubes-release:
+      packages: False
   - template-whonix:
       packages: False
       url: https://github.com/Whonix/qubes-template-whonix
@@ -130,6 +132,7 @@ less-secure-signed-commits-sufficient:
   - app-linux-split-gpg
   - vmm-xen
   - vmm-xen-guest
+  - qubes-release
 
 repository-publish:
   components: current-testing

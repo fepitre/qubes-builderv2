@@ -23,10 +23,11 @@ DIST_VER = $(subst fc,,$(DIST))
 BUILDER_DIR ?= /builder
 PLUGINS_DIR ?= $(BUILDER_DIR)/plugins
 INSTALLER_DIR ?= $(PLUGINS_DIR)/installer
-INSTALLER_KICKSTART ?= $(INSTALLER_DIR)/conf/qubes-kickstart.cfg
+SOURCES_DIR ?= $(BUILDER_DIR)/sources
+INSTALLER_KICKSTART ?= $(SOURCES_DIR)/qubes-release/conf/qubes-kickstart.cfg
 CREATEREPO := $(shell which createrepo_c createrepo 2>/dev/null |head -1)
 ISO_VERSION ?= $(shell date +%Y%m%d)
-COMPS_FILE ?= $(INSTALLER_DIR)/meta-packages/comps/comps-dom0.xml
+COMPS_FILE ?= $(SOURCES_DIR)/qubes-release/comps/comps-dom0.xml
 
 ifneq (,$(ISO_FLAVOR))
 ISO_NAME := Qubes-$(ISO_VERSION)-$(ISO_FLAVOR)-x86_64
@@ -76,6 +77,8 @@ iso-prepare:
 	mkdir /tmp/qubes-installer
 	mount --bind $(INSTALLER_DIR) /tmp/qubes-installer
 
+	cp -r $(SOURCES_DIR)/qubes-release /tmp/qubes-installer/
+
 	mkdir -p /tmp/qubes-installer/yum/installer/rpm
 	rm -rf $(INSTALLER_DIR)/yum/installer/repodata
 	$(CREATEREPO) -q -g $(TMP_DIR)/comps.xml /tmp/qubes-installer/yum/installer
@@ -98,7 +101,7 @@ iso-prepare:
 
 	# Copy Fedora key to DNF installroot
 	mkdir -p $(DNF_ROOT)/etc/pki/rpm-gpg
-	cp $(INSTALLER_DIR)/qubes-release/RPM-GPG-KEY-fedora-$(DIST_VER)-primary $(DNF_ROOT)/etc/pki/rpm-gpg
+	cp $(SOURCES_DIR)/qubes-release/RPM-GPG-KEY-fedora-$(DIST_VER)-primary $(DNF_ROOT)/etc/pki/rpm-gpg
 
 iso-parse-kickstart:
 	mkdir -p $(DNF_ROOT)/etc/yum.repos.d $(DNF_ROOT)/tmp
