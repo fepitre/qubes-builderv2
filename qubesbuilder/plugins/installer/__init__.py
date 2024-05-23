@@ -68,26 +68,20 @@ class InstallerPlugin(DistributionPlugin):
         self.iso_version = ""
         self.iso_timestamp = ""
         self.templates = templates
-        self.kickstart_path = Path(config.installer_kickstart)
 
-        if config.installer_kickstart.startswith("./"):
-            self.kickstart_path = self.kickstart_path.resolve()
-        if not (
-            self.manager.entities["installer"].directory / self.kickstart_path
-        ).exists():
-            raise InstallerError(
-                f"Cannot find kickstart: '{self.config.installer_kickstart}'"
-            )
+        self.kickstart_path = self.config.get_absolute_path_from_config(
+            config.installer_kickstart,
+            relative_to=self.get_sources_dir() / "qubes-release",
+        )
+        self.comps_path = self.config.get_absolute_path_from_config(
+            config.installer_comps, relative_to=self.get_sources_dir() / "qubes-release"
+        )
 
-        self.comps_path = Path(config.installer_comps)
-        if config.installer_comps.startswith("./"):
-            self.comps_path = self.comps_path.resolve()
-        if not (
-            self.manager.entities["installer"].directory / self.comps_path
-        ).exists():
-            raise InstallerError(
-                f"Cannot find kickstart: '{self.config.installer_comps}'"
-            )
+        if not self.kickstart_path.exists():
+            raise InstallerError(f"Cannot find kickstart: '{self.kickstart_path}'")
+
+        if not self.comps_path.exists():
+            raise InstallerError(f"Cannot find comps: '{self.comps_path}'")
 
     def get_iso_timestamp(self, stage: str, iso_timestamp: str = None) -> str:
         if not self.iso_timestamp:
@@ -153,25 +147,16 @@ class InstallerPlugin(DistributionPlugin):
                 }
             )
 
-        # Kickstart will be copied under builder directory
-        if self.kickstart_path.is_absolute():
-            self.environment["INSTALLER_KICKSTART"] = (
-                f"{executor.get_plugins_dir()}/installer/conf/{self.kickstart_path.name}"
-            )
-        else:
-            self.environment["INSTALLER_KICKSTART"] = (
-                f"{executor.get_plugins_dir()}/installer/{self.kickstart_path}"
-            )
+        # Kickstart will be copied under installer conf directory
+        self.environment["INSTALLER_KICKSTART"] = (
+            executor.get_sources_dir()
+            / f"qubes-release/conf/_builder_{self.kickstart_path.name}"
+        )
 
         # Comps will be copied under builder directory
-        if self.comps_path.is_absolute():
-            self.environment["COMPS_FILE"] = (
-                f"{executor.get_plugins_dir()}/installer/conf/{self.comps_path.name}"
-            )
-        else:
-            self.environment["COMPS_FILE"] = (
-                f"{executor.get_plugins_dir()}/installer/{self.comps_path}"
-            )
+        self.environment["COMPS_FILE"] = (
+            executor.get_builder_dir() / self.comps_path.name
+        )
 
         # We don't need to process more ISO information
         if stage == "init-cache":
@@ -367,20 +352,14 @@ class InstallerPlugin(DistributionPlugin):
                 (
                     self.manager.entities["installer"].directory,
                     executor.get_plugins_dir(),
-                )
+                ),
+                (self.get_sources_dir() / "qubes-release", executor.get_sources_dir()),
+                (self.kickstart_path, executor.get_builder_dir()),
+                (self.comps_path, executor.get_builder_dir()),
             ] + [
                 (self.manager.entities[plugin].directory, executor.get_plugins_dir())
                 for plugin in self.dependencies
             ]
-            # copy kickstart and comps file if given by absolute path
-            if self.kickstart_path.is_absolute():
-                copy_in += [
-                    (self.kickstart_path, executor.get_plugins_dir() / "installer/conf")
-                ]
-            if self.comps_path.is_absolute():
-                copy_in += [
-                    (self.comps_path, executor.get_plugins_dir() / "installer/conf")
-                ]
 
             # Copy-in builder local repository
             if repository_dir.exists():
@@ -388,7 +367,9 @@ class InstallerPlugin(DistributionPlugin):
             copy_in.extend(self.templates_copy_in(executor))
 
             # Prepare cmd
-            cmd = []
+            cmd = [
+                f"mv {executor.get_builder_dir() / self.kickstart_path.name} {executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}"
+            ]
 
             # Create builder-local repository (could be empty) inside the cage
             cmd += [
@@ -510,20 +491,13 @@ class InstallerPlugin(DistributionPlugin):
                     cache_dir / self.iso_name / "rpm",
                     executor.get_plugins_dir() / "installer/yum/installer",
                 ),
+                (self.get_sources_dir() / "qubes-release", executor.get_sources_dir()),
+                (self.kickstart_path, executor.get_builder_dir()),
+                (self.comps_path, executor.get_builder_dir()),
             ] + [
                 (self.manager.entities[plugin].directory, executor.get_plugins_dir())
                 for plugin in self.dependencies
             ]
-
-            # copy kickstart and comps file if given by absolute path
-            if self.kickstart_path.is_absolute():
-                copy_in += [
-                    (self.kickstart_path, executor.get_plugins_dir() / "installer/conf")
-                ]
-            if self.comps_path.is_absolute():
-                copy_in += [
-                    (self.comps_path, executor.get_plugins_dir() / "installer/conf")
-                ]
 
             # Copy-in builder local repository
             if repository_dir.exists():
@@ -531,7 +505,9 @@ class InstallerPlugin(DistributionPlugin):
             copy_in.extend(self.templates_copy_in(executor))
 
             # Prepare installer cmd
-            cmd = []
+            cmd = [
+                f"mv {executor.get_builder_dir() / self.kickstart_path.name} {executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}"
+            ]
 
             # Add prepared chroot cache
             if chroot_cache.exists():

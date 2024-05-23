@@ -1,6 +1,0 @@
-[submodule "qubesbuilder/plugins/installer/qubes-release"]
-	path = qubesbuilder/plugins/installer/qubes-release
-	url = https://github.com/QubesOS/qubes-qubes-release
-[submodule "qubesbuilder/plugins/installer/meta-packages"]
-	path = qubesbuilder/plugins/installer/meta-packages
-	url = https://github.com/QubesOS/qubes-meta-packages

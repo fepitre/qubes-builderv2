@@ -295,6 +295,8 @@ def test_component_host_fc37_prep(artifacts_dir):
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
+        "qubes-release",
+        "-c",
         "core-qrexec",
         "-d",
         "host-fc37",
@@ -1801,6 +1803,8 @@ def test_template_fedora_36_xfce_prep(artifacts_dir):
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
         "-c",
+        "qubes-release",
+        "-c",
         "builder-rpm",
         "package",
         "fetch",
@@ -2158,14 +2162,22 @@ def test_template_for_iso(artifacts_dir):
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
         rpm = f"qubes-template-fedora-36-xfce-4.2.0-{template_timestamp}.noarch.rpm"
 
-        DEFAULT_KICKSTART = (
-            PROJECT_PATH
-            / "qubesbuilder/plugins/installer/conf/iso-online-testing-no-templates.ks"
+        qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "qubes-release",
+            "package",
+            "fetch"
+        )
+
+        default_kickstart = (
+            artifacts_dir / "sources/qubes-release/conf/iso-online-testing-no-templates.ks"
         )
 
         kickstart = tmpdir + "/tests-kickstart.cfg"
         with open(kickstart, "w") as kickstart_f:
-            kickstart_f.write(DEFAULT_KICKSTART.read_text())
+            kickstart_f.write(default_kickstart.read_text())
             kickstart_f.write(
                 """
 %packages
