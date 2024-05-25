@@ -52,13 +52,18 @@ if [[ $release =~ r[1-9].[0-9] ]] && [[ $package_set =~ (host|dom0|vm) ]] && [[ 
 then
     # Add comps
     mkdir -p "$output_dir/$release"
-    cp "$comps" "$output_dir/$release"
+    if [ -e "$comps" ]; then
+        cp "$comps" "$output_dir/$release"
+    fi
 
     for repo in current current-testing security-testing unstable
     do
         mkdir -p "$release/$repo/$package_set/$dist/repodata"
         mkdir -p "$release/$repo/$package_set/$dist/rpm"
-        ln -sf "../../../comps-${package_set}.xml" "$release/$repo/$package_set/$dist/comps.xml"
+        # provided $comps has the format comps-${package_set}.xml
+        if [ -e "$comps" ]; then
+            ln -sf "../../../comps-${package_set}.xml" "$release/$repo/$package_set/$dist/comps.xml"
+        fi
     done
 fi
 

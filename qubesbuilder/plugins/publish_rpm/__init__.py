@@ -73,7 +73,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             / f"qubes-release/comps/comps-{self.dist.package_set}.xml"
         )
         if not comps.exists():
-            raise PublishError(
+            log.warning(
                 f"Cannot find {comps}. Have you added qubes-release to components?"
             )
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
@@ -84,7 +84,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             self.dist.package_set,
             self.dist.name,
             str(artifacts_dir.absolute()),
-            str(comps.absolute()),
+            str(comps),
         ]
         cmd = [" ".join(create_skeleton_cmd)]
 
@@ -97,7 +97,14 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
 
     def createrepo(self, executor, target_dir):
         log.info(f"{self.component}:{self.dist}: Updating metadata.")
-        cmd = [f"cd {target_dir}", "createrepo_c -g comps.xml ."]
+        cmd = [f"cd {target_dir}"]
+        if (
+            self.get_sources_dir()
+            / f"qubes-release/comps/comps-{self.dist.package_set}.xml"
+        ).exists():
+            cmd.append("createrepo_c -g comps.xml .")
+        else:
+            cmd.append("createrepo_c .")
         try:
             shutil.rmtree(target_dir / "repodata")
             executor.run(cmd)
