@@ -20,14 +20,14 @@ HASH_RE = re.compile(r"[a-f0-9]{40}")
 
 
 @pytest.fixture
-def artifacts_dir(tmpdir_factory):
-    if os.environ.get("ARTIFACTS_DIR"):
-        artifacts_dir = pathlib.Path(os.environ.get("ARTIFACTS_DIR"))
+def artifacts_dir():
+    if os.environ.get("BASE_ARTIFACTS_DIR"):
+        tmpdir = tempfile.mktemp("github-", dir=os.environ.get("BASE_ARTIFACTS_DIR"))
     else:
-        tmpdir = tmpdir_factory.mktemp("github-")
-        artifacts_dir = tmpdir / "artifacts"
+        tmpdir = tempfile.mktemp("github-")
+    artifacts_dir = pathlib.Path(tmpdir) / "artifacts"
     if not artifacts_dir.exists():
-        artifacts_dir.mkdir()
+        artifacts_dir.mkdir(parents=True)
     yield artifacts_dir
 
 
@@ -57,7 +57,7 @@ def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
     return subprocess.check_output(cmd, **kwargs)
 
 
-def test_repository_create_vm_fc38(artifacts_dir):
+def test_repository_create_vm_fc40(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -71,19 +71,9 @@ def test_repository_create_vm_fc38(artifacts_dir):
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-c",
-            "qubes-release",
-            "package",
-            "fetch",
-            env=env,
-        )
-
-        qb_call(
-            DEFAULT_BUILDER_CONF,
-            artifacts_dir,
-            "-c",
             "builder-rpm",
             "-d",
-            "vm-fc38",
+            "vm-fc40",
             "repository",
             "create",
             "current",
@@ -91,7 +81,7 @@ def test_repository_create_vm_fc38(artifacts_dir):
         )
 
         metadata_dir = (
-            artifacts_dir / f"repository-publish/rpm/r4.2/current/vm/fc38/repodata"
+            artifacts_dir / f"repository-publish/rpm/r4.2/current/vm/fc40/repodata"
         )
         assert (metadata_dir / "repomd.xml.metalink").exists()
         with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
@@ -99,7 +89,7 @@ def test_repository_create_vm_fc38(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert "/pub/os/qubes/repo/yum/r4.2/current/vm/fc38/repodata/repomd.xml" in (
+        assert "/pub/os/qubes/repo/yum/r4.2/current/vm/fc40/repodata/repomd.xml" in (
             metadata_dir / "repomd.xml.metalink"
         ).read_text(encoding="ascii")
 
@@ -147,18 +137,34 @@ def test_repository_create_template(artifacts_dir):
         qb_call(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
-            "-c",
-            "qubes-release",
-            "package",
-            "fetch",
+            "-t",
+            "whonix-gateway-17",
+            "repository",
+            "create",
+            "templates-community-testing",
             env=env,
+        )
+
+        metadata_dir = (
+            artifacts_dir
+            / f"repository-publish/rpm/r4.2/templates-community-testing/repodata"
+        )
+        assert (metadata_dir / "repomd.xml.metalink").exists()
+        with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
+            repomd_hash = hashlib.sha256(repomd_f.read()).hexdigest()
+        assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
+            encoding="ascii"
+        )
+        assert (
+            "/pub/os/qubes/repo/yum/r4.2/templates-community-testing/repodata/repomd.xml"
+            in (metadata_dir / "repomd.xml.metalink").read_text(encoding="ascii")
         )
 
         qb_call(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-t",
-            "fedora-38-xfce",
+            "fedora-40-xfce",
             "repository",
             "create",
             "templates-itl-testing",
@@ -179,3 +185,6 @@ def test_repository_create_template(artifacts_dir):
             "/pub/os/qubes/repo/yum/r4.2/templates-itl-testing/repodata/repomd.xml"
             in (metadata_dir / "repomd.xml.metalink").read_text(encoding="ascii")
         )
+
+        # ensure we don't have anything related to deb for template repository in clean artifacts dir
+        assert not (artifacts_dir / "repository-publish/deb").exists()

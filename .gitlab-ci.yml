@@ -44,7 +44,7 @@ variables:
   coverage: '/TOTAL.*\s(\d+)%/'
   variables:
     PYTHONPATH: .
-    ARTIFACTS_DIR: /var/tmp/artifacts
+    BASE_ARTIFACTS_DIR: /var/tmp/gitlab
     TMPDIR: /var/tmp
     PYTEST_ARGS: -v --color=yes --showlocals --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
   # https://gitlab.com/gitlab-org/gitlab/-/issues/15603
@@ -295,10 +295,15 @@ pytest-cli-increment-component:
   script:
     - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_increment_component_
 
-pytest-cli-template:
+pytest-cli-template-fedora:
   extends: .pytest
   script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_fedora
+
+pytest-cli-template-debian:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_debian
 
 #
 # Components

@@ -546,7 +546,7 @@ def test_config_distributions_filter():
     with tempfile.NamedTemporaryFile("w") as config_file:
         config_file.write(
             """distributions:
- - vm-fc36
+ - vm-fc40
  - vm-bullseye
  - host-fc37
 """
@@ -555,17 +555,17 @@ def test_config_distributions_filter():
         config = Config(config_file.name)
 
         assert [d.distribution for d in config.get_distributions()] == [
-            "vm-fc36",
+            "vm-fc40",
             "vm-bullseye",
             "host-fc37",
         ]
-        assert [d.distribution for d in config.get_distributions(["vm-fc36"])] == [
-            "vm-fc36"
+        assert [d.distribution for d in config.get_distributions(["vm-fc40"])] == [
+            "vm-fc40"
         ]
         assert [
-            d.distribution for d in config.get_distributions(["vm-fc36", "host-fc37"])
+            d.distribution for d in config.get_distributions(["vm-fc40", "host-fc37"])
         ] == [
-            "vm-fc36",
+            "vm-fc40",
             "host-fc37",
         ]
         with pytest.raises(ConfigError):
@@ -576,8 +576,8 @@ def test_config_templates_filter():
     with tempfile.NamedTemporaryFile("w") as config_file:
         config_file.write(
             """templates:
-  - fedora-36-xfce:
-      dist: fc36
+  - fedora-40-xfce:
+      dist: fc40
       flavor: xfce
   - centos-stream-8:
       dist: centos-stream8
@@ -592,15 +592,15 @@ def test_config_templates_filter():
         config = Config(config_file.name)
 
         assert [t.name for t in config.get_templates()] == [
-            "fedora-36-xfce",
+            "fedora-40-xfce",
             "centos-stream-8",
             "debian-11",
         ]
         assert [t.name for t in config.get_templates(["debian-11"])] == ["debian-11"]
         assert [
-            t.name for t in config.get_templates(["fedora-36-xfce", "debian-11"])
+            t.name for t in config.get_templates(["fedora-40-xfce", "debian-11"])
         ] == [
-            "fedora-36-xfce",
+            "fedora-40-xfce",
             "debian-11",
         ]
         with pytest.raises(ConfigError):

@@ -265,7 +265,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
     def create_repository_skeleton(self):
         # Create publish repository skeleton
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.get_repository_publish_dir() / "rpm"
 
         create_skeleton_cmd = [
             f"{self.manager.entities['publish_rpm'].directory}/scripts/create-skeleton",

@@ -58,7 +58,6 @@ then
 
     for repo in current current-testing security-testing unstable
     do
-        mkdir -p "$release/$repo/$package_set/$dist/repodata"
         mkdir -p "$release/$repo/$package_set/$dist/rpm"
         # provided $comps has the format comps-${package_set}.xml
         if [ -e "$comps" ]; then
@@ -70,7 +69,6 @@ fi
 if [[ $release =~ r[1-9].[0-9] ]]; then
     for repo in templates-itl templates-itl-testing templates-community templates-community-testing
     do
-        mkdir -p "$release/$repo/repodata"
         mkdir -p "$release/$repo/rpm"
     done
 fi

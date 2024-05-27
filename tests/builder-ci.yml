@@ -47,10 +47,7 @@ distributions:
   - vm-bullseye
   - vm-bookworm
   - vm-trixie
-  - vm-fc36
-  - vm-fc37
-  - vm-fc38
-  - vm-centos-stream8
+  - vm-fc40
   - vm-archlinux
   - vm-focal
   - vm-jammy
@@ -92,11 +89,8 @@ components:
       - C4A2E4615A16BD191110DEE17320B2D2134763F3
 
 templates:
-  - fedora-36-xfce:
-      dist: fc36
-      flavor: xfce
-  - fedora-38-xfce:
-      dist: fc38
+  - fedora-40-xfce:
+      dist: fc40
       flavor: xfce
   - centos-stream-8:
       dist: centos-stream8
@@ -105,6 +99,9 @@ templates:
       options:
         - standard
         - firmware
+  - debian-12-minimal:
+      dist: bookworm
+      flavor: minimal
   - whonix-gateway-17:
       dist: bookworm
       flavor: whonix-gateway
