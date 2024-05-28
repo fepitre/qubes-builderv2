@@ -139,7 +139,7 @@ variables:
   extends: .component_job
   stage: build
   tags:
-    - qubes
+    - vm
   artifacts:
     paths:
       - artifacts
@@ -184,7 +184,7 @@ variables:
     - when: never
   stage: build
   tags:
-    - qubes
+    - vm
   before_script:
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
@@ -227,7 +227,7 @@ lint:
   stage: test
   image: fedora:39
   tags:
-    - docker
+    - vm
   before_script:
     - sudo dnf install -y python3-black
   script:
@@ -237,7 +237,7 @@ mypy:
   stage: test
   image: fedora:39
   tags:
-    - docker
+    - vm
   before_script:
     - sudo dnf install -y python3-mypy python3-pip
     - sudo python3 -m pip install types-PyYAML types-python-dateutil
@@ -251,7 +251,7 @@ shellcheck:
   stage: test
   image: fedora:39
   tags:
-    - docker
+    - vm
   before_script:
     - sudo dnf install -y ShellCheck git
   script:
@@ -260,7 +260,7 @@ shellcheck:
 pytest:
   extends: .pytest
   tags:
-    - qubes
+    - vm
   script:
     - echo "$PYTHONPATH"
     - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py tests/test_scripts.py
