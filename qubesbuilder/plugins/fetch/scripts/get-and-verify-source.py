@@ -168,7 +168,7 @@ def main(args):
             shutil.rmtree(repo)
         try:
             subprocess.run(
-                ["git", "clone", "-n", "-q", "-b", git_branch, git_url, repo],
+                ["git", "clone", "-n", "-q", "-b", git_branch, git_url, str(repo)],
                 capture_output=True,
                 check=True,
             )
