@@ -40,6 +40,9 @@ components:
   - app-linux-usb-proxy
   - app-linux-pdf-converter
   - app-linux-img-converter
+  - mgmt-salt
+  - fwupd
+  - repo-templates
   - meta-packages
 
 executor:
