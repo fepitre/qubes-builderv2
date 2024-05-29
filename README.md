@@ -102,7 +102,7 @@ for building components inside a disposable qube is `fedora-39`. Install the
 following dependencies inside the template:
 
 ```bash
-$ sudo dnf install -y dnf-plugins-core createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev
+$ sudo dnf install $(cat dependencies-fedora-qubes-executor.txt)
 ```
 
 Then, clone the disposable template based on Fedora 39, `fedora-39-dvm`, to
