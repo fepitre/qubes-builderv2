@@ -4,7 +4,7 @@ MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
 # Install dependencies for Qubes Builder
 RUN apt-get update && \
     apt-get install -y sudo curl debootstrap devscripts dpkg-dev git wget python3-debian e2fsprogs pbuilder tree \
-        reprepro psutils fdisk udev rpm \
+        reprepro psutils fdisk udev rpm python3-yaml \
     && apt-get clean all
 
 # Create build user
