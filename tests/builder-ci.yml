@@ -47,6 +47,7 @@ distributions:
   - vm-bullseye
   - vm-bookworm
   - vm-trixie
+  - vm-fc39
   - vm-fc40
   - vm-archlinux
   - vm-focal
@@ -78,7 +79,7 @@ components:
   - core-qrexec:
       branch: v4.2.18
   - desktop-linux-xfce4-xfwm4:
-      branch: v4.16.1-3
+      branch: v4.16.1-4
   - app-linux-split-gpg:
       branch: v2.0.67-builderv2-tests
       url: https://github.com/fepitre/qubes-app-linux-split-gpg

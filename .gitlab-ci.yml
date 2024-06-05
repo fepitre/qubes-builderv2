@@ -317,10 +317,10 @@ cache-host-fc37:
     - !reference [.init_cache_job, script ]
     - tests/scripts/check-chroot-content.sh artifacts "${CI_JOB_NAME#cache-}" /usr/bin/gcc
 
-cache-vm-fc37:
+cache-vm-fc39:
   extends: .init_cache_job
 
-cache-vm-fc38:
+cache-vm-fc40:
   extends: .init_cache_job
 
 cache-vm-centos-stream8:
@@ -348,10 +348,10 @@ podman-host-fc37:
   needs:
     - cache-host-fc37
 
-podman-vm-fc38:
+podman-vm-fc40:
   extends: .component_podman_job
   needs:
-    - cache-vm-fc38
+    - cache-vm-fc40
 
 #podman-vm-bookworm:
 #  extends: .component_podman_job
@@ -363,10 +363,10 @@ docker-host-fc37:
   needs:
     - cache-host-fc37
 
-docker-vm-fc38:
+docker-vm-fc40:
   extends: .component_docker_job
   needs:
-    - cache-vm-fc38
+    - cache-vm-fc40
 
 docker-vm-bookworm:
   extends: .component_docker_job
@@ -400,10 +400,10 @@ qubes-host-fc37:
   needs:
     - cache-host-fc37
 
-qubes-vm-fc38:
+qubes-vm-fc40:
   extends: .component_qubes_job
   needs:
-    - cache-vm-fc38
+    - cache-vm-fc40
 
 qubes-vm-bookworm:
   extends: .component_qubes_job
@@ -417,10 +417,10 @@ local-host-fc37:
   needs:
     - cache-host-fc37
 
-local-vm-fc38:
+local-vm-fc40:
   extends: .component_local_job
   needs:
-    - cache-vm-fc38
+    - cache-vm-fc40
 
 local-vm-bookworm:
   extends: .component_local_job
