@@ -17,6 +17,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -27,14 +28,12 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DEBDistributionPlugin
+from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
-
-log = get_logger("build_deb")
 
 
 def provision_local_repository(
+    log: logging.Logger,
     debian_directory: str,
     repository_dir: Path,
     component: QubesComponent,
@@ -92,8 +91,9 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
         - build
     """
 
+    name = "build_deb"
     stages = ["build"]
-    dependencies = ["chroot_deb", "build"]
+    dependencies = [PluginDependency("chroot_deb"), PluginDependency("build")]
 
     def __init__(
         self,
@@ -127,7 +127,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             ).get("source-hash", None)
             for directory in parameters["build"]
         ):
-            log.info(
+            self.log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
             )
             return
@@ -172,22 +172,14 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
                     raise BuildError(f"Cannot find sources for '{directory}'")
 
             # Copy-in plugin, repository and sources
-            copy_in = [
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (
                     self.manager.entities["chroot_deb"].directory / "pbuilder",
                     executor.get_builder_dir(),
                 ),
                 (repository_dir, executor.get_repository_dir()),
-                (
-                    self.manager.entities["build_deb"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
             ]
 
             copy_in += [
@@ -338,6 +330,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
 
             # Provision builder local repository
             provision_local_repository(
+                log=self.log,
                 debian_directory=directory,
                 component=self.component,
                 dist=self.dist,

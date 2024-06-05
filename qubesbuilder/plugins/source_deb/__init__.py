@@ -28,11 +28,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DEBDistributionPlugin
+from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
-
-log = get_logger("source_deb")
 
 
 class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
@@ -46,8 +43,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
         - source
     """
 
+    name = "source_deb"
     stages = ["prep"]
-    dependencies = ["fetch", "source"]
+    dependencies = [PluginDependency("fetch"), PluginDependency("source")]
 
     def __init__(
         self,
@@ -83,7 +81,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
 
         # Check if we have Debian related content defined
         if not parameters.get("build", None):
-            log.info(f"{self.component}: nothing to be done for {self.dist}")
+            self.log.info(f"{self.component}: nothing to be done for {self.dist}")
             return
 
         distfiles_dir = self.get_component_distfiles_dir()
@@ -97,7 +95,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             ).get("source-hash", None)
             for directory in parameters["build"]
         ):
-            log.info(
+            self.log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
             )
             return
@@ -130,18 +128,10 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             )
 
             # Generate package release name
-            copy_in = [
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (self.component.source_dir, executor.get_builder_dir()),
-                (
-                    self.manager.entities["source_deb"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
             ]
 
             copy_out = [(source_dir / f"{directory_bn}_package_release_name", temp_dir)]
@@ -206,19 +196,11 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             #
 
             # Copy-in distfiles, dependencies, source and Debian directory
-            copy_in = [
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (self.component.source_dir, executor.get_builder_dir()),
                 (distfiles_dir, executor.get_distfiles_dir()),
-                (
-                    self.manager.entities["source_deb"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
             ]
 
             # Copy-out Debian source package (.orig.tar.*, .dsc and .debian.tar.xz)

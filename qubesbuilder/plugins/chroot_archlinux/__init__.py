@@ -20,12 +20,9 @@
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootError, ChrootPlugin
-
-log = get_logger("chroot_archlinux")
 
 
 def get_pacman_cmd(
@@ -96,6 +93,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         - chroot - Create Archlinux cache chroot.
     """
 
+    name = "chroot_archlinux"
     stages = ["init-cache"]
 
     def __init__(
@@ -124,18 +122,9 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         chroot_archive = f"{chroot_name}.tar.gz"
         (cache_chroot_dir / chroot_archive).unlink(missing_ok=True)
 
-        copy_in = [
-            (
-                self.manager.entities["chroot_archlinux"].directory,
-                executor.get_plugins_dir(),
-            ),
-        ] + [
-            (
-                self.manager.entities[dependency].directory,
-                executor.get_plugins_dir(),
-            )
-            for dependency in self.dependencies
-        ]
+        copy_in = self.default_copy_in(
+            executor.get_plugins_dir(), executor.get_sources_dir()
+        )
         self.environment.update(
             {
                 "DIST": self.dist.name,

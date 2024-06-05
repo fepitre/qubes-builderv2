@@ -16,7 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import logging
 import os.path
 import shutil
 from pathlib import Path
@@ -27,16 +27,14 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.plugins import ArchlinuxDistributionPlugin
+from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 from qubesbuilder.plugins.chroot_archlinux import get_pacman_cmd, get_archchroot_cmd
 
-log = get_logger("build_archlinux")
-
 
 def clean_local_repository(
+    log: logging.Logger,
     repository_dir: Path,
     component: QubesComponent,
     dist: QubesDistribution,
@@ -59,6 +57,7 @@ def clean_local_repository(
 
 
 def provision_local_repository(
+    log: logging.Logger,
     build: str,
     repository_dir: Path,
     component: QubesComponent,
@@ -99,8 +98,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
         - build
     """
 
+    name = "build_archlinux"
     stages = ["build"]
-    dependencies = ["build", "chroot_archlinux"]
+    dependencies = [PluginDependency("chroot_archlinux"), PluginDependency("build")]
 
     def __init__(
         self,
@@ -176,7 +176,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             )
             for build in parameters["build"]
         ):
-            log.info(
+            self.log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
             )
             return
@@ -197,7 +197,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
         repository_dir.mkdir(parents=True, exist_ok=True)
 
         # Remove previous versions in order to keep the latest one only
-        clean_local_repository(repository_dir, self.component, self.dist, True)
+        clean_local_repository(
+            self.log, repository_dir, self.component, self.dist, True
+        )
 
         for build in parameters["build"]:
             # spec file basename will be used as prefix for some artifacts
@@ -214,21 +216,13 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             files_inside_executor_with_placeholders = []
 
             # Copy-in source
-            copy_in = [
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (self.component.source_dir, executor.get_builder_dir()),
                 (prep_artifacts_dir / "PKGBUILD", source_dir),
                 (distfiles_dir, executor.get_distfiles_dir()),
                 (repository_dir, executor.get_repository_dir()),
-                (
-                    self.manager.entities["build_archlinux"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
             ]
 
             if qubes_repo_version:
@@ -283,7 +277,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             chroot_archive = "root.tar.gz"
 
             if (chroot_dir / chroot_archive).exists():
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Chroot cache exists. Will use it."
                 )
 
@@ -304,7 +298,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     "sudo pacman-key --populate",
                 ]
             else:
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Chroot cache does not exists. Will create it."
                 )
                 # We don't need builder-local to create fresh chroot
@@ -380,6 +374,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             # Provision builder local repository
             provision_local_repository(
+                log=self.log,
                 build=build,
                 component=self.component,
                 dist=self.dist,

@@ -22,23 +22,20 @@ import shutil
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List
 
-import yaml
 from dateutil.parser import parse as parsedate
 
 from qubesbuilder.config import Config, QUBES_RELEASE_RE, QUBES_RELEASE_DEFAULT
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     PluginError,
     TemplatePlugin,
+    PluginDependency,
+    ComponentDependency,
 )
 from qubesbuilder.template import QubesTemplate
-
-log = get_logger("template")
 
 TEMPLATE_REPOSITORIES = [
     "templates-itl-testing",
@@ -76,6 +73,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
             ]
         )
 
+    name = "template"
+
     def __init__(
         self,
         template: QubesTemplate,
@@ -84,7 +83,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
         **kwargs,
     ):
         super().__init__(template=template, config=config, manager=manager)
-        self.source_dependencies: List[str] = []
         self.template_version = ""
 
     def get_template_version(self):
@@ -157,8 +155,11 @@ class TemplateBuilderPlugin(TemplatePlugin):
         ) or self.config.get("mirrors", {}).get(self.dist.name, [])
 
         if self.template.distribution.is_rpm():
-            self.dependencies += ["chroot_rpm", "source_rpm"]
-            self.source_dependencies += ["builder-rpm"]
+            self.dependencies += [
+                PluginDependency("chroot_rpm"),
+                PluginDependency("source_rpm"),
+                ComponentDependency("builder-rpm"),
+            ]
             template_content_dir = str(
                 executor.get_sources_dir() / "builder-rpm/template_rpm"
             )
@@ -172,8 +173,12 @@ class TemplateBuilderPlugin(TemplatePlugin):
             self.template.distribution.is_deb()
             or self.template.distribution.is_ubuntu()
         ):
-            self.dependencies += ["chroot_deb", "source_deb", "build_deb"]
-            self.source_dependencies += ["builder-debian"]
+            self.dependencies += [
+                PluginDependency("chroot_deb"),
+                PluginDependency("source_deb"),
+                PluginDependency("build_deb"),
+                ComponentDependency("builder-debian"),
+            ]
             template_content_dir = str(
                 executor.get_sources_dir()
                 / f"builder-debian/template_{self.dist.fullname}"
@@ -189,7 +194,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "whonix-gateway",
                 "whonix-workstation",
             ):
-                self.source_dependencies += ["template-whonix"]
+                self.dependencies += [ComponentDependency("template-whonix")]
                 template_content_dir = str(
                     executor.get_sources_dir() / "template-whonix"
                 )
@@ -208,7 +213,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     f"+whonix-workstation:{executor.get_sources_dir()}/template-whonix",
                 ]
             if self.template.flavor.startswith("kali"):
-                self.source_dependencies += ["template-kali"]
+                self.dependencies += [ComponentDependency("template-kali")]
                 template_content_dir = str(executor.get_sources_dir() / "template-kali")
                 self.environment.update(
                     {
@@ -224,8 +229,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ]
 
         elif self.template.distribution.is_archlinux():
-            self.dependencies += ["chroot_archlinux"]
-            self.source_dependencies += ["builder-archlinux"]
+            self.dependencies += [
+                PluginDependency("chroot_archlinux"),
+                ComponentDependency("builder-archlinux"),
+            ]
             template_content_dir = str(
                 executor.get_sources_dir() / "builder-archlinux/template_archlinux"
             )
@@ -241,7 +248,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
             self.environment.update({"ARCHLINUX_MIRROR": ",".join(mirrors)})
         elif self.template.distribution.is_gentoo():
-            self.source_dependencies += ["builder-gentoo"]
+            self.dependencies += [ComponentDependency("builder-gentoo")]
             template_content_dir = str(
                 executor.get_sources_dir() / "builder-gentoo/scripts"
             )
@@ -258,10 +265,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
             f"+{option}:{template_content_dir}/{option}" for option in template_options
         ]
         self.environment["TEMPLATE_FLAVOR_DIR"] = " ".join(template_flavor_dir)
-
-        for dependency in self.source_dependencies:
-            if not self.get_sources_dir() / dependency:
-                raise PluginError(f"Cannot find source directory '{dependency}'.")
 
     def create_repository_skeleton(self):
         # Create publish repository skeleton
@@ -296,12 +299,12 @@ class TemplateBuilderPlugin(TemplatePlugin):
         ) or self.config.sign_key.get("rpm", None)
 
         if not sign_key:
-            log.info(f"{self.template}: No signing key found.")
+            self.log.info(f"{self.template}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.template}: Please specify GPG client to use!")
+            self.log.info(f"{self.template}: Please specify GPG client to use!")
             return
 
         # Createrepo unpublished RPMs
@@ -329,7 +332,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         return sign_key
 
     def createrepo(self, executor, target_dir):
-        log.info(f"{self.template}: Updating metadata.")
+        self.log.info(f"{self.template}: Updating metadata.")
         cmd = [f"cd {target_dir}", "createrepo_c ."]
         try:
             shutil.rmtree(target_dir / "repodata")
@@ -339,7 +342,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             raise TemplateError(msg) from e
 
     def sign_metadata(self, executor, sign_key, target_dir):
-        log.info(f"{self.template}: Signing metadata.")
+        self.log.info(f"{self.template}: Signing metadata.")
         repomd = target_dir / "repodata/repomd.xml"
         cmd = [
             f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
@@ -404,7 +407,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             msg = f"{self.template.name}: Cannot find repomd '{repomd}'."
             raise TemplateError(msg)
 
-        log.info(f"Creating metalink for {repomd}.")
+        self.log.info(f"Creating metalink for {repomd}.")
         try:
             # XXX: consider separate mirrors.list?
             cmd = [
@@ -413,7 +416,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.template.name}: Failed to create metalink for '{repomd}'."
-            log.error(msg)
+            self.log.error(msg)
 
     def publish(self, executor, db_path, repository_publish):
         rpm = (
@@ -426,10 +429,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
             raise TemplateError(msg)
 
         # We check that signature exists (--check-only option)
-        log.info(f"{self.template}: Verifying signatures.")
+        self.log.info(f"{self.template}: Verifying signatures.")
         sign_key = self.get_sign_key()
         if not sign_key:
-            log.info(f"{self.template}: No signing key found.")
+            self.log.info(f"{self.template}: No signing key found.")
             return
         try:
             cmd = [
@@ -442,7 +445,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             raise TemplateError(msg) from e
 
         # Publish template with hardlinks to built RPM
-        log.info(f"{self.template}: Publishing template.")
+        self.log.info(f"{self.template}: Publishing template.")
         artifacts_dir = self.get_repository_publish_dir() / "rpm"
         target_dir = artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
         try:
@@ -473,11 +476,11 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         sign_key = self.get_sign_key()
         if not sign_key:
-            log.info(f"{self.template}: No signing key found.")
+            self.log.info(f"{self.template}: No signing key found.")
             return
 
         # If exists, remove hardlinks to built RPMs
-        log.info(f"{self.template}: Unpublishing template.")
+        self.log.info(f"{self.template}: Unpublishing template.")
         artifacts_dir = self.get_repository_publish_dir() / "rpm"
         target_dir = artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
         try:
@@ -533,26 +536,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
             self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
-            copy_in = (
-                [
-                    (
-                        self.manager.entities["template"].directory,
-                        executor.get_plugins_dir(),
-                    ),
-                    (repository_dir, executor.get_repository_dir()),
-                ]
-                + [
-                    (
-                        self.manager.entities[plugin].directory,
-                        executor.get_plugins_dir(),
-                    )
-                    for plugin in self.dependencies
-                ]
-                + [
-                    (self.get_sources_dir() / source, executor.get_sources_dir())
-                    for source in self.source_dependencies
-                ]
-            )
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [(repository_dir, executor.get_repository_dir())]
 
             copy_out = [
                 (
@@ -598,12 +584,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
             rpm_fn = f"qubes-template-{self.template.name}-{template_version}-{template_timestamp}.noarch.rpm"
 
-            copy_in = (
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + (
                 [
-                    (
-                        self.manager.entities["template"].directory,
-                        executor.get_plugins_dir(),
-                    ),
                     (repository_dir, executor.get_repository_dir()),
                     (
                         qubeized_image / "root.img",
@@ -619,17 +603,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
                         template_artifacts_dir / self.template.name / "appmenus",
                         executor.get_build_dir(),
                     ),
-                ]
-                + [
-                    (
-                        self.manager.entities[plugin].directory,
-                        executor.get_plugins_dir(),
-                    )
-                    for plugin in self.dependencies
-                ]
-                + [
-                    (self.get_sources_dir() / source, executor.get_sources_dir())
-                    for source in self.source_dependencies
                 ]
             )
 
@@ -686,7 +659,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
             sign_key = self.get_sign_key()
             if not sign_key:
-                log.info(f"{self.template}: No signing key found.")
+                self.log.info(f"{self.template}: No signing key found.")
                 return
 
             temp_dir = Path(tempfile.mkdtemp())
@@ -718,7 +691,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 raise TemplateError(msg)
 
             try:
-                log.info(f"{self.template}: Signing '{rpm.name}'.")
+                self.log.info(f"{self.template}: Signing '{rpm.name}'.")
                 cmd = [
                     f"{self.manager.entities['sign_rpm'].directory}/scripts/sign-rpm "
                     f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm}"
@@ -744,7 +717,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             self.validate_repository_publish(repository_publish)
 
             if self.is_published(repository_publish):
-                log.info(
+                self.log.info(
                     f"{self.template}: Already published to '{repository_publish}'."
                 )
                 return
@@ -797,7 +770,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         if stage == "publish" and unpublish:
             if not self.is_published(repository_publish):
-                log.info(f"{self.template}: Not published to '{repository_publish}'.")
+                self.log.info(
+                    f"{self.template}: Not published to '{repository_publish}'."
+                )
                 return
 
             publish_info = self.get_template_artifacts_info(stage=stage)
@@ -816,7 +791,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             if publish_info.get("repository-publish", []):
                 self.save_artifacts_info(stage="publish", info=publish_info)
             else:
-                log.info(
+                self.log.info(
                     f"{self.template}: Not published anywhere else, deleting publish info."
                 )
                 self.delete_artifacts_info(stage="publish")
@@ -824,7 +799,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         if stage == "upload":
             remote_path = self.config.repository_upload_remote_host.get("rpm", None)
             if not remote_path:
-                log.info(f"{self.dist}: No remote location defined. Skipping.")
+                self.log.info(f"{self.dist}: No remote location defined. Skipping.")
                 return
 
             try:

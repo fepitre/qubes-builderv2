@@ -22,10 +22,7 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
-
-log = get_logger("sign")
 
 
 class SignError(PluginError):
@@ -42,6 +39,8 @@ class SignPlugin(DistributionComponentPlugin):
     Entry points:
         - build
     """
+
+    name = "sign"
 
     def __init__(
         self,
@@ -64,7 +63,7 @@ class SignPlugin(DistributionComponentPlugin):
 
         # Check if we have Debian related content defined
         if not self.get_parameters(stage).get("build", []):
-            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
+            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 
         if not isinstance(executor, LocalExecutor):

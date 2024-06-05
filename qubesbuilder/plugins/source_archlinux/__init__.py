@@ -26,12 +26,9 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.plugins import ArchlinuxDistributionPlugin
+from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
-
-log = get_logger("source_archlinux")
 
 
 class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
@@ -39,8 +36,9 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
     Manage Archlinux distribution source.
     """
 
+    name = "source_archlinux"
     stages = ["prep"]
-    dependencies = ["fetch", "source"]
+    dependencies = [PluginDependency("fetch"), PluginDependency("source")]
 
     def __init__(
         self,
@@ -69,7 +67,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
 
         # Check if we have Archlinux related content defined
         if not parameters.get("build", []):
-            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
+            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 
         # Compare previous artifacts hash with current source hash
@@ -80,7 +78,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
             )
             for build in parameters["build"]
         ):
-            log.info(
+            self.log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
             )
             return
@@ -114,18 +112,10 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 raise SourceError(msg)
 
             # Generate packages list
-            copy_in = [
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (self.component.source_dir, executor.get_builder_dir()),
-                (
-                    self.manager.entities["source_archlinux"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
             ]
 
             copy_out = [
@@ -175,19 +165,10 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 packages_list.append(pkg)
 
             # Create source archive
-            copy_in = [
-                (self.component.source_dir, executor.get_builder_dir()),
-                (
-                    self.manager.entities["source_archlinux"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
-            ]
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [(self.component.source_dir, executor.get_builder_dir())]
+
             copy_out = [
                 (source_dir / "PKGBUILD", artifacts_dir),
             ]

@@ -23,11 +23,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootPlugin, ChrootError
-
-log = get_logger("chroot_deb")
 
 
 class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
@@ -38,6 +35,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         - chroot - Create pbuilder base.tgz.
     """
 
+    name = "chroot_deb"
     stages = ["init-cache"]
 
     def __init__(
@@ -72,12 +70,9 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         ]
 
         # Create a first cage to generate the base.tgz
-        copy_in = [
-            (
-                self.manager.entities["chroot_deb"].directory,
-                executor.get_plugins_dir(),
-            ),
-        ]
+        copy_in = self.default_copy_in(
+            executor.get_plugins_dir(), executor.get_sources_dir()
+        )
         copy_out = [
             (
                 executor.get_builder_dir() / "pbuilder/base.tgz",
@@ -120,15 +115,13 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
             .get("packages", [])
         )
         if additional_packages:
-            copy_in = [
-                (
-                    self.manager.entities["chroot_deb"].directory,
-                    executor.get_plugins_dir(),
-                ),
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (
                     chroot_dir / "base.tgz",
                     executor.get_builder_dir() / "pbuilder",
-                ),
+                )
             ]
             copy_out = [
                 (

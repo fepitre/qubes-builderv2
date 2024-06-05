@@ -23,11 +23,8 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import RPMDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootError, ChrootPlugin
-
-log = get_logger("chroot_rpm")
 
 
 class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
@@ -38,6 +35,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
         - chroot - Create Mock cache chroot.
     """
 
+    name = "chroot_rpm"
     stages = ["init-cache"]
 
     def __init__(
@@ -95,7 +93,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
                 f"{self.dist}: Mock isolation set to 'simple', build has full network "
                 f"access. Use 'qubes' executor for network-isolated build."
             )
-            log.warning(msg)
+            self.log.warning(msg)
             mock_cmd.append("--isolation=simple")
         else:
             mock_cmd.append("--isolation=nspawn")
@@ -103,12 +101,9 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             mock_cmd.append("--verbose")
 
         # Create a first cage to generate the mock chroot
-        copy_in = [
-            (
-                self.manager.entities["chroot_rpm"].directory,
-                executor.get_plugins_dir(),
-            ),
-        ]
+        copy_in = self.default_copy_in(
+            executor.get_plugins_dir(), executor.get_sources_dir()
+        )
         copy_out = [
             (
                 executor.get_cache_dir() / f"mock/{mock_chroot_name}",
@@ -138,11 +133,9 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             # Remove dnf_cache
             if (chroot_dir / mock_chroot_name / "dnf_cache").exists():
                 shutil.rmtree(chroot_dir / mock_chroot_name / "dnf_cache")
-            copy_in = [
-                (
-                    self.manager.entities["chroot_rpm"].directory,
-                    executor.get_plugins_dir(),
-                ),
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (chroot_dir / mock_chroot_name, executor.get_cache_dir() / f"mock"),
             ]
             copy_out = [

@@ -23,11 +23,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DEBDistributionPlugin
+from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
-
-log = get_logger("publish_deb")
 
 
 class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
@@ -41,8 +38,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         - build
     """
 
+    name = "publish_deb"
     stages = ["publish"]
-    dependencies = ["publish"]
+    dependencies = [PluginDependency("publish")]
 
     def __init__(
         self,
@@ -115,12 +113,12 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("deb", None)
 
         if not sign_key:
-            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
         debian_suite = self.get_debian_suite_from_repository_publish(
@@ -137,7 +135,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     f"{self.config.gpg_client} {opt} --armor --local-user {sign_key} "
                     f"--batch --no-tty --output {release_dir / out_name} {release_dir / 'Release'}"
                 ]
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Signing metadata ({out_name})."
                 )
                 executor = self.config.get_executor_from_config("publish", self)
@@ -157,14 +155,18 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
 
         if not build_info.get("changes", None):
-            log.info(f"{self.component}:{self.dist}:{directory}: Nothing to publish.")
+            self.log.info(
+                f"{self.component}:{self.dist}:{directory}: Nothing to publish."
+            )
             return
 
-        log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
+        self.log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
 
         # Verify signatures (sanity check, refuse to publish if packages weren't signed)
         try:
-            log.info(f"{self.component}:{self.dist}:{directory}: Verifying signatures.")
+            self.log.info(
+                f"{self.component}:{self.dist}:{directory}: Verifying signatures."
+            )
             cmd = []
             for file in ("dsc", "changes", "buildinfo"):
                 fname = build_artifacts_dir / build_info[file]
@@ -207,10 +209,14 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
 
         if not build_info.get("changes", None):
-            log.info(f"{self.component}:{self.dist}:{directory}: Nothing to publish.")
+            self.log.info(
+                f"{self.component}:{self.dist}:{directory}: Nothing to publish."
+            )
             return
 
-        log.info(f"{self.component}:{self.dist}:{directory}: Unpublishing packages.")
+        self.log.info(
+            f"{self.component}:{self.dist}:{directory}: Unpublishing packages."
+        )
 
         # Unpublishing packages
         try:
@@ -276,12 +282,12 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("deb", None)
 
         if not sign_key:
-            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
         # Sign artifacts
@@ -314,7 +320,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 )
                 for directory in parameters["build"]
             ):
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
                 )
                 return
@@ -357,7 +363,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 info = build_info
                 if publish_info:
                     if build_info["source-hash"] != publish_info["source-hash"]:
-                        log.info(
+                        self.log.info(
                             f"{self.component}:{self.dist}:{directory}: Current build hash does not match previous one."
                         )
                         for repository in publish_info.get("repository-publish", []):
@@ -395,7 +401,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 )
                 for directory in parameters["build"]
             ):
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Not published to '{repository_publish}'."
                 )
                 return
@@ -426,7 +432,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                         stage="publish", basename=directory_bn, info=publish_info
                     )
                 else:
-                    log.info(
+                    self.log.info(
                         f"{self.component}:{self.dist}:{directory}: Not published anywhere else, deleting publish info."
                     )
                     self.delete_dist_artifacts_info(
@@ -442,7 +448,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                         stage=stage, basename=directory_bn, artifacts_dir=artifacts_dir
                     )
                     if repository_publish in publish_info.get("repository-publish", []):
-                        log.info(
+                        self.log.info(
                             f"{self.component}:{self.dist}:{directory}: Updating repository."
                         )
                         self.publish(

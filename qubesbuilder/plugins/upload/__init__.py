@@ -21,11 +21,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor, ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import DistributionPlugin, PluginError
 from qubesbuilder.plugins.publish_deb import DEBPublishPlugin
-
-log = get_logger("upload")
 
 
 class UploadError(PluginError):
@@ -40,6 +37,7 @@ class UploadPlugin(DistributionPlugin):
         - upload - Upload published repository for given distribution to remote mirror.
     """
 
+    name = "upload"
     stages = ["upload"]
 
     def __init__(
@@ -73,7 +71,7 @@ class UploadPlugin(DistributionPlugin):
             self.dist.type, None
         )
         if not remote_path:
-            log.info(f"{self.dist}: No remote location defined. Skipping.")
+            self.log.info(f"{self.dist}: No remote location defined. Skipping.")
             return
 
         repository_publish = repository_publish or self.config.repository_publish.get(

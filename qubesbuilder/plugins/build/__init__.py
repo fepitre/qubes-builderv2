@@ -20,11 +20,8 @@
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
-
-log = get_logger("build")
 
 
 class BuildError(PluginError):
@@ -41,6 +38,8 @@ class BuildPlugin(DistributionComponentPlugin):
     Entry points:
         - build
     """
+
+    name = "build"
 
     def __init__(
         self,
@@ -59,7 +58,7 @@ class BuildPlugin(DistributionComponentPlugin):
             return
 
         if not self.get_parameters(stage).get("build", []):
-            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
+            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 
         # Ensure all build targets artifacts exist from previous required stage

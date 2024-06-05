@@ -26,16 +26,35 @@ from dateutil.parser import parse as parsedate
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.exc import QubesBuilderError
+from qubesbuilder.executors import Executor
+from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
-from qubesbuilder.executors import Executor
-
-# from qubesbuilder.config import Config
 
 
 class PackagePath(PurePosixPath):
     def mangle(self):
         return str(self).replace("/", "_")
+
+
+class Dependency:
+    def __init__(self, name, builder_object):
+        self.name = name
+
+        if builder_object not in ["plugin", "component"]:
+            raise QubesBuilderError(f"Unsupported dependency type '{builder_object}'.")
+        self.builder_object = builder_object
+
+
+class PluginDependency(Dependency):
+    def __init__(self, name):
+        super().__init__(name=name, builder_object="plugin")
+
+
+class ComponentDependency(Dependency):
+    def __init__(self, name):
+        super().__init__(name=name, builder_object="component")
 
 
 class PluginError(Exception):
@@ -51,9 +70,10 @@ class Plugin:
     Generic plugin
     """
 
+    name = "_undefined_"
     stages: List[str] = []
     priority: int = 10
-    dependencies: List[str] = []
+    dependencies: List[Dependency] = []
 
     @classmethod
     def from_args(cls, **kwargs):
@@ -83,12 +103,29 @@ class Plugin:
             self.environment["DEBUG"] = "1"
         self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
+        self.log = get_logger(self.name)
+
+    def check_dependencies(self):
         for dependency in self.dependencies:
-            if not self.manager.entities.get(dependency, None):
+            if dependency.builder_object == "plugin" and not self.manager.entities.get(
+                dependency.name, None
+            ):
                 raise PluginError(f"Cannot find plugin '{dependency}'.")
+            if dependency.builder_object == "component":
+                if not self.config.get_components(
+                    filtered_components=[dependency.name]
+                ):
+                    raise PluginError(
+                        f"Cannot find component '{dependency}' in configuration file."
+                    )
+                if not self.get_sources_dir() / dependency.name:
+                    raise PluginError(
+                        f"Cannot find source component '{dependency.name}' in artifacts."
+                        f"Is package fetch stage done for '{dependency.name}'"
+                    )
 
     def run(self, stage: str):
-        pass
+        self.check_dependencies()
 
     def update_parameters(self, stage: str):
         self._parameters.setdefault(stage, {})
@@ -164,13 +201,23 @@ class Plugin:
                 raise PluginError(msg) from e
         return {}
 
+    def default_copy_in(self, plugins_dir, sources_dir):
+        copy_in = [(self.manager.entities[self.name].directory, plugins_dir)]
+
+        for dependency in self.dependencies:
+            if dependency.builder_object == "plugin":
+                copy_in += [
+                    (self.manager.entities[dependency.name].directory, plugins_dir)
+                ]
+            if dependency.builder_object == "component":
+                copy_in += [(self.get_sources_dir() / dependency.name, sources_dir)]
+        return copy_in
+
 
 class ComponentPlugin(Plugin):
     """
     Component plugin
     """
-
-    dependencies: List[str] = []
 
     @classmethod
     def from_args(cls, **kwargs):
@@ -280,8 +327,6 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         - PACKAGE-SET
         - PACKAGE_SET-DISTRIBUTION_NAME
     """
-
-    dependencies: List[str] = []
 
     @classmethod
     def from_args(cls, **kwargs):

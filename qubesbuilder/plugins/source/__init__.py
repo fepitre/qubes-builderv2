@@ -21,10 +21,11 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
-
-log = get_logger("source")
+from qubesbuilder.plugins import (
+    DistributionComponentPlugin,
+    PluginError,
+    PluginDependency,
+)
 
 
 class SourceError(PluginError):
@@ -42,7 +43,8 @@ class SourcePlugin(DistributionComponentPlugin):
         - source
     """
 
-    dependencies = ["fetch"]
+    name = "source"
+    dependencies = [PluginDependency("fetch")]
 
     def __init__(
         self,

@@ -20,13 +20,10 @@
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     DistributionPlugin,
     PluginError,
 )
-
-log = get_logger("chroot")
 
 
 class ChrootError(PluginError):
@@ -37,6 +34,8 @@ class ChrootPlugin(DistributionPlugin):
     """
     ChrootPlugin manages generic chroot creation
     """
+
+    name = "chroot"
 
     def __init__(
         self,

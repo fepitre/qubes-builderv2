@@ -29,11 +29,8 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import RPMDistributionPlugin
+from qubesbuilder.plugins import RPMDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
-
-log = get_logger("source_rpm")
 
 
 class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
@@ -47,8 +44,13 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
         - source
     """
 
+    name = "source_rpm"
     stages = ["prep"]
-    dependencies = ["fetch", "source", "chroot_rpm"]
+    dependencies = [
+        PluginDependency("fetch"),
+        PluginDependency("source"),
+        PluginDependency("chroot_rpm"),
+    ]
 
     def __init__(
         self,
@@ -89,7 +91,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
 
         # Check if we have RPM related content defined
         if not parameters.get("build", []):
-            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
+            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return
 
         # Compare previous artifacts hash with current source hash
@@ -100,7 +102,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             )
             for build in parameters["build"]
         ):
-            log.info(
+            self.log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already prepared source. Skipping."
             )
             return
@@ -134,18 +136,10 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             artifacts_info_filename = self.get_artifacts_info_filename(stage, build_bn)
 
             # Generate %{name}-%{version}-%{release} and %Source0
-            copy_in = [
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (self.component.source_dir, executor.get_builder_dir()),
-                (
-                    self.manager.entities["source_rpm"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
             ]
 
             copy_out = [
@@ -201,19 +195,11 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             #
 
             # Copy-in distfiles, content and source
-            copy_in = [
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (distfiles_dir, executor.get_distfiles_dir()),
                 (self.component.source_dir, executor.get_builder_dir()),
-                (
-                    self.manager.entities["source_rpm"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
             ]
 
             # Copy-out source RPM
@@ -302,7 +288,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             ]
             if isinstance(executor, ContainerExecutor):
                 msg = f"{self.component}:{self.dist}:{build}: Mock isolation set to 'simple', build has full network access. Use 'qubes' executor for network-isolated build."
-                log.warning(msg)
+                self.log.warning(msg)
                 mock_cmd.append("--isolation=simple")
             else:
                 mock_cmd.append("--isolation=nspawn")

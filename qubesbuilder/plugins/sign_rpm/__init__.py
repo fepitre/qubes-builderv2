@@ -25,16 +25,13 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import RPMDistributionPlugin
+from qubesbuilder.plugins import RPMDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_rpm import (
     provision_local_repository,
     clean_local_repository,
 )
 from qubesbuilder.plugins.sign import SignPlugin, SignError
-
-log = get_logger("sign_rpm")
 
 
 class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
@@ -48,8 +45,9 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
         - build
     """
 
+    name = "sign_rpm"
     stages = ["sign"]
-    dependencies = ["sign"]
+    dependencies = [PluginDependency("sign")]
 
     def __init__(
         self,
@@ -79,12 +77,12 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             self.dist.distribution, None
         ) or self.config.sign_key.get("rpm", None)
         if not sign_key:
-            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
         # Sign stage for standard components
@@ -115,7 +113,9 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
 
         # Prepare for re-provisioning local directory
         repository_dir = self.get_repository_dir() / self.dist.distribution
-        clean_local_repository(repository_dir, self.component, self.dist, False)
+        clean_local_repository(
+            self.log, repository_dir, self.component, self.dist, False
+        )
 
         for build in parameters["build"]:
             # spec file basename will be used as prefix for some artifacts
@@ -125,7 +125,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
 
             if not build_info.get("rpms", []) and not build_info.get("srpm", None):
-                log.info(f"{self.component}:{self.dist}:{build}: Nothing to sign.")
+                self.log.info(f"{self.component}:{self.dist}:{build}: Nothing to sign.")
                 continue
 
             packages_list = [
@@ -135,7 +135,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
 
             try:
                 for rpm in packages_list:
-                    log.info(
+                    self.log.info(
                         f"{self.component}:{self.dist}:{build}: Signing '{rpm.name}'."
                     )
                     cmd = [
@@ -150,7 +150,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             buildinfo_file = build_artifacts_dir / "rpm" / build_info["buildinfo"]
 
             try:
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}:{build}: Signing '{buildinfo_file.name}'."
                 )
                 cmd = [
@@ -164,6 +164,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             # Re-provision builder local repository with signatures
             try:
                 provision_local_repository(
+                    log=self.log,
                     build=build,
                     component=self.component,
                     dist=self.dist,

@@ -16,7 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import logging
 import os.path
 import re
 import shutil
@@ -29,14 +29,12 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import RPMDistributionPlugin
+from qubesbuilder.plugins import RPMDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
-
-log = get_logger("build_rpm")
 
 
 def clean_local_repository(
+    log: logging.Logger,
     repository_dir: Path,
     component: QubesComponent,
     dist: QubesDistribution,
@@ -59,6 +57,7 @@ def clean_local_repository(
 
 
 def provision_local_repository(
+    log: logging.Logger,
     build: str,
     repository_dir: Path,
     component: QubesComponent,
@@ -113,8 +112,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         - build
     """
 
+    name = "build_rpm"
     stages = ["build"]
-    dependencies = ["chroot_rpm", "build"]
+    dependencies = [PluginDependency("chroot_rpm"), PluginDependency("build")]
 
     def __init__(
         self,
@@ -173,7 +173,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             )
             for build in parameters["build"]
         ):
-            log.info(
+            self.log.info(
                 f"{self.component}:{self.dist}: Source hash is the same than already built source. Skipping."
             )
             return
@@ -194,7 +194,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         repository_dir.mkdir(parents=True, exist_ok=True)
 
         # Remove previous versions in order to keep the latest one only
-        clean_local_repository(repository_dir, self.component, self.dist, True)
+        clean_local_repository(
+            self.log, repository_dir, self.component, self.dist, True
+        )
 
         for build in parameters["build"]:
             # spec file basename will be used as prefix for some artifacts
@@ -217,22 +219,14 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             #
 
             # Copy-in distfiles, content and source RPM
-            copy_in = [
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (repository_dir, executor.get_repository_dir()),
                 (
                     prep_artifacts_dir / source_info["srpm"],
                     executor.get_build_dir(),
                 ),
-                (
-                    self.manager.entities["build_rpm"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (
-                    self.manager.entities[dependency].directory,
-                    executor.get_plugins_dir(),
-                )
-                for dependency in self.dependencies
             ]
 
             copy_out = [
@@ -283,7 +277,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             ]
             if isinstance(executor, ContainerExecutor):
                 msg = f"{self.component}:{self.dist}:{build}: Mock isolation set to 'simple', build has full network access. Use 'qubes' executor for network-isolated build."
-                log.warning(msg)
+                self.log.warning(msg)
                 mock_cmd.append("--isolation=simple")
             else:
                 mock_cmd.append("--isolation=nspawn")
@@ -352,6 +346,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
 
             # Provision builder local repository
             provision_local_repository(
+                log=self.log,
                 build=build,
                 component=self.component,
                 dist=self.dist,

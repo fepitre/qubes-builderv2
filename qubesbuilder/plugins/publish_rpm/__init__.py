@@ -25,11 +25,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import RPMDistributionPlugin
+from qubesbuilder.plugins import RPMDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
-
-log = get_logger("publish_rpm")
 
 
 class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
@@ -43,8 +40,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         - build
     """
 
+    name = "publish_rpm"
     stages = ["publish"]
-    dependencies = ["publish", "sign_rpm"]
+    dependencies = [PluginDependency("publish"), PluginDependency("sign_rpm")]
 
     def __init__(
         self,
@@ -73,7 +71,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             / f"qubes-release/comps/comps-{self.dist.package_set}.xml"
         )
         if not comps.exists():
-            log.warning(
+            self.log.warning(
                 f"Cannot find {comps}. Have you added qubes-release to components?"
             )
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
@@ -96,7 +94,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             raise PublishError(msg) from e
 
     def createrepo(self, executor, target_dir):
-        log.info(f"{self.component}:{self.dist}: Updating metadata.")
+        self.log.info(f"{self.component}:{self.dist}: Updating metadata.")
         cmd = [f"cd {target_dir}"]
         if (
             self.get_sources_dir()
@@ -113,7 +111,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             raise PublishError(msg) from e
 
     def sign_metadata(self, executor, sign_key, target_dir):
-        log.info(f"{self.component}:{self.dist}: Signing metadata.")
+        self.log.info(f"{self.component}:{self.dist}: Signing metadata.")
         repomd = target_dir / "repodata/repomd.xml"
         cmd = [
             f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
@@ -138,7 +136,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             msg = f"{self.component}:{self.dist}: Cannot find repomd '{repomd}'."
             raise PublishError(msg)
 
-        log.info(f"Creating metalink for {repomd}.")
+        self.log.info(f"Creating metalink for {repomd}.")
         try:
             cmd = [
                 f"mkmetalink -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
@@ -146,7 +144,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}: Failed to create metalink for '{repomd}': {str(e)}"
-            log.error(msg)
+            self.log.error(msg)
 
     def create_and_sign_repository_metadata(self, repository_publish):
         executor = self.config.get_executor_from_config("publish", self)
@@ -159,12 +157,12 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("rpm", None)
 
         if not sign_key:
-            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
         # Createrepo unpublished RPMs
@@ -184,11 +182,11 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
 
         if not build_info.get("rpms", []) and not build_info.get("srpm", None):
-            log.info(f"{self.component}:{self.dist}:{build}: Nothing to publish.")
+            self.log.info(f"{self.component}:{self.dist}:{build}: Nothing to publish.")
             return
 
         # Publish packages with hardlinks to built RPMs
-        log.info(
+        self.log.info(
             f"{self.component}:{self.dist}:{build}: Publishing RPMs to '{repository_publish}'."
         )
 
@@ -203,7 +201,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         packages_list += [prep_artifacts_dir / build_info["srpm"]]
 
         # We check that signature exists (--check-only option)
-        log.info(f"{self.component}:{self.dist}:{build}: Verifying signatures.")
+        self.log.info(f"{self.component}:{self.dist}:{build}: Verifying signatures.")
         try:
             for rpm in packages_list:
                 cmd = [
@@ -242,10 +240,12 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
 
         if not build_info.get("rpms", []) and not build_info.get("srpm", None):
-            log.info(f"{self.component}:{self.dist}:{build}: Nothing to unpublish.")
+            self.log.info(
+                f"{self.component}:{self.dist}:{build}: Nothing to unpublish."
+            )
             return
 
-        log.info(
+        self.log.info(
             f"{self.component}:{self.dist}:{build}: Unpublishing RPMs from '{repository_publish}'."
         )
 
@@ -305,12 +305,12 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("rpm", None)
 
         if not sign_key:
-            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
         # FIXME: Refactor the code handling both standard and template components.
@@ -346,7 +346,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 )
                 for build in parameters["build"]
             ):
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
                 )
                 # Update metalink in case of previous failure on creating it
@@ -424,7 +424,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 )
                 for build in parameters["build"]
             ):
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Not published to '{repository_publish}'."
                 )
                 return
@@ -452,7 +452,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                         stage="publish", basename=build_bn, info=publish_info
                     )
                 else:
-                    log.info(
+                    self.log.info(
                         f"{self.component}:{self.dist}:{build_bn}: Not published anywhere else, deleting publish info."
                     )
                     self.delete_dist_artifacts_info(stage="publish", basename=build_bn)

@@ -2,6 +2,7 @@
 
 import argparse
 import pathlib
+
 from jinja2 import Environment, BaseLoader
 
 DEFAULT_SERVERS = [

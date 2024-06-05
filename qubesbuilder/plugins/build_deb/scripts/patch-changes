@@ -20,7 +20,6 @@
 
 import argparse
 import hashlib
-import sys
 from typing import List, Dict, Type
 
 from debian.deb822 import Deb822, Changes, Dsc

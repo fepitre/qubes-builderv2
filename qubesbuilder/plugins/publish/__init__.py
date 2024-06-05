@@ -24,10 +24,7 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
-
-log = get_logger("publish")
 
 # Define the minimum age for which packages can be published to 'current'
 COMPONENT_REPOSITORIES = ["current", "current-testing", "security-testing", "unstable"]
@@ -47,6 +44,8 @@ class PublishPlugin(DistributionComponentPlugin):
     Entry points:
         - build
     """
+
+    name = "publish"
 
     def __init__(
         self,
@@ -93,7 +92,9 @@ class PublishPlugin(DistributionComponentPlugin):
                 break
 
         if not publish_date:
-            log.error("Something wrong detected in repositories. Missing timestamp?")
+            self.log.error(
+                "Something wrong detected in repositories. Missing timestamp?"
+            )
             return False
 
         # Check that packages have been published before threshold_date
@@ -122,5 +123,5 @@ class PublishPlugin(DistributionComponentPlugin):
 
         # Check if we have Debian related content defined
         if not self.get_parameters(stage).get("build", []):
-            log.info(f"{self.component}:{self.dist}: Nothing to be done.")
+            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
             return

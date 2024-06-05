@@ -24,11 +24,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import ArchlinuxDistributionPlugin
+from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
-
-log = get_logger("publish_archlinux")
 
 
 class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
@@ -42,8 +39,9 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         - build
     """
 
+    name = "publish_archlinux"
     stages = ["publish"]
-    dependencies = ["publish"]
+    dependencies = [PluginDependency("publish")]
 
     def __init__(
         self,
@@ -56,7 +54,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         super().__init__(component=component, dist=dist, config=config, manager=manager)
 
     def sign_metadata(self, executor, directory, sign_key, repository_db):
-        log.info(f"{self.component}:{self.dist}:{directory}: Signing metadata.")
+        self.log.info(f"{self.component}:{self.dist}:{directory}: Signing metadata.")
         repository_db_sig = repository_db.with_suffix(".gz.sig")
         cmd = [
             f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repository_db} > {repository_db_sig}",
@@ -83,10 +81,12 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
 
         if not build_info.get("packages", None):
-            log.info(f"{self.component}:{self.dist}:{directory}: Nothing to publish.")
+            self.log.info(
+                f"{self.component}:{self.dist}:{directory}: Nothing to publish."
+            )
             return
 
-        log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
+        self.log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
 
         packages_list = [
             build_artifacts_dir / "pkgs" / pkg for pkg in build_info["packages"]
@@ -94,7 +94,9 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
 
         # Verify signatures (sanity check, refuse to publish if packages weren't signed)
         try:
-            log.info(f"{self.component}:{self.dist}:{directory}: Verifying signatures.")
+            self.log.info(
+                f"{self.component}:{self.dist}:{directory}: Verifying signatures."
+            )
             cmd = []
             for pkg in packages_list:
                 cmd += [f"gpg2 -q --homedir {keyring_dir} --verify {pkg}.sig {pkg}"]
@@ -153,10 +155,14 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
 
         if not build_info.get("packages", None):
-            log.info(f"{self.component}:{self.dist}:{directory}: Nothing to unpublish.")
+            self.log.info(
+                f"{self.component}:{self.dist}:{directory}: Nothing to unpublish."
+            )
             return
 
-        log.info(f"{self.component}:{self.dist}:{directory}: Unpublishing packages.")
+        self.log.info(
+            f"{self.component}:{self.dist}:{directory}: Unpublishing packages."
+        )
 
         packages_list = [
             build_artifacts_dir / "pkgs" / pkg for pkg in build_info["packages"]
@@ -222,12 +228,12 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
             self.dist.distribution, None
         ) or self.config.sign_key.get("archlinux", None)
         if not sign_key:
-            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
         # Sign artifacts
@@ -257,7 +263,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 )
                 for directory in parameters["build"]
             ):
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Already published to '{repository_publish}'."
                 )
                 return
@@ -300,7 +306,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 info = build_info
                 if publish_info:
                     if build_info["source-hash"] != publish_info["source-hash"]:
-                        log.info(
+                        self.log.info(
                             f"{self.component}:{self.dist}:{directory}: Current build hash does not match previous one."
                         )
                         for repository in publish_info.get("repository-publish", []):
@@ -340,7 +346,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 )
                 for directory in parameters["build"]
             ):
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}: Not published to '{repository_publish}'."
                 )
                 return
@@ -372,7 +378,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                         stage="publish", basename=directory_bn, info=publish_info
                     )
                 else:
-                    log.info(
+                    self.log.info(
                         f"{self.component}:{self.dist}:{directory}: Not published anywhere else, deleting publish info."
                     )
                     self.delete_dist_artifacts_info(

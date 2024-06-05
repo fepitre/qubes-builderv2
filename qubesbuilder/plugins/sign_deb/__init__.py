@@ -26,13 +26,10 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
-from qubesbuilder.plugins import DEBDistributionPlugin
+from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_deb import provision_local_repository
 from qubesbuilder.plugins.sign import SignPlugin, SignError
-
-log = get_logger("sign_deb")
 
 
 class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
@@ -46,8 +43,9 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
         - build
     """
 
+    name = "sign_deb"
     stages = ["sign"]
-    dependencies = ["sign", "build_deb"]
+    dependencies = [PluginDependency("sign"), PluginDependency("build_deb")]
 
     def __init__(
         self,
@@ -77,12 +75,12 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
             self.dist.distribution, None
         ) or self.config.sign_key.get("deb", None)
         if not sign_key:
-            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
         # Build artifacts (source included)
@@ -122,10 +120,12 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
             )
 
             if not build_info.get("changes", None):
-                log.info(f"{self.component}:{self.dist}:{directory}: Nothing to sign.")
+                self.log.info(
+                    f"{self.component}:{self.dist}:{directory}: Nothing to sign."
+                )
                 continue
             try:
-                log.info(
+                self.log.info(
                     f"{self.component}:{self.dist}:{directory}: Signing from '{build_info['changes']}' info."
                 )
                 cmd = [
@@ -142,6 +142,7 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
                 # We use build_info that contains source_info and build_artifacts_dir
                 # which contains sources files.
                 provision_local_repository(
+                    log=self.log,
                     debian_directory=directory,
                     component=self.component,
                     dist=self.dist,

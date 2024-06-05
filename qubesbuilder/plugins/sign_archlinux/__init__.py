@@ -25,12 +25,9 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.plugins import ArchlinuxDistributionPlugin
+from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.sign import SignPlugin, SignError
-
-log = get_logger("sign_archlinux")
 
 
 class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
@@ -44,8 +41,9 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
         - build
     """
 
+    name = "sign_archlinux"
     stages = ["sign"]
-    dependencies = ["sign"]
+    dependencies = [PluginDependency("sign")]
 
     def __init__(
         self,
@@ -75,12 +73,12 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
             self.dist.distribution, None
         ) or self.config.sign_key.get("archlinux", None)
         if not sign_key:
-            log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(f"{self.component}: Please specify GPG client to use!")
             return
 
         # Build artifacts (source included)
@@ -120,7 +118,9 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
             )
 
             if not build_info.get("packages", None):
-                log.info(f"{self.component}:{self.dist}:{directory}: Nothing to sign.")
+                self.log.info(
+                    f"{self.component}:{self.dist}:{directory}: Nothing to sign."
+                )
                 continue
 
             packages_list = [
@@ -129,7 +129,7 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
 
             try:
                 for pkg in packages_list:
-                    log.info(
+                    self.log.info(
                         f"{self.component}:{self.dist}:{directory}: Signing '{pkg.name}'."
                     )
                     cmd = [

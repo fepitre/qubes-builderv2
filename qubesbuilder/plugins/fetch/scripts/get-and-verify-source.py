@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Any
+from typing import List
 
 
 def verify_git_obj(gpg_client, keyring_dir, repository_dir, obj_type, obj_path):

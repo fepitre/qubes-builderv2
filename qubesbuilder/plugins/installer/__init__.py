@@ -18,28 +18,25 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import itertools
 import shutil
-from pathlib import Path
-
-import dateutil.parser
 from datetime import datetime
-from dateutil.parser import parse as parsedate
 from typing import Dict, List
 
+import dateutil.parser
 import yaml
+from dateutil.parser import parse as parsedate
 
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     PluginError,
     DistributionPlugin,
+    PluginDependency,
+    ComponentDependency,
 )
 from qubesbuilder.template import QubesTemplate
-
-log = get_logger("installer")
 
 
 class InstallerError(PluginError):
@@ -51,8 +48,12 @@ class InstallerPlugin(DistributionPlugin):
     InstallerPlugin creates Qubes OS ISO
     """
 
+    name = "installer"
     stages = ["init-cache", "prep", "build", "sign", "upload"]
-    dependencies = ["chroot_rpm"]
+    dependencies = [
+        PluginDependency("chroot_rpm"),
+        ComponentDependency("qubes-release"),
+    ]
 
     def __init__(
         self,
@@ -222,7 +223,9 @@ class InstallerPlugin(DistributionPlugin):
                 "build", template.name, self.get_templates_dir()
             )
             if not template_info:
-                log.warning(f"{self.dist}: Template {template.name} not built locally")
+                self.log.warning(
+                    f"{self.dist}: Template {template.name} not built locally"
+                )
                 continue
             assert len(template_info["rpms"]) == 1
             rpm = template_info["rpms"][0]
@@ -233,6 +236,8 @@ class InstallerPlugin(DistributionPlugin):
     def run(self, stage: str, iso_timestamp: str = None):
         if stage not in self.stages:
             return
+
+        super().run(stage=stage)
 
         self.update_parameters(stage=stage, iso_timestamp=iso_timestamp)
 
@@ -272,15 +277,9 @@ class InstallerPlugin(DistributionPlugin):
             if (chroot_dir / mock_chroot_name).exists():
                 shutil.rmtree(chroot_dir / mock_chroot_name)
 
-            copy_in = [
-                (
-                    self.manager.entities["installer"].directory,
-                    executor.get_plugins_dir(),
-                ),
-            ] + [
-                (self.manager.entities[plugin].directory, executor.get_plugins_dir())
-                for plugin in self.dependencies
-            ]
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            )
 
             # Copy-in builder local repository
             if repository_dir.exists():
@@ -308,7 +307,7 @@ class InstallerPlugin(DistributionPlugin):
                     f"{self.dist}: Mock isolation set to 'simple', build has full network "
                     f"access. Use 'qubes' executor for network-isolated build."
                 )
-                log.warning(msg)
+                self.log.warning(msg)
                 mock_cmd.append("--isolation=simple")
             else:
                 mock_cmd.append("--isolation=nspawn")
@@ -348,17 +347,11 @@ class InstallerPlugin(DistributionPlugin):
                 raise InstallerError(msg) from e
 
         if stage == "prep":
-            copy_in = [
-                (
-                    self.manager.entities["installer"].directory,
-                    executor.get_plugins_dir(),
-                ),
-                (self.get_sources_dir() / "qubes-release", executor.get_sources_dir()),
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (self.kickstart_path, executor.get_builder_dir()),
                 (self.comps_path, executor.get_builder_dir()),
-            ] + [
-                (self.manager.entities[plugin].directory, executor.get_plugins_dir())
-                for plugin in self.dependencies
             ]
 
             # Copy-in builder local repository
@@ -419,7 +412,7 @@ class InstallerPlugin(DistributionPlugin):
                     f"{self.dist}: Mock isolation set to 'simple', build has full network "
                     f"access. Use 'qubes' executor for network-isolated build."
                 )
-                log.warning(msg)
+                self.log.warning(msg)
                 mock_cmd.append("--isolation=simple")
             else:
                 mock_cmd.append("--isolation=nspawn")
@@ -478,11 +471,9 @@ class InstallerPlugin(DistributionPlugin):
                     )
 
         if stage == "build":
-            copy_in = [
-                (
-                    self.manager.entities["installer"].directory,
-                    executor.get_plugins_dir(),
-                ),
+            copy_in = self.default_copy_in(
+                executor.get_plugins_dir(), executor.get_sources_dir()
+            ) + [
                 (
                     cache_dir / self.iso_name / "work",
                     executor.get_plugins_dir() / "installer",
@@ -491,12 +482,8 @@ class InstallerPlugin(DistributionPlugin):
                     cache_dir / self.iso_name / "rpm",
                     executor.get_plugins_dir() / "installer/yum/installer",
                 ),
-                (self.get_sources_dir() / "qubes-release", executor.get_sources_dir()),
                 (self.kickstart_path, executor.get_builder_dir()),
                 (self.comps_path, executor.get_builder_dir()),
-            ] + [
-                (self.manager.entities[plugin].directory, executor.get_plugins_dir())
-                for plugin in self.dependencies
             ]
 
             # Copy-in builder local repository
@@ -545,7 +532,7 @@ class InstallerPlugin(DistributionPlugin):
                     f"{self.dist}: Mock isolation set to 'simple', build has full network "
                     f"access. Use 'qubes' executor for network-isolated build."
                 )
-                log.warning(msg)
+                self.log.warning(msg)
                 mock_cmd.append("--isolation=simple")
             else:
                 mock_cmd.append("--isolation=nspawn")
@@ -598,16 +585,16 @@ class InstallerPlugin(DistributionPlugin):
             # Check if we have a signing key provided
             sign_key = self.config.sign_key.get("iso", None)
             if not sign_key:
-                log.info(f"{self.dist}: No signing key found.")
+                self.log.info(f"{self.dist}: No signing key found.")
                 return
 
             # Check if we have a gpg client provided
             if not self.config.gpg_client:
-                log.info(f"Please specify GPG client to use!")
+                self.log.info(f"Please specify GPG client to use!")
                 return
 
             try:
-                log.info(f"{self.iso_name}: Signing '{iso.name}'.")
+                self.log.info(f"{self.iso_name}: Signing '{iso.name}'.")
                 cmd = [
                     f"{self.manager.entities['installer'].directory}/scripts/release-iso {iso} {self.config.gpg_client} {sign_key}"
                 ]
@@ -619,7 +606,7 @@ class InstallerPlugin(DistributionPlugin):
         if stage == "upload":
             remote_path = self.config.repository_upload_remote_host.get("iso", None)
             if not remote_path:
-                log.info(f"{self.dist}: No remote location defined. Skipping.")
+                self.log.info(f"{self.dist}: No remote location defined. Skipping.")
                 return
 
             try:

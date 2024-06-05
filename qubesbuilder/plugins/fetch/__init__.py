@@ -33,11 +33,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.exc import NoQubesBuilderFileError
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.log import get_logger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ComponentPlugin, PluginError
-
-log = get_logger("fetch")
 
 
 class FetchError(PluginError):
@@ -59,6 +56,7 @@ class FetchPlugin(ComponentPlugin):
         - source
     """
 
+    name = "fetch"
     stages = ["fetch"]
 
     def __init__(
@@ -108,15 +106,15 @@ class FetchPlugin(ComponentPlugin):
 
         # Source component directory inside executors
         source_dir = executor.get_builder_dir() / self.component.name
-        copy_in = [
-            (self.manager.entities["fetch"].directory, executor.get_plugins_dir())
-        ]
+        copy_in = self.default_copy_in(
+            executor.get_plugins_dir(), executor.get_sources_dir()
+        )
         for key_dir_str in self.config.get("key-dirs", []):
             key_dir = Path(key_dir_str)
             if not key_dir.is_absolute():
                 key_dir = self.config.get_conf_path().parent.joinpath(key_dir)
             if not key_dir.is_dir():
-                log.warn(f"Key directory '{key_dir!s}' is not a directory")
+                self.log.warn(f"Key directory '{key_dir!s}' is not a directory")
                 continue
             for key_file in key_dir.iterdir():
                 if key_file.suffix != ".asc":
@@ -162,7 +160,7 @@ class FetchPlugin(ComponentPlugin):
             elif self.config.skip_git_fetch:
                 do_fetch = False
             else:
-                log.info(f"{self.component}: source already fetched. Updating.")
+                self.log.info(f"{self.component}: source already fetched. Updating.")
                 if self.config.get("git-run-inplace", False):
                     cmd += [f"ln -s {local_source_dir} {source_dir}"]
                     copy_out = []
@@ -209,7 +207,7 @@ class FetchPlugin(ComponentPlugin):
                 if self.config.force_fetch:
                     os.remove(distfiles_dir / final_fn)
                 else:
-                    log.info(
+                    self.log.info(
                         f"{self.component}: file {final_fn} already downloaded. Skipping."
                     )
                     continue
@@ -366,7 +364,7 @@ class FetchPlugin(ComponentPlugin):
             )
             + " >> vtags",
         ]
-        log.error(cmd)
+        self.log.error(cmd)
         try:
             executor.run(cmd, copy_in, copy_out, environment=self.environment)
         except ExecutorError as e:
