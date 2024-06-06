@@ -323,9 +323,6 @@ cache-vm-fc39:
 cache-vm-fc40:
   extends: .init_cache_job
 
-cache-vm-centos-stream8:
-  extends: .init_cache_job
-
 cache-vm-bookworm:
   extends: .init_cache_job
   script:
