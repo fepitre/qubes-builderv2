@@ -428,7 +428,7 @@ local-vm-bookworm:
 # Templates
 #
 
-qubes-template-fedora-38-xfce:
+qubes-template-fedora-40-xfce:
   extends: .template_qubes_job
 
 qubes-template-debian-12:
