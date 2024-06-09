@@ -25,7 +25,12 @@ from pathlib import Path
 
 from dateutil.parser import parse as parsedate
 
-from qubesbuilder.config import Config, QUBES_RELEASE_RE, QUBES_RELEASE_DEFAULT
+from qubesbuilder.config import (
+    Config,
+    QUBES_RELEASE_RE,
+    QUBES_RELEASE_DEFAULT,
+    ConfigError,
+)
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
@@ -87,11 +92,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
     def get_template_version(self):
         if not self.template_version:
-            parsed_release = QUBES_RELEASE_RE.match(
-                self.config.qubes_release
-            ) or QUBES_RELEASE_RE.match(QUBES_RELEASE_DEFAULT)
-            if not parsed_release:
-                raise TemplateError(f"Cannot parse template version.")
+            try:
+                parsed_release = self.config.parse_qubes_release()
+            except ConfigError as e:
+                raise TemplateError(f"Cannot parse template version: {str(e)}") from e
             # For now, we assume 4.X.0
             self.template_version = f"{parsed_release.group(1)}.0"
         return self.template_version

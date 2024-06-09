@@ -18,17 +18,21 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import itertools
 import shutil
+import tempfile
+import shlex
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List
 
 import dateutil.parser
 import yaml
 from dateutil.parser import parse as parsedate
 
-from qubesbuilder.config import Config
+from qubesbuilder.config import Config, ConfigError
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
+from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import (
     PluginError,
@@ -53,6 +57,7 @@ class InstallerPlugin(DistributionPlugin):
     dependencies = [
         PluginDependency("chroot_rpm"),
         ComponentDependency("qubes-release"),
+        ComponentDependency("repo-templates"),
     ]
 
     def __init__(
@@ -260,6 +265,9 @@ class InstallerPlugin(DistributionPlugin):
         iso_dir.mkdir(parents=True, exist_ok=True)
         iso = iso_dir / f"{self.iso_name}.iso"
 
+        chroot_dir = cache_dir / "chroot/mock"
+        templates_cache_dir = cache_dir / "templates"
+
         if iso.exists() and stage in ("prep", "build"):
             msg = f"{self.dist}:{self.iso_name}: ISO already exists."
             raise InstallerError(msg)
@@ -269,7 +277,6 @@ class InstallerPlugin(DistributionPlugin):
             raise InstallerError(msg)
 
         if stage == "init-cache":
-            chroot_dir = cache_dir / "chroot/mock"
             chroot_dir.mkdir(exist_ok=True, parents=True)
 
             # FIXME: Parse from mock cfg?
@@ -292,9 +299,6 @@ class InstallerPlugin(DistributionPlugin):
                     chroot_dir,
                 )
             ]
-
-            # Prepare cmd
-            cmd = []
 
             mock_cmd = [
                 f"sudo --preserve-env=DIST,USE_QUBES_REPO_VERSION",
@@ -323,13 +327,13 @@ class InstallerPlugin(DistributionPlugin):
             ]
 
             # Create builder-local repository (could be empty) inside the cage
-            cmd += [
+            cmd_for_build_repo = [
                 f"mkdir -p {executor.get_repository_dir()}",
                 f"cd {executor.get_repository_dir()}",
                 "createrepo_c .",
             ]
 
-            cmd += [" ".join(mock_cmd)]
+            cmd = cmd_for_build_repo + [" ".join(mock_cmd)]
             cmd += [
                 f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/"
             ]
@@ -345,6 +349,91 @@ class InstallerPlugin(DistributionPlugin):
             except ExecutorError as e:
                 msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
                 raise InstallerError(msg) from e
+
+            # Create a second cage for downloading the templates
+            cache = self.config.get("cache", {})
+            templates_itl = cache.get("templates-itl", [])
+            if templates_itl:
+                self.environment["USE_QUBES_REPO_TEMPLATES_ITL"] = "1"
+            templates_community = cache.get("templates-community", [])
+            if templates_community:
+                self.environment["USE_QUBES_REPO_TEMPLATES_COMMUNITY"] = "1"
+
+            try:
+                parsed_release = self.config.parse_qubes_release()
+            except ConfigError as e:
+                raise InstallerError(
+                    f"Cannot determine template version: {str(e)}"
+                ) from e
+
+            templates = [
+                f"qubes-template-{t}-{parsed_release.group(1)}.0"
+                for t in templates_itl + templates_community
+            ]
+
+            if templates:
+                templates_cache_dir.mkdir(exist_ok=True, parents=True)
+                self.environment["TEMPLATE_PACKAGES"] = " ".join(templates)
+
+                # Temporary dir for downloaded templates that we
+                # will merge into templates_cache_dir.
+                temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
+
+                copy_in = self.default_copy_in(
+                    executor.get_plugins_dir(), executor.get_sources_dir()
+                ) + [
+                    (chroot_dir / mock_chroot_name, executor.get_cache_dir() / f"mock"),
+                    (self.kickstart_path, executor.get_builder_dir()),
+                    (self.comps_path, executor.get_builder_dir()),
+                    (templates_cache_dir, executor.get_repository_dir()),
+                ]
+                copy_out = [
+                    (
+                        executor.get_repository_dir() / templates_cache_dir.name,
+                        temp_dir,
+                    )
+                ]
+                cmd = [
+                    f"sudo --preserve-env={','.join(self.environment.keys())} "
+                    f"make -C {executor.get_plugins_dir()}/installer "
+                    f"iso-templates-cache",
+                ]
+                try:
+                    executor.run(
+                        cmd,
+                        copy_in,
+                        copy_out,
+                        environment=self.environment,
+                        files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                    )
+                except ExecutorError as e:
+                    msg = f"{self.dist}: Failed to download templates: {str(e)}."
+                    raise InstallerError(msg) from e
+
+                # Merge downloaded templates into the temporary
+                # directory into templates cache dir
+                local_executor = LocalExecutor()
+                try:
+                    copy_in = self.default_copy_in(
+                        local_executor.get_plugins_dir(),
+                        local_executor.get_sources_dir(),
+                    )
+                    merge_cmd = [
+                        str(
+                            local_executor.get_plugins_dir()
+                            / "installer/scripts/update-templates-cache"
+                        ),
+                        str(temp_dir / "templates"),
+                        str(templates_cache_dir),
+                    ]
+                    cmd = [" ".join(map(shlex.quote, merge_cmd))]
+                    local_executor.run(
+                        cmd, copy_in=copy_in, environment=self.environment
+                    )
+                except ExecutorError as e:
+                    raise InstallerError(f"Failed to update templates cache: {str(e)}.")
+                finally:
+                    shutil.rmtree(temp_dir)
 
         if stage == "prep":
             copy_in = self.default_copy_in(
@@ -376,10 +465,11 @@ class InstallerPlugin(DistributionPlugin):
                 copy_in += [(chroot_cache.parent, executor.get_cache_dir())]
                 cmd += [f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"]
 
-            # Keep packages needed for generating the ISO in a fresh cache
-            if iso_cache.exists():
-                shutil.rmtree(iso_cache)
-            iso_cache.mkdir(parents=True)
+            # Add downloaded templates into builder-local repository
+            if templates_cache_dir.exists():
+                copy_in += [
+                    (templates_cache_dir, executor.get_repository_dir())
+                ]
 
             copy_out = [
                 (

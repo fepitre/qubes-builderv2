@@ -28,6 +28,7 @@ INSTALLER_KICKSTART ?= $(SOURCES_DIR)/qubes-release/conf/qubes-kickstart.cfg
 CREATEREPO := $(shell which createrepo_c createrepo 2>/dev/null |head -1)
 ISO_VERSION ?= $(shell date +%Y%m%d)
 COMPS_FILE ?= $(SOURCES_DIR)/qubes-release/comps/comps-dom0.xml
+QUBES_VERSION ?= $(shell cat $(SOURCES_DIR)/qubes-release/version)
 
 ifneq (,$(ISO_FLAVOR))
 ISO_NAME := Qubes-$(ISO_VERSION)-$(ISO_FLAVOR)-x86_64
@@ -44,6 +45,7 @@ DNF_ROOT := $(BUILDER_DIR)/dnfroot
 DNF_REPO := $(DNF_ROOT)/etc/yum.repos.d/installer.repo
 DNF_PACKAGES := $(DNF_ROOT)/tmp/packages.list
 DNF_OPTS := -y --releasever=$(DIST_VER) --installroot=$(DNF_ROOT) --config=$(DNF_ROOT)/etc/dnf/dnf.conf
+DNF_OPTS_TEMPLATES := $(DNF_OPTS) --repofrompath builder-local,$(BUILDER_DIR)/repository
 
 LORAX := /usr/sbin/lorax
 LORAX_PACKAGES := $(DNF_ROOT)/tmp/lorax_packages.list
@@ -53,11 +55,25 @@ LORAX_OPTS += --workdir $(INSTALLER_DIR)/work/work/x86_64 --logfile $(INSTALLER_
 LORAX_OPTS += --repo $(DNF_REPO) --skip-branding --disablerepo=fedora --disablerepo=fedora-updates --disablerepo=updates --disablerepo='qubes-*'
 
 ifeq ($(ISO_USE_KERNEL_LATEST),1)
-LORAX_OPTS += --installpkgs kernel-latest --excludepkgs kernel
+    LORAX_OPTS += --installpkgs kernel-latest --excludepkgs kernel
 endif
 
 ifeq ($(ISO_IS_FINAL),1)
-	LORAX_OPTS += --isfinal
+    LORAX_OPTS += --isfinal
+endif
+
+ifeq ($(USE_QUBES_REPO_TEMPLATES_ITL),1)
+    DNF_OPTS_TEMPLATES += --enablerepo=qubes-templates-itl
+    ifeq ($(USE_QUBES_REPO_TESTING),1)
+        DNF_OPTS_TEMPLATES += --enablerepo=qubes-templates-itl-testing
+    endif
+endif
+
+ifeq ($(USE_QUBES_REPO_TEMPLATES_COMMUNITY),1)
+    DNF_OPTS_TEMPLATES += --enablerepo=qubes-templates-community
+    ifeq ($(USE_QUBES_REPO_TESTING),1)
+        DNF_OPTS_TEMPLATES += --enablerepo=qubes-templates-community-testing
+    endif
 endif
 
 #
@@ -126,6 +142,19 @@ iso-packages-lorax:
 	umask 022; $(DNF) $(DNF_OPTS) --downloaddir=$(INSTALLER_DIR)/yum/installer/rpm --downloadonly install $(shell cat $(LORAX_PACKAGES))
 	pushd $(INSTALLER_DIR)/yum/installer && $(CREATEREPO) -q -g $(TMP_DIR)/comps.xml --update .
 
+iso-templates-cache: iso-prepare
+	$(DNF) $(DNF_OPTS) clean all
+	mkdir -p $(DNF_ROOT)/etc/yum.repos.d/ $(DNF_ROOT)/etc/qubes/repo-templates/keys/
+	cp -r $(SOURCES_DIR)/repo-templates/repos/RPM-GPG-KEY-* $(DNF_ROOT)/etc/qubes/repo-templates/keys/
+	cp $(SOURCES_DIR)/repo-templates/repos/qubes-templates.repo $(DNF_ROOT)/etc/yum.repos.d/
+
+	# Adapt repo file for new dnfroot
+	sed -i -e 's/$$releasever/$(QUBES_VERSION)/g' $(DNF_ROOT)/etc/yum.repos.d/qubes-templates.repo
+	sed -i 's|gpgkey *= *file://\(.*\)|gpgkey=file://$(DNF_ROOT)\1|g' $(DNF_ROOT)/etc/yum.repos.d/qubes-templates.repo
+
+	rpmkeys --root=$(DNF_ROOT) --import $$(sed -n '/gpgkey *= *file:/{s,.*file://,,;p}' $(DNF_ROOT)/etc/yum.repos.d/*.repo)
+	umask 022; $(DNF) $(DNF_OPTS_TEMPLATES) --downloaddir=$(INSTALLER_DIR)/yum/installer/rpm --downloaddir=$(BUILDER_DIR)/repository/templates download $(TEMPLATE_PACKAGES)
+
 #
 # CAGE -> MOCK
 #
@@ -153,5 +182,3 @@ iso-installer-mkisofs:
 		.=$(BASE_DIR)/os \
 		boot/grub2/i386-pc=/usr/lib/grub/i386-pc
 	/usr/bin/implantisomd5 $(BASE_DIR)/iso/$(ISO_NAME).iso
-
-
