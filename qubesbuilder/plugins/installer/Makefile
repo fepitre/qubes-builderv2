@@ -45,7 +45,7 @@ DNF_ROOT := $(BUILDER_DIR)/dnfroot
 DNF_REPO := $(DNF_ROOT)/etc/yum.repos.d/installer.repo
 DNF_PACKAGES := $(DNF_ROOT)/tmp/packages.list
 DNF_OPTS := -y --releasever=$(DIST_VER) --installroot=$(DNF_ROOT) --config=$(DNF_ROOT)/etc/dnf/dnf.conf
-DNF_OPTS_TEMPLATES := $(DNF_OPTS) --repofrompath builder-local,$(BUILDER_DIR)/repository
+DNF_OPTS_TEMPLATES := $(DNF_OPTS) --disablerepo=* --repofrompath builder-local,$(BUILDER_DIR)/repository
 
 LORAX := /usr/sbin/lorax
 LORAX_PACKAGES := $(DNF_ROOT)/tmp/lorax_packages.list
@@ -63,22 +63,23 @@ ifeq ($(ISO_IS_FINAL),1)
 endif
 
 ifeq ($(USE_QUBES_REPO_TEMPLATES_ITL),1)
-    DNF_OPTS_TEMPLATES += --enablerepo=qubes-templates-itl
+    DNF_OPTS_TEMPLATES += --enablerepo=qubes*templates-itl
     ifeq ($(USE_QUBES_REPO_TESTING),1)
-        DNF_OPTS_TEMPLATES += --enablerepo=qubes-templates-itl-testing
+        DNF_OPTS_TEMPLATES += --enablerepo=qubes*templates-itl-testing
     endif
 endif
 
 ifeq ($(USE_QUBES_REPO_TEMPLATES_COMMUNITY),1)
-    DNF_OPTS_TEMPLATES += --enablerepo=qubes-templates-community
+    DNF_OPTS_TEMPLATES += --enablerepo=qubes*templates-community
     ifeq ($(USE_QUBES_REPO_TESTING),1)
-        DNF_OPTS_TEMPLATES += --enablerepo=qubes-templates-community-testing
+        DNF_OPTS_TEMPLATES += --enablerepo=qubes*templates-community-testing
     endif
 endif
 
 #
-# CAGE -> MOCK
+# CAGE -> MOCK | CAGE
 #
+
 iso-prepare:
 	#
 	# Prepare repositories
@@ -119,9 +120,17 @@ iso-prepare:
 	mkdir -p $(DNF_ROOT)/etc/pki/rpm-gpg
 	cp $(SOURCES_DIR)/qubes-release/RPM-GPG-KEY-fedora-$(DIST_VER)-primary $(DNF_ROOT)/etc/pki/rpm-gpg
 
+#
+# CAGE | CAGE -> MOCK
+#
+
 iso-parse-kickstart:
 	mkdir -p $(DNF_ROOT)/etc/yum.repos.d $(DNF_ROOT)/tmp
-	$(INSTALLER_DIR)/scripts/ksparser --ks $(INSTALLER_KICKSTART) --extract-repo-conf-to $(DNF_REPO) --extract-packages-to $(DNF_PACKAGES)
+	$(INSTALLER_DIR)/scripts/ksparser --extract-repo-conf-to $(DNF_REPO) --extract-packages-to $(DNF_PACKAGES) $(INSTALLER_KICKSTART)
+
+#
+# CAGE -> MOCK
+#
 
 iso-parse-tmpl:
 	$(INSTALLER_DIR)/scripts/tmplparser --repo $(DNF_REPO) --extract-packages-to $(LORAX_PACKAGES)
@@ -142,22 +151,23 @@ iso-packages-lorax:
 	umask 022; $(DNF) $(DNF_OPTS) --downloaddir=$(INSTALLER_DIR)/yum/installer/rpm --downloadonly install $(shell cat $(LORAX_PACKAGES))
 	pushd $(INSTALLER_DIR)/yum/installer && $(CREATEREPO) -q -g $(TMP_DIR)/comps.xml --update .
 
-iso-templates-cache: iso-prepare
-	$(DNF) $(DNF_OPTS) clean all
-	mkdir -p $(DNF_ROOT)/etc/yum.repos.d/ $(DNF_ROOT)/etc/qubes/repo-templates/keys/
-	cp -r $(SOURCES_DIR)/repo-templates/repos/RPM-GPG-KEY-* $(DNF_ROOT)/etc/qubes/repo-templates/keys/
-	cp $(SOURCES_DIR)/repo-templates/repos/qubes-templates.repo $(DNF_ROOT)/etc/yum.repos.d/
+iso-templates-cache: iso-prepare iso-parse-kickstart
+	#mkdir -p $(DNF_ROOT)/etc/yum.repos.d/ $(DNF_ROOT)/etc/qubes/repo-templates/keys/
+	#cp -r $(SOURCES_DIR)/repo-templates/repos/RPM-GPG-KEY-* $(DNF_ROOT)/etc/qubes/repo-templates/keys/
+	#cp $(SOURCES_DIR)/repo-templates/repos/qubes-templates.repo $(DNF_ROOT)/etc/yum.repos.d/
 
 	# Adapt repo file for new dnfroot
-	sed -i -e 's/$$releasever/$(QUBES_VERSION)/g' $(DNF_ROOT)/etc/yum.repos.d/qubes-templates.repo
-	sed -i 's|gpgkey *= *file://\(.*\)|gpgkey=file://$(DNF_ROOT)\1|g' $(DNF_ROOT)/etc/yum.repos.d/qubes-templates.repo
+	#sed -i -e 's/$$releasever/$(QUBES_VERSION)/g' $(DNF_ROOT)/etc/yum.repos.d/qubes-templates.repo
+	#sed -i 's|gpgkey *= *file://\(.*\)|gpgkey=file://$(DNF_ROOT)\1|g' $(DNF_ROOT)/etc/yum.repos.d/qubes-templates.repo
 
+	$(DNF) $(DNF_OPTS) clean all
 	rpmkeys --root=$(DNF_ROOT) --import $$(sed -n '/gpgkey *= *file:/{s,.*file://,,;p}' $(DNF_ROOT)/etc/yum.repos.d/*.repo)
 	umask 022; $(DNF) $(DNF_OPTS_TEMPLATES) --downloaddir=$(INSTALLER_DIR)/yum/installer/rpm --downloaddir=$(BUILDER_DIR)/repository/templates download $(TEMPLATE_PACKAGES)
 
 #
 # CAGE -> MOCK
 #
+
 iso-installer-lorax:
 	$(LORAX) $(LORAX_OPTS) $(BASE_DIR)/os
 

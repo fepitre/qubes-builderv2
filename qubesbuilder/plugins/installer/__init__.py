@@ -57,7 +57,6 @@ class InstallerPlugin(DistributionPlugin):
     dependencies = [
         PluginDependency("chroot_rpm"),
         ComponentDependency("qubes-release"),
-        ComponentDependency("repo-templates"),
     ]
 
     def __init__(
@@ -259,7 +258,6 @@ class InstallerPlugin(DistributionPlugin):
             / "installer/chroot/mock"
             / mock_conf.replace(".cfg", "")
         )
-        iso_cache = cache_dir / self.iso_name
 
         iso_dir = self.get_iso_dir()
         iso_dir.mkdir(parents=True, exist_ok=True)
@@ -382,7 +380,6 @@ class InstallerPlugin(DistributionPlugin):
                 copy_in = self.default_copy_in(
                     executor.get_plugins_dir(), executor.get_sources_dir()
                 ) + [
-                    (chroot_dir / mock_chroot_name, executor.get_cache_dir() / f"mock"),
                     (self.kickstart_path, executor.get_builder_dir()),
                     (self.comps_path, executor.get_builder_dir()),
                     (templates_cache_dir, executor.get_repository_dir()),
@@ -394,9 +391,8 @@ class InstallerPlugin(DistributionPlugin):
                     )
                 ]
                 cmd = [
-                    f"sudo --preserve-env={','.join(self.environment.keys())} "
-                    f"make -C {executor.get_plugins_dir()}/installer "
-                    f"iso-templates-cache",
+                    f"mv {executor.get_builder_dir() / self.kickstart_path.name} {executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}",
+                    f"sudo --preserve-env={','.join(self.environment.keys())} make -C {executor.get_plugins_dir()}/installer iso-parse-kickstart iso-templates-cache",
                 ]
                 try:
                     executor.run(
@@ -467,9 +463,7 @@ class InstallerPlugin(DistributionPlugin):
 
             # Add downloaded templates into builder-local repository
             if templates_cache_dir.exists():
-                copy_in += [
-                    (templates_cache_dir, executor.get_repository_dir())
-                ]
+                copy_in += [(templates_cache_dir, executor.get_repository_dir())]
 
             copy_out = [
                 (
@@ -515,7 +509,7 @@ class InstallerPlugin(DistributionPlugin):
             if chroot_cache.exists():
                 mock_cmd.append("--plugin-option=root_cache:age_check=False")
 
-            # Create builder-local repository inside the cage
+            # Disable builder-local repository inside the cage if it does not exist
             if not repository_dir.exists():
                 mock_cmd.append("--disablerepo=builder-local")
 

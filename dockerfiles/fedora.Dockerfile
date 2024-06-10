@@ -3,10 +3,39 @@ MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
 
 # Install dependencies for Qubes Builder
 RUN dnf -y update && \
-    dnf install -y dnf-plugins-core createrepo_c debootstrap devscripts dpkg-dev git mock pbuilder \
-        which perl-Digest-MD5 perl-Digest-SHA python3-pyyaml e2fsprogs \
-        python3-sh rpm-build rpmdevtools wget python3-debian reprepro systemd-udev \
-        tree python3-jinja2-cli pacman m4 asciidoc rsync psmisc zstd archlinux-keyring debian-keyring arch-install-scripts \
+    dnf install -y \
+        arch-install-scripts \
+        archlinux-keyring \
+        asciidoc \
+        createrepo_c \
+        debian-keyring \
+        debootstrap \
+        devscripts \
+        dnf-plugins-core \
+        dpkg-dev \
+        e2fsprogs \
+        git \
+        m4 \
+        mock \
+        pacman \
+        pbuilder \
+        perl-Digest-MD5 \
+        perl-Digest-SHA \
+        psmisc \
+        python3-debian \
+        python3-jinja2-cli \
+        python3-pyyaml \
+        python3-sh \
+        pykickstart \
+        reprepro \
+        rpm-build \
+        rpmdevtools \
+        rsync  \
+        systemd-udev \
+        tree \
+        wget \
+        which \
+        zstd \
     && dnf clean all
 
 # Install devtools for Archlinux
