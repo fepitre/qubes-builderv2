@@ -93,6 +93,9 @@ templates:
   - fedora-40-xfce:
       dist: fc40
       flavor: xfce
+  - fedora-40-minimal:
+      dist: fc40
+      flavor: minimal
   - centos-stream-8:
       dist: centos-stream8
   - debian-12:
