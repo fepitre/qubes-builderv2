@@ -305,6 +305,11 @@ pytest-cli-template-debian:
   script:
     - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_debian
 
+pytest-cli-installer-cache:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_installer_init_cache
+
 #
 # Components
 #

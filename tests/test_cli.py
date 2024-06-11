@@ -2414,3 +2414,25 @@ def test_template_debian_12_minimal_publish(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
+
+
+def test_installer_init_cache(artifacts_dir):
+    env = os.environ.copy()
+    templates_cache = artifacts_dir / "cache/installer/templates"
+
+    qb_call(
+        DEFAULT_BUILDER_CONF, artifacts_dir, "-c", "qubes-release", "package", "fetch"
+    )
+
+    # make ISO cache
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "installer",
+        "init-cache",
+        env=env,
+    )
+
+    rpms = list(templates_cache.glob("*.rpm"))
+    assert rpms
+    assert rpms[0].name.startswith("qubes-template-debian-12-minimal-4.2.0")
