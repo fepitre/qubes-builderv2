@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# The Qubes OS Project, http://www.qubes-os.org
+#
+# Copyright (C) 2024 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+set -e -o pipefail -u
+
+if [ "$#" -ne 2 ]; then
+  echo "Usage: $0 <orig_dir> <dest_dir>"
+  exit 1
+fi
+
+orig_dir="$1"
+dest_dir="$2"
+
+if [ ! -d "$orig_dir" ]; then
+  echo "ERROR: Directory $orig_dir does not exist."
+  exit 1
+fi
+
+if [ ! -d "$dest_dir" ]; then
+  echo "ERROR: Directory $dest_dir does not exist."
+  exit 1
+fi
+
+read -r -a TEMPLATE_PACKAGES <<< "$TEMPLATE_PACKAGES"
+
+for template_name in "${TEMPLATE_PACKAGES[@]}"; do
+    for rpm_file in "$orig_dir"/"$template_name"-*.rpm; do
+        # Check if there are any files with the same base name in dest_dir
+        template_filename=$(basename "$rpm_file")
+        if [ ! -e "$dest_dir/$template_filename" ]; then
+            echo "INFO: Copying template $rpm_file into $dest_dir"
+            mv "$rpm_file" "$dest_dir/"
+        else
+            echo "INFO: Ignoring existing template $rpm_file into $dest_dir"
+        fi
+    done
+done
+
+find "$dest_dir" -name "$template_name-*.rpm" | \
+sort -r | \
+tail -n +2 | \
+xargs -I '{}' rm -f '{}'

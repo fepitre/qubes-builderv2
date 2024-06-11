@@ -283,3 +283,18 @@ mirrors:
   # in case where one of them fails.
   debian:
     - http://ftp.fr.debian.org/debian/
+
+cache:
+  vm-fc41:
+    packages:
+      - cargo
+      - rust-cc-devel
+      - rust-libc-devel
+      - cargo-rpm-macros
+      - rpm-devel
+  templates-itl:
+    - fedora-39-xfce
+    - debian-12-xfce
+  templates-community:
+    - whonix-gateway-17
+    - whonix-workstation-17

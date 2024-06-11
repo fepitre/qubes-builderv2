@@ -535,3 +535,11 @@ class Config:
         else:
             config_path = Path(config_path_str).resolve()
         return config_path
+
+    def parse_qubes_release(self):
+        parsed_release = QUBES_RELEASE_RE.match(
+            self.qubes_release
+        ) or QUBES_RELEASE_RE.match(QUBES_RELEASE_DEFAULT)
+        if not parsed_release:
+            raise ConfigError(f"Cannot parse Qubes OS release: '{self.qubes_release}'")
+        return parsed_release

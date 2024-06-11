@@ -41,6 +41,8 @@ cache:
   vm-bookworm:
     packages:
       - quilt
+  templates-itl:
+    - debian-12-minimal
 
 distributions:
   - host-fc37
@@ -65,6 +67,7 @@ components:
       packages: False
   - qubes-release:
       packages: False
+      branch: release4.2
   - template-whonix:
       packages: False
       url: https://github.com/Whonix/qubes-template-whonix
@@ -93,6 +96,9 @@ templates:
   - fedora-40-xfce:
       dist: fc40
       flavor: xfce
+  - fedora-40-minimal:
+      dist: fc40
+      flavor: minimal
   - centos-stream-8:
       dist: centos-stream8
   - debian-12:

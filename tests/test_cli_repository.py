@@ -155,9 +155,10 @@ def test_repository_create_template(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert (
-            "/pub/os/qubes/repo/yum/r4.2/templates-community-testing/repodata/repomd.xml"
-            in (metadata_dir / "repomd.xml.metalink").read_text(encoding="ascii")
+        assert "/pub/os/qubes/repo/yum/r4.2/templates-community-testing/repodata/repomd.xml" in (
+            metadata_dir / "repomd.xml.metalink"
+        ).read_text(
+            encoding="ascii"
         )
 
         qb_call(

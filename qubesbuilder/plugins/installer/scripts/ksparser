@@ -3,8 +3,9 @@
 import argparse
 
 from jinja2 import Environment
+from pykickstart.commands.repo import F27_RepoData, F33_Repo, F33
+from pykickstart.handlers.f33 import F33Handler
 from pykickstart.parser import *
-from pykickstart.version import makeVersion
 
 REPO_TEMPLATE = """
 [{{ks_repo.name}}]
@@ -28,42 +29,66 @@ enablegroups=0
 """
 
 
+class QubesOS_Repo(F33_Repo):
+
+    def _getParser(self):
+        op = F33_Repo._getParser(self)
+        op.add_argument(
+            "--gpgkey",
+            action="store",
+            version=F33,
+            help="This will be used to verify packages.",
+        )
+        return op
+
+
+class QubesOS_RepoData(F27_RepoData):
+    def __init__(self, *args, **kwargs):
+        F27_RepoData.__init__(self, *args, **kwargs)
+        self.gpgkey = kwargs.get("gpgkey", "")
+
+    def _getArgsAsStr(self):
+        retval = F27_RepoData._getArgsAsStr(self)
+        if self.gpgkey:
+            retval += ' --gpgkey="%s"' % self.gpgkey
+
+        return retval
+
+
+commandMap = F33Handler.commandMap
+commandMap["repo"] = QubesOS_Repo
+
+dataMap = F33Handler.dataMap
+dataMap["RepoData"] = QubesOS_RepoData
+
+
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--ks",
-        metavar='PATH',
-        required=True
-    )
-    parser.add_argument(
-        "--extract-repo-conf-to",
-        metavar='PATH',
-        required=False
-    )
-    parser.add_argument(
-        "--extract-packages-to",
-        metavar='PATH',
-        required=False
-    )
+    parser.add_argument("ks", metavar="PATH")
+    parser.add_argument("-r", "--extract-repo-conf-to", metavar="PATH", required=False)
+    parser.add_argument("-p", "--extract-packages-to", metavar="PATH", required=False)
     return parser.parse_args()
 
 
 def main():
     args = get_args()
     if args.ks:
-        handler = makeVersion()
+        handler = F33Handler(mapping=commandMap, dataMapping=dataMap)
         ksparser = KickstartParser(handler)
         ksparser.readKickstart(args.ks)
 
-        repo_content = ''
+        repo_content = ""
 
         if args.extract_repo_conf_to:
             for ks_repo in ksparser.handler.repo.repoList:
-                repo_content += Environment().from_string(REPO_TEMPLATE).render(
-                    ks_repo=ks_repo.__dict__)
+                repo_content += (
+                    Environment()
+                    .from_string(REPO_TEMPLATE)
+                    .render(ks_repo=ks_repo.__dict__)
+                )
 
             try:
-                with open(args.extract_repo_conf_to, 'w') as repo_fd:
+                with open(args.extract_repo_conf_to, "w") as repo_fd:
                     repo_fd.write(repo_content)
             except EnvironmentError:
                 print("Cannot write repo file to %s" % args.extract_repo_conf_to)
@@ -72,24 +97,24 @@ def main():
         if args.extract_packages_to:
             packages = []
             for group in ksparser.handler.packages.groupList:
-                packages.append('@%s' % group.name)
+                packages.append("@%s" % group.name)
 
             for pkg in ksparser.handler.packages.packageList:
-                packages.append('%s' % pkg)
+                packages.append("%s" % pkg)
 
             # for group in ksparser.handler.packages.excludedGroupList:
             #     packages.append('--exclude=@%s' % group.name)
 
             for pkg in ksparser.handler.packages.excludedList:
-                packages.append('--exclude=%s' % pkg)
+                packages.append("--exclude=%s" % pkg)
 
             try:
-                with open(args.extract_packages_to, 'w') as pkgs_fd:
-                    pkgs_fd.write(' '.join(packages))
+                with open(args.extract_packages_to, "w") as pkgs_fd:
+                    pkgs_fd.write(" ".join(packages))
             except EnvironmentError:
                 print("Cannot write packages list to %s" % args.extract_packages_to)
                 return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
