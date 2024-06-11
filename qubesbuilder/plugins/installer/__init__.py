@@ -226,16 +226,18 @@ class InstallerPlugin(DistributionPlugin):
             template_info = self.get_artifacts_info(
                 "build", template.name, self.get_templates_dir()
             )
-            if not template_info:
+            if not template_info or len(template_info.get("rpms", [])) != 1:
                 self.log.warning(
-                    f"{self.dist}: Template {template.name} not built locally"
+                    f"{self.dist}: Template {template.name} is not built locally."
                 )
                 continue
-            assert len(template_info["rpms"]) == 1
-            rpm = template_info["rpms"][0]
-            yield (
-                self.get_templates_dir() / "rpm" / rpm
-            ), executor.get_repository_dir()
+            rpm_path = self.get_templates_dir() / "rpm" / template_info["rpms"][0]
+            if not rpm_path.exists():
+                self.log.warning(
+                    f"{self.dist}:{template.name}: Cannot find {rpm_path}."
+                )
+                continue
+            yield rpm_path, executor.get_repository_dir()
 
     def run(self, stage: str, iso_timestamp: str = None):
         if stage not in self.stages:
