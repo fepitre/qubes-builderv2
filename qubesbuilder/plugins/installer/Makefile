@@ -45,7 +45,8 @@ DNF_ROOT := $(BUILDER_DIR)/dnfroot
 DNF_REPO := $(DNF_ROOT)/etc/yum.repos.d/installer.repo
 DNF_PACKAGES := $(DNF_ROOT)/tmp/packages.list
 DNF_OPTS := -y --releasever=$(DIST_VER) --installroot=$(DNF_ROOT) --config=$(DNF_ROOT)/etc/dnf/dnf.conf
-DNF_OPTS_TEMPLATES := $(DNF_OPTS) --disablerepo=* --repofrompath builder-local,$(BUILDER_DIR)/repository
+DNF_OPTS_TEMPLATES := $(DNF_OPTS) --disablerepo=fedora --disablerepo=fedora-updates --disablerepo=installer
+DNF_OPTS_TEMPLATES += --disablerepo=qubes-host --repofrompath builder-local,$(BUILDER_DIR)/repository
 
 LORAX := /usr/sbin/lorax
 LORAX_PACKAGES := $(DNF_ROOT)/tmp/lorax_packages.list
@@ -60,20 +61,6 @@ endif
 
 ifeq ($(ISO_IS_FINAL),1)
     LORAX_OPTS += --isfinal
-endif
-
-ifeq ($(USE_QUBES_REPO_TEMPLATES_ITL),1)
-    DNF_OPTS_TEMPLATES += --enablerepo=qubes*templates-itl
-    ifeq ($(USE_QUBES_REPO_TESTING),1)
-        DNF_OPTS_TEMPLATES += --enablerepo=qubes*templates-itl-testing
-    endif
-endif
-
-ifeq ($(USE_QUBES_REPO_TEMPLATES_COMMUNITY),1)
-    DNF_OPTS_TEMPLATES += --enablerepo=qubes*templates-community
-    ifeq ($(USE_QUBES_REPO_TESTING),1)
-        DNF_OPTS_TEMPLATES += --enablerepo=qubes*templates-community-testing
-    endif
 endif
 
 #

@@ -41,7 +41,7 @@ cache:
   vm-bookworm:
     packages:
       - quilt
-  templates-itl:
+  templates:
     - debian-12-minimal
 
 distributions:

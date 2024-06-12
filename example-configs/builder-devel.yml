@@ -6,6 +6,8 @@ git:
     - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
     - 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
 
+artifacts-dir: /home/user/qubes-builderv2/artifacts
+
 backend-vmm: xen
 
 debug: true
@@ -25,7 +27,7 @@ sign-key:
   deb: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
   iso: 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
 
-# Path relative to qubesbuilder/plugins/installer
+# Path relative to artifacts/sources/qubes-release
 iso:
   kickstart: conf/iso-online.ks
 
@@ -55,8 +57,6 @@ templates:
       options:
         - minimal
         - no-recommends
-
-artifacts-dir: /home/user/qubes-builderv2/artifacts
 
 components:
   - builder-rpm:
@@ -292,9 +292,8 @@ cache:
       - rust-libc-devel
       - cargo-rpm-macros
       - rpm-devel
-  templates-itl:
+  templates:
     - fedora-39-xfce
     - debian-12-xfce
-  templates-community:
     - whonix-gateway-17
     - whonix-workstation-17
