@@ -47,6 +47,22 @@ QUBES_RELEASE_RE = re.compile(r"r([1-9]\.[0-9]+).*")
 QUBES_RELEASE_DEFAULT = "r4.2"
 
 
+def extract_key_from_list(input_list: list):
+    result = []
+    for item in input_list:
+        if isinstance(item, dict):
+            if len(item.keys()) != 1:
+                raise ConfigError(
+                    f"More than one key defined dict in provided list: {input_list}."
+                )
+            result.append(next(iter(item.keys())))
+        elif isinstance(item, str):
+            result.append(item)
+        else:
+            raise ConfigError(f"Nested arrays are unsupported: {input_list}.")
+    return result
+
+
 def deep_merge(a: dict, b: dict, allow_append: bool = False) -> dict:
     result = deepcopy(a)
     for b_key, b_value in b.items():
@@ -54,7 +70,7 @@ def deep_merge(a: dict, b: dict, allow_append: bool = False) -> dict:
         if isinstance(a_value, dict) and isinstance(b_value, dict):
             result[b_key] = deep_merge(a_value, b_value, allow_append)
         else:
-            if allow_append and isinstance(result.get(b_key, None), list):
+            if isinstance(result.get(b_key, None), list) and allow_append:
                 result[b_key] += deepcopy(b_value)
             else:
                 result[b_key] = deepcopy(b_value)

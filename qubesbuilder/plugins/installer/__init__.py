@@ -276,6 +276,17 @@ class InstallerPlugin(DistributionPlugin):
             msg = f"{self.iso_name}: Cannot find ISO '{iso}'."
             raise InstallerError(msg)
 
+        # Determine template version based on Qubes OS release
+        try:
+            parsed_release = self.config.parse_qubes_release()
+        except ConfigError as e:
+            raise InstallerError(f"Cannot determine template version: {str(e)}") from e
+
+        templates = [
+            f"qubes-template-{t}-{parsed_release.group(1)}.0"
+            for t in self.config.get("cache", {}).get("templates", [])
+        ]
+
         if stage == "init-cache":
             chroot_dir.mkdir(exist_ok=True, parents=True)
 
@@ -351,26 +362,6 @@ class InstallerPlugin(DistributionPlugin):
                 raise InstallerError(msg) from e
 
             # Create a second cage for downloading the templates
-            cache = self.config.get("cache", {})
-            templates_itl = cache.get("templates-itl", [])
-            if templates_itl:
-                self.environment["USE_QUBES_REPO_TEMPLATES_ITL"] = "1"
-            templates_community = cache.get("templates-community", [])
-            if templates_community:
-                self.environment["USE_QUBES_REPO_TEMPLATES_COMMUNITY"] = "1"
-
-            try:
-                parsed_release = self.config.parse_qubes_release()
-            except ConfigError as e:
-                raise InstallerError(
-                    f"Cannot determine template version: {str(e)}"
-                ) from e
-
-            templates = [
-                f"qubes-template-{t}-{parsed_release.group(1)}.0"
-                for t in templates_itl + templates_community
-            ]
-
             if templates:
                 templates_cache_dir.mkdir(exist_ok=True, parents=True)
                 self.environment["TEMPLATE_PACKAGES"] = " ".join(templates)

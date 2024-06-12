@@ -211,6 +211,24 @@ Commands:
 Stages:
     fetch prep build post verify sign publish upload
 
+Option:
+    Input value for option is of the form:
+
+        1. key=value
+        2. parent-key:key=value
+        3. key+value
+
+    It allows to set configuration dict values or appending array values.
+    In the three forms, 'value' can be chained by one of the three forms to
+    set value at deeper level.
+
+    For example:
+        force-fetch=true
+        executor:type=qubes
+        executor:options:dispvm=builder-dvm
+        components+lvm2
+        components+kernel:branch=stable-5.15
+
 Remark:
     The Qubes OS components are separated into two groups: standard components
     and template components. Standard components will produce distribution
@@ -759,7 +777,7 @@ Options available in `builder.yml`:
 - `cache: Dict` --- List of distributions cache options.
   - `<distribution_name>: Dict` --- Distribution name provided as in `distributions`.
     - `packages: List[str]` --- List of packages to download and to put in cache. These packages won't be installed into the base chroot.
-  - `<template_repository>: List[str]` --- List of template names to download and put in cache. Template repository can be either `templates-itl` or `templates-community`.` 
+  - `templates: List[str]` --- List of template names to download and put in installer cache. They are available based on what is defined in selected kickstart.
 
 - `automatic-upload-on-publish: bool` --- Automatic upload on publish/unpublish.
 
