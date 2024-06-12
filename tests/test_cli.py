@@ -2428,6 +2428,8 @@ def test_installer_init_cache(artifacts_dir):
     qb_call(
         DEFAULT_BUILDER_CONF,
         artifacts_dir,
+        "-o",
+        "cache:templates+debian-12-minimal",
         "installer",
         "init-cache",
         env=env,

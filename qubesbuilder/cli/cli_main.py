@@ -60,21 +60,24 @@ def validate_identifier(identifier):
     raise ValueError(f"Invalid key identifier found: '{identifier}'.")
 
 
-def parse_dict_from_cli(s, value=None):
+def parse_dict_from_cli(s, value=None, append=False):
     index_dict = None
     index_array = None
 
     if value is None:
-        # first, consider everything after "=" as value
+        # First, consider everything after "=" as value
         if "=" in s:
             s, value = s.split("=", 1)
+        # If not, check if we append value
+        elif "+" in s:
+            s, value = s.split("+", 1)
+            append = True
 
     # Determine if split identifier "+" or ":" is present
     if ":" in s:
         index_dict = s.index(":")
-    # We may have '+components', '+plugins', etc.
-    if "+" in s[1:]:
-        index_array = s[1:].index("+") + 1
+    if "+" in s:
+        index_array = s.index("+")
 
     # If both are present, find the first one and split according to the first one
     if index_dict and index_array:
@@ -88,11 +91,7 @@ def parse_dict_from_cli(s, value=None):
 
     # If no split identifier is found, there is nothing more to parse
     if split_identifier:
-        if split_identifier == "+" and s.startswith("+"):
-            parsed_identifier, remaining_content = s[1:].split(split_identifier, 1)
-            parsed_identifier = "+" + parsed_identifier
-        else:
-            parsed_identifier, remaining_content = s.split(split_identifier, 1)
+        parsed_identifier, remaining_content = s.split(split_identifier, 1)
     else:
         remaining_content = None
         parsed_identifier = s
@@ -103,13 +102,17 @@ def parse_dict_from_cli(s, value=None):
 
         if split_identifier == ":":
             if value is None:
-                raise ValueError(f"Cannot find '=' in '{remaining_content}'")
+                raise ValueError(f"Cannot find '=' or '+' in '{remaining_content}'")
             result = {
-                parsed_identifier: parse_dict_from_cli(remaining_content, value=value)
+                parsed_identifier: parse_dict_from_cli(
+                    remaining_content, value=value, append=append
+                )
             }
         else:
             result = {
-                parsed_identifier: [parse_dict_from_cli(remaining_content, value=value)]
+                parsed_identifier: [
+                    parse_dict_from_cli(remaining_content, value=value, append=append)
+                ]
             }
     else:
         if value is None:
@@ -122,6 +125,10 @@ def parse_dict_from_cli(s, value=None):
 
             if value.lower() in ("true", "false", "1", "0"):
                 value = str_to_bool(value)
+
+            if append:
+                value = [value]
+
             result = {key: value}
     return result
 
@@ -129,7 +136,15 @@ def parse_dict_from_cli(s, value=None):
 def parse_config_from_cli(array):
     result: Dict[str, Any] = {}
     for s in array:
-        parsed_dict = parse_dict_from_cli(s)
+        # We may have '+components', '+plugins', etc. which are handled
+        # only on top level.
+        if s.startswith("+"):
+            parsed_dict = parse_dict_from_cli(s[1:])
+            key = next(iter(parsed_dict.keys()))
+            value = parsed_dict[key]
+            parsed_dict = {"+" + key: value}
+        else:
+            parsed_dict = parse_dict_from_cli(s)
         result = deep_merge(result, parsed_dict, allow_append=True)
     return result
 
@@ -283,6 +298,7 @@ Option:
         executor:options:dispvm=builder-dvm
         components+lvm2
         components+kernel:branch=stable-5.15
+        cache:templates+debian-12
 
 Remark:
     The Qubes OS components are separated into two groups: standard components

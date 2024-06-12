@@ -41,8 +41,6 @@ cache:
   vm-bookworm:
     packages:
       - quilt
-  templates:
-    - debian-12-minimal
 
 distributions:
   - host-fc37

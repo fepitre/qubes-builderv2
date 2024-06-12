@@ -154,6 +154,42 @@ def test_parse_config_entry_from_array_06():
     assert parsed_dict == expected_dict
 
 
+def test_parse_config_entry_from_array_07():
+    array = ["tata:titi+toto"]
+    parsed_dict = parse_config_from_cli(array)
+    expected_dict = {
+        "tata": {"titi": ["toto"]},
+    }
+    assert parsed_dict == expected_dict
+
+
+def test_parse_config_entry_from_array_08():
+    array = ["tata:titi+toto:some=thing"]
+    parsed_dict = parse_config_from_cli(array)
+    expected_dict = {
+        "tata": {"titi": [{"toto": {"some": "thing"}}]}
+    }
+    assert parsed_dict == expected_dict
+
+
+def test_parse_config_entry_from_array_09():
+    array = ["+tata:titi+toto:some=thing"]
+    parsed_dict = parse_config_from_cli(array)
+    expected_dict = {
+        "+tata": {"titi": [{"toto": {"some": "thing"}}]}
+    }
+    assert parsed_dict == expected_dict
+
+
+def test_parse_config_entry_from_array_10():
+    array = ["+tata:titi+toto"]
+    parsed_dict = parse_config_from_cli(array)
+    expected_dict = {
+        "+tata": {"titi": ["toto"]},
+    }
+    assert parsed_dict == expected_dict
+
+
 def test_deep_check_dict():
     data = {
         "key1": "value1",
