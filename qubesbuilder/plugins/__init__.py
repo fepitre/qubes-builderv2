@@ -112,9 +112,10 @@ class Plugin:
             ):
                 raise PluginError(f"Cannot find plugin '{dependency}'.")
             if dependency.builder_object == "component":
-                if not self.config.get_components(
+                component = self.config.get_components(
                     filtered_components=[dependency.name]
-                ):
+                )
+                if not component:
                     raise PluginError(
                         f"Cannot find component '{dependency}' in configuration file."
                     )
@@ -123,6 +124,9 @@ class Plugin:
                         f"Cannot find source component '{dependency.name}' in artifacts."
                         f"Is package fetch stage done for '{dependency.name}'"
                     )
+                self.log.info(
+                    f"dependency '{dependency.name}' (commit hash: {component[0].get_source_commit_hash()})"
+                )
 
     def run(self, stage: str):
         self.check_dependencies()
