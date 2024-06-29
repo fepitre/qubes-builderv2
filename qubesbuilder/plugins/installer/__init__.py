@@ -239,7 +239,9 @@ class InstallerPlugin(DistributionPlugin):
                 continue
             yield rpm_path, executor.get_repository_dir()
 
-    def run(self, stage: str, iso_timestamp: str = None):
+    def run(
+        self, stage: str, iso_timestamp: str = None, cache_templates_only: bool = False
+    ):
         if stage not in self.stages:
             return
 
@@ -290,76 +292,81 @@ class InstallerPlugin(DistributionPlugin):
         if stage == "init-cache":
             chroot_dir.mkdir(exist_ok=True, parents=True)
 
-            # FIXME: Parse from mock cfg?
-            mock_chroot_name = mock_conf.replace(".cfg", "")
-            if (chroot_dir / mock_chroot_name).exists():
-                shutil.rmtree(chroot_dir / mock_chroot_name)
+            if not cache_templates_only:
+                # FIXME: Parse from mock cfg?
+                mock_chroot_name = mock_conf.replace(".cfg", "")
+                if (chroot_dir / mock_chroot_name).exists():
+                    shutil.rmtree(chroot_dir / mock_chroot_name)
 
-            copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
-            )
-
-            # Copy-in builder local repository
-            if repository_dir.exists():
-                copy_in += [(repository_dir, executor.get_repository_dir())]
-            copy_in.extend(self.templates_copy_in(executor))
-
-            copy_out = [
-                (
-                    executor.get_cache_dir() / f"mock/{mock_chroot_name}",
-                    chroot_dir,
+                copy_in = self.default_copy_in(
+                    executor.get_plugins_dir(), executor.get_sources_dir()
                 )
-            ]
 
-            mock_cmd = [
-                f"sudo --preserve-env=DIST,USE_QUBES_REPO_VERSION",
-                f"/usr/libexec/mock/mock",
-                f"--root {executor.get_plugins_dir()}/installer/mock/{mock_conf}",
-                "--init",
-            ]
-            if isinstance(executor, ContainerExecutor):
-                msg = (
-                    f"{self.dist}: Mock isolation set to 'simple', build has full network "
-                    f"access. Use 'qubes' executor for network-isolated build."
-                )
-                self.log.warning(msg)
-                mock_cmd.append("--isolation=simple")
-            else:
-                mock_cmd.append("--isolation=nspawn")
-            if self.config.verbose:
-                mock_cmd.append("--verbose")
-            if self.config.use_qubes_repo and self.config.use_qubes_repo.get("version"):
-                mock_cmd.append("--enablerepo=qubes-current")
-            if self.config.use_qubes_repo and self.config.use_qubes_repo.get("testing"):
-                mock_cmd.append("--enablerepo=qubes-current-testing")
+                # Copy-in builder local repository
+                if repository_dir.exists():
+                    copy_in += [(repository_dir, executor.get_repository_dir())]
+                copy_in.extend(self.templates_copy_in(executor))
 
-            files_inside_executor_with_placeholders = [
-                f"@PLUGINS_DIR@/installer/mock/{mock_conf}"
-            ]
+                copy_out = [
+                    (
+                        executor.get_cache_dir() / f"mock/{mock_chroot_name}",
+                        chroot_dir,
+                    )
+                ]
 
-            # Create builder-local repository (could be empty) inside the cage
-            cmd_for_build_repo = [
-                f"mkdir -p {executor.get_repository_dir()}",
-                f"cd {executor.get_repository_dir()}",
-                "createrepo_c .",
-            ]
+                mock_cmd = [
+                    f"sudo --preserve-env=DIST,USE_QUBES_REPO_VERSION",
+                    f"/usr/libexec/mock/mock",
+                    f"--root {executor.get_plugins_dir()}/installer/mock/{mock_conf}",
+                    "--init",
+                ]
+                if isinstance(executor, ContainerExecutor):
+                    msg = (
+                        f"{self.dist}: Mock isolation set to 'simple', build has full network "
+                        f"access. Use 'qubes' executor for network-isolated build."
+                    )
+                    self.log.warning(msg)
+                    mock_cmd.append("--isolation=simple")
+                else:
+                    mock_cmd.append("--isolation=nspawn")
+                if self.config.verbose:
+                    mock_cmd.append("--verbose")
+                if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
+                    "version"
+                ):
+                    mock_cmd.append("--enablerepo=qubes-current")
+                if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
+                    "testing"
+                ):
+                    mock_cmd.append("--enablerepo=qubes-current-testing")
 
-            cmd = cmd_for_build_repo + [" ".join(mock_cmd)]
-            cmd += [
-                f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/"
-            ]
+                files_inside_executor_with_placeholders = [
+                    f"@PLUGINS_DIR@/installer/mock/{mock_conf}"
+                ]
 
-            try:
-                executor.run(
-                    cmd,
-                    copy_in,
-                    copy_out,
-                    environment=self.environment,
-                    files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
-                )
-            except ExecutorError as e:
-                msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
-                raise InstallerError(msg) from e
+                # Create builder-local repository (could be empty) inside the cage
+                cmd_for_build_repo = [
+                    f"mkdir -p {executor.get_repository_dir()}",
+                    f"cd {executor.get_repository_dir()}",
+                    "createrepo_c .",
+                ]
+
+                cmd = cmd_for_build_repo + [" ".join(mock_cmd)]
+                cmd += [
+                    f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/"
+                ]
+
+                try:
+                    executor.run(
+                        cmd,
+                        copy_in,
+                        copy_out,
+                        environment=self.environment,
+                        files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
+                    )
+                except ExecutorError as e:
+                    msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
+                    raise InstallerError(msg) from e
 
             # Create a second cage for downloading the templates
             if templates:
@@ -388,13 +395,7 @@ class InstallerPlugin(DistributionPlugin):
                     f"sudo --preserve-env={','.join(self.environment.keys())} make -C {executor.get_plugins_dir()}/installer iso-parse-kickstart iso-templates-cache",
                 ]
                 try:
-                    executor.run(
-                        cmd,
-                        copy_in,
-                        copy_out,
-                        environment=self.environment,
-                        files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
-                    )
+                    executor.run(cmd, copy_in, copy_out, environment=self.environment)
                 except ExecutorError as e:
                     msg = f"{self.dist}: Failed to download templates: {str(e)}."
                     raise InstallerError(msg) from e

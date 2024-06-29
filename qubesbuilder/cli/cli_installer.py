@@ -24,6 +24,7 @@ def _installer_stage(
     stage_name: str,
     iso_timestamp: str = None,
     templates: List[QubesTemplate] = None,
+    templates_only: bool = False,
 ):
     """
     Generic function to trigger stage for a template component
@@ -41,7 +42,11 @@ def _installer_stage(
     installer_plugin = InstallerPlugin(
         dist=dist, config=config, manager=manager, templates=templates or []
     )
-    installer_plugin.run(stage=stage_name, iso_timestamp=iso_timestamp)
+    installer_plugin.run(
+        stage=stage_name,
+        iso_timestamp=iso_timestamp,
+        cache_templates_only=templates_only,
+    )
 
 
 @click.command(name="all", short_help="Run all template stages.")
@@ -151,13 +156,20 @@ def upload(obj: ContextObj):
 
 
 @installer.command()
+@click.option(
+    "--templates-only",
+    default=False,
+    is_flag=True,
+    help="Create cache for templates only and skip mock.",
+)
 @click.pass_obj
-def init_cache(obj: ContextObj):
+def init_cache(obj: ContextObj, templates_only: bool):
     _installer_stage(
         config=obj.config,
         manager=obj.manager,
         templates=obj.templates,
         stage_name="init-cache",
+        templates_only=templates_only,
     )
 
 
