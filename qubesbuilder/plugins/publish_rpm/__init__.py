@@ -139,7 +139,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         self.log.info(f"Creating metalink for {repomd}.")
         try:
             cmd = [
-                f"mkmetalink -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
+                f"python3 {self.manager.entities['publish'].directory}/mirrors/qubesmirror/metalink.py -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
             ]
             executor.run(cmd)
         except ExecutorError as e:

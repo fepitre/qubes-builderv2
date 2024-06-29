@@ -51,10 +51,6 @@ variables:
   before_script:
     - sudo dnf install -y python3-pip python3-pytest-cov python3-pytest python3-pytest-mock python3-lxml python3-wheel sequoia-sqv
     - sudo rm -rf ~/pytest-of-user/
-    - git clone https://github.com/qubesos/qubes-infrastructure-mirrors
-    - (cd qubes-infrastructure-mirrors; pip3 install --no-use-pep517 .)
-    - export "PATH=$PATH:$HOME/.local/bin"
-    - export "PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python3.12/site-packages:$HOME/.local/lib/python3.11/site-packages:$HOME/.local/lib/python3.10/site-packages"
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
   after_script:
