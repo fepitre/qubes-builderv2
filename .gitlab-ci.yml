@@ -43,20 +43,16 @@ variables:
         path: artifacts/coverage.xml
   coverage: '/TOTAL.*\s(\d+)%/'
   variables:
-    PYTHONPATH: .
-    BASE_ARTIFACTS_DIR: /var/tmp/gitlab
-    TMPDIR: /var/tmp
     PYTEST_ARGS: -v --color=yes --showlocals --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
   # https://gitlab.com/gitlab-org/gitlab/-/issues/15603
   before_script:
     - sudo dnf install -y python3-pip python3-pytest-cov python3-pytest python3-pytest-mock python3-lxml python3-wheel sequoia-sqv
     - sudo rm -rf ~/pytest-of-user/
-    - git clone https://github.com/qubesos/qubes-infrastructure-mirrors
-    - (cd qubes-infrastructure-mirrors; pip3 install --no-use-pep517 .)
-    - export "PATH=$PATH:$HOME/.local/bin"
-    - export "PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/python3.12/site-packages:$HOME/.local/lib/python3.11/site-packages:$HOME/.local/lib/python3.10/site-packages"
     - docker pull fepitre/qubes-builder-fedora:latest
     - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+    - mkdir ~/gitlab ~/tmp
+    - export PYTHONPATH=".:$PYTHONPATH" BASE_ARTIFACTS_DIR=~/gitlab TMPDIR=~/tmp
+    - env
   after_script:
   - ci/codecov-wrapper -f artifacts/coverage.xml
 
@@ -262,7 +258,6 @@ pytest:
   tags:
     - qubes
   script:
-    - echo "$PYTHONPATH"
     - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py tests/test_scripts.py
 
 pytest-cli-repository:

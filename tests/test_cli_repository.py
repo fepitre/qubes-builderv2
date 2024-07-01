@@ -22,9 +22,11 @@ HASH_RE = re.compile(r"[a-f0-9]{40}")
 @pytest.fixture
 def artifacts_dir():
     if os.environ.get("BASE_ARTIFACTS_DIR"):
-        tmpdir = tempfile.mktemp("github-", dir=os.environ.get("BASE_ARTIFACTS_DIR"))
+        tmpdir = tempfile.mktemp(
+            prefix="github-", dir=os.environ.get("BASE_ARTIFACTS_DIR")
+        )
     else:
-        tmpdir = tempfile.mktemp("github-")
+        tmpdir = tempfile.mktemp(prefix="github-")
     artifacts_dir = pathlib.Path(tmpdir) / "artifacts"
     if not artifacts_dir.exists():
         artifacts_dir.mkdir(parents=True)
@@ -81,7 +83,8 @@ def test_repository_create_vm_fc40(artifacts_dir):
         )
 
         metadata_dir = (
-            artifacts_dir / f"repository-publish/rpm/r4.2/current/vm/fc40/repodata"
+            artifacts_dir
+            / f"repository-publish/rpm/r4.2/current/vm/fc40/repodata"
         )
         assert (metadata_dir / "repomd.xml.metalink").exists()
         with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
@@ -89,9 +92,12 @@ def test_repository_create_vm_fc40(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert "/pub/os/qubes/repo/yum/r4.2/current/vm/fc40/repodata/repomd.xml" in (
-            metadata_dir / "repomd.xml.metalink"
-        ).read_text(encoding="ascii")
+        assert (
+            "/pub/os/qubes/repo/yum/r4.2/current/vm/fc40/repodata/repomd.xml"
+            in (metadata_dir / "repomd.xml.metalink").read_text(
+                encoding="ascii"
+            )
+        )
 
 
 def test_repository_create_vm_bookworm(artifacts_dir):
@@ -121,7 +127,9 @@ def test_repository_create_vm_bookworm(artifacts_dir):
         repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
         for codename in ["bookworm-unstable", "bookworm-testing", "bookworm"]:
             assert (repository_dir / "dists" / codename / "InRelease").exists()
-            assert (repository_dir / "dists" / codename / "Release.gpg").exists()
+            assert (
+                repository_dir / "dists" / codename / "Release.gpg"
+            ).exists()
 
 
 def test_repository_create_template(artifacts_dir):
@@ -182,9 +190,10 @@ def test_repository_create_template(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert (
-            "/pub/os/qubes/repo/yum/r4.2/templates-itl-testing/repodata/repomd.xml"
-            in (metadata_dir / "repomd.xml.metalink").read_text(encoding="ascii")
+        assert "/pub/os/qubes/repo/yum/r4.2/templates-itl-testing/repodata/repomd.xml" in (
+            metadata_dir / "repomd.xml.metalink"
+        ).read_text(
+            encoding="ascii"
         )
 
         # ensure we don't have anything related to deb for template repository in clean artifacts dir

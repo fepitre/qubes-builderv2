@@ -79,6 +79,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         )
 
     name = "template"
+    dependencies = [PluginDependency("publish")]
 
     def __init__(
         self,
@@ -415,11 +416,11 @@ class TemplateBuilderPlugin(TemplatePlugin):
         try:
             # XXX: consider separate mirrors.list?
             cmd = [
-                f"mkmetalink -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
+                f"python3 {self.manager.entities['publish'].directory}/mirrors/qubesmirror/metalink.py -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
             ]
             executor.run(cmd)
         except ExecutorError as e:
-            msg = f"{self.template.name}: Failed to create metalink for '{repomd}'."
+            msg = f"{self.template.name}: Failed to create metalink for '{repomd}': {str(e)}."
             self.log.error(msg)
 
     def publish(self, executor, db_path, repository_publish):

@@ -20,9 +20,9 @@ import os
 import re
 import shutil
 import subprocess
-from shlex import quote
 from pathlib import Path, PurePath
-from typing import List, Tuple, Union, Iterable
+from shlex import quote
+from typing import List, Tuple, Union
 
 from qubesbuilder.common import sanitize_line, str_to_bool, PROJECT_PATH
 from qubesbuilder.executors import Executor, ExecutorError

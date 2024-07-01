@@ -17,11 +17,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 import subprocess
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path, PurePath
-import tempfile
-from typing import List, Tuple, Union
 from shlex import quote
+from typing import List, Tuple, Union
 
 from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
