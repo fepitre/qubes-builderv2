@@ -43,7 +43,9 @@ class Dependency:
         self.name = name
 
         if builder_object not in ["plugin", "component"]:
-            raise QubesBuilderError(f"Unsupported dependency type '{builder_object}'.")
+            raise QubesBuilderError(
+                f"Unsupported dependency type '{builder_object}'."
+            )
         self.builder_object = builder_object
 
 
@@ -107,8 +109,9 @@ class Plugin:
 
     def check_dependencies(self):
         for dependency in self.dependencies:
-            if dependency.builder_object == "plugin" and not self.manager.entities.get(
-                dependency.name, None
+            if (
+                dependency.builder_object == "plugin"
+                and not self.manager.entities.get(dependency.name, None)
             ):
                 raise PluginError(f"Cannot find plugin '{dependency}'.")
             if dependency.builder_object == "component":
@@ -132,11 +135,15 @@ class Plugin:
 
     def update_placeholders(self, stage: str):
         self._placeholders.setdefault(stage, {})
-        self._placeholders[stage].update(self.get_executor(stage).get_placeholders())
+        self._placeholders[stage].update(
+            self.get_executor(stage).get_placeholders()
+        )
 
     def get_executor(self, stage: str):
         if not self._executors.get(stage, None):
-            self._executors[stage] = self.config.get_executor_from_config(stage, self)
+            self._executors[stage] = self.config.get_executor_from_config(
+                stage, self
+            )
         return self._executors[stage]
 
     def get_placeholders(self, stage: str):
@@ -190,7 +197,9 @@ class Plugin:
     def get_artifacts_info(
         self, stage: str, basename: str, artifacts_dir: Path
     ) -> Dict:
-        fileinfo = artifacts_dir / self.get_artifacts_info_filename(stage, basename)
+        fileinfo = artifacts_dir / self.get_artifacts_info_filename(
+            stage, basename
+        )
         if fileinfo.exists():
             try:
                 with open(fileinfo, "r") as f:
@@ -207,10 +216,15 @@ class Plugin:
         for dependency in self.dependencies:
             if dependency.builder_object == "plugin":
                 copy_in += [
-                    (self.manager.entities[dependency.name].directory, plugins_dir)
+                    (
+                        self.manager.entities[dependency.name].directory,
+                        plugins_dir,
+                    )
                 ]
             if dependency.builder_object == "component":
-                copy_in += [(self.get_sources_dir() / dependency.name, sources_dir)]
+                copy_in += [
+                    (self.get_sources_dir() / dependency.name, sources_dir)
+                ]
         return copy_in
 
 
@@ -228,7 +242,11 @@ class ComponentPlugin(Plugin):
         return instances
 
     def __init__(
-        self, component: QubesComponent, config, manager: PluginManager, **kwargs
+        self,
+        component: QubesComponent,
+        config,
+        manager: PluginManager,
+        **kwargs,
     ):
         super().__init__(config=config, manager=manager, **kwargs)
         self.component = component
@@ -272,20 +290,22 @@ class ComponentPlugin(Plugin):
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         try:
             with open(
-                artifacts_dir / self.get_artifacts_info_filename(stage, basename), "w"
+                artifacts_dir
+                / self.get_artifacts_info_filename(stage, basename),
+                "w",
             ) as f:
                 f.write(yaml.safe_dump(info))
         except (PermissionError, yaml.YAMLError) as e:
-            msg = (
-                f"{self.component}:{basename}: Failed to write info for {stage} stage."
-            )
+            msg = f"{self.component}:{basename}: Failed to write info for {stage} stage."
             raise PluginError(msg) from e
 
     def delete_artifacts_info(
         self, stage: str, basename: str, artifacts_dir: Path = None
     ):
         artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
-        info_path = artifacts_dir / self.get_artifacts_info_filename(stage, basename)
+        info_path = artifacts_dir / self.get_artifacts_info_filename(
+            stage, basename
+        )
         if info_path.exists():
             info_path.unlink()
 
@@ -336,7 +356,9 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
                 for dist in kwargs.get("distributions", []):
                     if not cls.supported_distribution(dist):
                         continue
-                    instances.append(cls(component=component, dist=dist, **kwargs))
+                    instances.append(
+                        cls(component=component, dist=dist, **kwargs)
+                    )
         return instances
 
     def __init__(
@@ -346,7 +368,9 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         config,
         manager: PluginManager,
     ):
-        super().__init__(dist=dist, component=component, config=config, manager=manager)
+        super().__init__(
+            dist=dist, component=component, config=config, manager=manager
+        )
 
     def update_parameters(self, stage: str):
         super().update_parameters(stage)
@@ -359,7 +383,9 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         )
         # host/vm -> fedora/debian/ubuntu/archlinux
         self._parameters[stage].update(
-            parameters.get(self.dist.package_set, {}).get(self.dist.fullname, {})
+            parameters.get(self.dist.package_set, {}).get(
+                self.dist.fullname, {}
+            )
         )
         # Per distribution (e.g. host-fc42) overrides per package set (e.g. host)
         self._parameters[stage].update(
@@ -367,14 +393,17 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         )
 
         self._parameters[stage]["build"] = [
-            PackagePath(build) for build in self._parameters[stage].get("build", [])
+            PackagePath(build)
+            for build in self._parameters[stage].get("build", [])
         ]
         # Check conflicts when mangle paths
         mangle_builds = [
             build.mangle() for build in self._parameters[stage].get("build", [])
         ]
         if len(set(mangle_builds)) != len(self._parameters[stage]["build"]):
-            raise PluginError(f"{self.component}:{self.dist}: Conflicting build paths")
+            raise PluginError(
+                f"{self.component}:{self.dist}: Conflicting build paths"
+            )
 
     def get_dist_component_artifacts_dir_history(self, stage: str):
         path = (
@@ -399,7 +428,8 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         return self.get_artifacts_info(
             stage=stage,
             basename=basename,
-            artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
+            artifacts_dir=artifacts_dir
+            or self.get_dist_component_artifacts_dir(stage),
         )
 
     def save_dist_artifacts_info(
@@ -408,7 +438,8 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         return self.save_artifacts_info(
             stage=stage,
             basename=basename,
-            artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
+            artifacts_dir=artifacts_dir
+            or self.get_dist_component_artifacts_dir(stage),
             info=info,
         )
 
@@ -418,25 +449,31 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         return self.delete_artifacts_info(
             stage=stage,
             basename=basename,
-            artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
+            artifacts_dir=artifacts_dir
+            or self.get_dist_component_artifacts_dir(stage),
         )
 
-    def check_dist_stage_artifacts(self, stage: str, artifacts_dir: Path = None):
+    def check_dist_stage_artifacts(
+        self, stage: str, artifacts_dir: Path = None
+    ):
         return self.check_stage_artifacts(
             stage=stage,
-            artifacts_dir=artifacts_dir or self.get_dist_component_artifacts_dir(stage),
+            artifacts_dir=artifacts_dir
+            or self.get_dist_component_artifacts_dir(stage),
         )
 
     def has_component_packages(self, stage: str):
         self.update_parameters(stage=stage)
-        return self.component.has_packages and self.get_parameters(stage=stage).get(
-            "build", []
-        )
+        return self.component.has_packages and self.get_parameters(
+            stage=stage
+        ).get("build", [])
 
 
 class TemplatePlugin(DistributionPlugin):
     def __init__(self, template: QubesTemplate, config, manager: PluginManager):
-        super().__init__(config=config, manager=manager, dist=template.distribution)
+        super().__init__(
+            config=config, manager=manager, dist=template.distribution
+        )
         self.template = template
 
     @classmethod
@@ -453,14 +490,18 @@ class TemplatePlugin(DistributionPlugin):
         return instances
 
     def get_template_artifacts_info(self, stage: str) -> Dict:
-        fileinfo = self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
+        fileinfo = (
+            self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
+        )
         if fileinfo.exists():
             try:
                 with open(fileinfo, "r") as f:
                     artifacts_info = yaml.safe_load(f.read())
                 return artifacts_info or {}
             except (PermissionError, yaml.YAMLError) as e:
-                msg = f"{self.template}: Failed to read info from {stage} stage."
+                msg = (
+                    f"{self.template}: Failed to read info from {stage} stage."
+                )
                 raise PluginError(msg) from e
         return {}
 
@@ -484,18 +525,26 @@ class TemplatePlugin(DistributionPlugin):
         if not self.template.timestamp:
             # Read information from build stage
             if not (
-                self.get_templates_dir() / f"build_timestamp_{self.template.name}"
+                self.get_templates_dir()
+                / f"build_timestamp_{self.template.name}"
             ).exists():
-                raise PluginError(f"{self.template}: Cannot find build timestamp.")
+                raise PluginError(
+                    f"{self.template}: Cannot find build timestamp."
+                )
             with open(
-                self.get_templates_dir() / f"build_timestamp_{self.template.name}"
+                self.get_templates_dir()
+                / f"build_timestamp_{self.template.name}"
             ) as f:
                 data = f.read().splitlines()
 
             try:
-                self.template.timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
+                self.template.timestamp = parsedate(data[0]).strftime(
+                    "%Y%m%d%H%M"
+                )
             except (dateutil.parser.ParserError, IndexError) as e:
-                msg = f"{self.template}: Failed to parse build timestamp format."
+                msg = (
+                    f"{self.template}: Failed to parse build timestamp format."
+                )
                 raise PluginError(msg) from e
         return self.template.timestamp
 

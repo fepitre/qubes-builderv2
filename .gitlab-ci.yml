@@ -2,6 +2,10 @@
 # Qubes Builder Gitlab CI
 #
 
+include:
+  - file: /common.yml
+    project: QubesOS/qubes-continuous-integration
+
 stages:
   - test
   - prep
@@ -220,14 +224,10 @@ variables:
 #
 
 lint:
+  extends: .lint
   stage: test
-  image: fedora:39
-  tags:
-    - docker
-  before_script:
-    - sudo dnf install -y python3-black
-  script:
-    - black -v --diff --color --check qubesbuilder
+  variables:
+    DIR: qubesbuilder
 
 mypy:
   stage: test

@@ -130,7 +130,9 @@ class QubesComponent:
                 assert re.fullmatch(r"[0-9]+", devel)
                 devel = str(int(devel) + 1)
             except AssertionError as e:
-                raise ComponentError(f"Invalid devel version for {self.name}.") from e
+                raise ComponentError(
+                    f"Invalid devel version for {self.name}."
+                ) from e
         self._devel_path.write_text(devel)
         self.devel = devel
 
@@ -148,7 +150,9 @@ class QubesComponent:
                     # but use the original
                     version = version_str
             except InvalidVersion as e:
-                raise ComponentError(f"Invalid version for {self.source_dir}.") from e
+                raise ComponentError(
+                    f"Invalid version for {self.source_dir}."
+                ) from e
         else:
             result = subprocess.run(
                 "git describe --match='v*' --abbrev=0",
@@ -160,10 +164,14 @@ class QubesComponent:
                 version = sanitize_line(result.stdout.rstrip(b"\n")).rstrip()
                 version_re = re.compile(r"v?([0-9]+(?:\.[0-9]+)*)-([0-9]+.*)")
                 if len(version) > 255 or not version_re.match(version):
-                    raise ComponentError(f"Invalid version for {self.source_dir}.")
+                    raise ComponentError(
+                        f"Invalid version for {self.source_dir}."
+                    )
                 version, release = version_re.match(version).groups()  # type: ignore
         if not version:
-            raise ComponentError(f"Cannot determine version for {self.source_dir}.")
+            raise ComponentError(
+                f"Cannot determine version for {self.source_dir}."
+            )
         self.version = version
         return self.version
 
@@ -179,7 +187,9 @@ class QubesComponent:
                     release = fd.read().split("\n")[0]
                 QubesVersion(f"{self.get_version()}-{release}")
             except (InvalidVersion, AssertionError) as e:
-                raise ComponentError(f"Invalid release for {self.source_dir}.") from e
+                raise ComponentError(
+                    f"Invalid release for {self.source_dir}."
+                ) from e
         self.release = release
         return self.release
 
@@ -191,12 +201,16 @@ class QubesComponent:
                 assert re.fullmatch(r"[0-9]+", devel)
                 self.devel = devel
             except AssertionError as e:
-                raise ComponentError(f"Invalid devel version for {self.name}.") from e
+                raise ComponentError(
+                    f"Invalid devel version for {self.name}."
+                ) from e
         return self.devel
 
     def get_parameters(self, placeholders: dict = None):
         if not self.source_dir.exists():
-            raise ComponentError(f"Cannot find source directory {self.source_dir}.")
+            raise ComponentError(
+                f"Cannot find source directory {self.source_dir}."
+            )
 
         build_file = self.source_dir / ".qubesbuilder"
 
@@ -248,7 +262,9 @@ class QubesComponent:
         if (directory / ".gitignore").exists():
             lines = (directory / ".gitignore").read_text().splitlines()
             spec = pathspec.PathSpec.from_lines("gitwildmatch", lines)
-            excluded_paths += [name for name in paths if spec.match_file(str(name))]
+            excluded_paths += [
+                name for name in paths if spec.match_file(str(name))
+            ]
         sorted_paths = [path for path in paths if path not in excluded_paths]
         # We ensure to compute hash always in a sorted order
         sorted_paths = sorted(sorted_paths, key=lambda p: str(p).lower())
@@ -271,7 +287,9 @@ class QubesComponent:
     def get_source_commit_hash(self):
         cmd = ["git", "-C", str(self.source_dir), "rev-parse", "HEAD^{}"]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, check=True
+            )
             return result.stdout.strip("\n")
         except subprocess.CalledProcessError as e:
             raise ComponentError(

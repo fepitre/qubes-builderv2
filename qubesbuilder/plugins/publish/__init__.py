@@ -27,7 +27,12 @@ from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
 
 # Define the minimum age for which packages can be published to 'current'
-COMPONENT_REPOSITORIES = ["current", "current-testing", "security-testing", "unstable"]
+COMPONENT_REPOSITORIES = [
+    "current",
+    "current-testing",
+    "security-testing",
+    "unstable",
+]
 
 
 class PublishError(PluginError):
@@ -55,7 +60,9 @@ class PublishPlugin(DistributionComponentPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     def validate_repository_publish(self, repository_publish):
         if repository_publish not in (
@@ -71,7 +78,9 @@ class PublishPlugin(DistributionComponentPlugin):
             raise PublishError(msg)
 
     def is_published(self, basename, repository):
-        publish_info = self.get_dist_artifacts_info(stage="publish", basename=basename)
+        publish_info = self.get_dist_artifacts_info(
+            stage="publish", basename=basename
+        )
         if not publish_info:
             return False
         return repository in [
@@ -84,11 +93,15 @@ class PublishPlugin(DistributionComponentPlugin):
             return False
 
         # Check minimum day that packages are available for testing
-        publish_info = self.get_dist_artifacts_info(stage="publish", basename=basename)
+        publish_info = self.get_dist_artifacts_info(
+            stage="publish", basename=basename
+        )
         publish_date = None
         for r in publish_info["repository-publish"]:
             if r["name"] == "current-testing":
-                publish_date = datetime.datetime.strptime(r["timestamp"], "%Y%m%d%H%M")
+                publish_date = datetime.datetime.strptime(
+                    r["timestamp"], "%Y%m%d%H%M"
+                )
                 break
 
         if not publish_date:

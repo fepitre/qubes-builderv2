@@ -96,7 +96,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
             try:
                 parsed_release = self.config.parse_qubes_release()
             except ConfigError as e:
-                raise TemplateError(f"Cannot parse template version: {str(e)}") from e
+                raise TemplateError(
+                    f"Cannot parse template version: {str(e)}"
+                ) from e
             # For now, we assume 4.X.0
             self.template_version = f"{parsed_release.group(1)}.0"
         return self.template_version
@@ -127,7 +129,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "PACKAGES_DIR": str(executor.get_repository_dir()),
                 "DISCARD_PREPARED_IMAGE": "1",
                 "BUILDER_TURBO_MODE": "1",
-                "CACHE_DIR": str(executor.get_cache_dir() / f"cache_{self.dist.name}"),
+                "CACHE_DIR": str(
+                    executor.get_cache_dir() / f"cache_{self.dist.name}"
+                ),
                 "RELEASE": parsed_release.group(1),
                 "TEMPLATE_SCRIPTS_DIR": str(
                     executor.get_plugins_dir() / "template/scripts"
@@ -150,7 +154,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                         self.config.use_qubes_repo.get("version", None)
                     ),
                     "USE_QUBES_REPO_TESTING": (
-                        "1" if self.config.use_qubes_repo.get("testing", None) else "0"
+                        "1"
+                        if self.config.use_qubes_repo.get("testing", None)
+                        else "0"
                     ),
                 }
             )
@@ -171,7 +177,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": template_content_dir,
-                    "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_rpm/keys"),
+                    "KEYS_DIR": str(
+                        executor.get_plugins_dir() / "chroot_rpm/keys"
+                    ),
                 }
             )
         elif (
@@ -191,7 +199,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": template_content_dir,
-                    "KEYS_DIR": str(executor.get_plugins_dir() / "chroot_deb/keys"),
+                    "KEYS_DIR": str(
+                        executor.get_plugins_dir() / "chroot_deb/keys"
+                    ),
                 }
             )
             self.environment.update({"DEBIAN_MIRRORS": " ".join(mirrors)})
@@ -219,7 +229,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ]
             if self.template.flavor.startswith("kali"):
                 self.dependencies += [ComponentDependency("template-kali")]
-                template_content_dir = str(executor.get_sources_dir() / "template-kali")
+                template_content_dir = str(
+                    executor.get_sources_dir() / "template-kali"
+                )
                 self.environment.update(
                     {
                         "APPMENUS_DIR": template_content_dir,
@@ -239,7 +251,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ComponentDependency("builder-archlinux"),
             ]
             template_content_dir = str(
-                executor.get_sources_dir() / "builder-archlinux/template_archlinux"
+                executor.get_sources_dir()
+                / "builder-archlinux/template_archlinux"
             )
             self.environment.update(
                 {
@@ -261,13 +274,16 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 {
                     "TEMPLATE_CONTENT_DIR": template_content_dir,
                     "CACHE_DIR": str(executor.get_cache_dir()),
-                    "KEYS_DIR": str(executor.get_sources_dir() / "builder-gentoo/keys"),
+                    "KEYS_DIR": str(
+                        executor.get_sources_dir() / "builder-gentoo/keys"
+                    ),
                 }
             )
         else:
             raise TemplateError("Unsupported template.")
         template_flavor_dir = [
-            f"+{option}:{template_content_dir}/{option}" for option in template_options
+            f"+{option}:{template_content_dir}/{option}"
+            for option in template_options
         ]
         self.environment["TEMPLATE_FLAVOR_DIR"] = " ".join(template_flavor_dir)
 
@@ -294,7 +310,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
     def create_and_sign_repository_metadata(self, repository_publish):
         executor = self.config.get_executor_from_config("publish", self)
         artifacts_dir = self.get_repository_publish_dir() / "rpm"
-        target_dir = artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
+        target_dir = (
+            artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
+        )
 
         (target_dir / "repodata").mkdir(parents=True, exist_ok=True)
 
@@ -316,10 +334,14 @@ class TemplateBuilderPlugin(TemplatePlugin):
         self.createrepo(executor=executor, target_dir=target_dir)
 
         # Sign metadata
-        self.sign_metadata(executor=executor, sign_key=sign_key, target_dir=target_dir)
+        self.sign_metadata(
+            executor=executor, sign_key=sign_key, target_dir=target_dir
+        )
 
         # Create metalink
-        self.create_metalink(executor=executor, repository_publish=repository_publish)
+        self.create_metalink(
+            executor=executor, repository_publish=repository_publish
+        )
 
     def get_sign_key(self):
         # Check if we have a signing key provided
@@ -332,7 +354,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            raise TemplateError(f"{self.template}: Please specify GPG client to use!")
+            raise TemplateError(
+                f"{self.template}: Please specify GPG client to use!"
+            )
 
         return sign_key
 
@@ -395,7 +419,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
 
         # Check that packages have been published before threshold_date
-        threshold_date = datetime.utcnow() - timedelta(days=self.config.min_age_days)
+        threshold_date = datetime.utcnow() - timedelta(
+            days=self.config.min_age_days
+        )
         if not ignore_min_age and publish_date > threshold_date:
             return False
 
@@ -406,7 +432,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
     def create_metalink(self, executor, repository_publish):
         repo_basedir = self.get_repository_publish_dir() / "rpm"
-        repository_dir = repo_basedir / self.config.qubes_release / repository_publish
+        repository_dir = (
+            repo_basedir / self.config.qubes_release / repository_publish
+        )
         repomd = repository_dir / "repodata/repomd.xml"
         if not repomd.exists():
             msg = f"{self.template.name}: Cannot find repomd '{repomd}'."
@@ -452,7 +480,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
         # Publish template with hardlinks to built RPM
         self.log.info(f"{self.template}: Publishing template.")
         artifacts_dir = self.get_repository_publish_dir() / "rpm"
-        target_dir = artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
+        target_dir = (
+            artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
+        )
         try:
             target_path = target_dir / "rpm" / rpm.name
             target_path.unlink(missing_ok=True)
@@ -487,7 +517,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
         # If exists, remove hardlinks to built RPMs
         self.log.info(f"{self.template}: Unpublishing template.")
         artifacts_dir = self.get_repository_publish_dir() / "rpm"
-        target_dir = artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
+        target_dir = (
+            artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
+        )
         try:
             target_path = target_dir / "rpm" / rpm.name
             target_path.unlink(missing_ok=True)
@@ -503,7 +535,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
         self.create_repository_skeleton()
 
         # Create and sign metadata
-        self.create_and_sign_repository_metadata(repository_publish=repository_publish)
+        self.create_and_sign_repository_metadata(
+            repository_publish=repository_publish
+        )
 
     def run(
         self,
@@ -517,7 +551,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
         executor = self.get_executor(stage)
         repository_dir = self.get_repository_dir() / self.dist.distribution
         template_artifacts_dir = self.get_templates_dir()
-        qubeized_image = template_artifacts_dir / "qubeized_images" / self.template.name
+        qubeized_image = (
+            template_artifacts_dir / "qubeized_images" / self.template.name
+        )
 
         repository_dir.mkdir(parents=True, exist_ok=True)
         qubeized_image.mkdir(parents=True, exist_ok=True)
@@ -535,7 +571,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 template_timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
 
             with open(
-                template_artifacts_dir / f"build_timestamp_{self.template.name}", "w"
+                template_artifacts_dir
+                / f"build_timestamp_{self.template.name}",
+                "w",
             ) as f:
                 f.write(template_timestamp)
 
@@ -601,11 +639,15 @@ class TemplateBuilderPlugin(TemplatePlugin):
                         / self.template.name,
                     ),
                     (
-                        template_artifacts_dir / self.template.name / "template.conf",
+                        template_artifacts_dir
+                        / self.template.name
+                        / "template.conf",
                         executor.get_build_dir(),
                     ),
                     (
-                        template_artifacts_dir / self.template.name / "appmenus",
+                        template_artifacts_dir
+                        / self.template.name
+                        / "appmenus",
                         executor.get_build_dir(),
                     ),
                 ]
@@ -619,7 +661,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ),
             ]
 
-            cmd = [f"make -C {executor.get_plugins_dir()}/template prepare build-rpm"]
+            cmd = [
+                f"make -C {executor.get_plugins_dir()}/template prepare build-rpm"
+            ]
             try:
                 executor.run(
                     cmd,
@@ -632,7 +676,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 raise TemplateError(msg) from e
 
             with open(
-                template_artifacts_dir / f"build_timestamp_{self.template.name}", "w"
+                template_artifacts_dir
+                / f"build_timestamp_{self.template.name}",
+                "w",
             ) as f:
                 f.write(template_timestamp)  # type: ignore
 
@@ -712,7 +758,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         if stage in ("publish", "upload"):
             repository_publish = (
-                repository_publish or self.config.repository_publish.get("templates")
+                repository_publish
+                or self.config.repository_publish.get("templates")
             )
             if not repository_publish:
                 raise TemplateError("Cannot determine repository for publish")
@@ -753,7 +800,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
             build_info = self.get_template_artifacts_info(stage="build")
             if not (
                 publish_info
-                and publish_info.get("timestamp", None) == self.get_template_timestamp()
+                and publish_info.get("timestamp", None)
+                == self.get_template_timestamp()
             ):
                 publish_info = build_info
 
@@ -802,9 +850,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 self.delete_artifacts_info(stage="publish")
 
         if stage == "upload":
-            remote_path = self.config.repository_upload_remote_host.get("rpm", None)
+            remote_path = self.config.repository_upload_remote_host.get(
+                "rpm", None
+            )
             if not remote_path:
-                self.log.info(f"{self.dist}: No remote location defined. Skipping.")
+                self.log.info(
+                    f"{self.dist}: No remote location defined. Skipping."
+                )
                 return
 
             try:

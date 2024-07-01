@@ -30,7 +30,10 @@ from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
-from qubesbuilder.plugins.chroot_archlinux import get_pacman_cmd, get_archchroot_cmd
+from qubesbuilder.plugins.chroot_archlinux import (
+    get_pacman_cmd,
+    get_archchroot_cmd,
+)
 
 
 def clean_local_repository(
@@ -82,8 +85,15 @@ def provision_local_repository(
             pkg_path = build_artifacts_dir / "pkgs" / pkg
             target_path = target_dir / pkg
             os.link(pkg_path, target_path)
-    except (ValueError, PermissionError, NotImplementedError, FileExistsError) as e:
-        msg = f"{component}:{dist}:{build}: Failed to provision local repository."
+    except (
+        ValueError,
+        PermissionError,
+        NotImplementedError,
+        FileExistsError,
+    ) as e:
+        msg = (
+            f"{component}:{dist}:{build}: Failed to provision local repository."
+        )
         raise BuildError(msg) from e
 
 
@@ -100,7 +110,10 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
     name = "build_archlinux"
     stages = ["build"]
-    dependencies = [PluginDependency("chroot_archlinux"), PluginDependency("build")]
+    dependencies = [
+        PluginDependency("chroot_archlinux"),
+        PluginDependency("build"),
+    ]
 
     def __init__(
         self,
@@ -110,7 +123,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
         # Add some environment variables needed to render mock root configuration
         self.environment.update(
@@ -123,7 +138,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                         self.config.use_qubes_repo.get("version", None)
                     ),
                     "USE_QUBES_REPO_TESTING": (
-                        "1" if self.config.use_qubes_repo.get("testing", None) else "0"
+                        "1"
+                        if self.config.use_qubes_repo.get("testing", None)
+                        else "0"
                     ),
                     # FIXME: Allow to define repo proxy
                     "REPO_PROXY": "",
@@ -206,7 +223,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             build_bn = build.mangle()
 
             # Read information from source stage
-            source_info = self.get_dist_artifacts_info(stage="prep", basename=build_bn)
+            source_info = self.get_dist_artifacts_info(
+                stage="prep", basename=build_bn
+            )
 
             if not source_info.get("packages", None):
                 raise BuildError(
@@ -236,7 +255,10 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             if source_info.get("source-archive", None):
                 copy_in.append(
-                    (prep_artifacts_dir / source_info["source-archive"], source_dir)
+                    (
+                        prep_artifacts_dir / source_info["source-archive"],
+                        source_dir,
+                    )
                 )
 
             copy_out = [
@@ -245,11 +267,11 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             ]
 
             # pacman and makepkg configuration files
-            pacman_conf_template = (
-                f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
-            )
+            pacman_conf_template = f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
 
-            pacman_conf = "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
+            pacman_conf = (
+                "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
+            )
 
             makepkg_conf = f"{executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
 
@@ -261,7 +283,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 "gen_path": f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
                 "conf_template": pacman_conf_template,
                 "conf": pacman_conf,
-                "servers": self.config.get("mirrors", {}).get(self.dist.name, []),
+                "servers": self.config.get("mirrors", {}).get(
+                    self.dist.name, []
+                ),
             }
             pacman_args = {
                 **pacman_base_args,
@@ -281,7 +305,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     f"{self.component}:{self.dist}: Chroot cache exists. Will use it."
                 )
 
-                copy_in += [(chroot_dir / chroot_archive, executor.get_cache_dir())]
+                copy_in += [
+                    (chroot_dir / chroot_archive, executor.get_cache_dir())
+                ]
 
                 cmd += [
                     f"sudo mkdir -p {executor.get_cache_dir()}/qubes-x86_64",
@@ -310,7 +336,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             # Once we generated a normal configuration without builder-local needed
             # we regenerate one with it enabled.
-            pacman_cmd = get_pacman_cmd(**pacman_args, enable_builder_local=True)
+            pacman_cmd = get_pacman_cmd(
+                **pacman_args, enable_builder_local=True
+            )
 
             if qubes_repo_version:
                 files_inside_executor_with_placeholders += [
@@ -384,7 +412,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             )
 
             # Save package information we parsed for next stages
-            self.save_dist_artifacts_info(stage=stage, basename=build_bn, info=info)
+            self.save_dist_artifacts_info(
+                stage=stage, basename=build_bn, info=info
+            )
 
 
 PLUGINS = [ArchlinuxBuildPlugin]

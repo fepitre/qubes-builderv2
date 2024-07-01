@@ -55,7 +55,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
         self.environment.update(
             {
@@ -81,7 +83,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
 
         # Check if we have Debian related content defined
         if not parameters.get("build", None):
-            self.log.info(f"{self.component}: nothing to be done for {self.dist}")
+            self.log.info(
+                f"{self.component}: nothing to be done for {self.dist}"
+            )
             return
 
         distfiles_dir = self.get_component_distfiles_dir()
@@ -134,7 +138,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 (self.component.source_dir, executor.get_builder_dir()),
             ]
 
-            copy_out = [(source_dir / f"{directory_bn}_package_release_name", temp_dir)]
+            copy_out = [
+                (source_dir / f"{directory_bn}_package_release_name", temp_dir)
+            ]
 
             # Update changelog
             cmd = [
@@ -146,7 +152,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 f"{executor.get_plugins_dir()}/source_deb/scripts/get-source-info {source_dir} {directory}"
             ]
             try:
-                executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(
+                    cmd, copy_in, copy_out, environment=self.environment
+                )
             except ExecutorError as e:
                 msg = (
                     f"{self.component}:{self.dist}:{directory}: "
@@ -167,7 +175,8 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             if not is_filename_valid(
                 package_release_name, forbidden_filename=artifacts_info_filename
             ) or not is_filename_valid(
-                package_release_name_full, forbidden_filename=artifacts_info_filename
+                package_release_name_full,
+                forbidden_filename=artifacts_info_filename,
             ):
                 msg = f"{self.component}:{self.dist}:{directory}: Invalid source names."
                 raise SourceError(msg)
@@ -208,19 +217,24 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 (executor.get_builder_dir() / source_dsc, artifacts_dir),
                 (executor.get_builder_dir() / source_debian, artifacts_dir),
                 (
-                    executor.get_builder_dir() / f"{directory_bn}_packages.list",
+                    executor.get_builder_dir()
+                    / f"{directory_bn}_packages.list",
                     temp_dir,
                 ),
             ]
             if package_type == "quilt":
-                copy_out += [(executor.get_builder_dir() / source_orig, artifacts_dir)]
+                copy_out += [
+                    (executor.get_builder_dir() / source_orig, artifacts_dir)
+                ]
 
             # Init command with .qubesbuilder command entries
             cmd = parameters.get("source", {}).get("commands", [])
 
             if package_type == "quilt":
                 if self.component.is_salt():
-                    if not (self.component.source_dir / "Makefile.install").exists():
+                    if not (
+                        self.component.source_dir / "Makefile.install"
+                    ).exists():
                         copy_in += [
                             (
                                 self.manager.entities["source"].directory
@@ -237,7 +251,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
 
                 # Create archive only if no external files are provided or if explicitly requested.
                 create_archive = not parameters.get("files", [])
-                create_archive = parameters.get("create-archive", create_archive)
+                create_archive = parameters.get(
+                    "create-archive", create_archive
+                )
                 if create_archive:
                     cmd += [
                         f"{executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
@@ -290,7 +306,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 " ".join(gen_packages_list_cmd),
             ]
             try:
-                executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(
+                    cmd, copy_in, copy_out, environment=self.environment
+                )
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{directory}: Failed to generate source: {str(e)}."
                 raise SourceError(msg) from e
@@ -300,7 +318,9 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             with open(temp_dir / f"{directory_bn}_packages.list") as f:
                 data = f.read().splitlines()
             for line in data:
-                if not is_filename_valid(line, allowed_ext=[".deb", ".ddeb", ".udeb"]):
+                if not is_filename_valid(
+                    line, allowed_ext=[".deb", ".ddeb", ".udeb"]
+                ):
                     msg = f"{self.component}:{self.dist}:{directory}: Invalid package name."
                     raise SourceError(msg)
                 packages_list.append(line)

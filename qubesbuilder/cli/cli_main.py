@@ -102,7 +102,9 @@ def parse_dict_from_cli(s, value=None, append=False):
 
         if split_identifier == ":":
             if value is None:
-                raise ValueError(f"Cannot find '=' or '+' in '{remaining_content}'")
+                raise ValueError(
+                    f"Cannot find '=' or '+' in '{remaining_content}'"
+                )
             result = {
                 parsed_identifier: parse_dict_from_cli(
                     remaining_content, value=value, append=append
@@ -111,7 +113,9 @@ def parse_dict_from_cli(s, value=None, append=False):
         else:
             result = {
                 parsed_identifier: [
-                    parse_dict_from_cli(remaining_content, value=value, append=append)
+                    parse_dict_from_cli(
+                        remaining_content, value=value, append=append
+                    )
                 ]
             }
     else:
@@ -178,9 +182,9 @@ def init_context_obj(
         file_path = Path(log_file).resolve()
     else:
         logs_dir = config.get_logs_dir()
-        file_path = (logs_dir / datetime.utcnow().strftime("%Y%m%d%H%M")).with_suffix(
-            ".log"
-        )
+        file_path = (
+            logs_dir / datetime.utcnow().strftime("%Y%m%d%H%M")
+        ).with_suffix(".log")
 
     obj.log_file = file_path
     obj.components = obj.config.get_components(component)
@@ -192,7 +196,10 @@ def init_context_obj(
 
 @aliased_group("qb")
 @click.option(
-    "--verbose/--no-verbose", default=None, is_flag=True, help="Increase log verbosity."
+    "--verbose/--no-verbose",
+    default=None,
+    is_flag=True,
+    help="Increase log verbosity.",
 )
 @click.option(
     "--debug/--no-debug",
@@ -266,7 +273,9 @@ def main(
     )
 
     if obj.config.verbose:
-        init_logging(level="DEBUG" if verbose else "INFO", file_path=obj.log_file)
+        init_logging(
+            level="DEBUG" if verbose else "INFO", file_path=obj.log_file
+        )
     else:
         init_logging(level="WARNING", file_path=obj.log_file)
 

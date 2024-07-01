@@ -39,11 +39,16 @@ class LocalExecutor(Executor):
     """
 
     def __init__(
-        self, directory: Path = Path("/tmp"), clean: Union[str, bool] = True, **kwargs
+        self,
+        directory: Path = Path("/tmp"),
+        clean: Union[str, bool] = True,
+        **kwargs,
     ):
         random_path = str(id(self)) + str(uuid.uuid4())[0:8]
         self._directory = directory
-        self._temporary_dir = Path(self._directory).expanduser().resolve() / random_path
+        self._temporary_dir = (
+            Path(self._directory).expanduser().resolve() / random_path
+        )
         self._builder_dir = self._temporary_dir / "builder"
         self._builder_dir_exists = False
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
@@ -91,7 +96,9 @@ class LocalExecutor(Executor):
         # Create temporary builder directory. In an unlikely case of conflict,
         # run will abort instead of using unsafe directory.
         try:
-            self._builder_dir.mkdir(parents=True, exist_ok=self._builder_dir_exists)
+            self._builder_dir.mkdir(
+                parents=True, exist_ok=self._builder_dir_exists
+            )
             self._builder_dir_exists = True
         except (FileNotFoundError, OSError) as e:
             raise ExecutorError(
@@ -151,7 +158,9 @@ class LocalExecutor(Executor):
                     break
             rc = process.poll()
             if rc != 0:
-                raise ExecutorError(f"Failed to run '{final_cmd}' (status={rc}).")
+                raise ExecutorError(
+                    f"Failed to run '{final_cmd}' (status={rc})."
+                )
 
             # copy-out hook
             for src, dst in sorted(set(copy_out or []), key=lambda x: x[1]):
@@ -159,8 +168,13 @@ class LocalExecutor(Executor):
                     self.copy_out(source_path=src, destination_dir=dst)
                 except ExecutorError as e:
                     # Ignore copy-out failure if requested
-                    if isinstance(no_fail_copy_out_allowed_patterns, list) and any(
-                        [p in src.name for p in no_fail_copy_out_allowed_patterns]
+                    if isinstance(
+                        no_fail_copy_out_allowed_patterns, list
+                    ) and any(
+                        [
+                            p in src.name
+                            for p in no_fail_copy_out_allowed_patterns
+                        ]
                     ):
                         log.warning(f"File not found inside container: {src}.")
                         continue

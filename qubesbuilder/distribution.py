@@ -46,8 +46,12 @@ DEBIAN_ARCHITECTURE = {"x86_64": "amd64", "ppc64le": "ppc64el"}
 class QubesDistribution:
     def __init__(self, distribution: str, **kwargs):
         self.distribution = distribution
-        if not distribution.startswith("vm-") and not distribution.startswith("host-"):
-            raise DistributionError("Please specify package set either 'host' or 'vm'.")
+        if not distribution.startswith("vm-") and not distribution.startswith(
+            "host-"
+        ):
+            raise DistributionError(
+                "Please specify package set either 'host' or 'vm'."
+            )
         self.package_set, self.name = distribution.split("-", 1)
         if self.name == self.name.split(".")[0]:
             self.architecture = "x86_64"
@@ -98,7 +102,9 @@ class QubesDistribution:
             self.tag = "gentoo"
             self.type = "gentoo"
         else:
-            raise DistributionError(f"Unsupported distribution '{self.distribution}'.")
+            raise DistributionError(
+                f"Unsupported distribution '{self.distribution}'."
+            )
 
         self.kwargs = kwargs or {}
 

@@ -68,7 +68,9 @@ class ContainerExecutor(Executor):
                 raise ExecutorError(f"Cannot find 'docker' on the system.")
             self._client = DockerClient
         else:
-            raise ExecutorError(f"Unknown container client '{self._container_client}'.")
+            raise ExecutorError(
+                f"Unknown container client '{self._container_client}'."
+            )
         with self.get_client() as client:
             try:
                 # Check if we have the image locally
@@ -88,7 +90,13 @@ class ContainerExecutor(Executor):
             k: v
             for k, v in self._kwargs.items()
             if k
-            in ("base_url", "connection", "use_ssh_client", "identity", "max_pool_size")
+            in (
+                "base_url",
+                "connection",
+                "use_ssh_client",
+                "identity",
+                "max_pool_size",
+            )
         }
         try:
             yield self._client(**kwargs)
@@ -119,7 +127,12 @@ class ContainerExecutor(Executor):
                     ]
                     log.debug(f"copy-in (cmd): {' '.join(cmd)}")
                     subprocess.run(cmd, check=True, capture_output=True)
-            cmd = [self._container_client, "cp", str(src), f"{container.id}:{dst}"]
+            cmd = [
+                self._container_client,
+                "cp",
+                str(src),
+                f"{container.id}:{dst}",
+            ]
             log.debug(f"copy-in (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
@@ -211,12 +224,18 @@ class ContainerExecutor(Executor):
                 )
 
                 # Adjust log namespace
-                log.name = f"executor:{self._container_client}:{container.short_id}"
+                log.name = (
+                    f"executor:{self._container_client}:{container.short_id}"
+                )
                 log.info(f"Executing '{final_cmd}'.")
 
                 # copy-in hook
-                for src_in, dst_in in sorted(set(copy_in or []), key=lambda x: x[1]):
-                    self.copy_in(container, source_path=src_in, destination_dir=dst_in)
+                for src_in, dst_in in sorted(
+                    set(copy_in or []), key=lambda x: x[1]
+                ):
+                    self.copy_in(
+                        container, source_path=src_in, destination_dir=dst_in
+                    )
 
                 # FIXME: Use attach method when podman-py will implement.
                 #  It is for starting and streaming output directly with python.
@@ -236,23 +255,33 @@ class ContainerExecutor(Executor):
                         break
                 rc = process.poll()
                 if rc != 0:
-                    raise ExecutorError(f"Failed to run '{final_cmd}' (status={rc}).")
+                    raise ExecutorError(
+                        f"Failed to run '{final_cmd}' (status={rc})."
+                    )
 
                 # copy-out hook
-                for src_out, dst_out in sorted(set(copy_out or []), key=lambda x: x[1]):
+                for src_out, dst_out in sorted(
+                    set(copy_out or []), key=lambda x: x[1]
+                ):
                     try:
                         self.copy_out(
-                            container, source_path=src_out, destination_dir=dst_out
+                            container,
+                            source_path=src_out,
+                            destination_dir=dst_out,
                         )
                     except ExecutorError as e:
                         # Ignore copy-out failure if requested
-                        if isinstance(no_fail_copy_out_allowed_patterns, list) and any(
+                        if isinstance(
+                            no_fail_copy_out_allowed_patterns, list
+                        ) and any(
                             [
                                 p in src_out.name
                                 for p in no_fail_copy_out_allowed_patterns
                             ]
                         ):
-                            log.warning(f"File not found inside container: {src_out}.")
+                            log.warning(
+                                f"File not found inside container: {src_out}."
+                            )
                             continue
                         raise e
         finally:

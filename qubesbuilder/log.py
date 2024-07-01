@@ -54,7 +54,12 @@ class ConsoleFormatter(logging.Formatter):
 
     def __init__(self, fmt, *args, **kwargs):
         if fmt is None:
-            fmt = "{grey}%(asctime)s " "{cyan}[%(name)s] " "$COLOR%(message)s" "{reset}"
+            fmt = (
+                "{grey}%(asctime)s "
+                "{cyan}[%(name)s] "
+                "$COLOR%(message)s"
+                "{reset}"
+            )
             fmt = fmt.format(**self.colors)
         super().__init__(fmt, *args, **kwargs)
 
@@ -101,7 +106,9 @@ class BriefConsoleFormatter(ConsoleFormatter):
         return result
 
 
-def init_logging(console: bool = True, file_path: Path = None, level: str = "DEBUG"):
+def init_logging(
+    console: bool = True, file_path: Path = None, level: str = "DEBUG"
+):
     """
     Configure logging module.
     """

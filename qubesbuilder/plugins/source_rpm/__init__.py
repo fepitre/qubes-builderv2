@@ -60,7 +60,9 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
         # Add some environment variables needed to render mock root configuration
         # FIXME: Review legacy usage of "dom0" in components.
@@ -70,7 +72,8 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 "DIST": self.dist.name,
                 "PACKAGE_SET": (
                     self.dist.package_set.replace("host", "dom0")
-                    if str(self.config.use_qubes_repo.get("version", None)) == "4.1"
+                    if str(self.config.use_qubes_repo.get("version", None))
+                    == "4.1"
                     else self.dist.package_set
                 ),
             }
@@ -133,7 +136,9 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             build_bn = build.mangle()
 
             # generate expected artifacts info filename for sanity checks
-            artifacts_info_filename = self.get_artifacts_info_filename(stage, build_bn)
+            artifacts_info_filename = self.get_artifacts_info_filename(
+                stage, build_bn
+            )
 
             # Generate %{name}-%{version}-%{release} and %Source0
             copy_in = self.default_copy_in(
@@ -157,7 +162,9 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 f"{source_dir} {source_dir / build} {dist_tag}"
             ]
             try:
-                executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(
+                    cmd, copy_in, copy_out, environment=self.environment
+                )
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to get source information: {str(e)}."
                 raise SourceError(msg) from e
@@ -210,9 +217,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             # Run 'mock' to generate source RPM
             cmd = []
 
-            mock_conf = (
-                f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
-            )
+            mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
 
             # Add prepared chroot cache
             chroot_cache_topdir = (
@@ -221,10 +226,14 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():
                 copy_in += [(chroot_cache_topdir, executor.get_cache_dir())]
-                cmd += [f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"]
+                cmd += [
+                    f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"
+                ]
 
             if self.component.is_salt():
-                if not (self.component.source_dir / "Makefile.install").exists():
+                if not (
+                    self.component.source_dir / "Makefile.install"
+                ).exists():
                     copy_in += [
                         (
                             self.manager.entities["source"].directory
@@ -328,7 +337,9 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                         "source-hash": self.component.get_source_hash(),
                     }
                 )
-                self.save_dist_artifacts_info(stage=stage, basename=build_bn, info=info)
+                self.save_dist_artifacts_info(
+                    stage=stage, basename=build_bn, info=info
+                )
 
                 # Clean temporary directory
                 shutil.rmtree(temp_dir)

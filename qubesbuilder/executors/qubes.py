@@ -62,7 +62,9 @@ def build_run_cmd_and_list(
 
 
 class QubesExecutor(Executor):
-    def __init__(self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs):
+    def __init__(
+        self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs
+    ):
         self._dispvm = dispvm
         self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._kwargs = kwargs
@@ -131,7 +133,9 @@ class QubesExecutor(Executor):
 
             if dig_holes and not dst_path.is_dir():
                 log.debug("copy-out (detect zeroes and replace with holes)")
-                subprocess.run(["/usr/bin/fallocate", "-d", str(dst_path)], check=True)
+                subprocess.run(
+                    ["/usr/bin/fallocate", "-d", str(dst_path)], check=True
+                )
         except subprocess.CalledProcessError as e:
             if e.stderr is not None:
                 msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
@@ -140,7 +144,9 @@ class QubesExecutor(Executor):
 
 
 class LinuxQubesExecutor(QubesExecutor):
-    def __init__(self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs):
+    def __init__(
+        self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs
+    ):
         super().__init__(dispvm=dispvm, clean=clean, **kwargs)
 
     def run(  # type: ignore
@@ -156,7 +162,12 @@ class LinuxQubesExecutor(QubesExecutor):
         dispvm = None
         try:
             result = subprocess.run(
-                ["qrexec-client-vm", "--", self._dispvm, "admin.vm.CreateDisposable"],
+                [
+                    "qrexec-client-vm",
+                    "--",
+                    self._dispvm,
+                    "admin.vm.CreateDisposable",
+                ],
                 capture_output=True,
                 stdin=subprocess.DEVNULL,
             )
@@ -194,7 +205,10 @@ class LinuxQubesExecutor(QubesExecutor):
                 str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyOut"),
             ]
             subprocess.run(
-                copy_rpc_cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True
+                copy_rpc_cmd,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                check=True,
             )
 
             prep_cmd = build_run_cmd_and_list(
@@ -247,7 +261,9 @@ class LinuxQubesExecutor(QubesExecutor):
             subprocess.run(prep_cmd, stdin=subprocess.DEVNULL)
 
             # copy-in hook
-            for src_in, dst_in in sorted(set(copy_in or []), key=lambda x: x[1]):
+            for src_in, dst_in in sorted(
+                set(copy_in or []), key=lambda x: x[1]
+            ):
                 self.copy_in(dispvm, source_path=src_in, destination_dir=dst_in)
 
             # replace placeholders
@@ -324,7 +340,9 @@ class LinuxQubesExecutor(QubesExecutor):
                 )
 
             # copy-out hook
-            for src_out, dst_out in sorted(set(copy_out or []), key=lambda x: x[1]):
+            for src_out, dst_out in sorted(
+                set(copy_out or []), key=lambda x: x[1]
+            ):
                 try:
                     self.copy_out(
                         dispvm,
@@ -334,10 +352,17 @@ class LinuxQubesExecutor(QubesExecutor):
                     )
                 except ExecutorError as e:
                     # Ignore copy-out failure if requested
-                    if isinstance(no_fail_copy_out_allowed_patterns, list) and any(
-                        [p in src_out.name for p in no_fail_copy_out_allowed_patterns]
+                    if isinstance(
+                        no_fail_copy_out_allowed_patterns, list
+                    ) and any(
+                        [
+                            p in src_out.name
+                            for p in no_fail_copy_out_allowed_patterns
+                        ]
                     ):
-                        log.warning(f"File not found inside container: {src_out}.")
+                        log.warning(
+                            f"File not found inside container: {src_out}."
+                        )
                         continue
                     raise e
         finally:
