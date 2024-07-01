@@ -22,9 +22,11 @@ HASH_RE = re.compile(r"[a-f0-9]{40}")
 @pytest.fixture(scope="session")
 def artifacts_dir():
     if os.environ.get("BASE_ARTIFACTS_DIR"):
-        tmpdir = tempfile.mktemp("github-", dir=os.environ.get("BASE_ARTIFACTS_DIR"))
+        tmpdir = tempfile.mktemp(
+            prefix="github-", dir=os.environ.get("BASE_ARTIFACTS_DIR")
+        )
     else:
-        tmpdir = tempfile.mktemp("github-")
+        tmpdir = tempfile.mktemp(prefix="github-")
     artifacts_dir = pathlib.Path(tmpdir) / "artifacts"
     if not artifacts_dir.exists():
         artifacts_dir.mkdir(parents=True)

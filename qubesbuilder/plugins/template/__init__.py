@@ -420,7 +420,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             ]
             executor.run(cmd)
         except ExecutorError as e:
-            msg = f"{self.template.name}: Failed to create metalink for '{repomd}'."
+            msg = f"{self.template.name}: Failed to create metalink for '{repomd}': {str(e)}."
             self.log.error(msg)
 
     def publish(self, executor, db_path, repository_publish):
