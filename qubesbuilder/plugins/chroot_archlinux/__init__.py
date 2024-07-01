@@ -129,6 +129,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
             {
                 "DIST": self.dist.name,
                 "PACKAGE_SET": self.dist.package_set,
+                "TERM": "dumb"
             }
         )
         copy_out = [
