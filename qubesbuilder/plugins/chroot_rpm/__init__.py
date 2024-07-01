@@ -145,7 +145,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
                 )
             ]
             for package in additional_packages:
-                mock_cmd += ["--install", package]
+                mock_cmd += ["--install", f"'{package}'"]
             cmd.append(" ".join(mock_cmd))
             try:
                 executor.run(
