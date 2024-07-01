@@ -96,8 +96,15 @@ def provision_local_repository(
         buildinfo_path = build_artifacts_dir / "rpm" / source_info["buildinfo"]
         target_path = target_dir / source_info["buildinfo"]
         os.link(buildinfo_path, target_path)
-    except (ValueError, PermissionError, NotImplementedError, FileExistsError) as e:
-        msg = f"{component}:{dist}:{build}: Failed to provision local repository."
+    except (
+        ValueError,
+        PermissionError,
+        NotImplementedError,
+        FileExistsError,
+    ) as e:
+        msg = (
+            f"{component}:{dist}:{build}: Failed to provision local repository."
+        )
         raise BuildError(msg) from e
 
 
@@ -124,7 +131,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
         # Add some environment variables needed to render mock root configuration
         self.environment.update(
@@ -132,7 +141,8 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 "DIST": self.dist.name,
                 "PACKAGE_SET": (
                     self.dist.package_set.replace("host", "dom0")
-                    if str(self.config.use_qubes_repo.get("version", None)) == "4.1"
+                    if str(self.config.use_qubes_repo.get("version", None))
+                    == "4.1"
                     else self.dist.package_set
                 ),
             }
@@ -144,7 +154,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                         self.config.use_qubes_repo.get("version", None)
                     ),
                     "USE_QUBES_REPO_TESTING": (
-                        "1" if self.config.use_qubes_repo.get("testing", None) else "0"
+                        "1"
+                        if self.config.use_qubes_repo.get("testing", None)
+                        else "0"
                     ),
                 }
             )
@@ -203,7 +215,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             build_bn = build.mangle()
 
             # Read information from source stage
-            source_info = self.get_dist_artifacts_info(stage="prep", basename=build_bn)
+            source_info = self.get_dist_artifacts_info(
+                stage="prep", basename=build_bn
+            )
 
             if not source_info.get("srpm", None):
                 raise BuildError(
@@ -244,9 +258,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             ]
 
             # Run 'mock' to build source RPM
-            mock_conf = (
-                f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
-            )
+            mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
             # Add prepared chroot cache
             chroot_cache_topdir = (
                 self.get_cache_dir() / "chroot" / self.dist.name / "mock"
@@ -254,7 +266,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():
                 copy_in += [(chroot_cache_topdir, executor.get_cache_dir())]
-                cmd += [f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"]
+                cmd += [
+                    f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"
+                ]
 
             if self.config.increment_devel_versions:
                 dist_tag = f"{self.component.devel}.{self.dist.tag}"
@@ -283,9 +297,13 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 mock_cmd.append("--isolation=nspawn")
             if self.config.verbose:
                 mock_cmd.append("--verbose")
-            if self.config.use_qubes_repo and self.config.use_qubes_repo.get("version"):
+            if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
+                "version"
+            ):
                 mock_cmd.append("--enablerepo=qubes-current")
-            if self.config.use_qubes_repo and self.config.use_qubes_repo.get("testing"):
+            if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
+                "testing"
+            ):
                 mock_cmd.append("--enablerepo=qubes-current-testing")
             if chroot_cache.exists():
                 mock_cmd.append("--plugin-option=root_cache:age_check=False")
@@ -320,7 +338,10 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                     copy_in,
                     copy_out,
                     environment=self.environment,
-                    no_fail_copy_out_allowed_patterns=["-debugsource", "-debuginfo"],
+                    no_fail_copy_out_allowed_patterns=[
+                        "-debugsource",
+                        "-debuginfo",
+                    ],
                     files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
                 )
             except ExecutorError as e:
@@ -358,7 +379,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             )
 
             # Save package information we parsed for next stages
-            self.save_dist_artifacts_info(stage=stage, basename=build_bn, info=info)
+            self.save_dist_artifacts_info(
+                stage=stage, basename=build_bn, info=info
+            )
 
 
 PLUGINS = [RPMBuildPlugin]

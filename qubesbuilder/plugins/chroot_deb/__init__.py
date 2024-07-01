@@ -57,7 +57,9 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
 
         executor = self.get_executor(stage)
 
-        chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder"
+        chroot_dir = (
+            self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder"
+        )
         chroot_dir.mkdir(exist_ok=True, parents=True)
 
         if (chroot_dir / "base.tgz").exists():
@@ -149,7 +151,9 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
                     files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
                 )
             except ExecutorError as e:
-                msg = f"{self.dist}: Failed to download extra packages: {str(e)}."
+                msg = (
+                    f"{self.dist}: Failed to download extra packages: {str(e)}."
+                )
                 raise ChrootError(msg) from e
 
 

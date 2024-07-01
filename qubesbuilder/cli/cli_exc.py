@@ -38,4 +38,6 @@ class CliError(QubesBuilderError, click.ClickException):
     def show(self, file: Optional[IO] = None) -> None:
         if file is None:
             file = get_text_stderr()
-        click.secho(gettext(f"ERROR: {self.format_message()}"), file=file, fg="red")
+        click.secho(
+            gettext(f"ERROR: {self.format_message()}"), file=file, fg="red"
+        )

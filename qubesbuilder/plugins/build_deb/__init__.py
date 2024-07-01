@@ -62,7 +62,9 @@ def provision_local_repository(
 
         # deb
         files = [build_artifacts_dir / deb for deb in packages_list]
-        files += [build_artifacts_dir / source_info[f] for f in debian_source_files]
+        files += [
+            build_artifacts_dir / source_info[f] for f in debian_source_files
+        ]
 
         # changes and buildinfo
         files += [
@@ -103,7 +105,9 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     def run(self, stage: str):
         """
@@ -215,7 +219,8 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             #     (results_dir / source_info[f], artifacts_dir) for f in debian_source_files
             # ]
             copy_out += [
-                (results_dir / deb, artifacts_dir) for deb in source_info["packages"]
+                (results_dir / deb, artifacts_dir)
+                for deb in source_info["packages"]
             ]
 
             # Create local builder repository
@@ -244,7 +249,9 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
                 )
                 qubes_version = self.config.use_qubes_repo["version"]
                 extra_sources = f"{extra_sources}|deb [arch=amd64] https://{repo_server}/r{qubes_version}/vm {self.dist.name} main"
-                keyring_file = f"qubes-{self.dist.fullname}-r{qubes_version}.asc"
+                keyring_file = (
+                    f"qubes-{self.dist.fullname}-r{qubes_version}.asc"
+                )
                 cmd += [
                     f"gpg --dearmor "
                     f"< {executor.get_plugins_dir()}/chroot_deb/keys/{keyring_file} "
@@ -323,7 +330,9 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
 
             # We prefer to keep originally copied in source to cross-check
             # what's inside the resulting .changes file.
-            files = [prep_artifacts_dir / source_info[f] for f in debian_source_files]
+            files = [
+                prep_artifacts_dir / source_info[f] for f in debian_source_files
+            ]
             for file in files:
                 target_path = artifacts_dir / file.name
                 shutil.copy2(file, target_path)
@@ -344,7 +353,9 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             info = source_info
             info["packages"] = packages_list
             info["source-hash"] = self.component.get_source_hash()
-            self.save_dist_artifacts_info(stage=stage, basename=directory_bn, info=info)
+            self.save_dist_artifacts_info(
+                stage=stage, basename=directory_bn, info=info
+            )
 
 
 PLUGINS = [DEBBuildPlugin]

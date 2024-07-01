@@ -82,7 +82,9 @@ def main(args):
     if not re.match(r"^[A-Za-z][A-Za-z0-9/._-]+$", args.git_branch):
         raise ValueError(f"Invalid branch {args.git_branch}")
     elif not re.match(r"^/[A-Za-z][A-Za-z0-9-/_]*$", args.component_directory):
-        raise ValueError(f"Invalid repository directory {args.component_directory}")
+        raise ValueError(
+            f"Invalid repository directory {args.component_directory}"
+        )
 
     git_url = args.component_repository
     repo = Path(args.component_directory).expanduser().resolve()
@@ -94,7 +96,9 @@ def main(args):
     fetch_only = args.fetch_only
     ignore_missing = args.ignore_missing
     insecure_skip_checking = args.insecure_skip_checking
-    less_secure_signed_commits_sufficient = args.less_secure_signed_commits_sufficient
+    less_secure_signed_commits_sufficient = (
+        args.less_secure_signed_commits_sufficient
+    )
     fetch_versions_only = args.fetch_versions_only
     maintainers = args.maintainer or []
     minimum_distinct_maintainers = int(args.minimum_distinct_maintainers)
@@ -107,7 +111,9 @@ def main(args):
     elif Path(gpg).exists():
         gpg_client = gpg
     else:
-        raise ValueError("Cannot find GnuPG or GnuPG-compatible Sequoia Chameleon.")
+        raise ValueError(
+            "Cannot find GnuPG or GnuPG-compatible Sequoia Chameleon."
+        )
 
     # Validity check on provided maintainers
     for maintainer in maintainers:
@@ -168,7 +174,16 @@ def main(args):
             shutil.rmtree(repo)
         try:
             subprocess.run(
-                ["git", "clone", "-n", "-q", "-b", git_branch, git_url, str(repo)],
+                [
+                    "git",
+                    "clone",
+                    "-n",
+                    "-q",
+                    "-b",
+                    git_branch,
+                    git_url,
+                    str(repo),
+                ],
                 capture_output=True,
                 check=True,
             )
@@ -274,7 +289,12 @@ def main(args):
             "%(if:equals=tag)%(objecttype)%(then)%(objectname):%(object):%(end)"
         )
         tags = subprocess.run(  # type: ignore
-            ["git", "tag", f"--points-at={expected_hash}", f"--format={format_str}"],
+            [
+                "git",
+                "tag",
+                f"--points-at={expected_hash}",
+                f"--format={format_str}",
+            ],
             capture_output=True,
             text=True,
             cwd=repo,
@@ -284,7 +304,9 @@ def main(args):
         verified_tags = set()
         for tag in tags.split():  # type: ignore
             if len(tag) != hash_len * 2 + 2:
-                raise ValueError("---> Bad Git hash value (wrong length); failing")
+                raise ValueError(
+                    "---> Bad Git hash value (wrong length); failing"
+                )
             elif tag[hash_len:] != f":{expected_hash}:":
                 raise ValueError(
                     f"---> Tag has wrong hash (found {tag[hash_len + 1:hash_len]}, expected {expected_hash})"
@@ -358,7 +380,13 @@ def main(args):
             )
             if not fresh_clone:
                 subprocess.run(
-                    ["git", "merge-base", "--is-ancestor", git_branch, verify_ref],
+                    [
+                        "git",
+                        "merge-base",
+                        "--is-ancestor",
+                        git_branch,
+                        verify_ref,
+                    ],
                     capture_output=True,
                     text=True,
                     cwd=repo,
@@ -403,7 +431,10 @@ def main(args):
     if (repo / ".gitmodules").exists():
         print("--> Updating submodules")
         subprocess.run(
-            ["git", "submodule", "init"], check=True, cwd=repo, capture_output=True
+            ["git", "submodule", "init"],
+            check=True,
+            cwd=repo,
+            capture_output=True,
         )
         subprocess.run(
             ["git", "submodule", "update", "--recursive"],
@@ -417,7 +448,9 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # mandatory args
-    parser.add_argument("component_repository", help="The repository to clone from.")
+    parser.add_argument(
+        "component_repository", help="The repository to clone from."
+    )
     parser.add_argument(
         "component_directory",
         help="The name of a new directory to clone into.",
@@ -441,7 +474,9 @@ def get_args():
         help="Remove previous sources (use git up vs git clone).",
     )
     parser.add_argument(
-        "--fetch-only", action="store_true", help="Fetch sources but do not merge."
+        "--fetch-only",
+        action="store_true",
+        help="Fetch sources but do not merge.",
     )
     parser.add_argument(
         "--fetch-versions-only",

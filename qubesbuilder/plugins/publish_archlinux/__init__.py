@@ -51,10 +51,14 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     def sign_metadata(self, executor, directory, sign_key, repository_db):
-        self.log.info(f"{self.component}:{self.dist}:{directory}: Signing metadata.")
+        self.log.info(
+            f"{self.component}:{self.dist}:{directory}: Signing metadata."
+        )
         repository_db_sig = repository_db.with_suffix(".gz.sig")
         cmd = [
             f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repository_db} > {repository_db_sig}",
@@ -67,18 +71,24 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
             msg = f"{self.component}:{self.dist}:{directory}:  Failed to sign metadata"
             raise PublishError(msg) from e
 
-    def publish(self, executor, directory, keyring_dir, sign_key, repository_publish):
+    def publish(
+        self, executor, directory, keyring_dir, sign_key, repository_publish
+    ):
         # directory basename will be used as prefix for some artifacts
         directory_bn = directory.mangle()
 
         # Build artifacts (source included)
-        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(
+            stage="build"
+        )
 
         # Publish repository
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
         # Read information from build stage
-        build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
+        build_info = self.get_dist_artifacts_info(
+            stage="build", basename=directory_bn
+        )
 
         if not build_info.get("packages", None):
             self.log.info(
@@ -86,7 +96,9 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
             )
             return
 
-        self.log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
+        self.log.info(
+            f"{self.component}:{self.dist}:{directory}: Publishing packages."
+        )
 
         packages_list = [
             build_artifacts_dir / "pkgs" / pkg for pkg in build_info["packages"]
@@ -99,12 +111,12 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
             )
             cmd = []
             for pkg in packages_list:
-                cmd += [f"gpg2 -q --homedir {keyring_dir} --verify {pkg}.sig {pkg}"]
+                cmd += [
+                    f"gpg2 -q --homedir {keyring_dir} --verify {pkg}.sig {pkg}"
+                ]
             executor.run(cmd)
         except ExecutorError as e:
-            msg = (
-                f"{self.component}:{self.dist}:{directory}: Failed to check signatures."
-            )
+            msg = f"{self.component}:{self.dist}:{directory}: Failed to check signatures."
             raise PublishError(msg) from e
 
         # Publishing packages
@@ -134,9 +146,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 cmd += [f"repo-add {repository_db} {pkg}"]
             executor.run(cmd)
         except ExecutorError as e:
-            msg = (
-                f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
-            )
+            msg = f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
             raise PublishError(msg) from e
 
         self.sign_metadata(executor, directory, sign_key, repository_db)
@@ -146,13 +156,17 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         directory_bn = directory.mangle()
 
         # Build artifacts (source included)
-        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(
+            stage="build"
+        )
 
         # Publish repository
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
 
         # Read information from build stage
-        build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
+        build_info = self.get_dist_artifacts_info(
+            stage="build", basename=directory_bn
+        )
 
         if not build_info.get("packages", None):
             self.log.info(
@@ -196,9 +210,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 cmd += [f"repo-remove {repository_db} {pkg_name}"]
             executor.run(cmd)
         except ExecutorError as e:
-            msg = (
-                f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
-            )
+            msg = f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
             raise PublishError(msg) from e
 
         self.sign_metadata(executor, directory, sign_key, repository_db)
@@ -228,12 +240,16 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
             self.dist.distribution, None
         ) or self.config.sign_key.get("archlinux", None)
         if not sign_key:
-            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(
+                f"{self.component}:{self.dist}: No signing key found."
+            )
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            self.log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(
+                f"{self.component}: Please specify GPG client to use!"
+            )
             return
 
         # Sign artifacts
@@ -242,8 +258,9 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         # Keyring used for signing
         keyring_dir = sign_artifacts_dir / "keyring"
 
-        repository_publish = repository_publish or self.config.repository_publish.get(
-            "components"
+        repository_publish = (
+            repository_publish
+            or self.config.repository_publish.get("components")
         )
         if not repository_publish:
             raise PublishError("Cannot determine repository for publish")
@@ -309,7 +326,9 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                         self.log.info(
                             f"{self.component}:{self.dist}:{directory}: Current build hash does not match previous one."
                         )
-                        for repository in publish_info.get("repository-publish", []):
+                        for repository in publish_info.get(
+                            "repository-publish", []
+                        ):
                             self.unpublish(
                                 executor=executor,
                                 directory=directory,
@@ -375,7 +394,9 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 ]
                 if publish_info.get("repository-publish", []):
                     self.save_dist_artifacts_info(
-                        stage="publish", basename=directory_bn, info=publish_info
+                        stage="publish",
+                        basename=directory_bn,
+                        info=publish_info,
                     )
                 else:
                     self.log.info(

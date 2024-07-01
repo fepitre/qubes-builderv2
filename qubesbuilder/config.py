@@ -101,7 +101,9 @@ class Config:
         self._artifacts_dir: Path = None  # type: ignore
 
         # Plugins directories
-        self._plugins_dirs: List[Path] = [PROJECT_PATH / "qubesbuilder" / "plugins"]
+        self._plugins_dirs: List[Path] = [
+            PROJECT_PATH / "qubesbuilder" / "plugins"
+        ]
 
     # fmt: off
     # Mypy does not support this form yet (see https://github.com/python/mypy/issues/8083).
@@ -136,7 +138,9 @@ class Config:
     @classmethod
     def _load_config(cls, conf_file: Path, options: dict = None):
         if not conf_file.exists():
-            raise ConfigError(f"Cannot find builder configuration '{conf_file}'.")
+            raise ConfigError(
+                f"Cannot find builder configuration '{conf_file}'."
+            )
         try:
             conf = yaml.safe_load(conf_file.read_text())
         except yaml.YAMLError as e:
@@ -176,7 +180,9 @@ class Config:
                     ):
                         combined_conf[key] = data[key]
                     elif isinstance(combined_conf[key], dict):
-                        combined_conf[key] = deep_merge(combined_conf[key], data[key])
+                        combined_conf[key] = deep_merge(
+                            combined_conf[key], data[key]
+                        )
 
         # Override included values from main config
         for key in conf:
@@ -195,7 +201,9 @@ class Config:
                 ):
                     combined_conf[key] = conf[key]
                 elif isinstance(combined_conf[key], dict):
-                    combined_conf[key] = deep_merge(combined_conf[key], conf[key])
+                    combined_conf[key] = deep_merge(
+                        combined_conf[key], conf[key]
+                    )
 
         # Allow options to override only values that can be merged
         if options and isinstance(options, dict):
@@ -247,7 +255,9 @@ class Config:
                         merged_result[s] = {}
                     if isinstance(s, dict):
                         if not merged_result.get(next(iter(s.keys())), None):
-                            merged_result[next(iter(s.keys()))] = next(iter(s.values()))
+                            merged_result[next(iter(s.keys()))] = next(
+                                iter(s.values())
+                            )
                         else:
                             merged_result[next(iter(s.keys()))] = deep_merge(
                                 merged_result[next(iter(s.keys()))],
@@ -299,7 +309,9 @@ class Config:
     def get_templates(self, filtered_templates=None):
         if not self._templates:
             templates = self._conf.get("templates", [])
-            self._templates = [QubesTemplate(template) for template in templates]
+            self._templates = [
+                QubesTemplate(template) for template in templates
+            ]
         if filtered_templates:
             result = []
             for ft in filtered_templates:
@@ -317,7 +329,9 @@ class Config:
             # Load available component information from config
             components_from_config = []
             for c in self._conf.get("components", []):
-                components_from_config.append(self.get_component_from_dict_or_string(c))
+                components_from_config.append(
+                    self.get_component_from_dict_or_string(c)
+                )
 
             self._components = components_from_config
 
@@ -345,7 +359,9 @@ class Config:
     def artifacts_dir(self):
         if not self._artifacts_dir:
             if self._conf.get("artifacts-dir", None):
-                self._artifacts_dir = Path(self._conf["artifacts-dir"]).resolve()
+                self._artifacts_dir = Path(
+                    self._conf["artifacts-dir"]
+                ).resolve()
             else:
                 self._artifacts_dir = PROJECT_PATH / "artifacts"
         return self._artifacts_dir
@@ -397,9 +413,9 @@ class Config:
                             and next(iter(stage)) == stage_name
                             and isinstance(stage[stage_name], dict)
                         ):
-                            distribution_executor_options = stage[stage_name].get(
-                                "executor", {}
-                            )
+                            distribution_executor_options = stage[
+                                stage_name
+                            ].get("executor", {})
                             break
 
         if component and isinstance(component, QubesComponent):
@@ -408,17 +424,19 @@ class Config:
                     distribution_stages = []
                     package_set_stages = []
                     if dist and dist.distribution in comp.kwargs:
-                        distribution_stages = comp.kwargs[dist.distribution].get(
-                            "stages", []
-                        )
+                        distribution_stages = comp.kwargs[
+                            dist.distribution
+                        ].get("stages", [])
                     if dist and dist.package_set in comp.kwargs:
-                        package_set_stages = comp.kwargs.get(dist.package_set, {}).get(
-                            "stages", []
-                        )
+                        package_set_stages = comp.kwargs.get(
+                            dist.package_set, {}
+                        ).get("stages", [])
                     component_stages = comp.kwargs.get("stages", [])
 
                     for stage in (
-                        component_stages + package_set_stages + distribution_stages
+                        component_stages
+                        + package_set_stages
+                        + distribution_stages
                     ):
                         if (
                             isinstance(stage, dict)
@@ -461,10 +479,14 @@ class Config:
             TemplatePlugin,
         ] = None,
     ):
-        executor_options = self.get_executor_options_from_config(stage_name, plugin)
+        executor_options = self.get_executor_options_from_config(
+            stage_name, plugin
+        )
         executor = self.get_executor(executor_options)
         if not executor:
-            raise ConfigError("No defined executor found in configuration file.")
+            raise ConfigError(
+                "No defined executor found in configuration file."
+            )
         return executor
 
     def get_component_from_dict_or_string(
@@ -557,5 +579,7 @@ class Config:
             self.qubes_release
         ) or QUBES_RELEASE_RE.match(QUBES_RELEASE_DEFAULT)
         if not parsed_release:
-            raise ConfigError(f"Cannot parse Qubes OS release: '{self.qubes_release}'")
+            raise ConfigError(
+                f"Cannot parse Qubes OS release: '{self.qubes_release}'"
+            )
         return parsed_release

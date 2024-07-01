@@ -318,7 +318,9 @@ def test_template():
     assert template.distribution.version == "42"
     assert template.distribution.package_set == "vm"
 
-    repr_str = "<QubesTemplate fedora-42-xfce (options: no-recommends,hardened)>"
+    repr_str = (
+        "<QubesTemplate fedora-42-xfce (options: no-recommends,hardened)>"
+    )
     assert template.to_str() == "fedora-42-xfce"
     assert str(template) == "fedora-42-xfce"
     assert repr(template) == repr_str
@@ -364,7 +366,8 @@ def test_qubes_template_init_with_invalid_distribution():
         QubesTemplate(template_dict)
 
     assert (
-        str(exc_info.value) == "Invalid provided distribution for template 'fedora-42'."
+        str(exc_info.value)
+        == "Invalid provided distribution for template 'fedora-42'."
     )
 
 
@@ -384,11 +387,14 @@ def test_qubes_template_to_str():
 
 
 def test_qubes_template_repr_with_options():
-    template_dict = {"fedora-42": {"dist": "fc42", "options": ["option1", "option2"]}}
+    template_dict = {
+        "fedora-42": {"dist": "fc42", "options": ["option1", "option2"]}
+    }
     qubes_template = QubesTemplate(template_dict)
 
     assert (
-        repr(qubes_template) == "<QubesTemplate fedora-42 (options: option1,option2)>"
+        repr(qubes_template)
+        == "<QubesTemplate fedora-42 (options: option1,option2)>"
     )
 
 
@@ -531,13 +537,21 @@ def test_config_components_filter():
             "component2",
             "component3",
         ]
-        assert [c.name for c in config.get_components(["component2"])] == ["component2"]
-        assert [c.name for c in config.get_components(["component1"])] == ["component1"]
-        assert [c.name for c in config.get_components(["component1"], True)] == [
+        assert [c.name for c in config.get_components(["component2"])] == [
+            "component2"
+        ]
+        assert [c.name for c in config.get_components(["component1"])] == [
+            "component1"
+        ]
+        assert [
+            c.name for c in config.get_components(["component1"], True)
+        ] == [
             "component1",
             "component3",
         ]
-        assert [c.name for c in config.get_components(["component3"])] == ["component3"]
+        assert [c.name for c in config.get_components(["component3"])] == [
+            "component3"
+        ]
         with pytest.raises(ConfigError):
             config.get_components(["no-such-component"])
 
@@ -559,11 +573,12 @@ def test_config_distributions_filter():
             "vm-bullseye",
             "host-fc37",
         ]
-        assert [d.distribution for d in config.get_distributions(["vm-fc40"])] == [
-            "vm-fc40"
-        ]
         assert [
-            d.distribution for d in config.get_distributions(["vm-fc40", "host-fc37"])
+            d.distribution for d in config.get_distributions(["vm-fc40"])
+        ] == ["vm-fc40"]
+        assert [
+            d.distribution
+            for d in config.get_distributions(["vm-fc40", "host-fc37"])
         ] == [
             "vm-fc40",
             "host-fc37",
@@ -596,9 +611,12 @@ def test_config_templates_filter():
             "centos-stream-8",
             "debian-11",
         ]
-        assert [t.name for t in config.get_templates(["debian-11"])] == ["debian-11"]
+        assert [t.name for t in config.get_templates(["debian-11"])] == [
+            "debian-11"
+        ]
         assert [
-            t.name for t in config.get_templates(["fedora-40-xfce", "debian-11"])
+            t.name
+            for t in config.get_templates(["fedora-40-xfce", "debian-11"])
         ] == [
             "fedora-40-xfce",
             "debian-11",
@@ -770,12 +788,16 @@ branch: release4.2
         config = Config(config_file_main.name)
         component = config.get_components(["kernel-latest"])[0]
         assert component.branch == "main"
-        assert component.maintainers == ["77EEEF6D0386962AEA8CF84A9B8273F80AC219E6"]
+        assert component.maintainers == [
+            "77EEEF6D0386962AEA8CF84A9B8273F80AC219E6"
+        ]
 
 
 def test_config_example_configs():
     with tempfile.TemporaryDirectory() as tmpdir:
-        shutil.copytree(PROJECT_PATH / "example-configs", f"{tmpdir}/example-configs")
+        shutil.copytree(
+            PROJECT_PATH / "example-configs", f"{tmpdir}/example-configs"
+        )
         with tempfile.NamedTemporaryFile("w", dir=tmpdir) as config_file_main:
             config_file_main.write(
                 f"""include:
@@ -894,7 +916,9 @@ def test_config_executor():
                 "options": {"clean": False, "dispvm": "qubes-builder-dvm"},
             }
 
-            build_options = config.get_executor_options_from_config("build", plugin)
+            build_options = config.get_executor_options_from_config(
+                "build", plugin
+            )
             assert build_options == {
                 "type": "podman",
                 "options": {
@@ -904,7 +928,9 @@ def test_config_executor():
                 },
             }
 
-            sign_options = config.get_executor_options_from_config("sign", plugin)
+            sign_options = config.get_executor_options_from_config(
+                "sign", plugin
+            )
             assert sign_options == {
                 "type": "qubes",
                 "options": {"clean": False, "dispvm": "signing-access-dvm"},
@@ -912,10 +938,15 @@ def test_config_executor():
 
             # build for DEB
             plugin = DistributionComponentPlugin(
-                component=component, dist=debdist, config=config, manager=manager
+                component=component,
+                dist=debdist,
+                config=config,
+                manager=manager,
             )
 
-            build_options = config.get_executor_options_from_config("build", plugin)
+            build_options = config.get_executor_options_from_config(
+                "build", plugin
+            )
             assert build_options == {
                 "type": "podman",
                 "options": {
@@ -974,10 +1005,15 @@ def test_config_executor_include_dist_no_dict():
 
             component = QubesComponent(source_dir)
             plugin = DistributionComponentPlugin(
-                component=component, dist=debdist, config=config, manager=manager
+                component=component,
+                dist=debdist,
+                config=config,
+                manager=manager,
             )
 
-            build_options = config.get_executor_options_from_config("build", plugin)
+            build_options = config.get_executor_options_from_config(
+                "build", plugin
+            )
             assert build_options == {
                 "type": "podman",
                 "options": {
@@ -1045,10 +1081,15 @@ def test_config_executor_include_dist_dict():
 
             component = QubesComponent(source_dir)
             plugin = DistributionComponentPlugin(
-                component=component, dist=debdist, config=config, manager=manager
+                component=component,
+                dist=debdist,
+                config=config,
+                manager=manager,
             )
 
-            build_options = config.get_executor_options_from_config("build", plugin)
+            build_options = config.get_executor_options_from_config(
+                "build", plugin
+            )
             assert build_options == {
                 "type": "podman",
                 "options": {

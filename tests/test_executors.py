@@ -119,7 +119,9 @@ def test_executor_error():
 
 
 def test_container_simple():
-    executor = ContainerExecutor("docker", "fedora:latest", user="root", group="root")
+    executor = ContainerExecutor(
+        "docker", "fedora:latest", user="root", group="root"
+    )
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a local file with some content
         hello = Path(temp_dir) / "hello.md"
@@ -147,7 +149,9 @@ def test_container_simple():
 
 def test_container_not_running():
     with pytest.raises(ExecutorError) as e:
-        ContainerExecutor("docker", "fedora:latest", base_url="tcp://127.0.0.1:1234")
+        ContainerExecutor(
+            "docker", "fedora:latest", base_url="tcp://127.0.0.1:1234"
+        )
     msg = "Cannot connect to container client."
     assert str(e.value) == msg
 
@@ -250,7 +254,10 @@ def test_qubes_environment():
             cmd,
             copy_in,
             copy_out,
-            environment={"MY_ANSWER": "Hi there!", "MY_QUESTION": "How are you?"},
+            environment={
+                "MY_ANSWER": "Hi there!",
+                "MY_QUESTION": "How are you?",
+            },
         )
 
         # Read modified file that has been copied out from the container

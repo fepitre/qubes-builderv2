@@ -57,7 +57,9 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     def run(self, stage: str):
         """
@@ -77,12 +79,16 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             self.dist.distribution, None
         ) or self.config.sign_key.get("rpm", None)
         if not sign_key:
-            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(
+                f"{self.component}:{self.dist}: No signing key found."
+            )
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            self.log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(
+                f"{self.component}: Please specify GPG client to use!"
+            )
             return
 
         # Sign stage for standard components
@@ -90,7 +96,9 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
         # Source artifacts
         prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
         # Build artifacts
-        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(
+            stage="build"
+        )
 
         # RPMDB
         db_path = self.config.artifacts_dir / f"rpmdb/{sign_key}"
@@ -122,10 +130,16 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             build_bn = build.mangle()
 
             # Read information from build stage
-            build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
+            build_info = self.get_dist_artifacts_info(
+                stage="build", basename=build_bn
+            )
 
-            if not build_info.get("rpms", []) and not build_info.get("srpm", None):
-                self.log.info(f"{self.component}:{self.dist}:{build}: Nothing to sign.")
+            if not build_info.get("rpms", []) and not build_info.get(
+                "srpm", None
+            ):
+                self.log.info(
+                    f"{self.component}:{self.dist}:{build}: Nothing to sign."
+                )
                 continue
 
             packages_list = [
@@ -147,7 +161,9 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
                 msg = f"{self.component}:{self.dist}:{build}: Failed to sign RPMs."
                 raise SignError(msg) from e
 
-            buildinfo_file = build_artifacts_dir / "rpm" / build_info["buildinfo"]
+            buildinfo_file = (
+                build_artifacts_dir / "rpm" / build_info["buildinfo"]
+            )
 
             try:
                 self.log.info(

@@ -53,7 +53,9 @@ class SourcePlugin(DistributionComponentPlugin):
         config: Config,
         manager: PluginManager,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     def update_parameters(self, stage: str):
         super().update_parameters(stage)

@@ -95,7 +95,9 @@ class AliasedGroup(click.Group):
 
         >>> cmd.add_alias(alias='original-command')
         """
-        assert all(alias not in (*self.aliases, *self.commands) for alias in kwargs)
+        assert all(
+            alias not in (*self.aliases, *self.commands) for alias in kwargs
+        )
         self.aliases.update(kwargs)
 
     def format_epilog(self, ctx, formatter):

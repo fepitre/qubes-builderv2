@@ -79,11 +79,14 @@ class InstallerPlugin(DistributionPlugin):
             relative_to=self.get_sources_dir() / "qubes-release",
         )
         self.comps_path = self.config.get_absolute_path_from_config(
-            config.installer_comps, relative_to=self.get_sources_dir() / "qubes-release"
+            config.installer_comps,
+            relative_to=self.get_sources_dir() / "qubes-release",
         )
 
         if not self.kickstart_path.exists():
-            raise InstallerError(f"Cannot find kickstart: '{self.kickstart_path}'")
+            raise InstallerError(
+                f"Cannot find kickstart: '{self.kickstart_path}'"
+            )
 
         if not self.comps_path.exists():
             raise InstallerError(f"Cannot find comps: '{self.comps_path}'")
@@ -105,22 +108,32 @@ class InstallerPlugin(DistributionPlugin):
             # Create timestamp value for "prep" only
             if stage == "prep":
                 if iso_timestamp:
-                    self.iso_timestamp = parsedate(iso_timestamp).strftime("%Y%m%d%H%M")
+                    self.iso_timestamp = parsedate(iso_timestamp).strftime(
+                        "%Y%m%d%H%M"
+                    )
                 else:
-                    self.iso_timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
+                    self.iso_timestamp = datetime.utcnow().strftime(
+                        "%Y%m%d%H%M"
+                    )
                 installer_dir.mkdir(parents=True, exist_ok=True)
                 with open(iso_timestamp_file, "w") as f:
                     f.write(self.iso_timestamp)
             else:
                 # Read information from build stage
                 if not iso_timestamp_file.exists():
-                    raise PluginError(f"{self.dist}: Cannot find build timestamp.")
+                    raise PluginError(
+                        f"{self.dist}: Cannot find build timestamp."
+                    )
                 with open(iso_timestamp_file) as f:
                     data = f.read().splitlines()
                 try:
-                    self.iso_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
+                    self.iso_timestamp = parsedate(data[0]).strftime(
+                        "%Y%m%d%H%M"
+                    )
                 except (dateutil.parser.ParserError, IndexError) as e:
-                    msg = f"{self.dist}: Failed to parse build timestamp format."
+                    msg = (
+                        f"{self.dist}: Failed to parse build timestamp format."
+                    )
                     raise PluginError(msg) from e
         return self.iso_timestamp
 
@@ -147,7 +160,9 @@ class InstallerPlugin(DistributionPlugin):
                         self.config.use_qubes_repo.get("version", None)
                     ),
                     "USE_QUBES_REPO_TESTING": (
-                        "1" if self.config.use_qubes_repo.get("testing", None) else "0"
+                        "1"
+                        if self.config.use_qubes_repo.get("testing", None)
+                        else "0"
                     ),
                 }
             )
@@ -185,7 +200,8 @@ class InstallerPlugin(DistributionPlugin):
 
     def get_installer_artifacts_info(self, stage: str) -> Dict:
         fileinfo = (
-            self.get_installer_dir() / f"{self.dist.name}_{self.iso_name}.{stage}.yml"
+            self.get_installer_dir()
+            / f"{self.dist.name}_{self.iso_name}.{stage}.yml"
         )
         if fileinfo.exists():
             try:
@@ -202,7 +218,8 @@ class InstallerPlugin(DistributionPlugin):
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         try:
             with open(
-                artifacts_dir / f"{self.dist.name}_{self.iso_name}.{stage}.yml", "w"
+                artifacts_dir / f"{self.dist.name}_{self.iso_name}.{stage}.yml",
+                "w",
             ) as f:
                 f.write(yaml.safe_dump(info))
         except (PermissionError, yaml.YAMLError) as e:
@@ -211,7 +228,9 @@ class InstallerPlugin(DistributionPlugin):
 
     def delete_artifacts_info(self, stage: str):
         artifacts_dir = self.get_installer_dir()
-        info_path = artifacts_dir / f"{self.dist.name}_{self.iso_name}.{stage}.yml"
+        info_path = (
+            artifacts_dir / f"{self.dist.name}_{self.iso_name}.{stage}.yml"
+        )
         if info_path.exists():
             info_path.unlink()
 
@@ -231,7 +250,9 @@ class InstallerPlugin(DistributionPlugin):
                     f"{self.dist}: Template {template.name} is not built locally."
                 )
                 continue
-            rpm_path = self.get_templates_dir() / "rpm" / template_info["rpms"][0]
+            rpm_path = (
+                self.get_templates_dir() / "rpm" / template_info["rpms"][0]
+            )
             if not rpm_path.exists():
                 self.log.warning(
                     f"{self.dist}:{template.name}: Cannot find {rpm_path}."
@@ -240,7 +261,10 @@ class InstallerPlugin(DistributionPlugin):
             yield rpm_path, executor.get_repository_dir()
 
     def run(
-        self, stage: str, iso_timestamp: str = None, cache_templates_only: bool = False
+        self,
+        stage: str,
+        iso_timestamp: str = None,
+        cache_templates_only: bool = False,
     ):
         if stage not in self.stages:
             return
@@ -251,9 +275,7 @@ class InstallerPlugin(DistributionPlugin):
 
         executor = self.get_executor(stage)
 
-        mock_conf = (
-            f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
-        )
+        mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
         repository_dir = self.get_repository_dir() / self.dist.distribution
 
         cache_dir = self.get_cache_dir() / "installer"
@@ -282,7 +304,9 @@ class InstallerPlugin(DistributionPlugin):
         try:
             parsed_release = self.config.parse_qubes_release()
         except ConfigError as e:
-            raise InstallerError(f"Cannot determine template version: {str(e)}") from e
+            raise InstallerError(
+                f"Cannot determine template version: {str(e)}"
+            ) from e
 
         templates = [
             f"qubes-template-{t}-{parsed_release.group(1)}.0"
@@ -331,12 +355,14 @@ class InstallerPlugin(DistributionPlugin):
                     mock_cmd.append("--isolation=nspawn")
                 if self.config.verbose:
                     mock_cmd.append("--verbose")
-                if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
-                    "version"
+                if (
+                    self.config.use_qubes_repo
+                    and self.config.use_qubes_repo.get("version")
                 ):
                     mock_cmd.append("--enablerepo=qubes-current")
-                if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
-                    "testing"
+                if (
+                    self.config.use_qubes_repo
+                    and self.config.use_qubes_repo.get("testing")
                 ):
                     mock_cmd.append("--enablerepo=qubes-current-testing")
 
@@ -386,7 +412,8 @@ class InstallerPlugin(DistributionPlugin):
                 ]
                 copy_out = [
                     (
-                        executor.get_repository_dir() / templates_cache_dir.name,
+                        executor.get_repository_dir()
+                        / templates_cache_dir.name,
                         temp_dir,
                     )
                 ]
@@ -395,9 +422,13 @@ class InstallerPlugin(DistributionPlugin):
                     f"sudo --preserve-env={','.join(self.environment.keys())} make -C {executor.get_plugins_dir()}/installer iso-parse-kickstart iso-templates-cache",
                 ]
                 try:
-                    executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                    executor.run(
+                        cmd, copy_in, copy_out, environment=self.environment
+                    )
                 except ExecutorError as e:
-                    msg = f"{self.dist}: Failed to download templates: {str(e)}."
+                    msg = (
+                        f"{self.dist}: Failed to download templates: {str(e)}."
+                    )
                     raise InstallerError(msg) from e
 
                 # Merge downloaded templates into the temporary
@@ -421,7 +452,9 @@ class InstallerPlugin(DistributionPlugin):
                         cmd, copy_in=copy_in, environment=self.environment
                     )
                 except ExecutorError as e:
-                    raise InstallerError(f"Failed to update templates cache: {str(e)}.")
+                    raise InstallerError(
+                        f"Failed to update templates cache: {str(e)}."
+                    )
                 finally:
                     shutil.rmtree(temp_dir)
 
@@ -453,11 +486,15 @@ class InstallerPlugin(DistributionPlugin):
             # Add prepared chroot cache
             if chroot_cache.exists():
                 copy_in += [(chroot_cache.parent, executor.get_cache_dir())]
-                cmd += [f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"]
+                cmd += [
+                    f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"
+                ]
 
             # Add downloaded templates into builder-local repository
             if templates_cache_dir.exists():
-                copy_in += [(templates_cache_dir, executor.get_repository_dir())]
+                copy_in += [
+                    (templates_cache_dir, executor.get_repository_dir())
+                ]
 
             copy_out = [
                 (
@@ -496,9 +533,13 @@ class InstallerPlugin(DistributionPlugin):
                 mock_cmd.append("--isolation=nspawn")
             if self.config.verbose:
                 mock_cmd.append("--verbose")
-            if self.config.use_qubes_repo and self.config.use_qubes_repo.get("version"):
+            if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
+                "version"
+            ):
                 mock_cmd.append("--enablerepo=qubes-current")
-            if self.config.use_qubes_repo and self.config.use_qubes_repo.get("testing"):
+            if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
+                "testing"
+            ):
                 mock_cmd.append("--enablerepo=qubes-current-testing")
             if chroot_cache.exists():
                 mock_cmd.append("--plugin-option=root_cache:age_check=False")
@@ -577,7 +618,9 @@ class InstallerPlugin(DistributionPlugin):
             # Add prepared chroot cache
             if chroot_cache.exists():
                 copy_in += [(chroot_cache.parent, executor.get_cache_dir())]
-                cmd += [f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"]
+                cmd += [
+                    f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"
+                ]
 
             copy_out = [
                 (
@@ -646,7 +689,9 @@ class InstallerPlugin(DistributionPlugin):
                 "packages": {
                     "runtime": [
                         pkg.name
-                        for pkg in (cache_dir / self.iso_name / "rpm").glob("*.rpm")
+                        for pkg in (cache_dir / self.iso_name / "rpm").glob(
+                            "*.rpm"
+                        )
                     ],
                     "anaconda": [
                         pkg.name
@@ -682,9 +727,13 @@ class InstallerPlugin(DistributionPlugin):
                 raise InstallerError(msg) from e
 
         if stage == "upload":
-            remote_path = self.config.repository_upload_remote_host.get("iso", None)
+            remote_path = self.config.repository_upload_remote_host.get(
+                "iso", None
+            )
             if not remote_path:
-                self.log.info(f"{self.dist}: No remote location defined. Skipping.")
+                self.log.info(
+                    f"{self.dist}: No remote location defined. Skipping."
+                )
                 return
 
             try:

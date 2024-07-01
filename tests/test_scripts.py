@@ -43,7 +43,12 @@ def home_directory(temp_directory):
 def create_git_repository(repo_dir, env, sign_commit=False, sign_key=None):
     # Initialize the repository
     subprocess.run(
-        ["git", "clone", "https://github.com/qubesos/qubes-core-qrexec", repo_dir],
+        [
+            "git",
+            "clone",
+            "https://github.com/qubesos/qubes-core-qrexec",
+            repo_dir,
+        ],
         check=True,
         capture_output=True,
         env=env,
@@ -92,7 +97,9 @@ def export_key_to_file(key_id, output_dir, gnupg_dir):
 
 
 def create_keys_dir(destination_dir, key_ids, gnupg_dir):
-    shutil.copytree(PROJECT_PATH / "qubesbuilder/plugins/fetch/keys", destination_dir)
+    shutil.copytree(
+        PROJECT_PATH / "qubesbuilder/plugins/fetch/keys", destination_dir
+    )
     for key_id in key_ids:
         export_key_to_file(key_id, destination_dir, gnupg_dir)
 
@@ -122,7 +129,9 @@ def create_dummy_args(
 ):
     args = Namespace()
 
-    maintainers = maintainers if maintainers and isinstance(maintainers, list) else []
+    maintainers = (
+        maintainers if maintainers and isinstance(maintainers, list) else []
+    )
     # Add default maintainers being Marek and Simon
     maintainers += [
         "0064428F455451B3EBE78A7F063938BA42CFA724",
@@ -140,7 +149,9 @@ def create_dummy_args(
     args.ignore_missing = ignore_missing
     args.clean = clean
     args.insecure_skip_checking = insecure_skip_checking
-    args.less_secure_signed_commits_sufficient = less_secure_signed_commits_sufficient
+    args.less_secure_signed_commits_sufficient = (
+        less_secure_signed_commits_sufficient
+    )
     args.maintainer = maintainers
     args.minimum_distinct_maintainers = minimum_distinct_maintainers
     return args
@@ -187,7 +198,9 @@ def test_non_qubesos_repository(capsys, temp_directory):
     with pytest.raises(ValueError) as e:
         get_and_verify_source(args)
     (msg,) = e.value.args
-    assert msg == "---> Invalid commit 961bf3c7bd8cc5dc5335ee91afefbf7feb92c982."
+    assert (
+        msg == "---> Invalid commit 961bf3c7bd8cc5dc5335ee91afefbf7feb92c982."
+    )
 
 
 def test_non_qubesos_repository_with_maintainer_and_no_signed_tags(
@@ -230,7 +243,14 @@ def test_existing_repository_no_version_tags(capsys, temp_directory):
     component_repository = "https://github.com/fepitre/qubes-core-qrexec"
     git_branch = "builderv2-tests-1"
     subprocess.run(
-        ["git", "clone", "-b", git_branch, component_repository, temp_directory],
+        [
+            "git",
+            "clone",
+            "-b",
+            git_branch,
+            component_repository,
+            temp_directory,
+        ],
         check=True,
         capture_output=True,
     )
@@ -249,7 +269,14 @@ def test_existing_repository_with_version_tags(capsys, temp_directory):
     component_repository = "https://github.com/fepitre/qubes-core-qrexec"
     git_branch = "builderv2-tests-2"
     subprocess.run(
-        ["git", "clone", "-b", git_branch, component_repository, temp_directory],
+        [
+            "git",
+            "clone",
+            "-b",
+            git_branch,
+            component_repository,
+            temp_directory,
+        ],
         check=True,
         capture_output=True,
     )
@@ -351,7 +378,9 @@ def test_non_qubesos_repository_with_maintainer_and_signed_tag(
     )
 
 
-def test_repository_with_multiple_distinct_signatures(temp_directory, home_directory):
+def test_repository_with_multiple_distinct_signatures(
+    temp_directory, home_directory
+):
     gnupg_dir = home_directory / ".gnupg"
     remote_repo_dir = temp_directory / "remote_repo"
     repo_dir = temp_directory / "repo"
@@ -456,7 +485,8 @@ def test_repository_with_multiple_non_distinct_signatures(
         get_and_verify_source(args)
     (msg,) = e.value.args
     assert (
-        msg == f"Not enough distinct tag signatures. Found 2, mandatory minimum is 3."
+        msg
+        == f"Not enough distinct tag signatures. Found 2, mandatory minimum is 3."
     )
 
 
@@ -508,7 +538,8 @@ def test_repository_with_multiple_distinct_signatures_not_in_maintainers(
         get_and_verify_source(args)
     (msg,) = e.value.args
     assert (
-        msg == f"Not enough distinct tag signatures. Found 0, mandatory minimum is 1."
+        msg
+        == f"Not enough distinct tag signatures. Found 0, mandatory minimum is 1."
     )
 
 

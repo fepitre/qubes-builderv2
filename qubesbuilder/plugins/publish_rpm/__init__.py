@@ -52,7 +52,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     def get_target_dir(self, repository_publish):
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
@@ -133,7 +135,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         )
         repomd = repository_dir / "repodata/repomd.xml"
         if not repomd.exists():
-            msg = f"{self.component}:{self.dist}: Cannot find repomd '{repomd}'."
+            msg = (
+                f"{self.component}:{self.dist}: Cannot find repomd '{repomd}'."
+            )
             raise PublishError(msg)
 
         self.log.info(f"Creating metalink for {repomd}.")
@@ -157,32 +161,44 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("rpm", None)
 
         if not sign_key:
-            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(
+                f"{self.component}:{self.dist}: No signing key found."
+            )
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            self.log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(
+                f"{self.component}: Please specify GPG client to use!"
+            )
             return
 
         # Createrepo unpublished RPMs
         self.createrepo(executor=executor, target_dir=target_dir)
 
         # Sign metadata
-        self.sign_metadata(executor=executor, sign_key=sign_key, target_dir=target_dir)
+        self.sign_metadata(
+            executor=executor, sign_key=sign_key, target_dir=target_dir
+        )
 
         # Create metalink
-        self.create_metalink(executor=executor, repository_publish=repository_publish)
+        self.create_metalink(
+            executor=executor, repository_publish=repository_publish
+        )
 
     def publish(self, executor, build, sign_key, db_path, repository_publish):
         # spec file basename will be used as prefix for some artifacts
         build_bn = build.mangle()
 
         # Read information from build stage
-        build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
+        build_info = self.get_dist_artifacts_info(
+            stage="build", basename=build_bn
+        )
 
         if not build_info.get("rpms", []) and not build_info.get("srpm", None):
-            self.log.info(f"{self.component}:{self.dist}:{build}: Nothing to publish.")
+            self.log.info(
+                f"{self.component}:{self.dist}:{build}: Nothing to publish."
+            )
             return
 
         # Publish packages with hardlinks to built RPMs
@@ -193,7 +209,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         # Source artifacts
         prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
         # Build artifacts
-        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(
+            stage="build"
+        )
 
         packages_list = [
             build_artifacts_dir / "rpm" / rpm for rpm in build_info["rpms"]
@@ -201,7 +219,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         packages_list += [prep_artifacts_dir / build_info["srpm"]]
 
         # We check that signature exists (--check-only option)
-        self.log.info(f"{self.component}:{self.dist}:{build}: Verifying signatures.")
+        self.log.info(
+            f"{self.component}:{self.dist}:{build}: Verifying signatures."
+        )
         try:
             for rpm in packages_list:
                 cmd = [
@@ -225,19 +245,26 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             # buildinfo
             target_path = target_dir / "rpm" / build_info["buildinfo"]
             target_path.unlink(missing_ok=True)
-            os.link(build_artifacts_dir / "rpm" / build_info["buildinfo"], target_path)
+            os.link(
+                build_artifacts_dir / "rpm" / build_info["buildinfo"],
+                target_path,
+            )
         except (ValueError, PermissionError, NotImplementedError) as e:
             msg = f"{self.component}:{self.dist}:{build}: Failed to publish packages."
             raise PublishError(msg) from e
 
         # Create and sign metadata
-        self.create_and_sign_repository_metadata(repository_publish=repository_publish)
+        self.create_and_sign_repository_metadata(
+            repository_publish=repository_publish
+        )
 
     def unpublish(self, build, repository_publish):
         # spec file basename will be used as prefix for some artifacts
         build_bn = build.mangle()
         # Read information from build stage
-        build_info = self.get_dist_artifacts_info(stage="build", basename=build_bn)
+        build_info = self.get_dist_artifacts_info(
+            stage="build", basename=build_bn
+        )
 
         if not build_info.get("rpms", []) and not build_info.get("srpm", None):
             self.log.info(
@@ -252,7 +279,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         # Source artifacts
         prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
         # Build artifacts
-        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(
+            stage="build"
+        )
 
         packages_list = [
             build_artifacts_dir / "rpm" / rpm for rpm in build_info["rpms"]
@@ -270,14 +299,18 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             raise PublishError(msg) from e
 
         # Create and sign metadata
-        self.create_and_sign_repository_metadata(repository_publish=repository_publish)
+        self.create_and_sign_repository_metadata(
+            repository_publish=repository_publish
+        )
 
     def create(self, repository_publish: str):
         # Create skeleton
         self.create_repository_skeleton()
 
         # Create and sign metadata
-        self.create_and_sign_repository_metadata(repository_publish=repository_publish)
+        self.create_and_sign_repository_metadata(
+            repository_publish=repository_publish
+        )
 
     def run(
         self,
@@ -305,19 +338,24 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("rpm", None)
 
         if not sign_key:
-            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(
+                f"{self.component}:{self.dist}: No signing key found."
+            )
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            self.log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(
+                f"{self.component}: Please specify GPG client to use!"
+            )
             return
 
         # FIXME: Refactor the code handling both standard and template components.
         #  It applies for other plugins.
 
-        repository_publish = repository_publish or self.config.repository_publish.get(
-            "components"
+        repository_publish = (
+            repository_publish
+            or self.config.repository_publish.get("components")
         )
         if not repository_publish:
             raise PublishError("Cannot determine repository for publish")
@@ -390,7 +428,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 info = build_info
                 if publish_info:
                     if build_info["source-hash"] != publish_info["source-hash"]:
-                        for repository in publish_info.get("repository-publish", []):
+                        for repository in publish_info.get(
+                            "repository-publish", []
+                        ):
                             self.unpublish(
                                 build=build,
                                 repository_publish=repository,
@@ -455,7 +495,9 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                     self.log.info(
                         f"{self.component}:{self.dist}:{build_bn}: Not published anywhere else, deleting publish info."
                     )
-                    self.delete_dist_artifacts_info(stage="publish", basename=build_bn)
+                    self.delete_dist_artifacts_info(
+                        stage="publish", basename=build_bn
+                    )
 
 
 PLUGINS = [RPMPublishPlugin]

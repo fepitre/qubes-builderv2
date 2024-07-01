@@ -60,7 +60,9 @@ def get_pacman_cmd(
     return [" ".join(gen_pacman_cmd)]
 
 
-def get_archchroot_cmd(chroot_dir, pacman_conf, makepkg_conf, additional_packages=None):
+def get_archchroot_cmd(
+    chroot_dir, pacman_conf, makepkg_conf, additional_packages=None
+):
     additional_packages = additional_packages or []
 
     mkarchchroot_cmd = [
@@ -142,11 +144,11 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
             f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
         )
 
-        pacman_conf = "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
-
-        makepkg_conf = (
-            f"{executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
+        pacman_conf = (
+            "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
         )
+
+        makepkg_conf = f"{executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
 
         additional_packages = (
             self.config.get("cache", {})

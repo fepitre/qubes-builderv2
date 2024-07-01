@@ -126,7 +126,9 @@ def test_common_config(artifacts_dir):
             f.write("- vm-fc33\n")
             f.write("- vm-fc34\n")
 
-        output = qb_call_output(config_path, artifacts_dir, "config", "get-components")
+        output = qb_call_output(
+            config_path, artifacts_dir, "config", "get-components"
+        )
         assert (
             output == b"component1\ncomponent2\ncomponent3\ncomponent4\n"
             b"component5\ncomponent6\ncomponent7\n"
@@ -165,7 +167,11 @@ def _get_infos(artifacts_dir):
             capture_output=True,
             text=True,
         ).stdout
-        infos[component] = {"btime": btime, "fd": dir_fd, "list": os.listdir(dir_fd)}
+        infos[component] = {
+            "btime": btime,
+            "fd": dir_fd,
+            "list": os.listdir(dir_fd),
+        }
     return infos
 
 
@@ -178,9 +184,12 @@ def test_common_component_fetch(artifacts_dir):
         stderr=subprocess.STDOUT,
     ).decode()
 
-    assert (artifacts_dir / "distfiles/python-qasync/qasync-0.23.0.tar.gz").exists()
     assert (
-        artifacts_dir / "distfiles/desktop-linux-xfce4-xfwm4/xfwm4-4.16.1.tar.bz2"
+        artifacts_dir / "distfiles/python-qasync/qasync-0.23.0.tar.gz"
+    ).exists()
+    assert (
+        artifacts_dir
+        / "distfiles/desktop-linux-xfce4-xfwm4/xfwm4-4.16.1.tar.bz2"
     ).exists()
 
     for component in [
@@ -190,8 +199,13 @@ def test_common_component_fetch(artifacts_dir):
         "python-qasync",
         "app-linux-split-gpg",
     ]:
-        assert (artifacts_dir / "sources" / component / ".qubesbuilder").exists()
-    assert "Enough distinct tag signatures. Found 3, mandatory minimum is 3." in result
+        assert (
+            artifacts_dir / "sources" / component / ".qubesbuilder"
+        ).exists()
+    assert (
+        "Enough distinct tag signatures. Found 3, mandatory minimum is 3."
+        in result
+    )
 
 
 def test_common_component_fetch_updating(artifacts_dir):
@@ -218,7 +232,9 @@ def test_common_component_fetch_updating(artifacts_dir):
     infos_after = _get_infos(artifacts_dir)
 
     for component in infos_before:
-        assert infos_after[component]["btime"] != infos_before[component]["btime"]
+        assert (
+            infos_after[component]["btime"] != infos_before[component]["btime"]
+        )
 
 
 def test_common_component_fetch_inplace(artifacts_dir):
@@ -232,9 +248,12 @@ def test_common_component_fetch_inplace(artifacts_dir):
         stderr=subprocess.STDOUT,
     ).decode()
 
-    assert (artifacts_dir / "distfiles/python-qasync/qasync-0.23.0.tar.gz").exists()
     assert (
-        artifacts_dir / "distfiles/desktop-linux-xfce4-xfwm4/xfwm4-4.16.1.tar.bz2"
+        artifacts_dir / "distfiles/python-qasync/qasync-0.23.0.tar.gz"
+    ).exists()
+    assert (
+        artifacts_dir
+        / "distfiles/desktop-linux-xfce4-xfwm4/xfwm4-4.16.1.tar.bz2"
     ).exists()
 
     for component in [
@@ -244,8 +263,13 @@ def test_common_component_fetch_inplace(artifacts_dir):
         "python-qasync",
         "app-linux-split-gpg",
     ]:
-        assert (artifacts_dir / "sources" / component / ".qubesbuilder").exists()
-    assert "Enough distinct tag signatures. Found 3, mandatory minimum is 3." in result
+        assert (
+            artifacts_dir / "sources" / component / ".qubesbuilder"
+        ).exists()
+    assert (
+        "Enough distinct tag signatures. Found 3, mandatory minimum is 3."
+        in result
+    )
 
 
 def test_common_component_fetch_inplace_updating(artifacts_dir):
@@ -275,7 +299,9 @@ def test_common_component_fetch_inplace_updating(artifacts_dir):
     infos_after = _get_infos(artifacts_dir)
 
     for component in infos_before:
-        assert infos_after[component]["btime"] == infos_before[component]["btime"]
+        assert (
+            infos_after[component]["btime"] == infos_before[component]["btime"]
+        )
         assert os.listdir(infos_after[component]["fd"]) == os.listdir(
             infos_before[component]["fd"]
         )
@@ -288,7 +314,12 @@ def test_common_component_fetch_inplace_updating(artifacts_dir):
 
 def test_component_host_fc37_init_cache(artifacts_dir):
     qb_call(
-        DEFAULT_BUILDER_CONF, artifacts_dir, "-d", "host-fc37", "package", "init-cache"
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "host-fc37",
+        "package",
+        "init-cache",
     )
     assert (artifacts_dir / "cache/chroot/fc37/mock/fedora-37-x86_64").exists()
 
@@ -419,7 +450,9 @@ def test_component_host_fc37_sign(artifacts_dir):
         artifacts_dir
         / "components/core-qrexec/4.2.18-1/host-fc37/build/rpm/qubes-core-qrexec-4.2.18-1.fc37.x86_64.buildinfo"
     )
-    buildinfo_number_lines = len(buildinfo.read_text(encoding="utf8").splitlines())
+    buildinfo_number_lines = len(
+        buildinfo.read_text(encoding="utf8").splitlines()
+    )
 
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/.gnupg"
@@ -536,12 +569,16 @@ def test_component_host_fc37_publish(artifacts_dir):
         assert set(info.get("rpms", [])) == rpms
         assert info.get("srpm", None) == srpm
         assert HASH_RE.match(info.get("source-hash", None))
-        assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
+        assert ["unstable"] == [
+            r["name"] for r in info.get("repository-publish", [])
+        ]
 
         assert set(info_dom0.get("rpms", [])) == rpms_dom0
         assert info_dom0.get("srpm", None) == srpm_dom0
         assert HASH_RE.match(info_dom0.get("source-hash", None))
-        assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
+        assert ["unstable"] == [
+            r["name"] for r in info.get("repository-publish", [])
+        ]
 
         # publish into current-testing
         qb_call(
@@ -586,11 +623,14 @@ def test_component_host_fc37_publish(artifacts_dir):
 
         # buildinfo
         assert (
-            artifacts_dir / "repository-publish/rpm/r4.2/current-testing/host/fc37"
+            artifacts_dir
+            / "repository-publish/rpm/r4.2/current-testing/host/fc37"
         ).exists()
 
         # publish into current
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
+            "%Y%m%d%H%M"
+        )
         publish_file = (
             artifacts_dir
             / "components/core-qrexec/4.2.18-1/host-fc37/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
@@ -653,7 +693,8 @@ def test_component_host_fc37_publish(artifacts_dir):
         }
 
         metadata_dir = (
-            artifacts_dir / f"repository-publish/rpm/r4.2/current/host/fc37/repodata"
+            artifacts_dir
+            / f"repository-publish/rpm/r4.2/current/host/fc37/repodata"
         )
         assert (metadata_dir / "repomd.xml.metalink").exists()
         with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
@@ -661,9 +702,12 @@ def test_component_host_fc37_publish(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert "/pub/os/qubes/repo/yum/r4.2/current/host/fc37/repodata/repomd.xml" in (
-            metadata_dir / "repomd.xml.metalink"
-        ).read_text(encoding="ascii")
+        assert (
+            "/pub/os/qubes/repo/yum/r4.2/current/host/fc37/repodata/repomd.xml"
+            in (metadata_dir / "repomd.xml.metalink").read_text(
+                encoding="ascii"
+            )
+        )
 
         # buildinfo
         assert (
@@ -685,9 +729,7 @@ def test_component_host_fc37_publish(artifacts_dir):
 
     # Check that packages are in the published repository
     for repository in ["unstable", "current-testing", "current"]:
-        repository_dir = (
-            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc37"
-        )
+        repository_dir = f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc37"
         packages = rpm_packages_list(repository_dir)
         assert set(rpms) == set(packages)
 
@@ -744,11 +786,14 @@ repository-upload-remote-host:
 
         for rpm in itertools.chain([srpm_dom0], rpms_dom0, rpms, [srpm]):
             assert (
-                pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/host/fc37/rpm/{rpm}"
+                pathlib.Path(tmpdir)
+                / f"repo/rpm/r4.2/unstable/host/fc37/rpm/{rpm}"
             ).exists()
 
         # vm-fc40 shouldn't exist, as nothing was published into it
-        assert not (pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/vm/fc40").exists()
+        assert not (
+            pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/vm/fc40"
+        ).exists()
 
         # and vm-bookworm same
         assert not (
@@ -905,7 +950,9 @@ def test_component_host_fc37_unpublish(artifacts_dir):
         assert set(info_dom0.get("rpms", [])) == rpms_dom0
         assert info_dom0.get("srpm", None) == srpm_dom0
         assert HASH_RE.match(info_dom0.get("source-hash", None))
-        assert set([r["name"] for r in info_dom0.get("repository-publish", [])]) == {
+        assert set(
+            [r["name"] for r in info_dom0.get("repository-publish", [])]
+        ) == {
             "unstable",
             "current-testing",
         }
@@ -924,9 +971,7 @@ def test_component_host_fc37_unpublish(artifacts_dir):
         "qubes-core-qrexec-dom0-debugsource-4.2.18-1.fc37.x86_64.rpm",
     ]
     for repository in ["unstable", "current-testing", "current"]:
-        repository_dir = (
-            f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc37"
-        )
+        repository_dir = f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc37"
         packages = rpm_packages_list(repository_dir)
         if repository == "current":
             assert packages == []
@@ -990,7 +1035,9 @@ def test_component_vm_bookworm_prep(artifacts_dir):
     assert info.get("dsc", None) == dsc
     assert info.get("orig", None) == orig
     assert info.get("package-release-name", None) == package_release_name
-    assert info.get("package-release-name-full", None) == package_release_name_full
+    assert (
+        info.get("package-release-name-full", None) == package_release_name_full
+    )
 
 
 def test_component_vm_bookworm_build(artifacts_dir):
@@ -1024,7 +1071,9 @@ def test_component_vm_bookworm_build(artifacts_dir):
     assert info.get("dsc", None) == dsc
     assert info.get("orig", None) == orig
     assert info.get("package-release-name", None) == package_release_name
-    assert info.get("package-release-name-full", None) == package_release_name_full
+    assert (
+        info.get("package-release-name-full", None) == package_release_name_full
+    )
 
     files = [
         "python-qasync_0.23.0-2+deb12u1.dsc",
@@ -1033,7 +1082,8 @@ def test_component_vm_bookworm_build(artifacts_dir):
     ]
     for f in files:
         file_path = (
-            artifacts_dir / f"components/python-qasync/0.23.0-2/vm-bookworm/build/{f}"
+            artifacts_dir
+            / f"components/python-qasync/0.23.0-2/vm-bookworm/build/{f}"
         )
         assert file_path.exists()
         result = subprocess.run(
@@ -1066,7 +1116,8 @@ def test_component_vm_bookworm_sign(artifacts_dir):
         )
 
     keyring_dir = (
-        artifacts_dir / "components/python-qasync/0.23.0-2/vm-bookworm/sign/keyring"
+        artifacts_dir
+        / "components/python-qasync/0.23.0-2/vm-bookworm/sign/keyring"
     )
     assert keyring_dir.exists()
 
@@ -1077,7 +1128,8 @@ def test_component_vm_bookworm_sign(artifacts_dir):
     ]
     for f in files:
         file_path = (
-            artifacts_dir / f"components/python-qasync/0.23.0-2/vm-bookworm/build/{f}"
+            artifacts_dir
+            / f"components/python-qasync/0.23.0-2/vm-bookworm/build/{f}"
         )
         assert file_path.exists()
         result = subprocess.run(
@@ -1135,8 +1187,13 @@ def test_component_vm_bookworm_publish(artifacts_dir):
         assert info.get("dsc", None) == dsc
         assert info.get("orig", None) == orig
         assert info.get("package-release-name", None) == package_release_name
-        assert info.get("package-release-name-full", None) == package_release_name_full
-        assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
+        assert (
+            info.get("package-release-name-full", None)
+            == package_release_name_full
+        )
+        assert ["unstable"] == [
+            r["name"] for r in info.get("repository-publish", [])
+        ]
 
         # publish into current-testing
         qb_call(
@@ -1163,14 +1220,19 @@ def test_component_vm_bookworm_publish(artifacts_dir):
         assert info.get("dsc", None) == dsc
         assert info.get("orig", None) == orig
         assert info.get("package-release-name", None) == package_release_name
-        assert info.get("package-release-name-full", None) == package_release_name_full
+        assert (
+            info.get("package-release-name-full", None)
+            == package_release_name_full
+        )
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
         }
 
         # publish into current
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
+            "%Y%m%d%H%M"
+        )
         publish_file = (
             artifacts_dir
             / "components/python-qasync/0.23.0-2/vm-bookworm/publish/debian-pkg_debian.publish.yml"
@@ -1205,7 +1267,10 @@ def test_component_vm_bookworm_publish(artifacts_dir):
         assert info.get("dsc", None) == dsc
         assert info.get("orig", None) == orig
         assert info.get("package-release-name", None) == package_release_name
-        assert info.get("package-release-name-full", None) == package_release_name_full
+        assert (
+            info.get("package-release-name-full", None)
+            == package_release_name_full
+        )
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
@@ -1349,7 +1414,10 @@ def test_component_vm_bookworm_unpublish(artifacts_dir):
         assert info.get("dsc", None) == dsc
         assert info.get("orig", None) == orig
         assert info.get("package-release-name", None) == package_release_name
-        assert info.get("package-release-name-full", None) == package_release_name_full
+        assert (
+            info.get("package-release-name-full", None)
+            == package_release_name_full
+        )
         assert set([r["name"] for r in info.get("repository-publish", [])]) == {
             "unstable",
             "current-testing",
@@ -1430,7 +1498,8 @@ def test_increment_component_build(artifacts_dir):
         env["HOME"] = tmpdir
 
         devel_path = (
-            pathlib.Path(artifacts_dir) / "components/core-qrexec/noversion/devel"
+            pathlib.Path(artifacts_dir)
+            / "components/core-qrexec/noversion/devel"
         )
         devel_path.write_text("41", encoding="utf-8")
 
@@ -1443,9 +1512,9 @@ def test_increment_component_build(artifacts_dir):
             "fetch",
         )
 
-        assert (artifacts_dir / "components/core-qrexec/noversion/devel").read_text(
-            encoding="utf-8"
-        ) == "42"
+        assert (
+            artifacts_dir / "components/core-qrexec/noversion/devel"
+        ).read_text(encoding="utf-8") == "42"
 
         qb_call(
             DEFAULT_BUILDER_CONF,
@@ -1546,7 +1615,9 @@ def test_component_vm_archlinux_prep(artifacts_dir):
     ) as f:
         info = yaml.safe_load(f.read())
 
-    assert info.get("packages", []) == ["qubes-gpg-split-2.0.67-1-x86_64.pkg.tar.zst"]
+    assert info.get("packages", []) == [
+        "qubes-gpg-split-2.0.67-1-x86_64.pkg.tar.zst"
+    ]
     assert info.get("source-archive", None) == "qubes-gpg-split-2.0.67-1.tar.gz"
     assert HASH_RE.match(info.get("source-hash", None))
 
@@ -1569,7 +1640,9 @@ def test_component_vm_archlinux_build(artifacts_dir):
     ) as f:
         info = yaml.safe_load(f.read())
 
-    assert info.get("packages", []) == ["qubes-gpg-split-2.0.67-1-x86_64.pkg.tar.zst"]
+    assert info.get("packages", []) == [
+        "qubes-gpg-split-2.0.67-1-x86_64.pkg.tar.zst"
+    ]
     assert info.get("source-archive", None) == "qubes-gpg-split-2.0.67-1.tar.gz"
     assert HASH_RE.match(info.get("source-hash", None))
 
@@ -1610,7 +1683,9 @@ def test_component_vm_archlinux_sign(artifacts_dir):
             / "components/app-linux-split-gpg/2.0.67-1/vm-archlinux/build/pkgs"
         )
         pkg_path = pkgs_dir / "qubes-gpg-split-2.0.67-1-x86_64.pkg.tar.zst"
-        pkg_sig_path = pkgs_dir / "qubes-gpg-split-2.0.67-1-x86_64.pkg.tar.zst.sig"
+        pkg_sig_path = (
+            pkgs_dir / "qubes-gpg-split-2.0.67-1-x86_64.pkg.tar.zst.sig"
+        )
         assert pkg_path.exists()
         assert pkg_sig_path.exists()
 
@@ -1657,7 +1732,9 @@ def test_component_vm_archlinux_publish(artifacts_dir):
             "qubes-gpg-split-2.0.67-1-x86_64.pkg.tar.zst"
         ]
         assert HASH_RE.match(info.get("source-hash", None))
-        assert ["unstable"] == [r["name"] for r in info.get("repository-publish", [])]
+        assert ["unstable"] == [
+            r["name"] for r in info.get("repository-publish", [])
+        ]
 
         # publish into current-testing
         qb_call(
@@ -1688,7 +1765,9 @@ def test_component_vm_archlinux_publish(artifacts_dir):
         }
 
         # publish into current
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
+            "%Y%m%d%H%M"
+        )
         publish_file = (
             artifacts_dir
             / "components/app-linux-split-gpg/2.0.67-1/vm-archlinux/publish/archlinux.publish.yml"
@@ -1796,7 +1875,9 @@ repository-upload-remote-host:
         ).exists()
 
         # vm-fc40 shouldn't exist, as nothing was published into it
-        assert not (pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/vm/fc40").exists()
+        assert not (
+            pathlib.Path(tmpdir) / f"repo/rpm/r4.2/unstable/vm/fc40"
+        ).exists()
 
         # and vm-bookworm same
         assert not (
@@ -1830,12 +1911,16 @@ def test_template_fedora_40_prep(artifacts_dir):
         "prep",
     )
 
-    assert (artifacts_dir / "templates/build_timestamp_fedora-40-minimal").exists()
+    assert (
+        artifacts_dir / "templates/build_timestamp_fedora-40-minimal"
+    ).exists()
     assert (
         artifacts_dir / "templates/qubeized_images/fedora-40-minimal/root.img"
     ).exists()
     assert (artifacts_dir / "templates/fedora-40-minimal/appmenus").exists()
-    assert (artifacts_dir / "templates/fedora-40-minimal/template.conf").exists()
+    assert (
+        artifacts_dir / "templates/fedora-40-minimal/template.conf"
+    ).exists()
 
 
 def test_template_fedora_40_build(artifacts_dir):
@@ -1848,9 +1933,13 @@ def test_template_fedora_40_build(artifacts_dir):
         "build",
     )
 
-    assert (artifacts_dir / "templates/build_timestamp_fedora-40-minimal").exists()
+    assert (
+        artifacts_dir / "templates/build_timestamp_fedora-40-minimal"
+    ).exists()
 
-    with open(artifacts_dir / "templates/build_timestamp_fedora-40-minimal") as f:
+    with open(
+        artifacts_dir / "templates/build_timestamp_fedora-40-minimal"
+    ) as f:
         data = f.read().splitlines()
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
@@ -1886,7 +1975,9 @@ def test_template_fedora_40_minimal_sign(artifacts_dir):
     dbpath = artifacts_dir / "templates/rpmdb"
     assert dbpath.exists()
 
-    with open(artifacts_dir / "templates/build_timestamp_fedora-40-minimal") as f:
+    with open(
+        artifacts_dir / "templates/build_timestamp_fedora-40-minimal"
+    ) as f:
         data = f.read().splitlines()
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
@@ -1925,10 +2016,14 @@ def test_template_fedora_40_minimal_publish(artifacts_dir):
             env=env,
         )
 
-        with open(artifacts_dir / "templates/fedora-40-minimal.publish.yml") as f:
+        with open(
+            artifacts_dir / "templates/fedora-40-minimal.publish.yml"
+        ) as f:
             info = yaml.safe_load(f.read())
 
-        with open(artifacts_dir / "templates/build_timestamp_fedora-40-minimal") as f:
+        with open(
+            artifacts_dir / "templates/build_timestamp_fedora-40-minimal"
+        ) as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
@@ -1938,7 +2033,9 @@ def test_template_fedora_40_minimal_publish(artifacts_dir):
         ]
 
         # publish into templates-itl
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
+            "%Y%m%d%H%M"
+        )
         publish_file = artifacts_dir / "templates/fedora-40-minimal.publish.yml"
 
         for r in info["repository-publish"]:
@@ -2000,7 +2097,9 @@ def test_template_fedora_40_minimal_publish_new(artifacts_dir):
         env["GNUPGHOME"] = gnupghome
         env["HOME"] = tmpdir
 
-        with open(artifacts_dir / "templates/build_timestamp_fedora-40-minimal") as f:
+        with open(
+            artifacts_dir / "templates/build_timestamp_fedora-40-minimal"
+        ) as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
@@ -2054,7 +2153,9 @@ def test_template_fedora_40_minimal_publish_new(artifacts_dir):
         ]
 
         # publish into templates-itl
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
+            "%Y%m%d%H%M"
+        )
 
         # pretend it was in testing repo for 7 days already
         for r in info["repository-publish"]:
@@ -2118,7 +2219,9 @@ def test_template_fedora_40_minimal_unpublish(artifacts_dir):
         env["GNUPGHOME"] = gnupghome
         env["HOME"] = tmpdir
 
-        with open(artifacts_dir / "templates/build_timestamp_fedora-40-minimal") as f:
+        with open(
+            artifacts_dir / "templates/build_timestamp_fedora-40-minimal"
+        ) as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
@@ -2175,7 +2278,9 @@ def test_template_fedora_40_minimal_unpublish(artifacts_dir):
 def test_template_fedora_for_iso(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        with open(artifacts_dir / "templates/build_timestamp_fedora-40-minimal") as f:
+        with open(
+            artifacts_dir / "templates/build_timestamp_fedora-40-minimal"
+        ) as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
         rpm = f"qubes-template-fedora-40-minimal-4.2.0-{template_timestamp}.noarch.rpm"
@@ -2259,12 +2364,16 @@ def test_template_debian_12_minimal_prep(artifacts_dir):
         "prep",
     )
 
-    assert (artifacts_dir / "templates/build_timestamp_debian-12-minimal").exists()
+    assert (
+        artifacts_dir / "templates/build_timestamp_debian-12-minimal"
+    ).exists()
     assert (
         artifacts_dir / "templates/qubeized_images/debian-12-minimal/root.img"
     ).exists()
     assert (artifacts_dir / "templates/debian-12-minimal/appmenus").exists()
-    assert (artifacts_dir / "templates/debian-12-minimal/template.conf").exists()
+    assert (
+        artifacts_dir / "templates/debian-12-minimal/template.conf"
+    ).exists()
 
 
 def test_template_debian_12_minimal_build(artifacts_dir):
@@ -2277,9 +2386,13 @@ def test_template_debian_12_minimal_build(artifacts_dir):
         "build",
     )
 
-    assert (artifacts_dir / "templates/build_timestamp_debian-12-minimal").exists()
+    assert (
+        artifacts_dir / "templates/build_timestamp_debian-12-minimal"
+    ).exists()
 
-    with open(artifacts_dir / "templates/build_timestamp_debian-12-minimal") as f:
+    with open(
+        artifacts_dir / "templates/build_timestamp_debian-12-minimal"
+    ) as f:
         data = f.read().splitlines()
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
@@ -2315,7 +2428,9 @@ def test_template_debian_12_minimal_sign(artifacts_dir):
     dbpath = artifacts_dir / "templates/rpmdb"
     assert dbpath.exists()
 
-    with open(artifacts_dir / "templates/build_timestamp_debian-12-minimal") as f:
+    with open(
+        artifacts_dir / "templates/build_timestamp_debian-12-minimal"
+    ) as f:
         data = f.read().splitlines()
     template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
     rpm_path = (
@@ -2354,10 +2469,14 @@ def test_template_debian_12_minimal_publish(artifacts_dir):
             env=env,
         )
 
-        with open(artifacts_dir / "templates/debian-12-minimal.publish.yml") as f:
+        with open(
+            artifacts_dir / "templates/debian-12-minimal.publish.yml"
+        ) as f:
             info = yaml.safe_load(f.read())
 
-        with open(artifacts_dir / "templates/build_timestamp_debian-12-minimal") as f:
+        with open(
+            artifacts_dir / "templates/build_timestamp_debian-12-minimal"
+        ) as f:
             data = f.read().splitlines()
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
@@ -2367,7 +2486,9 @@ def test_template_debian_12_minimal_publish(artifacts_dir):
         ]
 
         # publish into templates-community
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime("%Y%m%d%H%M")
+        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
+            "%Y%m%d%H%M"
+        )
         publish_file = artifacts_dir / "templates/debian-12-minimal.publish.yml"
 
         for r in info["repository-publish"]:
@@ -2423,7 +2544,12 @@ def test_installer_init_cache(artifacts_dir):
     templates_cache = artifacts_dir / "cache/installer/templates"
 
     qb_call(
-        DEFAULT_BUILDER_CONF, artifacts_dir, "-c", "qubes-release", "package", "fetch"
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-c",
+        "qubes-release",
+        "package",
+        "fetch",
     )
 
     # make ISO cache

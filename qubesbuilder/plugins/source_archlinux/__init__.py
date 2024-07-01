@@ -48,7 +48,9 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
         self.environment.update({"DIST": self.dist.name, "LC_ALL": "C"})
 
@@ -128,7 +130,9 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 f"{source_dir} {source_dir / build}"
             ]
             try:
-                executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(
+                    cmd, copy_in, copy_out, environment=self.environment
+                )
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to get source information: {str(e)}."
                 raise SourceError(msg) from e
@@ -156,7 +160,9 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 raise SourceError("Invalid architecture value.")
 
             # Source archive name is based on first package name
-            source_orig = f"{pkgnames[0]}-{self.component.get_version_release()}.tar.gz"
+            source_orig = (
+                f"{pkgnames[0]}-{self.component.get_version_release()}.tar.gz"
+            )
 
             # Create packages list
             packages_list = []
@@ -195,7 +201,9 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 f"{executor.get_plugins_dir()}/source_archlinux/scripts/generate-pkgbuild {source_dir}/{build}/PKGBUILD.in {source_dir}/PKGBUILD {self.component.version} {release}",
             )
             try:
-                executor.run(cmd, copy_in, copy_out, environment=self.environment)
+                executor.run(
+                    cmd, copy_in, copy_out, environment=self.environment
+                )
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to generate source: {str(e)}."
                 raise SourceError(msg) from e
@@ -211,7 +219,9 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 )
                 if create_archive:
                     info["source-archive"] = source_orig
-                self.save_dist_artifacts_info(stage=stage, basename=build_bn, info=info)
+                self.save_dist_artifacts_info(
+                    stage=stage, basename=build_bn, info=info
+                )
 
                 # Clean temporary directory
                 shutil.rmtree(temp_dir)

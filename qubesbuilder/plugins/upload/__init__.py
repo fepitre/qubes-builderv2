@@ -74,8 +74,11 @@ class UploadPlugin(DistributionPlugin):
             self.log.info(f"{self.dist}: No remote location defined. Skipping.")
             return
 
-        repository_publish = repository_publish or self.config.repository_publish.get(
-            "components", "current-testing"
+        repository_publish = (
+            repository_publish
+            or self.config.repository_publish.get(
+                "components", "current-testing"
+            )
         )
 
         try:

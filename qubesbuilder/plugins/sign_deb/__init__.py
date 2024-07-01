@@ -55,7 +55,9 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     def run(self, stage: str):
         """
@@ -75,16 +77,22 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
             self.dist.distribution, None
         ) or self.config.sign_key.get("deb", None)
         if not sign_key:
-            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(
+                f"{self.component}:{self.dist}: No signing key found."
+            )
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            self.log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(
+                f"{self.component}: Please specify GPG client to use!"
+            )
             return
 
         # Build artifacts (source included)
-        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(
+            stage="build"
+        )
         # Sign artifacts
         artifacts_dir = self.get_dist_component_artifacts_dir(stage)
 

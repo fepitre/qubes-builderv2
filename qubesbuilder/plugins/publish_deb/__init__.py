@@ -50,7 +50,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     @classmethod
     def get_debian_suite_from_repository_publish(cls, dist, repository_publish):
@@ -66,7 +68,10 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
 
     def get_target_dir(self):
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
-        return artifacts_dir / f"{self.config.qubes_release}/{self.dist.package_set}"
+        return (
+            artifacts_dir
+            / f"{self.config.qubes_release}/{self.dist.package_set}"
+        )
 
     def create_repository_skeleton(self):
         artifacts_dir = self.get_repository_publish_dir() / self.dist.type
@@ -113,12 +118,16 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("deb", None)
 
         if not sign_key:
-            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(
+                f"{self.component}:{self.dist}: No signing key found."
+            )
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            self.log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(
+                f"{self.component}: Please specify GPG client to use!"
+            )
             return
 
         debian_suite = self.get_debian_suite_from_repository_publish(
@@ -149,10 +158,14 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         directory_bn = directory.mangle()
 
         # Build artifacts (source included)
-        build_artifacts_dir = self.get_dist_component_artifacts_dir(stage="build")
+        build_artifacts_dir = self.get_dist_component_artifacts_dir(
+            stage="build"
+        )
 
         # Read information from build stage
-        build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
+        build_info = self.get_dist_artifacts_info(
+            stage="build", basename=directory_bn
+        )
 
         if not build_info.get("changes", None):
             self.log.info(
@@ -160,7 +173,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             )
             return
 
-        self.log.info(f"{self.component}:{self.dist}:{directory}: Publishing packages.")
+        self.log.info(
+            f"{self.component}:{self.dist}:{directory}: Publishing packages."
+        )
 
         # Verify signatures (sanity check, refuse to publish if packages weren't signed)
         try:
@@ -173,9 +188,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 cmd += [f"gpg2 -q --homedir {keyring_dir} --verify {fname}"]
             executor.run(cmd)
         except ExecutorError as e:
-            msg = (
-                f"{self.component}:{self.dist}:{directory}: Failed to check signatures."
-            )
+            msg = f"{self.component}:{self.dist}:{directory}: Failed to check signatures."
             raise PublishError(msg) from e
 
         # Publishing packages
@@ -191,12 +204,12 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             )
 
             # reprepro command
-            cmd = [f"reprepro {reprepro_options} include {debian_suite} {changes_file}"]
+            cmd = [
+                f"reprepro {reprepro_options} include {debian_suite} {changes_file}"
+            ]
             executor.run(cmd)
         except ExecutorError as e:
-            msg = (
-                f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
-            )
+            msg = f"{self.component}:{self.dist}:{directory}: Failed to publish packages."
             raise PublishError(msg) from e
 
         self.sign_metadata(repository_publish=repository_publish)
@@ -206,7 +219,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         directory_bn = directory.mangle()
 
         # Read information from build stage
-        build_info = self.get_dist_artifacts_info(stage="build", basename=directory_bn)
+        build_info = self.get_dist_artifacts_info(
+            stage="build", basename=directory_bn
+        )
 
         if not build_info.get("changes", None):
             self.log.info(
@@ -223,9 +238,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             target_dir = self.get_target_dir()
 
             # reprepro options to ignore surprising binary and arch
-            reprepro_options = (
-                f"--ignore=surprisingbinary --ignore=surprisingarch -b {target_dir}"
-            )
+            reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch -b {target_dir}"
 
             # set debian suite according to publish repository
             debian_suite = self.get_debian_suite_from_repository_publish(
@@ -233,9 +246,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             )
 
             # reprepro command
-            source_name, source_version = build_info["package-release-name-full"].split(
-                "_", 1
-            )
+            source_name, source_version = build_info[
+                "package-release-name-full"
+            ].split("_", 1)
             cmd = [
                 f"reprepro {reprepro_options} removefilter {debian_suite} '$Source (=={source_name}), $Version (=={source_version})'"
             ]
@@ -282,12 +295,16 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("deb", None)
 
         if not sign_key:
-            self.log.info(f"{self.component}:{self.dist}: No signing key found.")
+            self.log.info(
+                f"{self.component}:{self.dist}: No signing key found."
+            )
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
-            self.log.info(f"{self.component}: Please specify GPG client to use!")
+            self.log.info(
+                f"{self.component}: Please specify GPG client to use!"
+            )
             return
 
         # Sign artifacts
@@ -296,8 +313,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         # Keyring used for signing
         keyring_dir = sign_artifacts_dir / "keyring"
 
-        repository_publish = repository_publish or self.config.repository_publish.get(
-            "components"
+        repository_publish = (
+            repository_publish
+            or self.config.repository_publish.get("components")
         )
         if not repository_publish:
             raise PublishError("Cannot determine repository for publish")
@@ -366,7 +384,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                         self.log.info(
                             f"{self.component}:{self.dist}:{directory}: Current build hash does not match previous one."
                         )
-                        for repository in publish_info.get("repository-publish", []):
+                        for repository in publish_info.get(
+                            "repository-publish", []
+                        ):
                             self.unpublish(
                                 executor=executor,
                                 directory=directory,
@@ -429,7 +449,9 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 ]
                 if publish_info.get("repository-publish", []):
                     self.save_dist_artifacts_info(
-                        stage="publish", basename=directory_bn, info=publish_info
+                        stage="publish",
+                        basename=directory_bn,
+                        info=publish_info,
                     )
                 else:
                     self.log.info(
@@ -441,13 +463,17 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
 
                 # We republish previous package version that has been published previously in the
                 # same repository. This is because reprepro does not manage multiversions officially.
-                for artifacts_dir in self.get_dist_component_artifacts_dir_history(
-                    stage=stage
-                ):
+                for (
+                    artifacts_dir
+                ) in self.get_dist_component_artifacts_dir_history(stage=stage):
                     publish_info = self.get_dist_artifacts_info(
-                        stage=stage, basename=directory_bn, artifacts_dir=artifacts_dir
+                        stage=stage,
+                        basename=directory_bn,
+                        artifacts_dir=artifacts_dir,
                     )
-                    if repository_publish in publish_info.get("repository-publish", []):
+                    if repository_publish in publish_info.get(
+                        "repository-publish", []
+                    ):
                         self.log.info(
                             f"{self.component}:{self.dist}:{directory}: Updating repository."
                         )

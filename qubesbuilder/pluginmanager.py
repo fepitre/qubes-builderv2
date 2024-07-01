@@ -26,7 +26,9 @@ class PluginEntity:
         self.fullname = f"qubesbuilder.plugins.{self.name}"
 
         try:
-            spec = importlib.util.spec_from_file_location(self.fullname, self.path)
+            spec = importlib.util.spec_from_file_location(
+                self.fullname, self.path
+            )
             if not spec:
                 raise EntityError("Cannot get module spec.")
             self.module = importlib.util.module_from_spec(spec)
@@ -79,7 +81,9 @@ class PluginManager:
         for entity in self.entities.values():
             if not hasattr(entity.module, module_attr):
                 continue
-            plugin_names += [c.__name__ for c in getattr(entity.module, module_attr)]
+            plugin_names += [
+                c.__name__ for c in getattr(entity.module, module_attr)
+            ]
 
         if len(set(plugin_names)) != len(plugin_names):
             raise PluginManagerError("Conflicting plugin name detected.")
@@ -104,4 +108,6 @@ class PluginManager:
         return self._get_instances_with_attr("PLUGINS", manager=self, **kwargs)
 
     def get_template_instances(self, **kwargs):
-        return self._get_instances_with_attr("TEMPLATE_PLUGINS", manager=self, **kwargs)
+        return self._get_instances_with_attr(
+            "TEMPLATE_PLUGINS", manager=self, **kwargs
+        )

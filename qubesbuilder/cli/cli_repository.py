@@ -12,7 +12,10 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import PluginError
 from qubesbuilder.plugins.publish import PublishPlugin, COMPONENT_REPOSITORIES
-from qubesbuilder.plugins.template import TemplateBuilderPlugin, TEMPLATE_REPOSITORIES
+from qubesbuilder.plugins.template import (
+    TemplateBuilderPlugin,
+    TEMPLATE_REPOSITORIES,
+)
 from qubesbuilder.plugins.upload import UploadPlugin
 from qubesbuilder.template import QubesTemplate
 
@@ -78,7 +81,9 @@ def _publish(
     help="Override minimum age for authorizing publication into 'current'.",
 )
 @click.pass_obj
-def publish(obj: ContextObj, repository_publish: str, ignore_min_age: bool = False):
+def publish(
+    obj: ContextObj, repository_publish: str, ignore_min_age: bool = False
+):
     _publish(
         config=obj.config,
         manager=obj.manager,
@@ -149,7 +154,9 @@ def check_release_status_for_component(obj: ContextObj):
     click.secho(yaml.dump(release_status))
 
 
-def _check_release_status_for_component(config, manager, components, distributions):
+def _check_release_status_for_component(
+    config, manager, components, distributions
+):
     release_status: Dict[str, Any] = {}
     for component in components:
         release_status.setdefault(component.name, {})
@@ -157,7 +164,10 @@ def _check_release_status_for_component(config, manager, components, distributio
             release_status[component.name].setdefault(dist.distribution, {})
             try:
                 plugin = PublishPlugin(
-                    config=config, manager=manager, component=component, dist=dist
+                    config=config,
+                    manager=manager,
+                    component=component,
+                    dist=dist,
                 )
                 parameters = plugin.get_parameters("publish")
             except ComponentError:
@@ -186,7 +196,9 @@ def _check_release_status_for_component(config, manager, components, distributio
 
             vtags = fetch_info.get("git-version-tags", [])
             if vtags:
-                release_status[component.name][dist.distribution]["tag"] = vtags[0]
+                release_status[component.name][dist.distribution]["tag"] = (
+                    vtags[0]
+                )
             else:
                 release_status[component.name][dist.distribution][
                     "tag"
@@ -228,16 +240,20 @@ def _check_release_status_for_component(config, manager, components, distributio
                             publish_date = datetime.datetime.strptime(
                                 repo["timestamp"], "%Y%m%d%H%M"
                             )
-                            days = (datetime.datetime.utcnow() - publish_date).days
+                            days = (
+                                datetime.datetime.utcnow() - publish_date
+                            ).days
                             break
 
                     release_status[component.name][dist.distribution][
                         "status"
                     ] = "released"
-                    release_status[component.name][dist.distribution].setdefault(
-                        "repo", []
-                    )
-                    release_status[component.name][dist.distribution]["repo"].append(
+                    release_status[component.name][
+                        dist.distribution
+                    ].setdefault("repo", [])
+                    release_status[component.name][dist.distribution][
+                        "repo"
+                    ].append(
                         {
                             "name": repo_name,
                             "days": days,
@@ -260,7 +276,9 @@ def _check_release_status_for_component(config, manager, components, distributio
                     status = "built, not released"
                 else:
                     status = "not released"
-                release_status[component.name][dist.distribution]["status"] = status
+                release_status[component.name][dist.distribution][
+                    "status"
+                ] = status
 
     return release_status
 
@@ -292,13 +310,17 @@ def _check_release_status_for_template(config, manager, templates):
             for repo_name in TEMPLATE_REPOSITORIES:
                 days = 0
                 if plugin.is_published(repository=repo_name):
-                    publish_info = plugin.get_template_artifacts_info(stage="publish")
+                    publish_info = plugin.get_template_artifacts_info(
+                        stage="publish"
+                    )
                     for repo in publish_info.get("repository-publish", []):
                         if repo["name"] == repo_name:
                             publish_date = datetime.datetime.strptime(
                                 repo["timestamp"], "%Y%m%d%H%M"
                             )
-                            days = (datetime.datetime.utcnow() - publish_date).days
+                            days = (
+                                datetime.datetime.utcnow() - publish_date
+                            ).days
                             break
                     release_status[template.name]["status"] = "released"
                     release_status[template.name].setdefault("repo", [])

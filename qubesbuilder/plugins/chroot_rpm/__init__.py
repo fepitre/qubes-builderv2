@@ -57,9 +57,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
 
         executor = self.get_executor(stage)
 
-        mock_conf = (
-            f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
-        )
+        mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
 
         chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name / "mock"
         chroot_dir.mkdir(exist_ok=True, parents=True)
@@ -136,11 +134,15 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             copy_in = self.default_copy_in(
                 executor.get_plugins_dir(), executor.get_sources_dir()
             ) + [
-                (chroot_dir / mock_chroot_name, executor.get_cache_dir() / f"mock"),
+                (
+                    chroot_dir / mock_chroot_name,
+                    executor.get_cache_dir() / f"mock",
+                ),
             ]
             copy_out = [
                 (
-                    executor.get_cache_dir() / f"mock/{mock_chroot_name}/dnf_cache",
+                    executor.get_cache_dir()
+                    / f"mock/{mock_chroot_name}/dnf_cache",
                     chroot_dir / mock_chroot_name,
                 )
             ]
@@ -156,7 +158,9 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
                     files_inside_executor_with_placeholders=files_inside_executor_with_placeholders,
                 )
             except ExecutorError as e:
-                msg = f"{self.dist}: Failed to download extra packages: {str(e)}."
+                msg = (
+                    f"{self.dist}: Failed to download extra packages: {str(e)}."
+                )
                 raise ChrootError(msg) from e
 
 
