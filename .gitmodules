@@ -1,3 +1,3 @@
 [submodule "qubesbuilder/plugins/publish/mirrors"]
 	path = qubesbuilder/plugins/publish/mirrors
-	url = https://github.com/qubesos/qubes-infrastructure-mirrors
+	url = ../qubes-infrastructure-mirrors

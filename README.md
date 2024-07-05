@@ -30,18 +30,11 @@ $ test -f /usr/share/qubes/marker-vm && sudo apt install qubes-gpg-split
 
 > Remark: Sequoia packages `sequoia-chameleon-gnupg` is available since Trixie (Debian 13).
 
-Install [mkmetalink](https://github.com/QubesOS/qubes-infrastructure-mirrors):
+Fetch submodules:
 
 ```bash
-$ git clone https://github.com/QubesOS/qubes-infrastructure-mirrors
-$ cd qubes-infrastructure-mirrors
-$ sudo python3 setup.py build
-$ sudo python3 setup.py install
+$ git submodule update --init
 ```
-
-**Note:** [Verify commit PGP signatures](https://www.qubes-os.org/security/verifying-signatures/#how-to-verify-signatures-on-git-repository-tags-and-commits)
-before building.
-
 
 ## Docker executor
 
