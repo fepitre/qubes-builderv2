@@ -179,6 +179,7 @@ components:
   - antievilmaid
   - xscreensaver
   - remote-support
+  - openssh
   - windows-tools-cross
 
 
