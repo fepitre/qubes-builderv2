@@ -117,6 +117,8 @@ def create_dummy_args(
     component_repository,
     component_directory,
     git_branch="main",
+    git_commit=None,
+    shallow_clone=False,
     keys_dir=str(PROJECT_PATH / "qubesbuilder/plugins/fetch/keys"),
     fetch_only=False,
     fetch_versions_only=False,
@@ -126,17 +128,21 @@ def create_dummy_args(
     less_secure_signed_commits_sufficient=False,
     maintainers=None,
     minimum_distinct_maintainers=1,
+    trust_all_keys=False,
 ):
     args = Namespace()
 
-    maintainers = (
-        maintainers if maintainers and isinstance(maintainers, list) else []
-    )
-    # Add default maintainers being Marek and Simon
-    maintainers += [
-        "0064428F455451B3EBE78A7F063938BA42CFA724",
-        "274E12AB03F2FE293765FC06DA0434BC706E1FCF",
-    ]
+    if maintainers != []:
+        # Add default maintainers being Marek and Simon if maintainers are
+        # not explicitly an empty list
+        maintainers = (maintainers or []) + [
+            "0064428F455451B3EBE78A7F063938BA42CFA724",
+            "274E12AB03F2FE293765FC06DA0434BC706E1FCF",
+        ]
+    else:
+        maintainers = (
+            maintainers if maintainers and isinstance(maintainers, list) else []
+        )
 
     args.component_repository = component_repository
     args.component_directory = str(component_directory)
@@ -144,6 +150,8 @@ def create_dummy_args(
     args.git_keyring_dir = str(component_directory / ".keyring")
 
     args.git_branch = git_branch
+    args.git_commit = git_commit
+    args.shallow_clone = shallow_clone
     args.fetch_only = fetch_only
     args.fetch_versions_only = fetch_versions_only
     args.ignore_missing = ignore_missing
@@ -154,6 +162,7 @@ def create_dummy_args(
     )
     args.maintainer = maintainers
     args.minimum_distinct_maintainers = minimum_distinct_maintainers
+    args.trust_all_keys = trust_all_keys
     return args
 
 
@@ -605,3 +614,64 @@ def test_repository_fetch_version_tag_earlier(capsys, temp_directory):
         check=True,
     ).stdout.strip()
     assert vtag.startswith("v")
+
+
+def test_repository_fetch_specific_commit(capsys, temp_directory):
+    component_repository = "https://github.com/fepitre/qubes-core-qrexec"
+    # Fresh clone on specific commit id, without tags
+    commit = "de25326d41b1abf519e9a30c5760d56a1c816b3a"
+    args = create_dummy_args(
+        component_repository=component_repository,
+        component_directory=temp_directory,
+        git_commit="de25326d41b1abf519e9a30c5760d56a1c816b3a",
+    )
+    get_and_verify_source(args)
+
+    # Check if we have a version tag on HEAD
+    actual_commit = subprocess.run(
+        ["git", "show", "--format=%H", "-s"],
+        capture_output=True,
+        text=True,
+        cwd=temp_directory,
+        check=True,
+    ).stdout.strip()
+    assert commit == actual_commit
+
+
+def test_repository_trust_all_keys(temp_directory):
+    args = create_dummy_args(
+        component_repository="https://github.com/qubesos/qubes-core-vchan-xen",
+        component_directory=temp_directory,
+        trust_all_keys=True,
+        maintainers=[],
+    )
+    get_and_verify_source(args)
+    assert (
+        subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            cwd=str(temp_directory),
+            text=True,
+        ).stdout.strip()
+        == "main"
+    )
+    assert (temp_directory / "version").exists()
+
+
+def test_repository_shallow_clone(temp_directory):
+    args = create_dummy_args(
+        component_repository="https://github.com/qubesos/qubes-core-vchan-xen",
+        component_directory=temp_directory,
+        shallow_clone=True,
+    )
+    get_and_verify_source(args)
+    assert (
+        subprocess.run(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            capture_output=True,
+            cwd=str(temp_directory),
+            text=True,
+        ).stdout.strip()
+        == "true"
+    )
+    assert (temp_directory / "version").exists()
