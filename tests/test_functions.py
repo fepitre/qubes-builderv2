@@ -1,7 +1,8 @@
 import pytest
 import tempfile
 from pathlib import Path
-from qubesbuilder.common import is_filename_valid, deep_check, sed
+from qubesbuilder.common import is_filename_valid, deep_check, sed, \
+    get_archive_name
 from qubesbuilder.cli.cli_main import parse_config_from_cli
 
 
@@ -264,3 +265,24 @@ def test_sed_without_destination():
         # Clean up the temporary file
         source_file.close()
         Path(source_file.name).unlink()
+
+
+def test_get_archive_name_url():
+    file = {
+        "url": "https://example.com/some-file.tar.gz",
+        "signature": "https://example.com/some-file.tar.gz.asc",
+        "pubkeys": ["pubkey1.asc", "pubkey2.asc"],
+    }
+    fn = get_archive_name(file)
+    assert fn == "some-file.tar.gz"
+
+
+def test_get_archive_name_url_uncompress():
+    file = {
+        "url": "https://example.com/some-file.tar.gz",
+        "signature": "https://example.com/some-file.tar.gz.asc",
+        "uncompress": True,
+        "pubkeys": ["pubkey1.asc", "pubkey2.asc"],
+    }
+    fn = get_archive_name(file)
+    assert fn == "some-file.tar"

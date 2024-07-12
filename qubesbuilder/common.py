@@ -16,6 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import os
 import re
 import shutil
 import tempfile
@@ -74,6 +75,13 @@ def is_filename_valid(
         if c not in authorized_chars:
             return False
     return True
+
+
+def get_archive_name(file: dict):
+    fn = os.path.basename(file["url"])
+    if file.get("uncompress", False):
+        return Path(fn).with_suffix("").name
+    return fn
 
 
 # Originally from QubesOS/qubes-builder/rpc-services/qubesbuilder.BuildLog

@@ -22,7 +22,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from qubesbuilder.common import is_filename_valid
+from qubesbuilder.common import is_filename_valid, get_archive_name
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
@@ -192,7 +192,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                 source_debian = f"{package_release_name_full}.debian.tar.xz"
             if parameters.get("files", []):
                 # FIXME: The first file is the source archive. Is it valid for all the cases?
-                ext = Path(parameters["files"][0]["url"]).suffix
+                ext = Path(get_archive_name(parameters["files"][0])).suffix
                 msg = f"{self.component}:{self.dist}:{directory}: Invalid extension '{ext}'."
                 if ext not in (".gz", ".bz2", ".xz", ".lzma2"):
                     raise SourceError(msg)
@@ -260,7 +260,7 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
                         f"mv {source_dir}/{source_orig} {executor.get_builder_dir()}",
                     ]
                 for file in parameters.get("files", []):
-                    fn = os.path.basename(file["url"])
+                    fn = get_archive_name(file)
                     cmd.append(
                         f"mv {executor.get_distfiles_dir() / self.component.name / fn} {executor.get_builder_dir()}/{source_orig}"
                     )

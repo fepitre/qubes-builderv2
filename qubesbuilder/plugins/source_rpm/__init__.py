@@ -22,7 +22,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from qubesbuilder.common import is_filename_valid
+from qubesbuilder.common import is_filename_valid, get_archive_name
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
@@ -263,9 +263,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                     ]
 
             for file in parameters.get("files", []):
-                fn = os.path.basename(file["url"])
-                if file.get("uncompress", False):
-                    fn = Path(fn).with_suffix("").name
+                fn = get_archive_name(file)
                 cmd.append(
                     f"mv {executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
                 )
