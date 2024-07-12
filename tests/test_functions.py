@@ -286,3 +286,28 @@ def test_get_archive_name_url_uncompress():
     }
     fn = get_archive_name(file)
     assert fn == "some-file.tar"
+
+
+def test_get_archive_name_git_url():
+    file = {
+        "git-url": "https://github.com/owner/repo.git",
+        "tag": "v1.0.0",
+        "pubkeys": ["pubkey1.asc", "pubkey2.asc"],
+    }
+    fn = get_archive_name(file)
+    assert fn == "repo-v1.0.0.tar.gz"
+
+    file = {
+        "git-url": "https://github.com/owner/repo",
+        "commit-id": "0011223344556677889900112233445566778899",
+    }
+    fn = get_archive_name(file)
+    assert fn == "repo-0011223344556677889900112233445566778899.tar.gz"
+
+    file = {
+        "git-url": "https://github.com/owner/repo",
+        "tag": "v2.0.0",
+        "git-basename": "repo-2.0.0"
+    }
+    fn = get_archive_name(file)
+    assert fn == "repo-2.0.0.tar.gz"

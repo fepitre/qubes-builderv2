@@ -27,7 +27,7 @@ from pathlib import Path
 from shlex import quote
 from typing import Any, List, Union
 
-from qubesbuilder.common import VerificationMode
+from qubesbuilder.common import VerificationMode, get_archive_name
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.exc import NoQubesBuilderFileError
@@ -194,7 +194,13 @@ class FetchPlugin(ComponentPlugin):
 
         # Download and verify files given in .qubesbuilder
         for file in parameters.get("files", []):
-            self.download_file(file, executor, distfiles_dir)
+            if "url" in file:
+                self.download_file(file, executor, distfiles_dir)
+            elif "git-url" in file:
+                self.download_git_archive(file, executor, distfiles_dir)
+            else:
+                msg = "'files' entries must have either url or git-url entry"
+                raise FetchError(msg)
 
         #
         # source hash and version tags determination
@@ -389,6 +395,82 @@ class FetchPlugin(ComponentPlugin):
         except OSError as e:
             msg = f"{self.component}: Failed to clean artifacts: {str(e)}."
             raise FetchError(msg) from e
+
+    def download_git_archive(self, file, executor, distfiles_dir):
+        repo_bn = os.path.basename(file["git-url"]).partition(".git")[0]
+        if "git-basename" in file:
+            archive_base = file["git-basename"]
+        else:
+            archive_base = repo_bn
+        if "tag" in file:
+            if "/" in file["tag"]:
+                msg = "Tags with '/' are not supported"
+                raise FetchError(msg)
+        elif "commit-id" in file:
+            if not re.match(r"\A[a-z0-9]*\Z", file["commit-id"]) or len(
+                file["commit-id"]
+            ) not in (40, 64):
+                msg = "Full commit id is needed for 'commit-id'"
+                raise FetchError(msg)
+        else:
+            msg = "Fetching git archive requires either 'tag' or 'commit-id'"
+            raise FetchError(msg)
+        archive_name = get_archive_name(file)
+
+        if (distfiles_dir / archive_name).exists():
+            if self.config.force_fetch:
+                os.remove(distfiles_dir / archive_name)
+            else:
+                self.log.info(
+                    f"{self.component}: file {archive_name} already downloaded. Skipping."
+                )
+                return
+        copy_in = [
+            (
+                self.manager.entities["fetch"].directory,
+                executor.get_plugins_dir(),
+            ),
+        ]
+        local_source_dir = self.get_sources_dir() / self.component.name
+        for key_file in file.get("pubkeys", []):
+            copy_in += [
+                (
+                    local_source_dir / key_file,
+                    executor.get_builder_dir() / "keys",
+                )
+            ]
+
+        source_dir = executor.get_builder_dir() / repo_bn
+
+        get_sources_cmd = [
+            str(
+                executor.get_plugins_dir()
+                / "fetch/scripts/get-and-verify-source.py"
+            ),
+            "--shallow-clone",
+            "--trust-all-keys",
+            file["git-url"],  # clone from
+            str(source_dir),  # clone into
+            str(executor.get_builder_dir() / "keyring"),  # git keyring dir
+            str(executor.get_builder_dir() / "keys"),  # keys to import
+        ]
+        if "tag" in file:
+            get_sources_cmd += ["--git-branch", file["tag"]]
+        elif "commit-id" in file:
+            get_sources_cmd += ["--git-commit", file["commit-id"]]
+
+        cmd = [
+            f"cd {str(executor.get_builder_dir())}",
+            " ".join(get_sources_cmd),
+            f"{executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {archive_name} {archive_base}/",
+        ]
+
+        copy_out = [(source_dir / archive_name, distfiles_dir)]
+
+        try:
+            executor.run(cmd, copy_in, copy_out, environment=self.environment)
+        except ExecutorError as e:
+            raise FetchError(f"Failed to download file '{file}': {str(e)}.")
 
     def download_file(self, file, executor, distfiles_dir):
         # Temporary dir for downloaded file

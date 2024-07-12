@@ -397,8 +397,10 @@ We provide the following list of available keys:
 - `modules` --- Declare submodules to be included inside source preparation
   (source archives creation and placeholders substitution)
 - `files` --- List of external files to be downloaded. It has to be provided
-  with the combination of a `url` and a verification method. A verification
-  method is either a checksum file or a signature file with public GPG keys.
+  with the combination of a `url`/`git-url` and a verification method. For
+  `url`, a verification method is either a checksum file or a signature file
+  with public GPG keys. For `git-url`, it's either GPG key to verity a tag, or
+  explicit commit id.
 - `url` --- URL of the external file to download.
 - `sha256` --- Path to `sha256` checksum file relative to source directory (in
   combination with `url`).
@@ -409,6 +411,15 @@ We provide the following list of available keys:
 - `uncompress` --- Uncompress external file downloaded before verification.
 - `pubkeys` --- List of public GPG keys to use for verifying the downloaded
   signature file (in combination with `url` and `signature`).
+- `git-url` --- URL of a repository to fetch and create a tarball from.
+- `tag` --- Specific tag to fetch from `git-url` and verify with a key
+  specified in `pubkeys`.  Can use `@VERSION@` placeholder.
+- `commit-id` --- Specific pre-verified commit to fetch from `git-url`. No
+  extra verification is performed.
+- `git-basename` --- Specify basename for archive created out of git
+  repository. This is also used for the top level directory inside the archive.
+  If not set, final component of the `git-url` (minus `.git` if applicable),
+  plus a commit id or tag will be used.
 
 Here is a non-exhaustive list of distribution-specific keys:
 - `host-fc32` --- Fedora 32 for the `host` package set content only
