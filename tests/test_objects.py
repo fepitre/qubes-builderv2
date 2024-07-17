@@ -830,7 +830,7 @@ CONFIG_WITH_PER_DIST_COMPONENT_STAGES = """
 executor:
   type: qubes
   options:
-    dispvm: qubes-builder-dvm
+    dispvm: "@dispvm"
     clean: False
 
 distributions:
@@ -913,7 +913,7 @@ def test_config_executor():
             fetch_options = config.get_executor_options_from_config("fetch")
             assert fetch_options == {
                 "type": "qubes",
-                "options": {"clean": False, "dispvm": "qubes-builder-dvm"},
+                "options": {"clean": False, "dispvm": "@dispvm"},
             }
 
             build_options = config.get_executor_options_from_config(
@@ -924,7 +924,7 @@ def test_config_executor():
                 "options": {
                     "clean": False,
                     "image": "totoimg",
-                    "dispvm": "qubes-builder-dvm",
+                    "dispvm": "@dispvm",
                 },
             }
 
