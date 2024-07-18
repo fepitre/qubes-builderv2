@@ -371,6 +371,8 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 f"-d {executor.get_repository_dir()}:/builder/repository -- ",
                 f"--syncdeps --noconfirm --skipinteg",
             ]
+            # make stdout a pipe instead of pts, to not confuse gpgme
+            build_command += ["| cat"]
 
             cmd += [f"cd {source_dir}", " ".join(build_command)]
 
