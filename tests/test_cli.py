@@ -191,6 +191,21 @@ def test_common_component_fetch(artifacts_dir):
         artifacts_dir
         / "distfiles/desktop-linux-xfce4-xfwm4/xfwm4-4.16.1.tar.bz2"
     ).exists()
+    assert (
+        artifacts_dir
+        / "distfiles/linux-gbulb/gbulb-0.6.3.tar.gz"
+    ).exists()
+    # verify files layout inside
+    subprocess.run(
+        ["tar",
+         "tf",
+         artifacts_dir / "distfiles/linux-gbulb/gbulb-0.6.3.tar.gz",
+         "gbulb-0.6.3/README.rst"
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
 
     for component in [
         "core-qrexec",

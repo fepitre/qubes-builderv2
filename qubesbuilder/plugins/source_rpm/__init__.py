@@ -22,7 +22,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from qubesbuilder.common import is_filename_valid
+from qubesbuilder.common import is_filename_valid, get_archive_name
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
@@ -125,6 +125,10 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             shutil.rmtree(artifacts_dir.as_posix())
         artifacts_dir.mkdir(parents=True)
 
+        # Create archive only if no external files are provided or if explicitly requested.
+        create_archive = not parameters.get("files", [])
+        create_archive = parameters.get("create-archive", create_archive)
+
         for build in parameters["build"]:
             # Temporary dir for temporary copied-out files
             temp_dir = Path(tempfile.mkdtemp())
@@ -177,15 +181,19 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 raise SourceError(msg)
 
             source_rpm = f"{data[0]}.src.rpm"
-            # Source0 may contain a URL.
-            source_orig = os.path.basename(data[1])
             if not is_filename_valid(
                 source_rpm, forbidden_filename=artifacts_info_filename
-            ) or not is_filename_valid(
-                source_orig, forbidden_filename=artifacts_info_filename
             ):
-                msg = f"{self.component}:{self.dist}:{build}: Invalid source names."
+                msg = f"{self.component}:{self.dist}:{build}: Invalid source rpm name."
                 raise SourceError(msg)
+            if create_archive:
+                # Source0 may contain a URL.
+                source_orig = os.path.basename(data[1])
+                if not is_filename_valid(
+                    source_orig, forbidden_filename=artifacts_info_filename
+                ):
+                    msg = f"{self.component}:{self.dist}:{build}: Invalid source names."
+                    raise SourceError(msg)
 
             # Read packages list
             packages_list = []
@@ -247,9 +255,6 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                     f"--outfile {source_dir}/Makefile.vars -- "
                     f"{executor.get_plugins_dir()}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
                 ]
-            # Create archive only if no external files are provided or if explicitly requested.
-            create_archive = not parameters.get("files", [])
-            create_archive = parameters.get("create-archive", create_archive)
             if create_archive:
                 # If no Source0 is provided, we expect 'source' from query-spec.
                 if source_orig != "source":
@@ -258,9 +263,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                     ]
 
             for file in parameters.get("files", []):
-                fn = os.path.basename(file["url"])
-                if file.get("uncompress", False):
-                    fn = Path(fn).with_suffix("").name
+                fn = get_archive_name(file)
                 cmd.append(
                     f"mv {executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
                 )

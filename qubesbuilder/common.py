@@ -16,6 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import os
 import re
 import shutil
 import tempfile
@@ -74,6 +75,24 @@ def is_filename_valid(
         if c not in authorized_chars:
             return False
     return True
+
+
+def get_archive_name(file: dict):
+    if "url" in file:
+        fn = os.path.basename(file["url"])
+        if file.get("uncompress", False):
+            return Path(fn).with_suffix("").name
+        return fn
+    if "git-basename" in file:
+        return f"{file['git-basename']}.tar.gz"
+    else:
+        archive_base = os.path.basename(file["git-url"]).partition(".git")[0]
+        if "tag" in file:
+            assert "/" not in file["tag"]
+            return f"{archive_base}-{file['tag']}.tar.gz"
+        if "commit-id" in file:
+            return f"{archive_base}-{file['commit-id']}.tar.gz"
+    return None
 
 
 # Originally from QubesOS/qubes-builder/rpc-services/qubesbuilder.BuildLog

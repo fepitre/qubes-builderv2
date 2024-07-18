@@ -1,7 +1,8 @@
 import pytest
 import tempfile
 from pathlib import Path
-from qubesbuilder.common import is_filename_valid, deep_check, sed
+from qubesbuilder.common import is_filename_valid, deep_check, sed, \
+    get_archive_name
 from qubesbuilder.cli.cli_main import parse_config_from_cli
 
 
@@ -264,3 +265,49 @@ def test_sed_without_destination():
         # Clean up the temporary file
         source_file.close()
         Path(source_file.name).unlink()
+
+
+def test_get_archive_name_url():
+    file = {
+        "url": "https://example.com/some-file.tar.gz",
+        "signature": "https://example.com/some-file.tar.gz.asc",
+        "pubkeys": ["pubkey1.asc", "pubkey2.asc"],
+    }
+    fn = get_archive_name(file)
+    assert fn == "some-file.tar.gz"
+
+
+def test_get_archive_name_url_uncompress():
+    file = {
+        "url": "https://example.com/some-file.tar.gz",
+        "signature": "https://example.com/some-file.tar.gz.asc",
+        "uncompress": True,
+        "pubkeys": ["pubkey1.asc", "pubkey2.asc"],
+    }
+    fn = get_archive_name(file)
+    assert fn == "some-file.tar"
+
+
+def test_get_archive_name_git_url():
+    file = {
+        "git-url": "https://github.com/owner/repo.git",
+        "tag": "v1.0.0",
+        "pubkeys": ["pubkey1.asc", "pubkey2.asc"],
+    }
+    fn = get_archive_name(file)
+    assert fn == "repo-v1.0.0.tar.gz"
+
+    file = {
+        "git-url": "https://github.com/owner/repo",
+        "commit-id": "0011223344556677889900112233445566778899",
+    }
+    fn = get_archive_name(file)
+    assert fn == "repo-0011223344556677889900112233445566778899.tar.gz"
+
+    file = {
+        "git-url": "https://github.com/owner/repo",
+        "tag": "v2.0.0",
+        "git-basename": "repo-2.0.0"
+    }
+    fn = get_archive_name(file)
+    assert fn == "repo-2.0.0.tar.gz"

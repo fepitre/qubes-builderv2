@@ -79,7 +79,7 @@ def verify_git_obj(gpg_client, keyring_dir, repository_dir, obj_type, obj_path):
 
 def main(args):
     # Sanity check on branch and repo
-    if not re.match(r"^[A-Za-z][A-Za-z0-9/._-]+$", args.git_branch):
+    if not re.match(r"^[A-Za-z0-9][A-Za-z0-9/._-]+$", args.git_branch):
         raise ValueError(f"Invalid branch {args.git_branch}")
     elif not re.match(r"^/[A-Za-z][A-Za-z0-9-/_]*$", args.component_directory):
         raise ValueError(
@@ -91,7 +91,7 @@ def main(args):
     keys_dir = Path(args.keys_dir).expanduser().resolve()
     git_keyring_dir = Path(args.git_keyring_dir).expanduser().resolve()
 
-    git_branch = args.git_branch
+    git_branch = args.git_commit or args.git_branch
     clean = args.clean
     fetch_only = args.fetch_only
     ignore_missing = args.ignore_missing
@@ -120,9 +120,17 @@ def main(args):
         if not re.match(r"^[a-fA-F0-9]{40}$", maintainer):
             raise ValueError(f"Invalid maintainer provided: {maintainer}")
 
+    if args.trust_all_keys and maintainers:
+        raise ValueError(
+            "--maintainer cannot be used together with --trust-all-keys"
+        )
+
     # Define common git options
     git_options: List[str] = []
     git_merge_opts = ["--ff-only"]
+
+    if args.shallow_clone:
+        git_options += ["--depth=1"]
 
     fresh_clone = False
     if clean:
@@ -173,20 +181,38 @@ def main(args):
         if repo.exists():
             shutil.rmtree(repo)
         try:
-            subprocess.run(
-                [
-                    "git",
-                    "clone",
-                    "-n",
-                    "-q",
-                    "-b",
-                    git_branch,
-                    git_url,
-                    str(repo),
-                ],
-                capture_output=True,
-                check=True,
-            )
+            if args.git_commit:
+                # git clone can't handle commit reference, use fetch instead
+                repo.mkdir()
+                subprocess.run(
+                    ["git", "init"],
+                    capture_output=True,
+                    cwd=repo,
+                    check=True,
+                )
+                subprocess.run(
+                    ["git", "fetch"]
+                    + git_options
+                    + ["--", git_url, git_branch],
+                    capture_output=True,
+                    cwd=repo,
+                    check=True,
+                )
+                subprocess.run(
+                    ["git", "reset", "-q", "--soft", "FETCH_HEAD"],
+                    capture_output=True,
+                    cwd=repo,
+                    check=True,
+                )
+            else:
+                subprocess.run(
+                    ["git", "clone"]
+                    + git_options
+                    + ["-n", "-q", "-b", git_branch]
+                    + ["--", git_url, str(repo)],
+                    capture_output=True,
+                    check=True,
+                )
         except subprocess.CalledProcessError as e:
             if ignore_missing:
                 return
@@ -220,6 +246,9 @@ def main(args):
         verify = False
     elif less_secure_signed_commits_sufficient:
         check = "signed-tag-or-commit"
+    elif args.git_commit:
+        # user specified pre-verified commit-id
+        verify = False
 
     verify_ref = subprocess.run(
         ["git", "rev-parse", "-q", "--verify", verify_ref],
@@ -250,6 +279,33 @@ def main(args):
             check=True,
             env=env,
         )
+        if args.trust_all_keys:
+            for file in keys_dir.glob("*"):
+                subprocess.run(
+                    [gpg_client, "--import", str(file)],
+                    check=True,
+                    env=env,
+                    capture_output=True,
+                )
+            list_keys = subprocess.run(
+                [gpg_client, "--list-keys", "--with-colons"],
+                capture_output=True,
+                check=True,
+                env=env,
+            )
+            for line in list_keys.stdout.splitlines():
+                if not line.startswith(b"fpr:"):
+                    continue
+                keyid = line.decode().split(":")[9]
+                subprocess.run(
+                    [gpg_client, "--import-ownertrust"],
+                    input=f"{keyid}:6:\n",
+                    capture_output=True,
+                    text=True,
+                    env=env,
+                    check=True,
+                )
+
         for keyid in maintainers:
             key_path = keys_dir / f"{keyid}.asc"
             if not key_path.exists():
@@ -469,9 +525,18 @@ def get_args():
     # optional args
     parser.add_argument("--git-branch", help="Git branch.", default="main")
     parser.add_argument(
+        "--git-commit",
+        help="Specific git commit id - full sha. Takes precedence over branch and does not require signed tag.",
+    )
+    parser.add_argument(
         "--clean",
         action="store_true",
         help="Remove previous sources (use git up vs git clone).",
+    )
+    parser.add_argument(
+        "--shallow-clone",
+        action="store_true",
+        help="Fetch git repo with --depth=1 to reduce amount of data.",
     )
     parser.add_argument(
         "--fetch-only",
@@ -502,6 +567,11 @@ def get_args():
         "--maintainer",
         action="append",
         help="Allowed maintainer provided as KEYID assumed to be available as KEYID.asc under provided 'keys-dir' directory. Can be used multiple times.",
+    )
+    parser.add_argument(
+        "--trust-all-keys",
+        action="store_true",
+        help="Import and trust all keys present in *keys-dir*. Conflicts with --maintainer.",
     )
     parser.add_argument(
         "--minimum-distinct-maintainers",
