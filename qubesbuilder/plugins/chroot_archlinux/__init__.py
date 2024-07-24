@@ -115,7 +115,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         if stage != "init-cache":
             return
 
-        executor = self.get_executor(stage)
+        executor = self.get_executor_from_config(stage)
 
         cache_chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
         cache_chroot_dir.mkdir(exist_ok=True, parents=True)

@@ -399,10 +399,10 @@ class Config:
         executor_options: Dict[Any, Any] = {}
 
         if plugin:
-            if hasattr(plugin, "dist"):
-                dist = plugin.dist
             if hasattr(plugin, "component"):
                 component = plugin.component
+            if hasattr(plugin, "dist"):
+                dist = plugin.dist
 
         if dist and isinstance(dist, QubesDistribution):
             for distribution in self.get_distributions():
@@ -487,6 +487,8 @@ class Config:
             raise ConfigError(
                 "No defined executor found in configuration file."
             )
+        if plugin:
+            executor.log = plugin.log.getChild(stage_name)
         return executor
 
     def get_component_from_dict_or_string(

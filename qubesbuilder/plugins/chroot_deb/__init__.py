@@ -55,7 +55,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         if stage != "init-cache":
             return
 
-        executor = self.get_executor(stage)
+        executor = self.get_executor_from_config(stage)
 
         chroot_dir = (
             self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder"

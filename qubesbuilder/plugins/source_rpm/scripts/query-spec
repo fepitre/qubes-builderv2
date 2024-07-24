@@ -20,13 +20,9 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Default redirection or errors
-ERR_OUTPUT="/dev/null"
-
 set -e
 if [ "${VERBOSE:-0}" -ge 2 ] || [ "${DEBUG:-0}" -eq 1 ]; then
     set -x
-    ERR_OUTPUT="/dev/stderr"
 fi
 
 source_dir="$1"
@@ -66,21 +62,21 @@ if [ -r "${spec_file}.in" ]; then
     #rpm -q $RPM_QUERY_DEFINES --qf "$2" --specfile <(`dirname $0`/generate-spec "${spec_file}.in" /dev/stdout) 2>/dev/null
     # need to create a file due to a bug in process substitution (e.g. artwork package)
     tmp_spec=$(mktemp --tmpdir tmp.XXXXXX.spec)
-    "$(dirname "$0")/generate-spec" "$source_dir" "${spec_file}.in" "${tmp_spec}" 2>$ERR_OUTPUT
+    "$(dirname "$0")/generate-spec" "$source_dir" "${spec_file}.in" "${tmp_spec}"
     if [ "${query_field}" = "%{SOURCE0}" ]; then
-        spectool --list-files --source 0 "${tmp_spec}" 2>$ERR_OUTPUT
+        spectool --list-files --source 0 "${tmp_spec}"
     elif [ "${query_field}" = "PACKAGES_LIST" ]; then
-        "$(dirname "$0")"/query-builtrpms "${tmp_spec}" "$dist" 2>$ERR_OUTPUT
+        "$(dirname "$0")"/query-builtrpms "${tmp_spec}" "$dist"
     else
-        rpm -q --define "dist .$dist" --qf "${query_field}" --specfile "${tmp_spec}" 2>$ERR_OUTPUT
+        rpm -q --define "dist .$dist" --qf "${query_field}" --specfile "${tmp_spec}"
     fi
     rm -f "${tmp_spec}"
 else
     if [ "${query_field}" = "%{SOURCE0}" ]; then
-        spectool --list-files --source 0 "${spec_file}" 2>$ERR_OUTPUT
+        spectool --list-files --source 0 "${spec_file}"
     elif [ "${query_field}" = "PACKAGES_LIST" ]; then
-        "$(dirname "$0")"/query-builtrpms "${spec_file}" "$dist" 2>$ERR_OUTPUT
+        "$(dirname "$0")"/query-builtrpms "${spec_file}" "$dist"
     else
-        rpm -q --define "dist .$dist" --qf "${query_field}" --specfile "${spec_file}" 2>$ERR_OUTPUT
+        rpm -q --define "dist .$dist" --qf "${query_field}" --specfile "${spec_file}"
     fi
 fi

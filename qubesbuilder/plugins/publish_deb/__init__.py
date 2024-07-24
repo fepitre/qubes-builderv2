@@ -286,7 +286,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         if stage != "publish" or not self.has_component_packages("publish"):
             return
 
-        executor = self.get_executor(stage)
+        executor = self.get_executor_from_config(stage)
         parameters = self.get_parameters(stage)
 
         # Check if we have a signing key provided

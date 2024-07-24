@@ -138,7 +138,7 @@ class InstallerPlugin(DistributionPlugin):
         return self.iso_timestamp
 
     def update_parameters(self, stage: str, iso_timestamp: str = None):
-        executor = self.get_executor(stage)
+        executor = self.get_executor_from_config(stage)
         self.environment.update(
             {
                 "DIST": self.dist.name,
@@ -273,7 +273,7 @@ class InstallerPlugin(DistributionPlugin):
 
         self.update_parameters(stage=stage, iso_timestamp=iso_timestamp)
 
-        executor = self.get_executor(stage)
+        executor = self.get_executor_from_config(stage)
 
         mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
         repository_dir = self.get_repository_dir() / self.dist.distribution
@@ -434,6 +434,7 @@ class InstallerPlugin(DistributionPlugin):
                 # Merge downloaded templates into the temporary
                 # directory into templates cache dir
                 local_executor = LocalExecutor()
+                local_executor.log = self.log.getChild(stage)
                 try:
                     copy_in = self.default_copy_in(
                         local_executor.get_plugins_dir(),

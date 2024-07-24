@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import getpass
 import grp
+import logging
 import os
 import pwd
 import shutil
@@ -26,11 +27,8 @@ import uuid
 from pathlib import Path
 from typing import List, Tuple, Union
 
-from qubesbuilder.common import sanitize_line, str_to_bool
+from qubesbuilder.common import str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
-from qubesbuilder.log import get_logger
-
-log = get_logger("executor:local")
 
 
 class LocalExecutor(Executor):
@@ -106,9 +104,6 @@ class LocalExecutor(Executor):
             )
 
         try:
-            # Adjust log namespace
-            log.name = f"executor:local:{self._builder_dir}"
-
             # copy-in hook
             for src, dst in sorted(set(copy_in or []), key=lambda x: x[1]):
                 self.copy_in(
@@ -132,7 +127,10 @@ class LocalExecutor(Executor):
                 "-c",
                 sed_cmd + "&&".join(cmd),
             ]
-            log.info(f"Executing '{' '.join(final_cmd)}'.")
+
+            self.log.debug(
+                f"Using executor local:{self._builder_dir} to run '{final_cmd}'."
+            )
 
             # add requested env to existing env, instead of completely replacing it
             if environment is not None:
@@ -140,27 +138,10 @@ class LocalExecutor(Executor):
                 environment_new.update(environment)
                 environment = environment_new
 
-            # stream output for command
-            process = subprocess.Popen(
-                final_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                env=environment,
-            )
-            while True:
-                if not process.stdout:
-                    log.error(f"No output!")
-                    break
-                for line in process.stdout:
-                    line = sanitize_line(line.rstrip(b"\n")).rstrip()
-                    log.info(f"output: {str(line)}")
-                if process.poll() is not None:
-                    break
-            rc = process.poll()
+            rc = self.execute(final_cmd, env=environment)
             if rc != 0:
-                raise ExecutorError(
-                    f"Failed to run '{final_cmd}' (status={rc})."
-                )
+                msg = f"Failed to run '{final_cmd}' (status={rc})."
+                raise ExecutorError(msg)
 
             # copy-out hook
             for src, dst in sorted(set(copy_out or []), key=lambda x: x[1]):
@@ -176,7 +157,9 @@ class LocalExecutor(Executor):
                             for p in no_fail_copy_out_allowed_patterns
                         ]
                     ):
-                        log.warning(f"File not found inside container: {src}.")
+                        self.log.debug(
+                            f"File not found inside container: {src}."
+                        )
                         continue
                     raise e
         finally:

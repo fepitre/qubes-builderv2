@@ -33,6 +33,7 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
+from qubesbuilder.log import QubesBuilderLogger
 
 
 class ContextObj:
@@ -46,7 +47,6 @@ class ContextObj:
         self.components: List[QubesComponent] = []
         self.distributions: List[QubesDistribution] = []
         self.templates: List[QubesTemplate] = []
-        self.log_file: Optional[Path] = None
 
 
 class AliasedGroup(click.Group):
@@ -64,9 +64,12 @@ class AliasedGroup(click.Group):
         try:
             return self.main(*args, **kwargs)
         except Exception as exc:
-            click.secho(f"Error: {exc}", fg="red")
+            QubesBuilderLogger.error(f"An error occurred: {str(exc)}")
             if self.debug is True:
-                traceback.print_exception(*sys.exc_info())
+                formatted_traceback = "".join(traceback.format_exception(exc))
+                QubesBuilderLogger.error(
+                    "\n" + formatted_traceback.rstrip("\n")
+                )
 
             if isinstance(exc, click.ClickException):
                 # pylint: disable=no-member

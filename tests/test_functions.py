@@ -1,8 +1,12 @@
 import pytest
 import tempfile
 from pathlib import Path
-from qubesbuilder.common import is_filename_valid, deep_check, sed, \
-    get_archive_name
+from qubesbuilder.common import (
+    is_filename_valid,
+    deep_check,
+    sed,
+    get_archive_name,
+)
 from qubesbuilder.cli.cli_main import parse_config_from_cli
 
 
@@ -307,7 +311,7 @@ def test_get_archive_name_git_url():
     file = {
         "git-url": "https://github.com/owner/repo",
         "tag": "v2.0.0",
-        "git-basename": "repo-2.0.0"
+        "git-basename": "repo-2.0.0",
     }
     fn = get_archive_name(file)
     assert fn == "repo-2.0.0.tar.gz"

@@ -16,14 +16,14 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import asyncio
+import logging
+import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from qubesbuilder.exc import QubesBuilderError
-from qubesbuilder.log import get_logger
-
-log = get_logger("executor")
+from qubesbuilder.common import sanitize_line
 
 
 class ExecutorError(QubesBuilderError):
@@ -40,6 +40,7 @@ class Executor(ABC):
     """
 
     _builder_dir = Path("/builder")
+    log = logging.getLogger("executor")
 
     def get_builder_dir(self):
         return self._builder_dir
@@ -92,3 +93,41 @@ class Executor(ABC):
         for key, val in self.get_placeholders().items():
             s = s.replace(key, str(val))
         return s
+
+    @staticmethod
+    async def _read_stream(stream, cb):
+        while True:
+            line = await stream.readline()
+            if line:
+                cb(sanitize_line(line.rstrip(b"\n")).rstrip())
+            else:
+                break
+
+    async def _stream_subprocess(self, cmd, stdout_cb, stderr_cb, **kwargs):
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            **kwargs,
+        )
+
+        await asyncio.wait(
+            [
+                asyncio.create_task(
+                    self._read_stream(process.stdout, stdout_cb)
+                ),
+                asyncio.create_task(
+                    self._read_stream(process.stderr, stderr_cb)
+                ),
+            ]
+        )
+        return await process.wait()
+
+    def execute(self, cmd, **kwargs):
+        loop = asyncio.get_event_loop()
+        rc = loop.run_until_complete(
+            self._stream_subprocess(
+                cmd, self.log.debug, self.log.debug, **kwargs
+            )
+        )
+        return rc

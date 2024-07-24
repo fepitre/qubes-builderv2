@@ -16,6 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import logging
 import os
 import re
 import shutil
@@ -26,9 +27,6 @@ from typing import List, Tuple, Union
 
 from qubesbuilder.common import sanitize_line, str_to_bool, PROJECT_PATH
 from qubesbuilder.executors import Executor, ExecutorError
-from qubesbuilder.log import get_logger
-
-log = get_logger("executor:qubes")
 
 
 # From https://github.com/QubesOS/qubes-core-admin-client/blob/main/qubesadmin/utils.py#L159-L173
@@ -88,12 +86,12 @@ class QubesExecutor(Executor):
             str(src),
         ]
         try:
-            log.debug(f"copy-in (cmd): {' '.join(copy_in_cmd)}")
+            self.log.debug(f"copy-in (cmd): {' '.join(copy_in_cmd)}")
             subprocess.run(copy_in_cmd, check=True)
         except subprocess.CalledProcessError as e:
             if e.stderr is not None:
                 msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
-                log.error(msg)
+                self.log.error(msg)
             raise ExecutorError from e
 
     def copy_out(
@@ -128,18 +126,20 @@ class QubesExecutor(Executor):
             str(dst),
         ]
         try:
-            log.debug(f"copy-out (cmd): {' '.join(cmd)}")
+            self.log.debug(f"copy-out (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
 
             if dig_holes and not dst_path.is_dir():
-                log.debug("copy-out (detect zeroes and replace with holes)")
+                self.log.debug(
+                    "copy-out (detect zeroes and replace with holes)"
+                )
                 subprocess.run(
                     ["/usr/bin/fallocate", "-d", str(dst_path)], check=True
                 )
         except subprocess.CalledProcessError as e:
             if e.stderr is not None:
                 msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
-                log.error(msg)
+                self.log.error(msg)
             raise ExecutorError from e
 
 
@@ -178,9 +178,6 @@ class LinuxQubesExecutor(QubesExecutor):
             if not re.match(rb"\Adisp(0|[1-9][0-9]{0,8})\Z", stdout):
                 raise ExecutorError("Failed to create disposable qube.")
             dispvm = stdout.decode("ascii", "strict")
-
-            # Adjust log namespace
-            log.name = f"executor:qubes:{dispvm}"
 
             # Start the DispVM
             subprocess.run(
@@ -318,26 +315,14 @@ class LinuxQubesExecutor(QubesExecutor):
                 ],
             )
 
-            log.info(f"Executing '{' '.join(qvm_run_cmd)}'.")
+            self.log.info(f"Using executor qubes:{dispvm}.")
+            self.log.debug(" ".join(qvm_run_cmd))
 
             # stream output for command
-            process = subprocess.Popen(
-                qvm_run_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-            )
-            while True:
-                if not process.stdout:
-                    log.error(f"No output!")
-                    break
-                for line in process.stdout:
-                    line = sanitize_line(line.rstrip(b"\n")).rstrip()
-                    log.info(f"output: {str(line)}")
-                if process.poll() is not None:
-                    break
-            rc = process.poll()
+            rc = self.execute(qvm_run_cmd)
             if rc != 0:
-                raise ExecutorError(
-                    f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
-                )
+                msg = f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
+                raise ExecutorError(msg)
 
             # copy-out hook
             for src_out, dst_out in sorted(
@@ -360,7 +345,7 @@ class LinuxQubesExecutor(QubesExecutor):
                             for p in no_fail_copy_out_allowed_patterns
                         ]
                     ):
-                        log.warning(
+                        self.log.debug(
                             f"File not found inside container: {src_out}."
                         )
                         continue
