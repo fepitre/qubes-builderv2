@@ -25,12 +25,8 @@
 set -e
 set -o pipefail
 
-# Default redirection or errors
-ERR_OUTPUT="/dev/null"
-
 if [ "${DEBUG}" == 1 ]; then
     set -x
-    ERR_OUTPUT="/dev/stderr"
 fi
 
 if test $# -ne 3; then
@@ -47,11 +43,10 @@ SPEC_MANGLE_PATH="${SPEC_FILE/$SOURCE_DIR\//}"
 SPEC_MANGLE_PATH="${SPEC_MANGLE_PATH//\//_}"
 
 "${SCRIPTS_DIR}"/query-spec \
-    "$SOURCE_DIR" "$SPEC_FILE" '%{name}-%{version}-%{release}\n' "${DIST_TAG}" 2>$ERR_OUTPUT | { head -1 && cat >/dev/null; } > "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_package_release_name"
+    "$SOURCE_DIR" "$SPEC_FILE" '%{name}-%{version}-%{release}\n' "${DIST_TAG}" | { head -1 && cat >/dev/null; } > "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_package_release_name"
 
 "${SCRIPTS_DIR}"/query-spec \
-    "$SOURCE_DIR" "$SPEC_FILE" '%{SOURCE0}' "${DIST_TAG}" 2>$ERR_OUTPUT | awk '{print $2}' >> "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_package_release_name"
+    "$SOURCE_DIR" "$SPEC_FILE" '%{SOURCE0}' "${DIST_TAG}" | awk '{print $2}' >> "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_package_release_name"
 
 "${SCRIPTS_DIR}"/query-spec \
-    "$SOURCE_DIR" "$SPEC_FILE" PACKAGES_LIST "${DIST_TAG}" 2>$ERR_OUTPUT \
-    > "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_packages.list"
+    "$SOURCE_DIR" "$SPEC_FILE" PACKAGES_LIST "${DIST_TAG}" > "${SOURCE_DIR}/${SPEC_MANGLE_PATH}_packages.list"

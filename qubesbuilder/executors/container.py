@@ -16,6 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import logging
 import subprocess
 import tempfile
 from contextlib import contextmanager
@@ -25,9 +26,6 @@ from typing import List, Tuple, Union
 
 from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
-from qubesbuilder.log import get_logger
-
-log = get_logger("executor:container")
 
 try:
     from docker import DockerClient
@@ -125,7 +123,7 @@ class ContainerExecutor(Executor):
                         f"{empty_dir!s}/.",
                         f"{container.id}:{parent}",
                     ]
-                    log.debug(f"copy-in (cmd): {' '.join(cmd)}")
+                    self.log.debug(f"copy-in (cmd): {' '.join(cmd)}")
                     subprocess.run(cmd, check=True, capture_output=True)
             cmd = [
                 self._container_client,
@@ -133,16 +131,12 @@ class ContainerExecutor(Executor):
                 str(src),
                 f"{container.id}:{dst}",
             ]
-            log.debug(f"copy-in (cmd): {' '.join(cmd)}")
+            self.log.debug(f"copy-in (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
-            if e.stderr is not None:
-                msg = (
-                    sanitize_line(e.stderr.rstrip(b"\n"))
-                    .rstrip()
-                    .replace("Error: ", "")
-                )
-                log.error(msg)
+            if e.stdout is not None:
+                msg = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
+                self.log.error(msg)
             raise ExecutorError from e
 
     def copy_out(self, container, source_path: PurePath, destination_dir: Path):  # type: ignore
@@ -151,17 +145,13 @@ class ContainerExecutor(Executor):
 
         cmd = [self._container_client, "cp", f"{container.id}:{src}", str(dst)]
         try:
-            log.debug(f"copy-out (cmd): {' '.join(cmd)}")
+            self.log.debug(f"copy-out (cmd): {' '.join(cmd)}")
             dst.mkdir(parents=True, exist_ok=True)
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
-            if e.stderr is not None:
-                msg = (
-                    sanitize_line(e.stderr.rstrip(b"\n"))
-                    .rstrip()
-                    .replace("Error: ", "")
-                )
-                log.error(msg)
+            if e.stdout is not None:
+                msg = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
+                self.log.error(msg)
             raise ExecutorError from e
 
     def run(  # type: ignore
@@ -223,12 +213,6 @@ class ContainerExecutor(Executor):
                     mounts=mounts,
                 )
 
-                # Adjust log namespace
-                log.name = (
-                    f"executor:{self._container_client}:{container.short_id}"
-                )
-                log.info(f"Executing '{final_cmd}'.")
-
                 # copy-in hook
                 for src_in, dst_in in sorted(
                     set(copy_in or []), key=lambda x: x[1]
@@ -237,27 +221,22 @@ class ContainerExecutor(Executor):
                         container, source_path=src_in, destination_dir=dst_in
                     )
 
+                self.log.debug(
+                    f"Using executor {self._container_client}:{container.short_id} to run '{final_cmd}'."
+                )
+
                 # FIXME: Use attach method when podman-py will implement.
                 #  It is for starting and streaming output directly with python.
-                process = subprocess.Popen(
-                    [self._container_client, "start", "--attach", container.id],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                )
-                while True:
-                    if not process.stdout:
-                        log.error(f"No output!")
-                        break
-                    for line in process.stdout:
-                        line = sanitize_line(line.rstrip(b"\n")).rstrip()
-                        log.info(f"output: {str(line)}")
-                    if process.poll() is not None:
-                        break
-                rc = process.poll()
+                cmd = [
+                    self._container_client,
+                    "start",
+                    "--attach",
+                    container.id,
+                ]
+                rc = self.execute(cmd)
                 if rc != 0:
-                    raise ExecutorError(
-                        f"Failed to run '{final_cmd}' (status={rc})."
-                    )
+                    msg = f"Failed to run '{final_cmd}' (status={rc})."
+                    raise ExecutorError(msg)
 
                 # copy-out hook
                 for src_out, dst_out in sorted(
@@ -279,7 +258,7 @@ class ContainerExecutor(Executor):
                                 for p in no_fail_copy_out_allowed_patterns
                             ]
                         ):
-                            log.warning(
+                            self.log.debug(
                                 f"File not found inside container: {src_out}."
                             )
                             continue

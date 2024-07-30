@@ -20,7 +20,7 @@
 """
 QubesBuilder command-line interface.
 """
-
+import logging
 import re
 from datetime import datetime
 from pathlib import Path
@@ -37,7 +37,7 @@ from qubesbuilder.cli.cli_repository import repository
 from qubesbuilder.cli.cli_template import template
 from qubesbuilder.common import STAGES, str_to_bool
 from qubesbuilder.config import Config, deep_merge
-from qubesbuilder.log import get_logger, init_logging
+from qubesbuilder.log import get_logger, init_logger
 
 log = get_logger("cli")
 
@@ -155,8 +155,6 @@ def parse_config_from_cli(array):
 
 def init_context_obj(
     builder_conf: str,
-    verbose: int = None,
-    debug: bool = None,
     log_file: str = None,
     component: Optional[List] = None,
     distribution: Optional[List] = None,
@@ -169,24 +167,8 @@ def init_context_obj(
         raise CliError(f"Failed to parse CLI options: '{str(e)}'")
 
     config = Config(conf_file=builder_conf, options=options)
+
     obj = ContextObj(config)
-
-    # verbose or debug is overridden by cli options
-    if verbose is not None:
-        obj.config.set("verbose", verbose)
-
-    if debug is not None:
-        obj.config.set("debug", debug)
-
-    if log_file:
-        file_path = Path(log_file).resolve()
-    else:
-        logs_dir = config.get_logs_dir()
-        file_path = (
-            logs_dir / datetime.utcnow().strftime("%Y%m%d%H%M")
-        ).with_suffix(".log")
-
-    obj.log_file = file_path
     obj.components = obj.config.get_components(component)
     obj.distributions = obj.config.get_distributions(distribution)
     obj.templates = obj.config.get_templates(template)
@@ -248,7 +230,7 @@ def init_context_obj(
 @click.pass_context
 def main(
     ctx: click.Context,
-    verbose: int,
+    verbose: bool,
     debug: bool,
     builder_conf: str,
     log_file: str,
@@ -263,8 +245,6 @@ def main(
     """
     obj = init_context_obj(
         builder_conf=builder_conf,
-        verbose=verbose,
-        debug=debug,
         log_file=log_file,
         component=component,
         distribution=distribution,
@@ -272,20 +252,19 @@ def main(
         option=option,
     )
 
-    if obj.config.verbose:
-        init_logging(
-            level="DEBUG" if verbose else "INFO", file_path=obj.log_file
-        )
-    else:
-        init_logging(level="WARNING", file_path=obj.log_file)
+    # verbose/debug modes are also provided by builder configuration
+    obj.config.set(
+        "verbose", verbose if verbose is not None else obj.config.verbose
+    )
+    obj.config.set("debug", debug if debug is not None else obj.config.debug)
+
+    # debug will show traceback
+    ctx.command.debug = obj.config.debug
 
     ctx.obj = obj
 
-    # debug mode is also provided by builder configuration
-    ctx.command.debug = ctx.obj.config.debug  # type: ignore
-
-    if debug is not None:
-        ctx.command.debug = True  # type: ignore
+    # init QubesBuilderLogger
+    init_logger(obj.config.verbose)
 
 
 main.epilog = f"""Stages:

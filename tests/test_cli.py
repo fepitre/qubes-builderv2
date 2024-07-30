@@ -56,7 +56,7 @@ def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
         f"artifacts-dir={artifacts_dir}",
         *args,
     ]
-    return subprocess.check_output(cmd, **kwargs)
+    return subprocess.check_output(cmd, stderr=subprocess.STDOUT, **kwargs)
 
 
 def deb_packages_list(repository_dir, suite, **kwargs):
@@ -181,7 +181,6 @@ def test_common_component_fetch(artifacts_dir):
         artifacts_dir,
         "package",
         "fetch",
-        stderr=subprocess.STDOUT,
     ).decode()
 
     assert (
@@ -191,16 +190,14 @@ def test_common_component_fetch(artifacts_dir):
         artifacts_dir
         / "distfiles/desktop-linux-xfce4-xfwm4/xfwm4-4.16.1.tar.bz2"
     ).exists()
-    assert (
-        artifacts_dir
-        / "distfiles/linux-gbulb/gbulb-0.6.3.tar.gz"
-    ).exists()
+    assert (artifacts_dir / "distfiles/linux-gbulb/gbulb-0.6.3.tar.gz").exists()
     # verify files layout inside
     subprocess.run(
-        ["tar",
-         "tf",
-         artifacts_dir / "distfiles/linux-gbulb/gbulb-0.6.3.tar.gz",
-         "gbulb-0.6.3/README.rst"
+        [
+            "tar",
+            "tf",
+            artifacts_dir / "distfiles/linux-gbulb/gbulb-0.6.3.tar.gz",
+            "gbulb-0.6.3/README.rst",
         ],
         check=True,
         capture_output=True,
@@ -231,7 +228,6 @@ def test_common_component_fetch_updating(artifacts_dir):
         artifacts_dir,
         "package",
         "fetch",
-        stderr=subprocess.STDOUT,
     ).decode()
     for sentence in [
         "python-qasync: source already fetched. Updating.",
@@ -260,7 +256,6 @@ def test_common_component_fetch_inplace(artifacts_dir):
         "git-run-inplace=true",
         "package",
         "fetch",
-        stderr=subprocess.STDOUT,
     ).decode()
 
     assert (
@@ -297,7 +292,6 @@ def test_common_component_fetch_inplace_updating(artifacts_dir):
         "git-run-inplace=true",
         "package",
         "fetch",
-        stderr=subprocess.STDOUT,
     ).decode()
 
     for sentence in [
@@ -829,7 +823,6 @@ def test_component_host_fc37_prep_skip(artifacts_dir):
         "host-fc37",
         "package",
         "prep",
-        stderr=subprocess.STDOUT,
     ).decode()
     print(result)
     assert (
@@ -848,7 +841,6 @@ def test_component_host_fc37_build_skip(artifacts_dir):
         "host-fc37",
         "package",
         "build",
-        stderr=subprocess.STDOUT,
     ).decode()
     print(result)
     assert (
@@ -876,7 +868,6 @@ def test_component_host_fc37_sign_skip(artifacts_dir):
             "host-fc37",
             "package",
             "sign",
-            stderr=subprocess.STDOUT,
             env=env,
         ).decode()
 
@@ -923,7 +914,6 @@ def test_component_host_fc37_unpublish(artifacts_dir):
             "unpublish",
             "current",
             env=env,
-            stderr=subprocess.STDOUT,
         ).decode()
 
         rpms = {
@@ -993,8 +983,8 @@ def test_component_host_fc37_unpublish(artifacts_dir):
         else:
             assert set(rpms) == set(packages)
 
-    assert "[publish_rpm]" in result
-    assert "[upload]" in result
+    assert "[qb.publish_rpm.core-qrexec.host-fc37]" in result
+    assert "[qb.upload.host-fc37]" in result
 
 
 #
@@ -1319,7 +1309,6 @@ def test_component_vm_bookworm_prep_skip(artifacts_dir):
         "vm-bookworm",
         "package",
         "prep",
-        stderr=subprocess.STDOUT,
     ).decode()
     print(result)
     assert (
@@ -1338,7 +1327,6 @@ def test_component_vm_bookworm_build_skip(artifacts_dir):
         "vm-bookworm",
         "package",
         "build",
-        stderr=subprocess.STDOUT,
     ).decode()
     print(result)
     assert (
@@ -1366,7 +1354,6 @@ def test_component_vm_bookworm_sign_skip(artifacts_dir):
             "vm-bookworm",
             "package",
             "sign",
-            stderr=subprocess.STDOUT,
             env=env,
         ).decode()
 
@@ -1544,7 +1531,6 @@ def test_increment_component_build(artifacts_dir):
             "vm-bookworm",
             "package",
             "all",
-            stderr=subprocess.STDOUT,
             env=env,
         )
 

@@ -105,7 +105,7 @@ class Plugin:
             self.environment["DEBUG"] = "1"
         self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
-        self.log = get_logger(self.name)
+        self.log = get_logger(self.name, self)
 
     def check_dependencies(self):
         for dependency in self.dependencies:
@@ -140,10 +140,10 @@ class Plugin:
     def update_placeholders(self, stage: str):
         self._placeholders.setdefault(stage, {})
         self._placeholders[stage].update(
-            self.get_executor(stage).get_placeholders()
+            self.get_executor_from_config(stage).get_placeholders()
         )
 
-    def get_executor(self, stage: str):
+    def get_executor_from_config(self, stage: str):
         if not self._executors.get(stage, None):
             self._executors[stage] = self.config.get_executor_from_config(
                 stage, self
@@ -252,15 +252,17 @@ class ComponentPlugin(Plugin):
         manager: PluginManager,
         **kwargs,
     ):
-        super().__init__(config=config, manager=manager, **kwargs)
         self.component = component
+        super().__init__(config=config, manager=manager, **kwargs)
         self._source_hash = ""
 
     def update_placeholders(self, stage: str):
         super().update_placeholders(stage)
         self._placeholders[stage].update(
             {
-                "@SOURCE_DIR@": self.get_executor(stage).get_builder_dir()
+                "@SOURCE_DIR@": self.get_executor_from_config(
+                    stage
+                ).get_builder_dir()
                 / self.component.name,
                 "@BACKEND_VMM@": self.config.backend_vmm,
             }
@@ -325,8 +327,8 @@ class ComponentPlugin(Plugin):
 
 class DistributionPlugin(Plugin):
     def __init__(self, dist, config, manager, **kwargs):
-        super().__init__(config=config, manager=manager, **kwargs)
         self.dist = dist
+        super().__init__(config=config, manager=manager, **kwargs)
 
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
@@ -475,10 +477,10 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
 
 class TemplatePlugin(DistributionPlugin):
     def __init__(self, template: QubesTemplate, config, manager: PluginManager):
+        self.template = template
         super().__init__(
             config=config, manager=manager, dist=template.distribution
         )
-        self.template = template
 
     @classmethod
     def supported_template(cls, template: QubesTemplate):

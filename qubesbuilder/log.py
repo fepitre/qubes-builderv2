@@ -1,39 +1,14 @@
-# The Qubes OS Project, http://www.qubes-os.org
-#
-# Copyright (C) 2021 Frédéric Pierret (fepitre) <frederic@invisiblethingslab.com>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along
-# with this program. If not, see <https://www.gnu.org/licenses/>.
-#
-# SPDX-License-Identifier: GPL-3.0-or-later
-
-# Originally from https://gitlab.com/Wildland/wildland-client
-
 import logging
 import logging.config
-from pathlib import Path
-
+import datetime
 from qubesbuilder.exc import QubesBuilderError
 
-RootStreamHandler = logging.StreamHandler()
 
-
-def get_logger(name):
-    """
-    Simple logger
-    """
-    logger = logging.getLogger(name)
-    return logger
+class DefaultFormatter(logging.Formatter):
+    def __init__(
+        self, fmt="%(asctime)s [%(name)s] %(message)s", *args, **kwargs
+    ):
+        super().__init__(fmt, *args, **kwargs)
 
 
 class ConsoleFormatter(logging.Formatter):
@@ -52,15 +27,14 @@ class ConsoleFormatter(logging.Formatter):
         "reset": "\x1b[0m",
     }
 
-    def __init__(self, fmt, *args, **kwargs):
+    def __init__(self, fmt=None, *args, **kwargs):
         if fmt is None:
             fmt = (
                 "{grey}%(asctime)s "
                 "{cyan}[%(name)s] "
                 "$COLOR%(message)s"
                 "{reset}"
-            )
-            fmt = fmt.format(**self.colors)
+            ).format(**self.colors)
         super().__init__(fmt, *args, **kwargs)
 
     def format(self, record):
@@ -77,101 +51,76 @@ class ConsoleFormatter(logging.Formatter):
 
     def formatException(self, ei):
         result = super().formatException(ei)
-        result = "{red}{result}{reset}".format(result=result, **self.colors)
-        return result
+        return "{red}{result}{reset}".format(result=result, **self.colors)
 
 
-class BriefConsoleFormatter(ConsoleFormatter):
-    """
-    A formatter for color and brief (for users) messages in console.
-    """
-
-    colors = {
-        "grey": "\x1b[38;5;246m",
-        "green": "\x1b[32m",
-        "yellow": "\x1b[33m",
-        "red": "\x1b[31m",
-        "cyan": "\x1b[36m",
-        "reset": "\x1b[0m",
-    }
-
-    def __init__(self, fmt, *args, **kwargs):
-        fmt = "$COLOR$LEVEL: %(message)s" "{reset}"
-        fmt = fmt.format(**self.colors)
-        super().__init__(fmt, *args, **kwargs)
-
-    def format(self, record):
-        result = super().format(record)
-        result = result.replace("$LEVEL", record.levelname.title())
-        return result
+def create_file_handler(log_file):
+    file_handler = logging.FileHandler(log_file, mode="w")
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(DefaultFormatter())
+    return file_handler
 
 
-def init_logging(
-    console: bool = True, file_path: Path = None, level: str = "DEBUG"
-):
-    """
-    Configure logging module.
-    """
+def create_console_handler(verbose):
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG if verbose else logging.INFO)
+    console_handler.setFormatter(ConsoleFormatter())
+    return console_handler
 
-    config: dict = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "default": {
-                "class": "logging.Formatter",
-                "format": "%(asctime)s [%(name)s] %(message)s",
-            },
-            "console": {
-                "class": "qubesbuilder.log.ConsoleFormatter",
-            },
-        },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "stream": "ext://sys.stderr",
-                "formatter": "console",
-            },
-        },
-        "root": {
-            "level": level,
-            "handlers": [],
-        },
-    }
 
-    if console:
-        config["root"]["handlers"].append("console")
+def get_logger_name(name, plugin):
+    fname = []
+    if hasattr(plugin, "component"):
+        fname.append(plugin.component.name)
+    if hasattr(plugin, "dist") and not hasattr(plugin, "template"):
+        fname.append(plugin.dist.distribution)
+    if hasattr(plugin, "template"):
+        fname.append(plugin.template.name)
+    return ".".join([name] + fname)
 
-        if level not in ("DEBUG", "INFO"):
-            config["formatters"]["console"][
-                "class"
-            ] = "qubesbuilder.log.BriefConsoleFormatter"
 
-    if file_path:
-        config["handlers"]["file"] = {
-            "class": "logging.FileHandler",
-            "filename": str(file_path),
-            "formatter": "default",
-        }
-        config["root"]["handlers"].append("file")
+def get_log_filename(plugin, logs_dir):
+    fname = [QubesBuilderTimeStamp]
+    if hasattr(plugin, "component"):
+        fname.append(plugin.component.name)
+    if hasattr(plugin, "dist") and not hasattr(plugin, "template"):
+        fname.append(plugin.dist.distribution)
+    if hasattr(plugin, "template"):
+        fname.append(plugin.template.name)
+    log_fname = "-".join(fname)
+    return (logs_dir / log_fname).with_suffix(".log")
 
+
+def get_logger(name, plugin=None):
+    if plugin:
+        logger = QubesBuilderLogger.getChild(get_logger_name(name, plugin))
         try:
-            file_path.parent.mkdir(parents=True, exist_ok=True)
+            logs_dir = plugin.config.get_logs_dir()
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            log_file = get_log_filename(plugin, logs_dir)
+
+            file_handler = create_file_handler(log_file)
+            console_handler = create_console_handler(plugin.config.verbose)
+
+            logger.addHandler(file_handler)
+            logger.addHandler(console_handler)
+            logger.propagate = False
+
+            logger.info(f"Log file: {log_file}")
         except OSError as e:
             raise QubesBuilderError("Failed to initialize logging file") from e
+    else:
+        logger = QubesBuilderLogger.getChild(name)
+    return logger
 
-    logging.config.dictConfig(config)
 
-    if file_path:
-        # logging does not provide a way to specify file permission
-        file_path.chmod(0o640)
+def init_logger(verbose=False):
+    QubesBuilderLogger.setLevel(logging.DEBUG)
+    QubesBuilderLogger.propagate = False
+    QubesBuilderLogger.addHandler(create_console_handler(verbose))
 
-    # fixme: is logging allowing handler instance inside dictConfig?
-    root_logger = logging.getLogger()
-    for h in root_logger.handlers:
-        if h.name == "console":
-            # pylint: disable=global-statement
-            global RootStreamHandler
-            RootStreamHandler = h  # type: ignore
-            break
 
-    return root_logger
+QubesBuilderLogger = logging.getLogger("qb")
+QubesBuilderTimeStamp = datetime.datetime.now(datetime.UTC).strftime(
+    "%Y%m%d%H%M%S"
+)

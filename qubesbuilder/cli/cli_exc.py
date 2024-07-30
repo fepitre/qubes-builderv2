@@ -28,6 +28,7 @@ import click
 from click.exceptions import get_text_stderr
 
 from qubesbuilder.exc import QubesBuilderError
+from qubesbuilder.log import QubesBuilderLogger
 
 
 class CliError(QubesBuilderError, click.ClickException):
@@ -36,8 +37,4 @@ class CliError(QubesBuilderError, click.ClickException):
     """
 
     def show(self, file: Optional[IO] = None) -> None:
-        if file is None:
-            file = get_text_stderr()
-        click.secho(
-            gettext(f"ERROR: {self.format_message()}"), file=file, fg="red"
-        )
+        QubesBuilderLogger.critical(self.format_message())

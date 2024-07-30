@@ -129,7 +129,7 @@ class PublishPlugin(DistributionComponentPlugin):
         if stage != "publish" or not self.has_component_packages("publish"):
             return
 
-        executor = self.get_executor(stage)
+        executor = self.get_executor_from_config(stage)
 
         if not isinstance(executor, LocalExecutor):
             raise PublishError("This plugin only supports local executor.")

@@ -94,8 +94,9 @@ class FetchPlugin(ComponentPlugin):
         # Override provided executor for git phase only
         if self.config.get("git-run-inplace", False):
             executor = LocalExecutor()
+            executor.log = self.log.getChild(stage)
         else:
-            executor = self.get_executor(stage)
+            executor = self.get_executor_from_config(stage)
 
         # Source component directory
         local_source_dir = self.get_sources_dir() / self.component.name
@@ -187,7 +188,7 @@ class FetchPlugin(ComponentPlugin):
         # is now available.
         super().run(stage)
 
-        executor = self.get_executor(stage)
+        executor = self.get_executor_from_config(stage)
         parameters = self.get_parameters(stage)
         distfiles_dir = self.get_component_distfiles_dir()
         distfiles_dir.mkdir(parents=True, exist_ok=True)
@@ -223,8 +224,9 @@ class FetchPlugin(ComponentPlugin):
 
         if self.config.get("git-run-inplace", False):
             executor = LocalExecutor()
+            executor.log = self.log.getChild(stage)
         else:
-            executor = self.get_executor(stage)
+            executor = self.get_executor_from_config(stage)
 
         # Source component directory inside executors
         source_dir = executor.get_builder_dir() / self.component.name
@@ -258,7 +260,7 @@ class FetchPlugin(ComponentPlugin):
             )
             + " >> vtags",
         ]
-        self.log.error(cmd)
+        self.log.debug(cmd)
         try:
             executor.run(cmd, copy_in, copy_out, environment=self.environment)
         except ExecutorError as e:
@@ -344,7 +346,7 @@ class FetchPlugin(ComponentPlugin):
             # Create modules archives
             #
 
-            executor = self.get_executor(stage)
+            executor = self.get_executor_from_config(stage)
             source_dir = executor.get_builder_dir() / self.component.name
 
             copy_in = [
@@ -544,6 +546,8 @@ class FetchPlugin(ComponentPlugin):
             local_executor = LocalExecutor(directory=executor.get_directory())
         else:
             local_executor = LocalExecutor()
+        local_executor.log = self.log.getChild("fetch")
+
         copy_in = []
         copy_out = [(temp_dir / final_fn, distfiles_dir)]
         # Construct command for "verify-file".

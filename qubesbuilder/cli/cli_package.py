@@ -9,6 +9,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.pluginmanager import PluginManager
+from qubesbuilder.log import QubesBuilderLogger
 
 
 @aliased_group("package", chain=True)
@@ -28,7 +29,7 @@ def _component_stage(
     """
     Generic function to trigger stage for a standard component
     """
-    click.echo(f"Running stage: {stage_name}")
+    QubesBuilderLogger.info(f"Running stage '{stage_name}'")
 
     plugins = manager.get_component_instances(
         stage=stage_name,

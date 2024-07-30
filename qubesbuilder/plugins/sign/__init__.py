@@ -61,7 +61,7 @@ class SignPlugin(DistributionComponentPlugin):
         if stage != "sign" or not self.has_component_packages("sign"):
             return
 
-        executor = self.get_executor(stage)
+        executor = self.get_executor_from_config(stage)
 
         # Check if we have Debian related content defined
         if not self.get_parameters(stage).get("build", []):
