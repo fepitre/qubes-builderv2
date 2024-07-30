@@ -83,7 +83,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         )
 
         # Publish repository
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.config.repository_publish_dir / self.dist.type
 
         # Read information from build stage
         build_info = self.get_dist_artifacts_info(
@@ -161,7 +161,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         )
 
         # Publish repository
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.config.repository_publish_dir / self.dist.type
 
         # Read information from build stage
         build_info = self.get_dist_artifacts_info(

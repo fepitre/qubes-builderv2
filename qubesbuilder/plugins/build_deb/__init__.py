@@ -144,7 +144,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
         # Source artifacts
         prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
 
-        repository_dir = self.get_repository_dir() / self.dist.distribution
+        repository_dir = self.config.repository_dir / self.dist.distribution
         repository_dir.mkdir(parents=True, exist_ok=True)
 
         # Remove previous versions in order to keep the latest one only
@@ -265,7 +265,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             #  This is until we use shlex.quote.
 
             # Add downloaded packages and prepared chroot cache
-            chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
+            chroot_dir = self.config.cache_dir / "chroot" / self.dist.name
             aptcache_dir = chroot_dir / "pbuilder/aptcache"
             base_tgz = chroot_dir / "pbuilder/base.tgz"
             if aptcache_dir.exists():

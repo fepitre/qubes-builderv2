@@ -289,7 +289,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
     def create_repository_skeleton(self):
         # Create publish repository skeleton
-        artifacts_dir = self.get_repository_publish_dir() / "rpm"
+        artifacts_dir = self.config.repository_publish_dir / "rpm"
 
         create_skeleton_cmd = [
             f"{self.manager.entities['publish_rpm'].directory}/scripts/create-skeleton",
@@ -309,7 +309,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
     def create_and_sign_repository_metadata(self, repository_publish):
         executor = self.config.get_executor_from_config("publish", self)
-        artifacts_dir = self.get_repository_publish_dir() / "rpm"
+        artifacts_dir = self.config.repository_publish_dir / "rpm"
         target_dir = (
             artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
         )
@@ -433,7 +433,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         return f"{self.get_template_version()}-{self.get_template_timestamp()}"
 
     def create_metalink(self, executor, repository_publish):
-        repo_basedir = self.get_repository_publish_dir() / "rpm"
+        repo_basedir = self.config.repository_publish_dir / "rpm"
         repository_dir = (
             repo_basedir / self.config.qubes_release / repository_publish
         )
@@ -455,7 +455,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
     def publish(self, executor, db_path, repository_publish):
         rpm = (
-            self.get_templates_dir()
+            self.config.templates_dir
             / "rpm"
             / f"qubes-template-{self.template.name}-{self.get_template_tag()}.noarch.rpm"
         )
@@ -481,7 +481,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         # Publish template with hardlinks to built RPM
         self.log.info(f"{self.template}: Publishing template.")
-        artifacts_dir = self.get_repository_publish_dir() / "rpm"
+        artifacts_dir = self.config.repository_publish_dir / "rpm"
         target_dir = (
             artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
         )
@@ -503,7 +503,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         template_version = self.get_template_version()
 
         rpm = (
-            self.get_templates_dir()
+            self.config.templates_dir
             / "rpm"
             / f"qubes-template-{self.template.name}-{template_version}-{template_timestamp}.noarch.rpm"
         )
@@ -518,7 +518,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
         # If exists, remove hardlinks to built RPMs
         self.log.info(f"{self.template}: Unpublishing template.")
-        artifacts_dir = self.get_repository_publish_dir() / "rpm"
+        artifacts_dir = self.config.repository_publish_dir / "rpm"
         target_dir = (
             artifacts_dir / f"{self.config.qubes_release}/{repository_publish}"
         )
@@ -551,8 +551,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
     ):
         self.update_parameters(stage)
         executor = self.get_executor_from_config(stage)
-        repository_dir = self.get_repository_dir() / self.dist.distribution
-        template_artifacts_dir = self.get_templates_dir()
+        repository_dir = self.config.repository_dir / self.dist.distribution
+        template_artifacts_dir = self.config.templates_dir
         qubeized_image = (
             template_artifacts_dir / "qubeized_images" / self.template.name
         )
@@ -867,7 +867,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
             try:
                 local_path = (
-                    self.get_repository_publish_dir()
+                    self.config.repository_publish_dir
                     / "rpm"
                     / self.config.qubes_release
                 )

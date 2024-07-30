@@ -200,6 +200,7 @@ Commands:
   repository  Repository CLI
   installer   Installer CLI
   config      Config CLI
+  cleanup     Cleanup CLI
 
 Stages:
     fetch prep build post verify sign publish upload

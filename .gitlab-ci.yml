@@ -273,6 +273,11 @@ pytest:
   script:
     - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py tests/test_scripts.py
 
+pytest-cli-cleanup:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli_cleanup.py -k test_cleanup_
+
 pytest-cli-repository:
   extends: .pytest
   script:

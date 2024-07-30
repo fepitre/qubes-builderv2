@@ -46,6 +46,7 @@ class ContextObj:
         self.components: List[QubesComponent] = []
         self.distributions: List[QubesDistribution] = []
         self.templates: List[QubesTemplate] = []
+        self.dry_run = False
 
 
 class AliasedGroup(click.Group):

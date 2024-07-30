@@ -96,7 +96,7 @@ def get_logger(name, plugin=None):
     if plugin:
         logger = QubesBuilderLogger.getChild(get_logger_name(name, plugin))
         try:
-            logs_dir = plugin.config.get_logs_dir()
+            logs_dir = plugin.config.logs_dir
             logs_dir.mkdir(parents=True, exist_ok=True)
             log_file = get_log_filename(plugin, logs_dir)
 

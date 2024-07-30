@@ -117,7 +117,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
 
         executor = self.get_executor_from_config(stage)
 
-        cache_chroot_dir = self.get_cache_dir() / "chroot" / self.dist.name
+        cache_chroot_dir = self.config.cache_dir / "chroot" / self.dist.name
         cache_chroot_dir.mkdir(exist_ok=True, parents=True)
 
         chroot_name = "root"
