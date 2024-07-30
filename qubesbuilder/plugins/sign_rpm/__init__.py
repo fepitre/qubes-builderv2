@@ -120,7 +120,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             shutil.rmtree(temp_dir)
 
         # Prepare for re-provisioning local directory
-        repository_dir = self.get_repository_dir() / self.dist.distribution
+        repository_dir = self.config.repository_dir / self.dist.distribution
         clean_local_repository(
             self.log, repository_dir, self.component, self.dist, False
         )

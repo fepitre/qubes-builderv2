@@ -145,7 +145,7 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
                 raise SignError(msg) from e
 
             # Re-provision builder local repository with signatures
-            repository_dir = self.get_repository_dir() / self.dist.distribution
+            repository_dir = self.config.repository_dir / self.dist.distribution
             try:
                 # We use build_info that contains source_info and build_artifacts_dir
                 # which contains sources files.

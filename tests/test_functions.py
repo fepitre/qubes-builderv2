@@ -1,13 +1,15 @@
-import pytest
 import tempfile
 from pathlib import Path
+
+import pytest
+
+from qubesbuilder.cli.cli_main import parse_config_from_cli
 from qubesbuilder.common import (
     is_filename_valid,
     deep_check,
     sed,
     get_archive_name,
 )
-from qubesbuilder.cli.cli_main import parse_config_from_cli
 
 
 def test_filename():

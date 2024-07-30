@@ -67,14 +67,14 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         return debian_suite
 
     def get_target_dir(self):
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.config.repository_publish_dir / self.dist.type
         return (
             artifacts_dir
             / f"{self.config.qubes_release}/{self.dist.package_set}"
         )
 
     def create_repository_skeleton(self):
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.config.repository_publish_dir / self.dist.type
 
         # Create publish repository skeleton
         create_skeleton_cmd = [

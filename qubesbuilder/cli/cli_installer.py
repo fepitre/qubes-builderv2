@@ -6,8 +6,8 @@ from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.common import STAGES, STAGES_ALIAS
 from qubesbuilder.config import Config
-from qubesbuilder.plugins.installer import InstallerPlugin
 from qubesbuilder.pluginmanager import PluginManager
+from qubesbuilder.plugins.installer import InstallerPlugin
 from qubesbuilder.template import QubesTemplate
 
 

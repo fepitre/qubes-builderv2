@@ -58,7 +58,7 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         executor = self.get_executor_from_config(stage)
 
         chroot_dir = (
-            self.get_cache_dir() / "chroot" / self.dist.name / "pbuilder"
+            self.config.cache_dir / "chroot" / self.dist.name / "pbuilder"
         )
         chroot_dir.mkdir(exist_ok=True, parents=True)
 

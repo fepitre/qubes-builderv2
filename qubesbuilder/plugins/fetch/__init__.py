@@ -99,13 +99,13 @@ class FetchPlugin(ComponentPlugin):
             executor = self.get_executor_from_config(stage)
 
         # Source component directory
-        local_source_dir = self.get_sources_dir() / self.component.name
+        local_source_dir = self.config.sources_dir / self.component.name
 
         # Ensure "artifacts/sources" directory exists
-        self.get_sources_dir().mkdir(parents=True, exist_ok=True)
+        self.config.sources_dir.mkdir(parents=True, exist_ok=True)
 
         # Ensure "artifacts/tmp" directory exists
-        self.get_temp_dir().mkdir(exist_ok=True)
+        self.config.temp_dir.mkdir(exist_ok=True)
 
         # Source component directory inside executors
         source_dir = executor.get_builder_dir() / self.component.name
@@ -157,7 +157,7 @@ class FetchPlugin(ComponentPlugin):
             get_sources_cmd += ["--fetch-versions-only"]
 
         cmd = []
-        copy_out = [(source_dir, self.get_sources_dir())]
+        copy_out = [(source_dir, self.config.sources_dir)]
 
         do_fetch = True
         if local_source_dir.exists():
@@ -208,7 +208,7 @@ class FetchPlugin(ComponentPlugin):
         #
 
         # Temporary directory
-        temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
+        temp_dir = Path(tempfile.mkdtemp(dir=self.config.temp_dir))
 
         # Keep existing fetch info if it is up-to-date
         source_hash = self.component.get_source_hash(force_update=True)
@@ -433,7 +433,7 @@ class FetchPlugin(ComponentPlugin):
                 executor.get_plugins_dir(),
             ),
         ]
-        local_source_dir = self.get_sources_dir() / self.component.name
+        local_source_dir = self.config.sources_dir / self.component.name
         for key_file in file.get("pubkeys", []):
             copy_in += [
                 (
@@ -476,7 +476,7 @@ class FetchPlugin(ComponentPlugin):
 
     def download_file(self, file, executor, distfiles_dir):
         # Temporary dir for downloaded file
-        temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
+        temp_dir = Path(tempfile.mkdtemp(dir=self.config.temp_dir))
         #
         # download
         #

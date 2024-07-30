@@ -366,7 +366,44 @@ class Config:
                 self._artifacts_dir = PROJECT_PATH / "artifacts"
         return self._artifacts_dir
 
-    def get_logs_dir(self):
+    @property
+    def temp_dir(self):
+        return self.artifacts_dir / "tmp"
+
+    @property
+    def cache_dir(self):
+        return self.artifacts_dir / "cache"
+
+    @property
+    def sources_dir(self):
+        return self.artifacts_dir / "sources"
+
+    @property
+    def repository_dir(self):
+        return self.artifacts_dir / "repository"
+
+    @property
+    def repository_publish_dir(self):
+        return self.artifacts_dir / "repository-publish"
+
+    @property
+    def distfiles_dir(self):
+        return self.artifacts_dir / "distfiles"
+
+    @property
+    def templates_dir(self):
+        return self.artifacts_dir / "templates"
+
+    @property
+    def installer_dir(self):
+        return self.artifacts_dir / "installer"
+
+    @property
+    def iso_dir(self):
+        return self.artifacts_dir / "iso"
+
+    @property
+    def logs_dir(self):
         return self.artifacts_dir / "logs"
 
     def get_plugins_dirs(self):

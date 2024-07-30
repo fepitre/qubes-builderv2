@@ -57,7 +57,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         )
 
     def get_target_dir(self, repository_publish):
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.config.repository_publish_dir / self.dist.type
         return (
             artifacts_dir
             / f"{self.config.qubes_release}/{repository_publish}/{self.dist.package_set}/{self.dist.name}"
@@ -69,14 +69,14 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
 
         # Create publish repository skeleton
         comps = (
-            self.get_sources_dir()
+            self.config.sources_dir
             / f"qubes-release/comps/comps-{self.dist.package_set}.xml"
         )
         if not comps.exists():
             self.log.warning(
                 f"Cannot find {comps}. Have you added qubes-release to components?"
             )
-        artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+        artifacts_dir = self.config.repository_publish_dir / self.dist.type
 
         create_skeleton_cmd = [
             f"{self.manager.entities['publish_rpm'].directory}/scripts/create-skeleton",
@@ -99,7 +99,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         self.log.info(f"{self.component}:{self.dist}: Updating metadata.")
         cmd = [f"cd {target_dir}"]
         if (
-            self.get_sources_dir()
+            self.config.sources_dir
             / f"qubes-release/comps/comps-{self.dist.package_set}.xml"
         ).exists():
             cmd.append("createrepo_c -g comps.xml .")
@@ -125,7 +125,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             raise PublishError(msg) from e
 
     def create_metalink(self, executor, repository_publish):
-        repo_basedir = self.get_repository_publish_dir() / self.dist.type
+        repo_basedir = self.config.repository_publish_dir / self.dist.type
         repository_dir = (
             repo_basedir
             / self.config.qubes_release
@@ -363,7 +363,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         # Publish stage for standard (not template) components
         if not unpublish:
             # repository-publish directory
-            artifacts_dir = self.get_repository_publish_dir() / self.dist.type
+            artifacts_dir = self.config.repository_publish_dir / self.dist.type
 
             # Ensure dbpath from sign stage (still) exists
             db_path = self.config.artifacts_dir / f"rpmdb/{sign_key}"

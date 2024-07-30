@@ -20,15 +20,13 @@
 """
 QubesBuilder command-line interface.
 """
-import logging
 import re
-from datetime import datetime
-from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 import click
 
 from qubesbuilder.cli.cli_base import ContextObj, aliased_group
+from qubesbuilder.cli.cli_cleanup import cleanup
 from qubesbuilder.cli.cli_config import config
 from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.cli.cli_installer import installer
@@ -300,3 +298,4 @@ main.add_command(template)
 main.add_command(repository)
 main.add_command(installer)
 main.add_command(config)
+main.add_command(cleanup)
