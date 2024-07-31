@@ -83,7 +83,7 @@ def get_archchroot_cmd(
         "sudo pacman-key --populate",
         f"sudo mkdir -p {chroot_dir.parent}",
         "export GPG_TTY=$(tty)",
-        " ".join(mkarchchroot_cmd) + " < /dev/tty",
+        " ".join(mkarchchroot_cmd) + " <<< $(GPG_TTY)",
     ]
 
     return cmd
