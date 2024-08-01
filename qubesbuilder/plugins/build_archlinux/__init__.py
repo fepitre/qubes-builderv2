@@ -22,6 +22,7 @@ import shutil
 from pathlib import Path
 from typing import List
 
+from qubesbuilder.common import get_archive_name
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
@@ -355,9 +356,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             ]
 
             for file in parameters.get("files", []):
-                fn = os.path.basename(file["url"])
-                if file.get("uncompress", False):
-                    fn = Path(fn).with_suffix("").name
+                fn = get_archive_name(file)
                 cmd.append(
                     f"mv {executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
                 )
