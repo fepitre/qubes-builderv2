@@ -1,17 +1,12 @@
 import hashlib
-import itertools
 import os.path
 import pathlib
 import re
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime, timedelta
 
-import dnf
 import pytest
-import yaml
-from dateutil.parser import parse as parsedate
 
 from qubesbuilder.common import PROJECT_PATH
 

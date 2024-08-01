@@ -1,6 +1,7 @@
+import datetime
 import logging
 import logging.config
-import datetime
+
 from qubesbuilder.exc import QubesBuilderError
 
 

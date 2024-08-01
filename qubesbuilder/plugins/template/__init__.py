@@ -17,10 +17,10 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import datetime
 import os
 import shutil
 import tempfile
-from datetime import datetime, timedelta
 from pathlib import Path
 
 from dateutil.parser import parse as parsedate
@@ -410,7 +410,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
         publish_date = None
         for r in publish_info["repository-publish"]:
             if r["name"] == f"{repository_publish}-testing":
-                publish_date = datetime.strptime(r["timestamp"], "%Y%m%d%H%M")
+                publish_date = datetime.datetime.strptime(
+                    r["timestamp"] + "Z", "%Y%m%d%H%M%z"
+                )
                 break
 
         if publish_date is None:
@@ -419,9 +421,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
             )
 
         # Check that packages have been published before threshold_date
-        threshold_date = datetime.utcnow() - timedelta(
-            days=self.config.min_age_days
-        )
+        threshold_date = datetime.datetime.now(
+            datetime.UTC
+        ) - datetime.timedelta(days=self.config.min_age_days)
         if not ignore_min_age and publish_date > threshold_date:
             return False
 
@@ -568,7 +570,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     "%Y%m%d%H%M"
                 )
             else:
-                template_timestamp = datetime.utcnow().strftime("%Y%m%d%H%M")
+                template_timestamp = datetime.datetime.now(
+                    datetime.UTC
+                ).strftime("%Y%m%d%H%M")
 
             with open(
                 template_artifacts_dir
@@ -815,7 +819,9 @@ class TemplateBuilderPlugin(TemplatePlugin):
             publish_info["repository-publish"].append(
                 {
                     "name": repository_publish,
-                    "timestamp": datetime.utcnow().strftime("%Y%m%d%H%M"),
+                    "timestamp": datetime.datetime.now(datetime.UTC).strftime(
+                        "%Y%m%d%H%M"
+                    ),
                 }
             )
             # Save package information we published for committing into current

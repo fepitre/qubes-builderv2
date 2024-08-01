@@ -21,11 +21,9 @@
 QubesBuilder command-line interface - exceptions module.
 """
 
-from gettext import gettext
 from typing import Optional, IO
 
 import click
-from click.exceptions import get_text_stderr
 
 from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.log import QubesBuilderLogger

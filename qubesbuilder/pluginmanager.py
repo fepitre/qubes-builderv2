@@ -1,8 +1,9 @@
-import sys
 import importlib.util
+import sys
+from collections import OrderedDict
 from pathlib import Path
 from typing import List, Dict
-from collections import OrderedDict
+
 from qubesbuilder.exc import EntityError, PluginManagerError
 from qubesbuilder.log import get_logger
 

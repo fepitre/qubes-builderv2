@@ -23,17 +23,16 @@ QubesBuilder command-line interface - base module.
 
 import sys
 import traceback
-from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, List
 
 import click
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.log import QubesBuilderLogger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
-from qubesbuilder.log import QubesBuilderLogger
 
 
 class ContextObj:

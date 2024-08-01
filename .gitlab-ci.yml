@@ -22,8 +22,21 @@ variables:
     description: "Run template jobs, default: 0"
   CI_RUN_ISO_JOBS:
     description: "Run ISO jobs, default: 0"
+  CI_RUN_INFRA_JOBS:
+    description: "Run all builderv2-github jobs, default: 0"
   CI_RUN_ALL_JOBS:
     description: "Run all jobs, default: 0"
+
+builderv2-github:
+  rules:
+    - if: $CI_RUN_INFRA_JOBS == "1" || $CI_RUN_ALL_JOBS == "1"
+      when: always
+    - when: never
+  variables:
+    CI_QUBES_BUILDER_BRANCH: $CI_COMMIT_BRANCH
+  trigger:
+    project: QubesOS/qubes-builderv2-github
+    strategy: depend
 
 #
 # job skeletons

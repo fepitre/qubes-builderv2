@@ -16,8 +16,8 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import datetime
 import os
-from datetime import datetime
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
@@ -350,7 +350,9 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 info.setdefault("repository-publish", []).append(
                     {
                         "name": repository_publish,
-                        "timestamp": datetime.utcnow().strftime("%Y%m%d%H%M"),
+                        "timestamp": datetime.datetime.now(
+                            datetime.UTC
+                        ).strftime("%Y%m%d%H%M"),
                     }
                 )
                 self.save_dist_artifacts_info(

@@ -100,7 +100,7 @@ class PublishPlugin(DistributionComponentPlugin):
         for r in publish_info["repository-publish"]:
             if r["name"] == "current-testing":
                 publish_date = datetime.datetime.strptime(
-                    r["timestamp"], "%Y%m%d%H%M"
+                    r["timestamp"] + "Z", "%Y%m%d%H%M%z"
                 )
                 break
 
@@ -111,9 +111,9 @@ class PublishPlugin(DistributionComponentPlugin):
             return False
 
         # Check that packages have been published before threshold_date
-        threshold_date = datetime.datetime.utcnow() - datetime.timedelta(
-            days=self.config.min_age_days
-        )
+        threshold_date = datetime.datetime.now(
+            datetime.UTC
+        ) - datetime.timedelta(days=self.config.min_age_days)
         if not ignore_min_age and publish_date > threshold_date:
             return False
 

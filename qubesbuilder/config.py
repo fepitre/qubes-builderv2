@@ -16,7 +16,6 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-import pathlib
 import re
 from copy import deepcopy
 from pathlib import Path
@@ -33,13 +32,13 @@ from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.executors.qubes import LinuxQubesExecutor
 from qubesbuilder.log import get_logger
-from qubesbuilder.template import QubesTemplate
 from qubesbuilder.plugins import (
     DistributionPlugin,
     DistributionComponentPlugin,
     ComponentPlugin,
     TemplatePlugin,
 )
+from qubesbuilder.template import QubesTemplate
 
 log = get_logger("config")
 

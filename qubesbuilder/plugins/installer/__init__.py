@@ -16,11 +16,11 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+import datetime
 import itertools
+import shlex
 import shutil
 import tempfile
-import shlex
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
@@ -112,9 +112,9 @@ class InstallerPlugin(DistributionPlugin):
                         "%Y%m%d%H%M"
                     )
                 else:
-                    self.iso_timestamp = datetime.utcnow().strftime(
-                        "%Y%m%d%H%M"
-                    )
+                    self.iso_timestamp = datetime.datetime.now(
+                        datetime.UTC
+                    ).strftime("%Y%m%d%H%M")
                 installer_dir.mkdir(parents=True, exist_ok=True)
                 with open(iso_timestamp_file, "w") as f:
                     f.write(self.iso_timestamp)

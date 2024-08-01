@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import re
-from typing import Dict
+
 from qubesbuilder.exc import DistributionError
 
 FEDORA_RE = re.compile(r"^fc([0-9]+)$")

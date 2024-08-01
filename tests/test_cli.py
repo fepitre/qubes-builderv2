@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import itertools
 import os.path
@@ -6,7 +7,6 @@ import re
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime, timedelta
 
 import dnf
 import pytest
@@ -637,9 +637,9 @@ def test_component_host_fc37_publish(artifacts_dir):
         ).exists()
 
         # publish into current
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
-            "%Y%m%d%H%M"
-        )
+        fake_time = (
+            datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=7)
+        ).strftime("%Y%m%d%H%M")
         publish_file = (
             artifacts_dir
             / "components/core-qrexec/4.2.18-1/host-fc37/publish/rpm_spec_qubes-qrexec.spec.publish.yml"
@@ -1235,9 +1235,9 @@ def test_component_vm_bookworm_publish(artifacts_dir):
         }
 
         # publish into current
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
-            "%Y%m%d%H%M"
-        )
+        fake_time = (
+            datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=7)
+        ).strftime("%Y%m%d%H%M")
         publish_file = (
             artifacts_dir
             / "components/python-qasync/0.23.0-2/vm-bookworm/publish/debian-pkg_debian.publish.yml"
@@ -1766,9 +1766,9 @@ def test_component_vm_archlinux_publish(artifacts_dir):
         }
 
         # publish into current
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
-            "%Y%m%d%H%M"
-        )
+        fake_time = (
+            datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=7)
+        ).strftime("%Y%m%d%H%M")
         publish_file = (
             artifacts_dir
             / "components/app-linux-split-gpg/2.0.67-1/vm-archlinux/publish/archlinux.publish.yml"
@@ -2034,9 +2034,9 @@ def test_template_fedora_40_minimal_publish(artifacts_dir):
         ]
 
         # publish into templates-itl
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
-            "%Y%m%d%H%M"
-        )
+        fake_time = (
+            datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=7)
+        ).strftime("%Y%m%d%H%M")
         publish_file = artifacts_dir / "templates/fedora-40-minimal.publish.yml"
 
         for r in info["repository-publish"]:
@@ -2105,9 +2105,9 @@ def test_template_fedora_40_minimal_publish_new(artifacts_dir):
         template_timestamp = parsedate(data[0]).strftime("%Y%m%d%H%M")
 
         # bump timestamp, without re-running "prep" stage
-        new_timestamp = (parsedate(data[0]) + timedelta(minutes=1)).strftime(
-            "%Y%m%d%H%M"
-        )
+        new_timestamp = (
+            parsedate(data[0]) + datetime.timedelta(minutes=1)
+        ).strftime("%Y%m%d%H%M")
         with open(
             artifacts_dir / "templates/build_timestamp_fedora-40-minimal", "w"
         ) as f:
@@ -2154,9 +2154,9 @@ def test_template_fedora_40_minimal_publish_new(artifacts_dir):
         ]
 
         # publish into templates-itl
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
-            "%Y%m%d%H%M"
-        )
+        fake_time = (
+            datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=7)
+        ).strftime("%Y%m%d%H%M")
 
         # pretend it was in testing repo for 7 days already
         for r in info["repository-publish"]:
@@ -2487,9 +2487,9 @@ def test_template_debian_12_minimal_publish(artifacts_dir):
         ]
 
         # publish into templates-community
-        fake_time = (datetime.utcnow() - timedelta(days=7)).strftime(
-            "%Y%m%d%H%M"
-        )
+        fake_time = (
+            datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=7)
+        ).strftime("%Y%m%d%H%M")
         publish_file = artifacts_dir / "templates/debian-12-minimal.publish.yml"
 
         for r in info["repository-publish"]:

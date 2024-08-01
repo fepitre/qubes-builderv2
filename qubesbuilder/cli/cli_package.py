@@ -8,8 +8,8 @@ from qubesbuilder.common import STAGES, STAGES_ALIAS
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.log import QubesBuilderLogger
+from qubesbuilder.pluginmanager import PluginManager
 
 
 @aliased_group("package", chain=True)

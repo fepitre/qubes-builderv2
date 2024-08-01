@@ -18,12 +18,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import asyncio
 import logging
-import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.common import sanitize_line
+from qubesbuilder.exc import QubesBuilderError
 
 
 class ExecutorError(QubesBuilderError):
