@@ -202,7 +202,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         prep_artifacts_dir = self.get_dist_component_artifacts_dir(stage="prep")
 
         # Local build repository
-        repository_dir = self.get_repository_dir() / self.dist.distribution
+        repository_dir = self.config.repository_dir / self.dist.distribution
         repository_dir.mkdir(parents=True, exist_ok=True)
 
         # Remove previous versions in order to keep the latest one only
@@ -261,7 +261,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
             # Add prepared chroot cache
             chroot_cache_topdir = (
-                self.get_cache_dir() / "chroot" / self.dist.name / "mock"
+                self.config.cache_dir / "chroot" / self.dist.name / "mock"
             )
             chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():

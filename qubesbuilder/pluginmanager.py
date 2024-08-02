@@ -5,9 +5,7 @@ from pathlib import Path
 from typing import List, Dict
 
 from qubesbuilder.exc import EntityError, PluginManagerError
-from qubesbuilder.log import get_logger
-
-log = get_logger("pluginmanager")
+from qubesbuilder.log import QubesBuilderLogger
 
 
 class PluginEntity:
@@ -45,13 +43,14 @@ class PluginManager:
     def __init__(self, directories: List[Path]):
         self._directories = directories
         self._entities: Dict[str, PluginEntity] = {}
+        self._log = QubesBuilderLogger.getChild("pluginmanager")
 
     def _get_plugin_entities(self):
         entities = OrderedDict()
         for directory in self._directories:
             directory_path = Path(directory).expanduser().resolve()
             if not directory_path.exists():
-                log.warning(
+                self._log.warning(
                     f"Ignoring non existing directory '{directory_path}'. If directory is"
                     f" a component plugin, component source may not be fetched."
                 )

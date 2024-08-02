@@ -16,7 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import logging
 from pathlib import Path, PurePosixPath
 from typing import List, Dict, Any
 
@@ -28,7 +28,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.executors import Executor
-from qubesbuilder.log import get_logger
+from qubesbuilder.log import QubesBuilderLogger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
 
@@ -105,7 +105,7 @@ class Plugin:
             self.environment["DEBUG"] = "1"
         self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
-        self.log = get_logger(self.name, self)
+        self.log = QubesBuilderLogger.getChild(self.name, self)
 
     def check_dependencies(self):
         for dependency in self.dependencies:
@@ -122,7 +122,7 @@ class Plugin:
                     raise PluginError(
                         f"Cannot find component '{dependency}' in configuration file."
                     )
-                if not self.get_sources_dir() / dependency.name:
+                if not self.config.sources_dir / dependency.name:
                     raise PluginError(
                         f"Cannot find source component '{dependency.name}' in artifacts."
                         f"Is package fetch stage done for '{dependency.name}'"
@@ -132,6 +132,9 @@ class Plugin:
                 )
 
     def run(self, stage: str):
+        log_file = self.log.get_log_file()
+        if log_file:
+            self.log.info(f"Log file: {log_file}")
         self.check_dependencies()
 
     def update_parameters(self, stage: str):
@@ -157,10 +160,6 @@ class Plugin:
     def get_parameters(self, stage: str):
         self.update_parameters(stage)
         return self._parameters[stage]
-
-    def get_temp_dir(self):
-        path = self.config.artifacts_dir / "tmp"
-        return path.resolve()
 
     def get_cache_dir(self):
         path = self.config.artifacts_dir / "cache"
@@ -227,7 +226,7 @@ class Plugin:
                 ]
             if dependency.builder_object == "component":
                 copy_in += [
-                    (self.get_sources_dir() / dependency.name, sources_dir)
+                    (self.config.sources_dir / dependency.name, sources_dir)
                 ]
         return copy_in
 
@@ -269,7 +268,7 @@ class ComponentPlugin(Plugin):
         )
 
     def get_component_distfiles_dir(self):
-        path = self.get_distfiles_dir() / self.component.name
+        path = self.config.distfiles_dir / self.component.name
         return path
 
     def get_component_artifacts_dir(self, stage: str):
@@ -497,7 +496,7 @@ class TemplatePlugin(DistributionPlugin):
 
     def get_template_artifacts_info(self, stage: str) -> Dict:
         fileinfo = (
-            self.get_templates_dir() / f"{self.template.name}.{stage}.yml"
+            self.config.templates_dir / f"{self.template.name}.{stage}.yml"
         )
         if fileinfo.exists():
             try:
@@ -512,7 +511,7 @@ class TemplatePlugin(DistributionPlugin):
         return {}
 
     def save_artifacts_info(self, stage: str, info: dict):
-        artifacts_dir = self.get_templates_dir()
+        artifacts_dir = self.config.templates_dir
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         try:
             with open(artifacts_dir / f"{self.template}.{stage}.yml", "w") as f:
@@ -522,7 +521,7 @@ class TemplatePlugin(DistributionPlugin):
             raise PluginError(msg) from e
 
     def delete_artifacts_info(self, stage: str):
-        artifacts_dir = self.get_templates_dir()
+        artifacts_dir = self.config.templates_dir
         info_path = artifacts_dir / f"{self.template}.{stage}.yml"
         if info_path.exists():
             info_path.unlink()
@@ -531,14 +530,14 @@ class TemplatePlugin(DistributionPlugin):
         if not self.template.timestamp:
             # Read information from build stage
             if not (
-                self.get_templates_dir()
+                self.config.templates_dir
                 / f"build_timestamp_{self.template.name}"
             ).exists():
                 raise PluginError(
                     f"{self.template}: Cannot find build timestamp."
                 )
             with open(
-                self.get_templates_dir()
+                self.config.templates_dir
                 / f"build_timestamp_{self.template.name}"
             ) as f:
                 data = f.read().splitlines()

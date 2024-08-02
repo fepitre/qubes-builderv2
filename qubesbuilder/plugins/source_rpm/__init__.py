@@ -229,7 +229,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
 
             # Add prepared chroot cache
             chroot_cache_topdir = (
-                self.get_cache_dir() / "chroot" / self.dist.name / "mock"
+                self.config.cache_dir / "chroot" / self.dist.name / "mock"
             )
             chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():

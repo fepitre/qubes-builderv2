@@ -94,13 +94,26 @@ class Executor(ABC):
         return s
 
     @staticmethod
-    async def _read_stream(stream, cb):
+    async def _read_stream(stream, cb, max_length=10000):
+        remaining_line = b""
         while True:
-            line = await stream.readline()
-            if line:
-                cb(sanitize_line(line.rstrip(b"\n")).rstrip())
-            else:
+            chunk = await stream.read(4096)
+            if not chunk:
+                if remaining_line:
+                    cb(sanitize_line(remaining_line).rstrip())
                 break
+            lines = chunk.split(b"\n")
+
+            lines[0] = remaining_line + lines[0]
+
+            for line in lines[:-1]:
+                cb(sanitize_line(line).rstrip())
+
+            remaining_line = lines[-1]
+            if len(remaining_line) > max_length:
+                line = remaining_line[:max_length]
+                remaining_line = remaining_line[max_length:]
+                cb(sanitize_line(line).rstrip() + "\u2026")
 
     async def _stream_subprocess(self, cmd, stdout_cb, stderr_cb, **kwargs):
         process = await asyncio.create_subprocess_exec(

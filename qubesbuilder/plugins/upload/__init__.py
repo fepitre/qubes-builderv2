@@ -83,7 +83,7 @@ class UploadPlugin(DistributionPlugin):
 
         try:
             local_path = (
-                self.get_repository_publish_dir()
+                self.config.repository_publish_dir
                 / self.dist.type
                 / self.config.qubes_release
             )

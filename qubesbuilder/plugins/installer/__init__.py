@@ -76,11 +76,11 @@ class InstallerPlugin(DistributionPlugin):
 
         self.kickstart_path = self.config.get_absolute_path_from_config(
             config.installer_kickstart,
-            relative_to=self.get_sources_dir() / "qubes-release",
+            relative_to=self.config.sources_dir / "qubes-release",
         )
         self.comps_path = self.config.get_absolute_path_from_config(
             config.installer_comps,
-            relative_to=self.get_sources_dir() / "qubes-release",
+            relative_to=self.config.sources_dir / "qubes-release",
         )
 
         if not self.kickstart_path.exists():
@@ -94,7 +94,7 @@ class InstallerPlugin(DistributionPlugin):
     def get_iso_timestamp(self, stage: str, iso_timestamp: str = None) -> str:
         if not self.iso_timestamp:
             # Determine latest timestamp filename
-            installer_dir = self.get_installer_dir()
+            installer_dir = self.config.installer_dir
             if self.config.iso_flavor:
                 iso_timestamp_file = (
                     installer_dir
@@ -200,7 +200,7 @@ class InstallerPlugin(DistributionPlugin):
 
     def get_installer_artifacts_info(self, stage: str) -> Dict:
         fileinfo = (
-            self.get_installer_dir()
+            self.config.installer_dir
             / f"{self.dist.name}_{self.iso_name}.{stage}.yml"
         )
         if fileinfo.exists():
@@ -214,7 +214,7 @@ class InstallerPlugin(DistributionPlugin):
         return {}
 
     def save_artifacts_info(self, stage: str, info: dict):
-        artifacts_dir = self.get_installer_dir()
+        artifacts_dir = self.config.installer_dir
         artifacts_dir.mkdir(parents=True, exist_ok=True)
         try:
             with open(
@@ -227,7 +227,7 @@ class InstallerPlugin(DistributionPlugin):
             raise PluginError(msg) from e
 
     def delete_artifacts_info(self, stage: str):
-        artifacts_dir = self.get_installer_dir()
+        artifacts_dir = self.config.installer_dir
         info_path = (
             artifacts_dir / f"{self.dist.name}_{self.iso_name}.{stage}.yml"
         )
@@ -243,7 +243,7 @@ class InstallerPlugin(DistributionPlugin):
     def templates_copy_in(self, executor):
         for template in self.templates:
             template_info = self.get_artifacts_info(
-                "build", template.name, self.get_templates_dir()
+                "build", template.name, self.config.templates_dir
             )
             if not template_info or len(template_info.get("rpms", [])) != 1:
                 self.log.warning(
@@ -251,7 +251,7 @@ class InstallerPlugin(DistributionPlugin):
                 )
                 continue
             rpm_path = (
-                self.get_templates_dir() / "rpm" / template_info["rpms"][0]
+                self.config.templates_dir / "rpm" / template_info["rpms"][0]
             )
             if not rpm_path.exists():
                 self.log.warning(
@@ -276,16 +276,16 @@ class InstallerPlugin(DistributionPlugin):
         executor = self.get_executor_from_config(stage)
 
         mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
-        repository_dir = self.get_repository_dir() / self.dist.distribution
+        repository_dir = self.config.repository_dir / self.dist.distribution
 
-        cache_dir = self.get_cache_dir() / "installer"
+        cache_dir = self.config.cache_dir / "installer"
         chroot_cache = (
-            self.get_cache_dir()
+            self.config.cache_dir
             / "installer/chroot/mock"
             / mock_conf.replace(".cfg", "")
         )
 
-        iso_dir = self.get_iso_dir()
+        iso_dir = self.config.iso_dir
         iso_dir.mkdir(parents=True, exist_ok=True)
         iso = iso_dir / f"{self.iso_name}.iso"
 
@@ -401,7 +401,7 @@ class InstallerPlugin(DistributionPlugin):
 
                 # Temporary dir for downloaded templates that we
                 # will merge into templates_cache_dir.
-                temp_dir = Path(tempfile.mkdtemp(dir=self.get_temp_dir()))
+                temp_dir = Path(tempfile.mkdtemp(dir=self.config.temp_dir))
 
                 copy_in = self.default_copy_in(
                     executor.get_plugins_dir(), executor.get_sources_dir()
