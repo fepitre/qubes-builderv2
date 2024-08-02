@@ -31,7 +31,6 @@ from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.executors.qubes import LinuxQubesExecutor
-from qubesbuilder.log import get_logger
 from qubesbuilder.plugins import (
     DistributionPlugin,
     DistributionComponentPlugin,
@@ -40,7 +39,6 @@ from qubesbuilder.plugins import (
 )
 from qubesbuilder.template import QubesTemplate
 
-log = get_logger("config")
 
 QUBES_RELEASE_RE = re.compile(r"r([1-9]\.[0-9]+).*")
 QUBES_RELEASE_DEFAULT = "r4.2"

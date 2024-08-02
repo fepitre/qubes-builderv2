@@ -35,9 +35,8 @@ from qubesbuilder.cli.cli_repository import repository
 from qubesbuilder.cli.cli_template import template
 from qubesbuilder.common import STAGES, str_to_bool
 from qubesbuilder.config import Config, deep_merge
-from qubesbuilder.log import get_logger, init_logger
+from qubesbuilder.log import init_logger
 
-log = get_logger("cli")
 
 ALLOWED_KEY_PATTERN = r"[A-Za-z0-9_+-]+"
 
@@ -153,7 +152,6 @@ def parse_config_from_cli(array):
 
 def init_context_obj(
     builder_conf: str,
-    log_file: str = None,
     component: Optional[List] = None,
     distribution: Optional[List] = None,
     template: Optional[List] = None,
@@ -243,7 +241,6 @@ def main(
     """
     obj = init_context_obj(
         builder_conf=builder_conf,
-        log_file=log_file,
         component=component,
         distribution=distribution,
         template=template,
@@ -262,7 +259,7 @@ def main(
     ctx.obj = obj
 
     # init QubesBuilderLogger
-    init_logger(obj.config.verbose)
+    init_logger(verbose=obj.config.verbose, log_file=log_file)
 
 
 main.epilog = f"""Stages:

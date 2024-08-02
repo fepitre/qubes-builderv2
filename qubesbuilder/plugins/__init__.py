@@ -16,7 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-
+import logging
 from pathlib import Path, PurePosixPath
 from typing import List, Dict, Any
 
@@ -28,7 +28,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.executors import Executor
-from qubesbuilder.log import get_logger
+from qubesbuilder.log import QubesBuilderLogger
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
 
@@ -105,7 +105,7 @@ class Plugin:
             self.environment["DEBUG"] = "1"
         self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
-        self.log = get_logger(self.name, self)
+        self.log = QubesBuilderLogger.getChild(self.name, self)
 
     def check_dependencies(self):
         for dependency in self.dependencies:
@@ -132,6 +132,9 @@ class Plugin:
                 )
 
     def run(self, stage: str):
+        log_file = self.log.get_log_file()
+        if log_file:
+            self.log.info(f"Log file: {log_file}")
         self.check_dependencies()
 
     def update_parameters(self, stage: str):
