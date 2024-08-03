@@ -110,6 +110,10 @@ def init_logger(verbose=False, log_file=None):
     QubesBuilderLogger.addHandler(create_console_handler(verbose))
 
 
+def get_logger(name):
+    return QubesBuilderLogger.getChild(name)
+
+
 class QBLogger(Logger):
     def __init__(self, name, level=NOTSET, plugin=None, log_file=None):
         super().__init__(name=name, level=level)
