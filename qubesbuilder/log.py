@@ -73,8 +73,8 @@ def create_file_handler(log_file, **kwargs):
     return file_handler
 
 
-def create_console_handler(verbose):
-    console_handler = StreamHandler()
+def create_console_handler(verbose, **kwargs):
+    console_handler = StreamHandler(**kwargs)
     console_handler.setLevel(DEBUG if verbose else INFO)
     console_handler.setFormatter(ConsoleFormatter(datefmt=ConsoleLogDateFmt))
     return console_handler
@@ -106,7 +106,6 @@ def get_log_filename(plugin, logs_dir):
 def init_logger(verbose=False, log_file=None):
     QubesBuilderLogger.setLevel(DEBUG)
     QubesBuilderLogger.set_log_file(log_file)
-    QubesBuilderLogger.propagate = False
     QubesBuilderLogger.addHandler(create_console_handler(verbose))
 
 
@@ -139,11 +138,7 @@ class QBLogger(Logger):
                 file_handler = create_file_handler(
                     logger._log_file, mode="a", delay=True
                 )
-                console_handler = create_console_handler(plugin.config.verbose)
-
                 logger.addHandler(file_handler)
-                logger.addHandler(console_handler)
-                logger.propagate = False
             except Exception as e:
                 raise QubesBuilderError("Failed to initialize logger") from e
         else:
