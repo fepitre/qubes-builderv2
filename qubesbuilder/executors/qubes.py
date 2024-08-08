@@ -61,7 +61,10 @@ def build_run_cmd_and_list(
 class QubesExecutor(Executor):
     def __init__(self, dispvm: str = "dom0", **kwargs):
         super().__init__(**kwargs)
-        self._dispvm_template = dispvm
+        if dispvm == "@dispvm":
+            self._dispvm_template = "dom0"
+        else:
+            self._dispvm_template = dispvm
 
     def get_user(self):
         return "user"

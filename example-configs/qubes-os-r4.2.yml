@@ -192,7 +192,7 @@ components:
 executor:
   type: qubes
   options:
-    dispvm: "qubes-builder-dvm"
+    dispvm: "@dispvm"
 
 stages:
   - fetch

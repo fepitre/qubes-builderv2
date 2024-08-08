@@ -740,7 +740,7 @@ Options available in `builder.yml`:
   - `type: str` --- Executor type: qubes, docker, podman or local.
   - `options: Dict`:
     - `image: str` --- Container image to use. Specific to docker or podman type.
-    - `dispvm: str` --- Disposable template VM to use (NOT IMPLEMENTED YET. HARDCODED TO 'qubes-builder-dvm').
+    - `dispvm: str` --- Disposable template VM to use (use `"@dispvm"` to use the calling qube `default_dispvm` property or specify a name).
     - `directory: str` --- Base directory for local executor to create temporary directories.
     - `clean: bool` --- Clean container, disposable qube or temporary local folder (default `true`).
     - `clean-on-error: bool` --- Clean container, disposable qube or temporary local folder if any error occurred. Default is value set by `clean`.
@@ -808,7 +808,7 @@ Assuming part of builder configuration file looks like:
 executor:
   type: qubes
   options:
-    dispvm: qubes-builder-dvm
+    dispvm: "@dispvm"
     clean: False
 
 distributions:
