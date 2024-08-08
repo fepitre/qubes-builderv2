@@ -37,7 +37,6 @@ from qubesbuilder.common import STAGES, str_to_bool
 from qubesbuilder.config import Config, deep_merge
 from qubesbuilder.log import init_logger
 
-
 ALLOWED_KEY_PATTERN = r"[A-Za-z0-9_+-]+"
 
 

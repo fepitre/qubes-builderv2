@@ -20,8 +20,9 @@ import asyncio
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Union
 
-from qubesbuilder.common import sanitize_line
+from qubesbuilder.common import sanitize_line, str_to_bool
 from qubesbuilder.exc import QubesBuilderError
 
 
@@ -40,6 +41,21 @@ class Executor(ABC):
 
     _builder_dir = Path("/builder")
     log = logging.getLogger("executor")
+
+    def __init__(self, **kwargs):
+        self._kwargs = kwargs
+
+        clean: Union[str, bool] = self._kwargs.get("clean", True)
+        self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
+
+        clean_on_error: Union[str, bool] = self._kwargs.get(
+            "clean_on_error", self._clean
+        )
+        self._clean_on_error = (
+            clean_on_error
+            if isinstance(clean_on_error, bool)
+            else str_to_bool(clean_on_error)
+        )
 
     def get_builder_dir(self):
         return self._builder_dir

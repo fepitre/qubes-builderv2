@@ -29,6 +29,7 @@ from qubesbuilder.executors import Executor, ExecutorError
 try:
     from docker import DockerClient
     from docker.errors import DockerException
+    from docker.models.containers import Container
 except ImportError:
     DockerClient = None
     DockerException = ExecutorError
@@ -46,16 +47,16 @@ class ContainerExecutor(Executor):
         self,
         container_client,
         image,
-        clean: Union[str, bool] = True,
         user: str = "user",
         group: str = "user",
         **kwargs,
     ):
+        super().__init__(**kwargs)
+
         self._container_client = container_client
-        self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
         self._user = user
         self._group = group
-        self._kwargs = kwargs
+
         if self._container_client == "podman":
             if PodmanClient is None:
                 raise ExecutorError(f"Cannot find 'podman' on the system.")
@@ -72,14 +73,14 @@ class ContainerExecutor(Executor):
             try:
                 # Check if we have the image locally
                 docker_image = client.images.get(image)
-            except (PodmanError, DockerException) as e:
+            except (PodmanError, DockerException):
                 # Try to pull the image
                 try:
                     docker_image = client.images.pull(image)
                 except (PodmanError, DockerException) as e:
                     raise ExecutorError(f"Cannot find {image}.") from e
 
-        self.attrs = docker_image.attrs
+        self._attrs = docker_image.attrs
 
     @contextmanager
     def get_client(self):
@@ -134,9 +135,11 @@ class ContainerExecutor(Executor):
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
             if e.stdout is not None:
-                msg = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
-                self.log.error(msg)
-            raise ExecutorError from e
+                content = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
+            else:
+                content = sanitize_line(str(e))
+            msg = f"Failed to copy-in: {content}"
+            raise ExecutorError(msg, name=container.id)
 
     def copy_out(self, container, source_path: PurePath, destination_dir: Path):  # type: ignore
         src = source_path.as_posix()
@@ -149,9 +152,16 @@ class ContainerExecutor(Executor):
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
             if e.stdout is not None:
-                msg = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
-                self.log.error(msg)
-            raise ExecutorError from e
+                content = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
+            else:
+                content = sanitize_line(str(e))
+            msg = f"Failed to copy-out: {content}"
+            raise ExecutorError(msg, name=container.id)
+
+    @staticmethod
+    def cleanup(container):
+        container.wait()
+        container.remove()
 
     def run(  # type: ignore
         self,
@@ -164,11 +174,10 @@ class ContainerExecutor(Executor):
         **kwargs,
     ):
         container = None
-
         try:
             with self.get_client() as client:
                 # prepare container for given image and command
-                image = client.images.get(self.attrs["Id"])
+                image = client.images.get(self._attrs["Id"])
 
                 # fix permissions and user group
                 permissions_cmd = [
@@ -235,7 +244,7 @@ class ContainerExecutor(Executor):
                 rc = self.execute(cmd)
                 if rc != 0:
                     msg = f"Failed to run '{final_cmd}' (status={rc})."
-                    raise ExecutorError(msg)
+                    raise ExecutorError(msg, name=container.id)
 
                 # copy-out hook
                 for src_out, dst_out in sorted(
@@ -262,7 +271,10 @@ class ContainerExecutor(Executor):
                             )
                             continue
                         raise e
-        finally:
+        except ExecutorError as e:
+            if container and self._clean_on_error:
+                self.cleanup(container)
+            raise e
+        else:
             if container and self._clean:
-                container.wait()
-                container.remove()
+                self.cleanup(container)

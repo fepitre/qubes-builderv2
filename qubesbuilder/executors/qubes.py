@@ -24,7 +24,7 @@ from pathlib import Path, PurePath
 from shlex import quote
 from typing import List, Tuple, Union
 
-from qubesbuilder.common import sanitize_line, str_to_bool, PROJECT_PATH
+from qubesbuilder.common import sanitize_line, PROJECT_PATH
 from qubesbuilder.executors import Executor, ExecutorError
 
 
@@ -59,12 +59,9 @@ def build_run_cmd_and_list(
 
 
 class QubesExecutor(Executor):
-    def __init__(
-        self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs
-    ):
-        self._dispvm = dispvm
-        self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
-        self._kwargs = kwargs
+    def __init__(self, dispvm: str = "dom0", **kwargs):
+        super().__init__(**kwargs)
+        self._dispvm_template = dispvm
 
     def get_user(self):
         return "user"
@@ -89,12 +86,18 @@ class QubesExecutor(Executor):
             subprocess.run(copy_in_cmd, check=True)
         except subprocess.CalledProcessError as e:
             if e.stderr is not None:
-                msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
-                self.log.error(msg)
-            raise ExecutorError from e
+                content = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
+            else:
+                content = sanitize_line(str(e))
+            msg = f"Failed to copy-in: {content}"
+            raise ExecutorError(msg, name=vm)
 
     def copy_out(
-        self, vm, source_path: PurePath, destination_dir: Path, dig_holes=False
+        self,
+        vm: str,
+        source_path: PurePath,
+        destination_dir: Path,
+        dig_holes=False,
     ):  # type: ignore
         src = source_path
         dst = destination_dir.resolve()
@@ -137,9 +140,11 @@ class QubesExecutor(Executor):
                 )
         except subprocess.CalledProcessError as e:
             if e.stderr is not None:
-                msg = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
-                self.log.error(msg)
-            raise ExecutorError from e
+                content = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
+            else:
+                content = sanitize_line(str(e))
+            msg = f"Failed to copy-out: {content}"
+            raise ExecutorError(msg, name=vm)
 
 
 class LinuxQubesExecutor(QubesExecutor):
@@ -147,6 +152,15 @@ class LinuxQubesExecutor(QubesExecutor):
         self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs
     ):
         super().__init__(dispvm=dispvm, clean=clean, **kwargs)
+
+    @staticmethod
+    def cleanup(dispvm):
+        # Kill the DispVM to prevent hanging for while
+        subprocess.run(
+            ["qrexec-client-vm", "--", dispvm, "admin.vm.Kill"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+        )
 
     def run(  # type: ignore
         self,
@@ -164,7 +178,7 @@ class LinuxQubesExecutor(QubesExecutor):
                 [
                     "qrexec-client-vm",
                     "--",
-                    self._dispvm,
+                    self._dispvm_template,
                     "admin.vm.CreateDisposable",
                 ],
                 capture_output=True,
@@ -172,11 +186,16 @@ class LinuxQubesExecutor(QubesExecutor):
             )
             stdout = result.stdout
             if not stdout.startswith(b"0\x00"):
-                raise ExecutorError("Failed to create disposable qube")
+                raise ExecutorError("Failed to create disposable qube.")
             stdout = stdout[2:]
             if not re.match(rb"\Adisp(0|[1-9][0-9]{0,8})\Z", stdout):
                 raise ExecutorError("Failed to create disposable qube.")
-            dispvm = stdout.decode("ascii", "strict")
+            try:
+                dispvm = stdout.decode("ascii", "strict")
+            except UnicodeDecodeError as e:
+                raise ExecutorError(
+                    f"Failed to obtain disposable qube name: {str(e)}"
+                )
 
             # Start the DispVM
             subprocess.run(
@@ -321,7 +340,7 @@ class LinuxQubesExecutor(QubesExecutor):
             rc = self.execute(qvm_run_cmd)
             if rc != 0:
                 msg = f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
-                raise ExecutorError(msg)
+                raise ExecutorError(msg, name=dispvm)
 
             # copy-out hook
             for src_out, dst_out in sorted(
@@ -349,11 +368,10 @@ class LinuxQubesExecutor(QubesExecutor):
                         )
                         continue
                     raise e
-        finally:
-            # Kill the DispVM to prevent hanging for while
+        except ExecutorError as e:
+            if dispvm and self._clean_on_error:
+                self.cleanup(dispvm)
+            raise e
+        else:
             if dispvm and self._clean:
-                subprocess.run(
-                    ["qrexec-client-vm", "--", dispvm, "admin.vm.Kill"],
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                )
+                self.cleanup(dispvm)
