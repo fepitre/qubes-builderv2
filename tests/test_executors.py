@@ -1,4 +1,5 @@
 import os.path
+import subprocess
 import tempfile
 from pathlib import Path, PurePath
 
@@ -266,3 +267,115 @@ def test_qubes_environment():
 
         # Check expected content
         assert data == "Hello!\nHi there!\nHow are you?\n"
+
+
+def test_container_clean_on_error():
+    executor = ContainerExecutor(
+        "docker", "fedora:latest", user="root", group="root"
+    )
+    cmd = "this_command_does_not_exist"
+    with pytest.raises(ExecutorError) as e:
+        executor.run([cmd])
+
+    containerid = e.value.kwargs.get("name", None)
+    assert containerid
+
+    with executor.get_client() as client:
+        assert containerid not in [
+            c.id for c in client.containers.list(all=True)
+        ]
+
+
+def test_container_on_error_noclean():
+    executor = ContainerExecutor(
+        "docker",
+        "fedora:latest",
+        user="root",
+        group="root",
+        clean_on_error=False,
+    )
+    cmd = "this_command_does_not_exist"
+    with pytest.raises(ExecutorError) as e:
+        executor.run([cmd])
+
+    containerid = e.value.kwargs.get("name", None)
+    assert containerid
+
+    with executor.get_client() as client:
+        container = client.containers.get(containerid)
+
+    assert container is not None
+    executor.cleanup(container)
+
+
+def test_local_clean_on_error():
+    executor = LocalExecutor()
+    cmd = "this_command_does_not_exist"
+    with pytest.raises(ExecutorError):
+        executor.run([cmd])
+
+    assert not executor._temporary_dir.exists()
+
+
+def test_local_on_error_noclean():
+    executor = LocalExecutor(clean_on_error=False)
+    cmd = "this_command_does_not_exist"
+    with pytest.raises(ExecutorError):
+        executor.run([cmd])
+
+    assert executor._temporary_dir.exists()
+    executor.cleanup()
+
+
+def test_qubes_clean_on_error():
+    executor = LinuxQubesExecutor(
+        os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm")
+    )
+    cmd = "this_command_does_not_exist"
+    with pytest.raises(ExecutorError) as e:
+        executor.run([cmd])
+
+    dispvm = e.value.kwargs.get("name", None)
+    assert dispvm
+
+    with pytest.raises(subprocess.CalledProcessError):
+        subprocess.run(
+            ["qvm-run-vm", "--", dispvm, "true"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+
+def test_qubes_on_error_noclean():
+    executor = LinuxQubesExecutor(
+        os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm"),
+        clean_on_error=False,
+    )
+
+    with pytest.raises(ExecutorError) as e:
+        executor.run(["this_command_does_not_exist"])
+
+    dispvm = e.value.kwargs.get("name", None)
+    assert dispvm
+
+    qubes = subprocess.run(
+        ["qrexec-client-vm", "--", dispvm, "admin.vm.List"],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+    assert f"{dispvm} class=DispVM state=Running" in qubes
+
+    subprocess.run(
+        ["qvm-run-vm", "--", dispvm, "true"],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    executor.cleanup(dispvm)

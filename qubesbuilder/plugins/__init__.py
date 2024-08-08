@@ -16,7 +16,6 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-import logging
 from pathlib import Path, PurePosixPath
 from typing import List, Dict, Any
 
@@ -59,7 +58,7 @@ class ComponentDependency(Dependency):
         super().__init__(name=name, builder_object="component")
 
 
-class PluginError(Exception):
+class PluginError(QubesBuilderError):
     """
     Base plugin exception
     """

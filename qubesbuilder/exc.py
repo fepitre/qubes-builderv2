@@ -19,7 +19,9 @@
 
 
 class QubesBuilderError(Exception):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args)
+        self.kwargs = kwargs
 
 
 class ComponentError(QubesBuilderError):

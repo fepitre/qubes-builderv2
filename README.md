@@ -742,7 +742,8 @@ Options available in `builder.yml`:
     - `image: str` --- Container image to use. Specific to docker or podman type.
     - `dispvm: str` --- Disposable template VM to use (NOT IMPLEMENTED YET. HARDCODED TO 'qubes-builder-dvm').
     - `directory: str` --- Base directory for local executor to create temporary directories.
-    - `clean: bool` --- Do not clean container, disposable qube or temporary local folder.
+    - `clean: bool` --- Clean container, disposable qube or temporary local folder (default `true`).
+    - `clean-on-error: bool` --- Clean container, disposable qube or temporary local folder if any error occurred. Default is value set by `clean`.
 
 - `stages: List[str, Dict]` --- List of stages to trigger.
   - `<stage_name>: str` --- Stage name.

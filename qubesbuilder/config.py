@@ -39,7 +39,6 @@ from qubesbuilder.plugins import (
 )
 from qubesbuilder.template import QubesTemplate
 
-
 QUBES_RELEASE_RE = re.compile(r"r([1-9]\.[0-9]+).*")
 QUBES_RELEASE_DEFAULT = "r4.2"
 
@@ -584,7 +583,10 @@ class Config:
     @staticmethod
     def get_executor(options):
         executor_type = options.get("type")
-        executor_options = options.get("options", {})
+        executor_options = {}
+        for key, val in options.get("options", {}).items():
+            new_key = key.replace("-", "_") if "-" in key else key
+            executor_options[new_key] = val
         if executor_type in ("podman", "docker"):
             executor = ContainerExecutor(executor_type, **executor_options)
         elif executor_type == "local":

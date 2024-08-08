@@ -38,9 +38,10 @@ class LocalExecutor(Executor):
     def __init__(
         self,
         directory: Path = Path("/tmp"),
-        clean: Union[str, bool] = True,
         **kwargs,
     ):
+        super().__init__(**kwargs)
+
         random_path = str(id(self)) + str(uuid.uuid4())[0:8]
         self._directory = directory
         self._temporary_dir = (
@@ -48,8 +49,6 @@ class LocalExecutor(Executor):
         )
         self._builder_dir = self._temporary_dir / "builder"
         self._builder_dir_exists = False
-        self._clean = clean if isinstance(clean, bool) else str_to_bool(clean)
-        self._kwargs = kwargs
 
     def get_directory(self):
         return self._directory
@@ -79,6 +78,32 @@ class LocalExecutor(Executor):
 
     def copy_out(self, source_path: Path, destination_dir: Path):  # type: ignore
         self.copy_in(source_path, destination_dir)
+
+    def cleanup(self):
+        try:
+            subprocess.run(
+                [
+                    "sudo",
+                    "--non-interactive",
+                    "rm",
+                    "-rf",
+                    "--",
+                    self._temporary_dir,
+                ],
+                check=True,
+            )
+        except subprocess.CalledProcessError as e:
+            try:
+                # retry without sudo, as local executor for many
+                # actions doesn't really need it
+                subprocess.run(
+                    ["rm", "-rf", "--", self._temporary_dir],
+                    check=True,
+                )
+            except subprocess.CalledProcessError as e:
+                raise ExecutorError(
+                    f"Failed to clean executor temporary directory: {str(e)}"
+                )
 
     def run(  # type: ignore
         self,
@@ -161,29 +186,10 @@ class LocalExecutor(Executor):
                         )
                         continue
                     raise e
-        finally:
+        except ExecutorError as e:
+            if self._temporary_dir.exists() and self._clean_on_error:
+                self.cleanup()
+            raise e
+        else:
             if self._temporary_dir.exists() and self._clean:
-                try:
-                    subprocess.run(
-                        [
-                            "sudo",
-                            "--non-interactive",
-                            "rm",
-                            "-rf",
-                            "--",
-                            self._temporary_dir,
-                        ],
-                        check=True,
-                    )
-                except subprocess.CalledProcessError as e:
-                    try:
-                        # retry without sudo, as local executor for many
-                        # actions doesn't really need it
-                        subprocess.run(
-                            ["rm", "-rf", "--", self._temporary_dir],
-                            check=True,
-                        )
-                    except subprocess.CalledProcessError as e:
-                        raise ExecutorError(
-                            f"Failed to clean executor temporary directory: {str(e)}"
-                        )
+                self.cleanup()
