@@ -62,7 +62,8 @@ def main():
 
     # Run qfile-unpacker
     subprocess.run(
-        ["qfile-unpacker", str(uid), "/builder/incoming"], check=True, env=env
+        ["qfile-unpacker", "--allow-all-names", "--allow-unsafe-symlinks",
+         str(uid), "/builder/incoming"], check=True, env=env
     )
 
     # Move the file to the destination directory
