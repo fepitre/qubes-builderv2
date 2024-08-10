@@ -119,53 +119,31 @@ def test_executor_error():
     assert isinstance(exc_info.value, QubesBuilderError)
 
 
-def test_container_simple():
-    executor = ContainerExecutor(
-        "docker", "fedora:latest", user="root", group="root"
-    )
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Create a local file with some content
-        hello = Path(temp_dir) / "hello.md"
-        with open(hello, "w") as f:
-            f.write("Hello!\n")
-
-        # Copy-in the previously created local file
-        copy_in = [(hello, PurePath("/tmp"))]
-
-        # Copy-out the modified file
-        copy_out = [(PurePath("/tmp/hello.md"), Path(temp_dir))]
-        # Command that appends a line to the file
-        cmd = ["echo It works! >> /tmp/hello.md"]
-
-        # Execute the command
-        executor.run(cmd, copy_in, copy_out)
-
-        # Read modified file that has been copied out from the container
-        with open(hello) as f:
-            data = f.read()
-
-        # Check expected content
-        assert data == "Hello!\nIt works!\n"
+# common tests
 
 
-def test_container_not_running():
-    with pytest.raises(ExecutorError) as e:
-        ContainerExecutor(
-            "docker", "fedora:latest", base_url="tcp://127.0.0.1:1234"
+@pytest.fixture(params=["container", "local", "qubes"])
+def executor(request):
+    if request.param == "container":
+        executor = ContainerExecutor(
+            "docker", "fedora:latest", user="root", group="root"
         )
-    msg = "Cannot connect to container client."
-    assert str(e.value) == msg
+        yield executor
+    elif request.param == "local":
+        executor = LocalExecutor()
+        yield executor
+    elif request.param == "qubes":
+        if not os.path.exists("/var/run/qubes/this-is-appvm"):
+            pytest.skip("Qubes Admin VM is required!")
+        executor = LinuxQubesExecutor(
+            os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm")
+        )
+        yield executor
+    else:
+        assert False, f"Invalid param {request.param}"
 
 
-def test_container_unknown_image():
-    with pytest.raises(ExecutorError) as e:
-        ContainerExecutor("docker", "fedora-unknown:latest")
-    msg = "Cannot find fedora-unknown:latest."
-    assert str(e.value) == msg
-
-
-def test_local_simple():
-    executor = LocalExecutor()
+def test_simple(executor):
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a local file with some content
         hello = Path(temp_dir) / "hello.md"
@@ -191,14 +169,7 @@ def test_local_simple():
         assert data == "Hello!\nIt works!\n"
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/var/run/qubes/this-is-appvm"),
-    reason="Qubes Admin VM is required!",
-)
-def test_qubes_simple():
-    executor = LinuxQubesExecutor(
-        os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm")
-    )
+def test_environment(executor):
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create a local file with some content
         hello = Path(temp_dir) / "hello.md"
@@ -206,44 +177,10 @@ def test_qubes_simple():
             f.write("Hello!\n")
 
         # Copy-in the previously created local file
-        copy_in = [(hello, PurePath("/tmp"))]
+        copy_in = [(hello, Path("/tmp"))]
 
         # Copy-out the modified file
-        copy_out = [(PurePath("/tmp/hello.md"), Path(temp_dir))]
-        # Command that appends a line to the file
-        cmd = ["echo It works! >> /tmp/hello.md"]
-
-        # Execute the command
-
-        executor.run(cmd, copy_in, copy_out)
-
-        # Read modified file that has been copied out from the container
-        with open(hello) as f:
-            data = f.read()
-
-        # Check expected content
-        assert data == "Hello!\nIt works!\n"
-
-
-@pytest.mark.skipif(
-    not os.path.exists("/var/run/qubes/this-is-appvm"),
-    reason="Qubes Admin VM is required!",
-)
-def test_qubes_environment():
-    executor = LinuxQubesExecutor(
-        os.environ.get("QUBES_EXECUTOR_DISPVM", "builder-dvm")
-    )
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Create a local file with some content
-        hello = Path(temp_dir) / "hello.md"
-        with open(hello, "w") as f:
-            f.write("Hello!\n")
-
-        # Copy-in the previously created local file
-        copy_in = [(hello, PurePath("/tmp"))]
-
-        # Copy-out the modified file
-        copy_out = [(PurePath("/tmp/hello.md"), Path(temp_dir))]
+        copy_out = [(Path("/tmp/hello.md"), Path(temp_dir))]
         # Command that appends a line to the file
         cmd = [
             "echo ${MY_ANSWER} >> /tmp/hello.md",
@@ -267,6 +204,70 @@ def test_qubes_environment():
 
         # Check expected content
         assert data == "Hello!\nHi there!\nHow are you?\n"
+
+
+def test_run_error(executor):
+    # Command that fails
+    cmd = ["false"]
+
+    # Execute the command
+    with pytest.raises(ExecutorError) as exc_info:
+        executor.run(cmd, [], [])
+
+    assert "Failed to run" in str(exc_info.value)
+
+
+def test_copy_in_error(executor):
+    # No-op command
+    cmd = ["true"]
+
+    # Execute the command
+    with pytest.raises(ExecutorError) as exc_info:
+        copy_in = [(Path("/no/such/file"), Path("/tmp"))]
+        executor.run(cmd, copy_in, [])
+
+    assert "Failed to copy-in" in str(exc_info.value)
+
+
+def test_copy_out_error(executor):
+    # No-op command
+    cmd = ["true"]
+
+    # Execute the command
+    with pytest.raises(ExecutorError) as exc_info:
+        copy_out = [(Path("/no/such/file"), Path("/tmp"))]
+        executor.run(cmd, [], copy_out)
+
+    assert "Failed to copy-out" in str(exc_info.value)
+
+
+def test_copy_out_error_ignored(executor):
+    # No-op command
+    cmd = ["true"]
+
+    # Execute the command
+    copy_out = [(Path("/no/such/file_ignore"), Path("/tmp"))]
+    patterns = ["_ignore"]
+    executor.run(cmd, [], copy_out, no_fail_copy_out_allowed_patterns=patterns)
+
+
+# executor specific tests
+
+
+def test_container_not_running():
+    with pytest.raises(ExecutorError) as e:
+        ContainerExecutor(
+            "docker", "fedora:latest", base_url="tcp://127.0.0.1:1234"
+        )
+    msg = "Cannot connect to container client."
+    assert str(e.value) == msg
+
+
+def test_container_unknown_image():
+    with pytest.raises(ExecutorError) as e:
+        ContainerExecutor("docker", "fedora-unknown:latest")
+    msg = "Cannot find fedora-unknown:latest."
+    assert str(e.value) == msg
 
 
 def test_container_clean_on_error():
