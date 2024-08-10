@@ -91,7 +91,7 @@ class QubesExecutor(Executor):
             if e.stderr is not None:
                 content = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
             else:
-                content = sanitize_line(str(e))
+                content = str(e)
             msg = f"Failed to copy-in: {content}"
             raise ExecutorError(msg, name=vm)
 
@@ -145,7 +145,7 @@ class QubesExecutor(Executor):
             if e.stderr is not None:
                 content = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
             else:
-                content = sanitize_line(str(e))
+                content = str(e)
             msg = f"Failed to copy-out: {content}"
             raise ExecutorError(msg, name=vm)
 

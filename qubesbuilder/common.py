@@ -96,7 +96,7 @@ def get_archive_name(file: dict):
 
 
 # Originally from QubesOS/qubes-builder/rpc-services/qubesbuilder.BuildLog
-def sanitize_line(untrusted_line):
+def sanitize_line(untrusted_line: bytes):
     line = bytearray(untrusted_line)
     for i, c in enumerate(line):
         if 0x20 <= c <= 0x7E:

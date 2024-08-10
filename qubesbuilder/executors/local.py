@@ -61,7 +61,7 @@ class LocalExecutor(Executor):
         group = grp.getgrgid(gid).gr_name
         return self._kwargs.get("group", group)
 
-    def copy_in(self, source_path: Path, destination_dir: Path):  # type: ignore
+    def copy_in(self, source_path: Path, destination_dir: Path, action="copy-in"):  # type: ignore
         src = source_path.resolve()
         dst = destination_dir.resolve()
         try:
@@ -74,10 +74,11 @@ class LocalExecutor(Executor):
                 dst.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src), str(dst))
         except (shutil.Error, FileExistsError, FileNotFoundError) as e:
-            raise ExecutorError from e
+            msg = f"Failed to {action}: {e!s}"
+            raise ExecutorError(msg) from e
 
     def copy_out(self, source_path: Path, destination_dir: Path):  # type: ignore
-        self.copy_in(source_path, destination_dir)
+        self.copy_in(source_path, destination_dir, action="copy-out")
 
     def cleanup(self):
         try:

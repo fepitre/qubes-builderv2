@@ -137,7 +137,7 @@ class ContainerExecutor(Executor):
             if e.stdout is not None:
                 content = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
             else:
-                content = sanitize_line(str(e))
+                content = str(e)
             msg = f"Failed to copy-in: {content}"
             raise ExecutorError(msg, name=container.id)
 
@@ -154,7 +154,7 @@ class ContainerExecutor(Executor):
             if e.stdout is not None:
                 content = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
             else:
-                content = sanitize_line(str(e))
+                content = str(e)
             msg = f"Failed to copy-out: {content}"
             raise ExecutorError(msg, name=container.id)
 
