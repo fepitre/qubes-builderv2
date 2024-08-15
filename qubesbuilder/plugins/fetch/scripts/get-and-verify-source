@@ -433,8 +433,7 @@ fi
 
 if [ -e .gitmodules ]; then
     echo -e "--> Updating submodules"
-    git submodule init || exit 1
-    git submodule update --recursive || exit 1
+    git submodule update --init --recursive || exit 1
 fi
 
 popd >/dev/null || exit 1
