@@ -1,0 +1,10 @@
+[installer]
+name=installer
+enabled=1
+baseurl=file:///tmp/qubes-installer/yum/installer/
+gpgcheck=0
+[qubes-host]
+name=qubes-host
+enabled=1
+baseurl=file:///tmp/qubes-installer/yum/qubes-host/
+gpgcheck=0
