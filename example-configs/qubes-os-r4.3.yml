@@ -14,7 +14,7 @@ verbose: true
 qubes-release: r4.3
 
 distributions:
-  - host-fc37
+  - host-fc41
   - vm-bookworm
   - vm-fc40
 
@@ -62,8 +62,6 @@ components:
   - core-qubesdb
   - core-qrexec
   - linux-utils
-  - plymouth
-  - dracut
   - python-objgraph:
       branch: main
   - python-fido2:
@@ -161,7 +159,6 @@ components:
   - linux-gbulb:
       branch: main
   - linux-scrypt
-  - lvm2
   - qubes-release
   - pykickstart
   - blivet
