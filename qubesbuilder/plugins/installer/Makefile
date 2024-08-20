@@ -53,7 +53,7 @@ LORAX_PACKAGES := $(DNF_ROOT)/tmp/lorax_packages.list
 LORAX_OPTS := --product "Qubes OS" --variant "qubes" --macboot --force --rootfs-size=4
 LORAX_OPTS += --version "$(ISO_VERSION)" --release "Qubes OS $(ISO_VERSION)" --volid $(ISO_VOLID)
 LORAX_OPTS += --workdir $(INSTALLER_DIR)/work/work/x86_64 --logfile $(INSTALLER_DIR)/work/logs/lorax-x86_64.log
-LORAX_OPTS += --repo $(DNF_REPO) --skip-branding --disablerepo=fedora --disablerepo=fedora-updates --disablerepo=updates --disablerepo='qubes-*'
+LORAX_OPTS += --repo $(INSTALLER_DIR)/yum/lorax.repo --skip-branding --disablerepo=fedora --disablerepo=fedora-updates --disablerepo=updates --disablerepo='qubes-*'
 
 ifeq ($(ISO_USE_KERNEL_LATEST),1)
     LORAX_OPTS += --installpkgs kernel-latest --excludepkgs kernel
