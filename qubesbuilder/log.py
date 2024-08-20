@@ -132,13 +132,25 @@ class QBLogger(Logger):
             try:
                 logs_dir = plugin.config.logs_dir
                 logs_dir.mkdir(parents=True, exist_ok=True)
-                if not logger._log_file:
-                    logger._log_file = get_log_filename(plugin, logs_dir)
 
-                file_handler = create_file_handler(
-                    logger._log_file, mode="a", delay=True
-                )
-                logger.addHandler(file_handler)
+                # Check if the given logger has a log file already
+                log_file = logger._log_file
+                if not log_file:
+                    log_file = get_log_filename(plugin, logs_dir)
+
+                # Check if a FileHandler already exists for this logfile
+                existing_log_files = [
+                    fh.baseFilename
+                    for fh in logger.handlers
+                    if isinstance(fh, FileHandler)
+                ]
+                # If not FileHandler already exists, create it
+                if str(log_file) not in existing_log_files:
+                    logger._log_file = log_file
+                    file_handler = create_file_handler(
+                        logger._log_file, mode="a", delay=True
+                    )
+                    logger.addHandler(file_handler)
             except Exception as e:
                 raise QubesBuilderError("Failed to initialize logger") from e
         else:
