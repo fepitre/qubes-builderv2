@@ -371,7 +371,7 @@ class LinuxQubesExecutor(QubesExecutor):
                         )
                         continue
                     raise e
-        except ExecutorError as e:
+        except (subprocess.CalledProcessError, ExecutorError) as e:
             if dispvm and self._clean_on_error:
                 self.cleanup(dispvm)
             raise e

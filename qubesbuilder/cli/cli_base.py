@@ -20,7 +20,8 @@
 """
 QubesBuilder command-line interface - base module.
 """
-
+import asyncio
+import signal
 import sys
 import traceback
 from typing import Callable, List
@@ -61,21 +62,37 @@ class AliasedGroup(click.Group):
         self.list_commands = self.list_commands_for_help  # type: ignore
 
     def __call__(self, *args, **kwargs):
-        try:
-            return self.main(*args, **kwargs)
-        except Exception as exc:
-            QubesBuilderLogger.error(f"An error occurred: {str(exc)}")
-            if self.debug is True:
-                formatted_traceback = "".join(traceback.format_exception(exc))
-                QubesBuilderLogger.error(
-                    "\n" + formatted_traceback.rstrip("\n")
-                )
+        loop = asyncio.get_event_loop()
 
-            if isinstance(exc, click.ClickException):
-                # pylint: disable=no-member
-                sys.exit(exc.exit_code)
+        def _handle_interrupt():
+            tasks = asyncio.all_tasks(loop)
+            for task in tasks:
+                task.cancel()
+
+        loop.add_signal_handler(signal.SIGINT, _handle_interrupt)
+
+        rc = 1
+        try:
+            rv = self.main(*args, standalone_mode=False, **kwargs)
+            if isinstance(rv, list) and set(rv) == {None}:
+                rc = 0
+        except Exception as exc:
+            if isinstance(exc, click.Abort) or "Signals.SIGINT" in str(exc):
+                QubesBuilderLogger.warning(f"Interrupting...")
             else:
-                sys.exit(1)
+                QubesBuilderLogger.error(f"An error occurred: {str(exc)}")
+                if self.debug is True:
+                    formatted_traceback = "".join(
+                        traceback.format_exception(exc)
+                    )
+                    QubesBuilderLogger.error(
+                        "\n" + formatted_traceback.rstrip("\n")
+                    )
+                if isinstance(exc, click.ClickException):
+                    # pylint: disable=no-member
+                    rc = exc.exit_code
+        finally:
+            sys.exit(rc)
 
     def get_command(self, ctx, cmd_name):
         rv = click.Group.get_command(self, ctx, cmd_name)

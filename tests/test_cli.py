@@ -43,7 +43,7 @@ def qb_call(builder_conf, artifacts_dir, *args, **kwargs):
         f"artifacts-dir={artifacts_dir}",
         *args,
     ]
-    subprocess.check_call(cmd, **kwargs)
+    return subprocess.check_call(cmd, **kwargs)
 
 
 def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
@@ -2567,3 +2567,35 @@ def test_installer_init_cache(artifacts_dir):
     rpms = list(templates_cache.glob("*.rpm"))
     assert rpms
     assert rpms[0].name.startswith("qubes-template-debian-12-minimal-4.2.0")
+
+
+def test_existent_command(artifacts_dir):
+    result = qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "config",
+        "get-components",
+        "get-templates",
+    )
+    assert result == 0
+
+
+def test_non_existent_command(artifacts_dir):
+    with pytest.raises(subprocess.CalledProcessError):
+        result = qb_call(
+            DEFAULT_BUILDER_CONF, artifacts_dir, "non-existent-command"
+        )
+        assert result == 2
+
+
+def test_non_existent_component(artifacts_dir):
+    with pytest.raises(subprocess.CalledProcessError):
+        result = qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "non-existent-component",
+            "package",
+            "all",
+        )
+        assert result == 2
