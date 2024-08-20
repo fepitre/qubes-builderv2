@@ -91,7 +91,7 @@ components:
       - C4A2E4615A16BD191110DEE17320B2D2134763F3
   - linux-gbulb:
       url: https://github.com/marmarek/qubes-linux-gbulb
-      branch: files-git
+      branch: files-git-builderv2-tests
       verification-mode: less-secure-signed-commits-sufficient
 
 templates:
