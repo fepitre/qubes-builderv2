@@ -13,24 +13,22 @@ git:
 backend-vmm: xen
 debug: true
 verbose: true
-qubes-release: r4.2
+qubes-release: r4.3
 
 distributions:
-  - host-fc37
-  - vm-bullseye
-  - vm-fc38
+  - host-fc41
+  - vm-bookworm
+  - vm-fc40
 
 templates:
-  - fedora-37:
-      dist: fc37
+  - fedora-40-xfce:
+      dist: fc40
+      flavor: xfce
       options:
         - selinux
-  - debian-11:
-      dist: bullseye
-      options:
-        - firmware
-  - debian-12:
+  - debian-12-xfce:
       dist: bookworm
+      flavor: xfce
       options:
         - firmware
   - whonix-gateway-17:
@@ -66,7 +64,6 @@ components:
   - core-qubesdb
   - core-qrexec
   - linux-utils
-  - plymouth
   - python-objgraph:
       branch: main
   - python-fido2:
@@ -85,7 +82,7 @@ components:
       branch: main
   - linux-firmware
   - linux-kernel:
-      branch: stable-6.1
+      branch: stable-6.6
       timeout: 21600
   - linux-kernel-latest:
       url: https://github.com/QubesOS/qubes-linux-kernel
@@ -102,6 +99,8 @@ components:
   - app-linux-split-gpg:
       branch: main
   - app-linux-split-gpg2:
+      branch: main
+  - app-linux-gpg-sign:
       branch: main
   - app-thunderbird:
       branch: main
@@ -123,6 +122,7 @@ components:
       branch: main
   - video-companion:
       branch: main
+  - notification-proxy
   - screenshot-helper
   - python-looseversion
   - salt
@@ -147,19 +147,18 @@ components:
   - desktop-linux-awesome
   - desktop-linux-manager
   - desktop-linux-menu
+  - disk-password-gui
+  - libwnck3
   - fwupd
   - flashrom
   - grubby-dummy:
       branch: main
   - dummy-psu
   - dummy-backlight
-  - xorg-x11-drv-intel
-  - xorg-x11-drv-amdgpu
   - linux-pvgrub2
   - linux-gbulb:
       branch: main
   - linux-scrypt
-  - lvm2
   - qubes-release
   - pykickstart
   - blivet
