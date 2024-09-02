@@ -149,6 +149,7 @@ components:
   - desktop-linux-menu
   - disk-password-gui
   - libwnck3
+  - xfdesktop
   - fwupd
   - flashrom
   - grubby-dummy:
