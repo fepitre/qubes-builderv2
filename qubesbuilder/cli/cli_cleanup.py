@@ -175,6 +175,12 @@ def tmp(obj: ContextObj, force: bool):
     is_flag=True,
     help="Cleanup installer templates cache.",
 )
+@click.option(
+    "--installer-bootstrap/--no-installer-bootstrap",
+    default=False,
+    is_flag=True,
+    help="Cleanup installer bootstrap cache (prep stage cache content).",
+)
 @click.pass_obj
 def cache(
     obj: ContextObj,
@@ -184,6 +190,7 @@ def cache(
     installer: bool,
     installer_chroot: bool,
     installer_templates: bool,
+    installer_bootstrap: bool,
 ):
     """
     Cleanup cache files and directories.
@@ -206,6 +213,18 @@ def cache(
         to_delete.append(obj.config.cache_dir / "installer" / "chroot" / "mock")
     if installer_templates:
         to_delete.append(obj.config.cache_dir / "installer" / "templates")
+    if installer_bootstrap:
+        bootstrap_dirs = sorted(
+            [
+                bootstrap_dir
+                for bootstrap_dir in (
+                    obj.config.cache_dir / "installer"
+                ).iterdir()
+                if bootstrap_dir.name.startswith("Qubes-")
+            ],
+            reverse=True,
+        )
+        to_delete += bootstrap_dirs[1:]
 
     for cache_dir in to_delete:
         if cache_dir.exists():
@@ -259,6 +278,18 @@ def cache(
     is_flag=True,
     help="Cleanup installer templates cache.",
 )
+@click.option(
+    "--installer-bootstrap/--no-installer-bootstrap",
+    default=False,
+    is_flag=True,
+    help="Cleanup installer bootstrap cache (prep stage cache content).",
+)
+@click.option(
+    "--everything",
+    default=False,
+    is_flag=True,
+    help="/!\\ Cleanup everything. It turns on every options to force removal all cache directories and files /!\\",
+)
 @click.pass_context
 def all(
     ctx,
@@ -270,10 +301,18 @@ def all(
     installer,
     installer_chroot,
     installer_templates,
+    installer_bootstrap,
+    everything,
 ):
     """
     Cleanup all.
     """
+    if everything:
+        keep_versions = 0
+        log_retention_days = 0
+        force_tmp = True
+        all_cache = True
+
     ctx.invoke(distfiles)
     ctx.invoke(build_artifacts, keep_versions=keep_versions)
     ctx.invoke(logs, log_retention_days=log_retention_days)
@@ -285,6 +324,7 @@ def all(
         installer=installer,
         installer_chroot=installer_chroot,
         installer_templates=installer_templates,
+        installer_bootstrap=installer_bootstrap,
     )
 
 
