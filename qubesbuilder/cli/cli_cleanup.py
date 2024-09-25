@@ -6,7 +6,7 @@ import click
 
 from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.common import get_archive_name
-from qubesbuilder.component import QubesComponent, ComponentError
+from qubesbuilder.component import QubesComponent, ComponentError, QubesVersion
 
 
 @aliased_group("cleanup", chain=True)
@@ -79,15 +79,17 @@ def build_artifacts(obj: ContextObj, keep_versions):
             continue
 
         versions = sorted(
-            [v for v in component_dir.iterdir() if v.name != "noversion"],
+            [v.name for v in component_dir.iterdir() if v.name != "noversion"],
             reverse=True,
+            key=QubesVersion,
         )
         for version in versions[keep_versions:]:
+            version_path = component_dir / version
             if obj.dry_run:
-                click.secho(f"DRY-RUN: {version}")
+                click.secho(f"DRY-RUN: {version_path}")
             else:
-                click.secho(version)
-                shutil.rmtree(version)
+                click.secho(version_path)
+                shutil.rmtree(version_path)
 
 
 @click.command()

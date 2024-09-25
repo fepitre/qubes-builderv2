@@ -238,6 +238,32 @@ def test_cleanup_build_artifacts(artifacts_dir):
     ).is_dir()
 
 
+def test_cleanup_build_artifacts_sequence(artifacts_dir):
+    components_dir = artifacts_dir / "components" / "linux-gbulb"
+    components_dir.mkdir(parents=True, exist_ok=True)
+    for version in ["1.7", "1.8", "1.9", "1.10"]:
+        old_version = components_dir / version
+        old_version.mkdir()
+        old_version_file = old_version / "file.txt"
+        old_version_file.write_text("some content")
+
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "cleanup",
+        "build-artifacts",
+        "--keep-versions",
+        "1",
+    )
+
+    for version in ["1.7", "1.8", "1.9"]:
+        assert not (components_dir / version).exists()
+
+    assert (components_dir / "1.10").exists() and (
+        components_dir / "1.10"
+    ).is_dir()
+
+
 def test_cleanup_logs(artifacts_dir):
     logs_dir = artifacts_dir / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
@@ -427,7 +453,7 @@ def test_cleanup_distfiles_dry_run(artifacts_dir):
 def test_cleanup_build_artifacts_dry_run(artifacts_dir):
     components_dir = artifacts_dir / "components" / "linux-gbulb"
     components_dir.mkdir(parents=True, exist_ok=True)
-    old_version = components_dir / "old_version"
+    old_version = components_dir / "1.0.0"
     old_version.mkdir()
 
     output = qb_call_output(
