@@ -75,7 +75,7 @@ def build_artifacts(obj: ContextObj, keep_versions):
     """
     for component in obj.components:
         component_dir = obj.config.artifacts_dir / "components" / component.name
-        if not component_dir.exists():
+        if not component_dir.exists() or not component.has_packages:
             continue
 
         versions = sorted(

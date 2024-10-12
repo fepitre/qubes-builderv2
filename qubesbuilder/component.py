@@ -119,6 +119,8 @@ class QubesComponent:
         return version_release
 
     def increment_devel_versions(self):
+        if not self.has_packages:
+            return
         devel = "1"
         if not self._devel_path:
             raise ComponentError(f"Devel path not provided for {self.name}.")
