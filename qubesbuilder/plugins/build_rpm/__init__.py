@@ -23,6 +23,8 @@ import shutil
 from pathlib import Path
 from typing import List
 
+from qubesbuilder.common import display_mock_error
+
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
@@ -284,7 +286,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             # which among other things, strips environment variables
             mock_cmd = [
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
-                "/usr/libexec/mock/mock --no-cleanup-after",
+                "/usr/libexec/mock/mock --no-cleanup-after --verbose",
                 f"--rebuild {executor.get_build_dir() / source_info['srpm']}",
                 f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
                 f"--resultdir={executor.get_build_dir()}",
@@ -295,8 +297,6 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 mock_cmd.append("--isolation=simple")
             else:
                 mock_cmd.append("--isolation=nspawn")
-            if self.config.verbose:
-                mock_cmd.append("--verbose")
             if self.config.use_qubes_repo and self.config.use_qubes_repo.get(
                 "version"
             ):
@@ -346,6 +346,9 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 )
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to build RPMs: {str(e)}."
+                display_mock_error(
+                    self.log, "EXCEPTION:.*/usr/bin/rpmbuild -bb"
+                )
                 raise BuildError(msg) from e
 
             # Symlink SRPM into result RPMs

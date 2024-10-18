@@ -20,6 +20,8 @@ import os
 import re
 import shutil
 import tempfile
+import subprocess
+
 from enum import Enum
 from pathlib import Path
 from string import digits, ascii_letters
@@ -156,3 +158,51 @@ def sed(pattern, replace, source, destination=None):
             fd.write(sed_data)
             fd.flush()
         shutil.move(fd.name, source)
+
+
+def extract_lines_before(file_path, search_string, num_lines_before=10):
+    try:
+        # Run grep to find the line number with the search string
+        grep_result = subprocess.run(
+            ["grep", "-n", search_string, file_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        # Check if grep found the string
+        if grep_result.returncode == 0:
+            # Extract the line number from grep's output
+            line_number = int(grep_result.stdout.split(":")[0])
+
+            # Calculate the starting line (10 lines before the found line)
+            start_line = max(1, line_number - num_lines_before)
+
+            # Use sed to extract the range of lines (from start_line to line_number - 1)
+            sed_result = subprocess.run(
+                ["sed", "-n", f"{start_line},{line_number - 1}p", file_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+
+            # Return the lines extracted by sed
+            return sed_result.stdout, start_line
+    except Exception as e:
+        return
+
+
+def display_mock_error(logger, search_string):
+    log_file = logger.get_log_file()
+    if not log_file or not log_file.exists():
+        return
+    lines, start_line = extract_lines_before(log_file, search_string) or (
+        [],
+        None,
+    )
+    if not lines or not start_line:
+        return
+    logger.error(f"Extract error messages from {log_file} line {start_line}:")
+    for line in lines.splitlines():
+        extracted_line = line.split(" ", 4)
+        logger.error(">>> " + extracted_line[4])
