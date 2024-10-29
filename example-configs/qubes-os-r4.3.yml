@@ -66,8 +66,7 @@ components:
       branch: main
   - python-fido2:
       branch: main
-  - python-qasync:
-      branch: main
+  - python-qasync
   - python-panflute:
       branch: main
   - rpm-oxide
