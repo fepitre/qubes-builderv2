@@ -658,13 +658,17 @@ def test_config_merge_include():
     with (
         tempfile.NamedTemporaryFile("w") as config_file_main,
         tempfile.NamedTemporaryFile("w") as config_file_included,
+        tempfile.NamedTemporaryFile("w") as config_file_included2,
     ):
         config_file_main.write(
             f"""include:
  - {config_file_included.name}
+ - {config_file_included2.name}
 
 git:
   branch: main
+
+verbose: false
 
 components:
  - lvm2
@@ -689,6 +693,12 @@ executor:
 """
         )
         config_file_included.flush()
+        config_file_included2.write(
+            """verbose: true
+titi: toto
+"""
+        )
+        config_file_included2.flush()
         config = Config(config_file_main.name)
         component = config.get_components(["kernel"])[0]
         assert component.branch == "main"
@@ -696,6 +706,8 @@ executor:
             "0064428F455451B3EBE78A7F063938BA42CFA724",
             "274E12AB03F2FE293765FC06DA0434BC706E1FCF",
         ]
+        assert not config.verbose
+        assert config.get("titi", None) == "toto"
 
 
 def test_config_merge_include_check_maintainers():
