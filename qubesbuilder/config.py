@@ -32,6 +32,7 @@ from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.executors.qubes import LinuxQubesExecutor
 from qubesbuilder.pluginmanager import PluginManager
+from qubesbuilder.executors.windows import WindowsExecutor
 from qubesbuilder.plugins import (
     DistributionPlugin,
     DistributionComponentPlugin,
@@ -572,6 +573,8 @@ class Config:
             executor = LocalExecutor(**executor_options)  # type: ignore
         elif executor_type == "qubes":
             executor = LinuxQubesExecutor(**executor_options)  # type: ignore
+        elif executor_type == "windows":
+            executor = WindowsExecutor(**executor_options)  # type: ignore
         else:
             raise ExecutorError("Cannot determine which executor to use.")
         return executor
