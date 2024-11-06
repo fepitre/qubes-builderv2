@@ -154,6 +154,9 @@ class Config:
         if options and isinstance(options, dict):
             included_data.append(options)
 
+        # Override included values from main config as latest included data
+        included_data.append(conf)
+
         # Init the final config based on included configs first
         combined_conf: Dict[str, Any] = {}
         for data in included_data:
@@ -171,35 +174,14 @@ class Config:
                     # if conf top-level key is not defined or is a list we override by
                     # the included values, else we merge the two dicts where included
                     # values may override original ones.
-                    if not combined_conf.get(key, None) or isinstance(
-                        combined_conf[key], list
+                    if combined_conf.get(key, None) and isinstance(
+                        combined_conf[key], dict
                     ):
-                        combined_conf[key] = data[key]
-                    elif isinstance(combined_conf[key], dict):
                         combined_conf[key] = deep_merge(
                             combined_conf[key], data[key]
                         )
-
-        # Override included values from main config
-        for key in conf:
-            if key in (
-                "+distributions",
-                "+templates",
-                "+components",
-                "+stages",
-                "+plugins",
-            ):
-                combined_conf.setdefault(key, [])
-                combined_conf[key] += conf[key]
-            else:
-                if not combined_conf.get(key, None) or isinstance(
-                    combined_conf[key], list
-                ):
-                    combined_conf[key] = conf[key]
-                elif isinstance(combined_conf[key], dict):
-                    combined_conf[key] = deep_merge(
-                        combined_conf[key], conf[key]
-                    )
+                    else:
+                        combined_conf[key] = data[key]
 
         # Allow options to override only values that can be merged
         if options and isinstance(options, dict):

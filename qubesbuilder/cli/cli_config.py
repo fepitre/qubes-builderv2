@@ -41,7 +41,7 @@ def get_var(obj: ContextObj, var: str, print_json: bool, print_yaml: bool):
             result = str(result)
     else:
         result = obj.config.get(var)
-    if not result:
+    if result is None:
         return
     if print_json:
         click.secho(json.dumps(result))
