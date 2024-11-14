@@ -234,6 +234,8 @@ You can use the provided `qubes-os-r4.2.yml` configuration file
 under `example-configs` named `builder.yml` in the root of `qubes-builderv2`
 (like the legacy `qubes-builder`).
 
+> Remark: You can find official configuration files used to build packages and templates at https://github.com/QubesOS/qubes-release-configs.
+
 Artifacts can be found under `artifacts` directory:
 
 ```
