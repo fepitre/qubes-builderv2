@@ -65,8 +65,8 @@ builderv2-github:
   before_script:
     - sudo dnf install -y python3-pip python3-pytest-cov python3-pytest python3-pytest-mock python3-lxml python3-wheel sequoia-sqv
     - sudo rm -rf ~/pytest-of-user/
-    - docker pull fepitre/qubes-builder-fedora:latest
-    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+    - docker pull registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest
+    - docker tag registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest qubes-builder-fedora:latest
     - mkdir ~/gitlab ~/tmp
     - export PYTHONPATH=".:$PYTHONPATH" BASE_ARTIFACTS_DIR=~/gitlab TMPDIR=~/tmp
     - env
@@ -85,8 +85,8 @@ builderv2-github:
     paths:
       - artifacts.tar.xz
   before_script:
-    - docker pull fepitre/qubes-builder-fedora:latest
-    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+    - docker pull registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest
+    - docker tag registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest qubes-builder-fedora:latest
     - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   script:
     - ./qb --builder-conf tests/builder-ci.yml -d "${CI_JOB_NAME#cache-}" package init-cache
@@ -110,8 +110,8 @@ builderv2-github:
   before_script:
     - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
-    - docker pull fepitre/qubes-builder-fedora:latest
-    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+    - docker pull registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest
+    - docker tag registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest qubes-builder-fedora:latest
     - tar xf artifacts.tar.xz
     - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
   script:
@@ -199,8 +199,8 @@ builderv2-github:
   tags:
     - qubes
   before_script:
-    - docker pull fepitre/qubes-builder-fedora:latest
-    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+    - docker pull registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest
+    - docker tag registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest qubes-builder-fedora:latest
     - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
     - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
@@ -222,8 +222,8 @@ builderv2-github:
   before_script:
     - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
-    - docker pull fepitre/qubes-builder-fedora:latest
-    - docker tag fepitre/qubes-builder-fedora:latest qubes-builder-fedora:latest
+    - docker pull registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest
+    - docker tag registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest qubes-builder-fedora:latest
     - sudo dnf install -y python3-debian dpkg-dev openssl tree mktorrent
   script:
     - ./qb --builder-conf tests/builder-ci.yml -c qubes-release package fetch
