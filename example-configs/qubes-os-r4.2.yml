@@ -112,8 +112,7 @@ components:
       branch: main
   - app-linux-input-proxy:
       branch: main
-  - app-linux-usb-proxy:
-      branch: main
+  - app-linux-usb-proxy
   - app-linux-snapd-helper:
       branch: main
   - app-shutdown-idle:
