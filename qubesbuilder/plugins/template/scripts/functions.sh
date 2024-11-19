@@ -69,9 +69,10 @@ error() {
 #  - packages_${DIST_NAME}_{DIST_VER}_${TEMPLATE_FLAVOR}.list
 #  - packages_${DIST_NAME}_${TEMPLATE_FLAVOR}.list
 #  - packages_${DIST_NAME}.list
+#  - packages.list
 #
 # Remark: If 'resource' is provided with full path, we use
-#  its dirname as search directory instead of TEMPLATE_CONTENT_DIR.
+#  its dirname as search directory instead of flavor dirs and TEMPLATE_CONTENT_DIR.
 # ------------------------------------------------------------------------------
 get_file_or_directory_for_current_flavor() {
     local resource="$1"
@@ -83,10 +84,10 @@ get_file_or_directory_for_current_flavor() {
     # we use its dirname as search directory
     # instead of TEMPLATE_CONTENT_DIR
     if [ "$(dirname "${resource}")" != "." ]; then
-        resource_dir="$(dirname "${resource}")"
+        resource_dirs=( "$(dirname "${resource}")" )
         resource="$(basename "${resource}")"
     else
-        resource_dir="${TEMPLATE_CONTENT_DIR}"
+        mapfile resource_dirs <<<"$(templateDirs)"
     fi
 
     # Determine if resource has an extension. If it has,
@@ -98,22 +99,28 @@ get_file_or_directory_for_current_flavor() {
         ext=""
         resource_without_ext="${resource}"
     fi
-    # shellcheck disable=SC2153
-    if [ -n "${suffix}" ] && [ -e "${resource_dir}/${resource_without_ext}_${suffix}${ext}" ]; then
-        file_or_directory="${resource_dir}/${resource_without_ext}_${suffix}${ext}"
-    elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_CODENAME}_${TEMPLATE_FLAVOR}${ext}" ]; then
-        file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_CODENAME}_${TEMPLATE_FLAVOR}${ext}"
-    elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_CODENAME}${ext}" ]; then
-        file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_CODENAME}${ext}"
-    elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}_${TEMPLATE_FLAVOR}${ext}" ]; then
-        file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}_${TEMPLATE_FLAVOR}${ext}"
-    elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${TEMPLATE_FLAVOR}${ext}" ]; then
-        file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}_${TEMPLATE_FLAVOR}${ext}"
-    elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}${ext}" ]; then
-        file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}${ext}"
-    else
-        file_or_directory=""
-    fi
+    file_or_directory=""
+    for resource_dir in "${resource_dirs[@]}"; do
+        # shellcheck disable=SC2153
+        if [ -n "${suffix}" ] && [ -e "${resource_dir}/${resource_without_ext}_${suffix}${ext}" ]; then
+            file_or_directory="${resource_dir}/${resource_without_ext}_${suffix}${ext}"
+        elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_CODENAME}_${TEMPLATE_FLAVOR}${ext}" ]; then
+            file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_CODENAME}_${TEMPLATE_FLAVOR}${ext}"
+        elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_CODENAME}${ext}" ]; then
+            file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_CODENAME}${ext}"
+        elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}_${TEMPLATE_FLAVOR}${ext}" ]; then
+            file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}_${TEMPLATE_FLAVOR}${ext}"
+        elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${TEMPLATE_FLAVOR}${ext}" ]; then
+            file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}_${TEMPLATE_FLAVOR}${ext}"
+        elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}${ext}" ]; then
+            file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}${ext}"
+        elif [ -e "${resource_dir}/${resource_without_ext}${ext}" ]; then
+            file_or_directory="${resource_dir}/${resource_without_ext}${ext}"
+        else
+            continue
+        fi
+        break
+    done
     echo "${file_or_directory}"
 }
 

@@ -107,7 +107,7 @@ cp -r "${appmenus}" "${ARTIFACTS_DIR}/appmenus"
 echo "--> Creating template config file..."
 _conf_dir="${CONFIG_DIR:-${TEMPLATE_CONTENT_DIR}}"
 
-template_conf="$(get_file_or_directory_for_current_flavor "${_conf_dir}/template.conf")"
+template_conf="$(get_file_or_directory_for_current_flavor "template.conf")"
 if [ -z "$template_conf" ]; then
     template_conf="${PLUGINS_DIR}/template/template_generic.conf"
 fi
