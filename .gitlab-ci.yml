@@ -244,7 +244,7 @@ lint:
 
 mypy:
   stage: test
-  image: fedora:39
+  image: fedora:40
   tags:
     - docker
   before_script:
@@ -258,7 +258,7 @@ mypy:
 
 shellcheck:
   stage: test
-  image: fedora:39
+  image: fedora:40
   tags:
     - docker
   before_script:
@@ -335,10 +335,10 @@ cache-host-fc37:
     - !reference [.init_cache_job, script ]
     - tests/scripts/check-chroot-content.sh artifacts "${CI_JOB_NAME#cache-}" /usr/bin/gcc
 
-cache-vm-fc39:
+cache-vm-fc40:
   extends: .init_cache_job
 
-cache-vm-fc40:
+cache-vm-fc41:
   extends: .init_cache_job
 
 cache-vm-bookworm:
@@ -354,6 +354,9 @@ cache-vm-archlinux:
   extends: .init_cache_job
 
 cache-vm-jammy:
+  extends: .init_cache_job
+
+cache-vm-noble:
   extends: .init_cache_job
 
 # Podman executor
@@ -398,7 +401,8 @@ docker-vm-jammy:
   before_script:
     - cp -Tr tests/gnupg ~/.gnupg
     - chmod 700 ~/.gnupg
-    - docker build -f dockerfiles/debian.Dockerfile -t qubes-builder-debian:latest dockerfiles/
+    - docker pull registry.gitlab.com/qubesos/docker-images/qubes-builder-debian:latest
+    - docker tag registry.gitlab.com/qubesos/docker-images/qubes-builder-debian:latest qubes-builder-debian:latest
     - tar xf artifacts.tar.xz
     - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
     # install an update manually built until https://bugzilla.redhat.com/show_bug.cgi?id=2108872 is handled
@@ -407,6 +411,22 @@ docker-vm-jammy:
     QB_EXTRA_ARGS: "-o executor:options:image=qubes-builder-debian:latest -o +components+vmm-xen-guest -c vmm-xen-guest -c core-vchan-xen"
   needs:
     - cache-vm-jammy
+
+docker-vm-noble:
+  extends: .component_docker_job
+  before_script:
+    - cp -Tr tests/gnupg ~/.gnupg
+    - chmod 700 ~/.gnupg
+    - docker pull registry.gitlab.com/qubesos/docker-images/qubes-builder-ubuntu:latest
+    - docker tag registry.gitlab.com/qubesos/docker-images/qubes-builder-ubuntu:latest qubes-builder-ubuntu:latest
+    - tar xf artifacts.tar.xz
+    - sudo dnf install -y python3-debian dpkg-dev openssl tree pacman
+    # install an update manually built until https://bugzilla.redhat.com/show_bug.cgi?id=2108872 is handled
+    - sudo dnf update -y https://caviar.qubes-os.org/~marmarek/reprepro-5.4.2-1.fc37.x86_64.rpm
+  variables:
+    QB_EXTRA_ARGS: "-o executor:options:image=qubes-builder-ubuntu:latest -o +components+vmm-xen-guest -c vmm-xen-guest -c core-vchan-xen"
+  needs:
+    - cache-vm-noble
 
 # Qubes executor
 
