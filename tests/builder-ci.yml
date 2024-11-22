@@ -47,11 +47,12 @@ distributions:
   - vm-bullseye
   - vm-bookworm
   - vm-trixie
-  - vm-fc39
   - vm-fc40
+  - vm-fc41
   - vm-archlinux
   - vm-focal
   - vm-jammy
+  - vm-noble
 
 key-dirs:
   - keys
