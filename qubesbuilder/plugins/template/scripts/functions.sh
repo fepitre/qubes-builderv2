@@ -112,6 +112,8 @@ get_file_or_directory_for_current_flavor() {
             file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}_${TEMPLATE_FLAVOR}${ext}"
         elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${TEMPLATE_FLAVOR}${ext}" ]; then
             file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}_${TEMPLATE_FLAVOR}${ext}"
+        elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}${ext}" ]; then
+            file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}_${DIST_VER}${ext}"
         elif [ -e "${resource_dir}/${resource_without_ext}_${DIST_NAME}${ext}" ]; then
             file_or_directory="${resource_dir}/${resource_without_ext}_${DIST_NAME}${ext}"
         elif [ -e "${resource_dir}/${resource_without_ext}${ext}" ]; then
