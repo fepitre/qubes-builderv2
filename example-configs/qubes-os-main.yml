@@ -156,6 +156,7 @@ components:
       branch: main
   - dummy-psu
   - dummy-backlight
+  - xorg-x11-server
   - linux-pvgrub2
   - linux-gbulb:
       branch: main

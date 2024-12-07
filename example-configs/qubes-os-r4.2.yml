@@ -159,6 +159,7 @@ components:
       branch: main
   - dummy-psu
   - dummy-backlight
+  - xorg-x11-server
   - xorg-x11-drv-intel
   - xorg-x11-drv-amdgpu
   - linux-pvgrub2
