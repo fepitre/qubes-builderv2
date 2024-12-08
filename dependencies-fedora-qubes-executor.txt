@@ -2,6 +2,7 @@ createrepo_c
 debootstrap
 devscripts
 dnf-plugins-core
+dosfstools
 dpkg-dev
 git
 mock

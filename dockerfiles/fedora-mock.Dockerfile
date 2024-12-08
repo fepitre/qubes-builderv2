@@ -15,6 +15,7 @@ RUN dnf -y update && \
         debootstrap \
         devscripts \
         dnf-plugins-core \
+        dosfstools \
         dpkg-dev \
         e2fsprogs \
         git \
