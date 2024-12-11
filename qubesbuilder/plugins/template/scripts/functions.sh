@@ -87,7 +87,7 @@ get_file_or_directory_for_current_flavor() {
         resource_dirs=( "$(dirname "${resource}")" )
         resource="$(basename "${resource}")"
     else
-        mapfile resource_dirs <<<"$(templateDirs)"
+        mapfile -t resource_dirs <<<"$(templateDirs)"
     fi
 
     # Determine if resource has an extension. If it has,
@@ -369,7 +369,7 @@ templateFile() {
     local template_flavor="$3"
     local template_dirs
 
-    template_dirs="$(templateDirs "${template_flavor}")"
+    mapfile -t template_dirs <<<"$(templateDirs "${template_flavor}")"
 
     splitPath "${file}" path_parts
 
@@ -430,7 +430,7 @@ copyTreeExec() {
     local target_dir="$4"
     local template_dirs
 
-    template_dirs="$(templateDirs "${template_flavor}")"
+    mapfile -t template_dirs <<<"$(templateDirs "${template_flavor}")"
 
     for template_dir in "${template_dirs[@]}"; do
         local source_dir
