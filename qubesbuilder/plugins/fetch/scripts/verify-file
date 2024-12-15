@@ -120,6 +120,7 @@ elif [ -n "${UNTRUSTED_SIGNATURE_FILE}" ] && [ -n "${PUBKEY_FILE}" ]; then
         sq toolbox dearmor --output "$keyring_dir/keyring.gpg" "$keyring_dir/keyring"
     else
         sq keyring merge --output "$keyring_dir/keyring" "${PUBKEY_FILE[@]}"
+        sq packet dearmor --output "$keyring_dir/keyring.gpg" "$keyring_dir/keyring" ||
         sq dearmor --output "$keyring_dir/keyring.gpg" "$keyring_dir/keyring"
     fi
 
