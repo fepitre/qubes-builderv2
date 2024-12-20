@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 #
 # The Qubes OS Project, http://www.qubes-os.org
 #
@@ -44,12 +44,14 @@ def verify_git_obj(gpg_client, keyring_dir, repository_dir, obj_type, obj_path):
             obj_path,
         ]
 
+        env = os.environ.copy()
+        env["GNUPGHOME"] = str(keyring_dir)
         output = subprocess.run(
             command,
             capture_output=True,
             universal_newlines=True,
             cwd=repository_dir,
-            env={"GNUPGHOME": str(keyring_dir)},
+            env=env,
             check=True,
         ).stderr
 
@@ -268,7 +270,8 @@ def main(args):
         else:
             print("--> Verifying tags...")
 
-        env = {"GNUPGHOME": str(git_keyring_dir)}
+        env = os.environ.copy()
+        env["GNUPGHOME"] = str(git_keyring_dir)
         git_keyring_dir.mkdir(parents=True, exist_ok=True)
         git_keyring_dir.chmod(0o700)
         # We request a list to init the keyring. It looks like it does
