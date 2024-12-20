@@ -183,7 +183,8 @@ def main(args):
         if repo.exists():
             shutil.rmtree(repo)
         try:
-            if args.git_commit:
+            looks_like_commit = re.match(r"^[a-fA-F0-9]{40}$", git_branch)
+            if args.git_commit or looks_like_commit:
                 # git clone can't handle commit reference, use fetch instead
                 repo.mkdir()
                 subprocess.run(
@@ -194,6 +195,7 @@ def main(args):
                 )
                 subprocess.run(
                     ["git", "fetch"]
+                    + (["--tags"] if looks_like_commit else [])
                     + git_options
                     + ["--", git_url, git_branch],
                     capture_output=True,

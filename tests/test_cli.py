@@ -355,6 +355,29 @@ def test_common_component_fetch_skip_files(artifacts_dir_single):
         in result
     )
 
+def test_common_component_fetch_commit_fresh(artifacts_dir_single):
+    artifacts_dir = artifacts_dir_single
+    commit_sha = "0589ae8a242b3be6a1b8985c6eb8900e5236152a"
+    result = qb_call_output(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-c",
+        "core-qrexec",
+        "-o",
+        f"+components+core-qrexec:branch={commit_sha}",
+        "package",
+        "fetch",
+    ).decode()
+
+    fetch_artifact = (
+        artifacts_dir /
+        "components/core-qrexec/4.2.20-1/nodist/fetch/source.fetch.yml"
+    )
+    assert fetch_artifact.exists()
+    with open(fetch_artifact) as f:
+        info = yaml.safe_load(f.read())
+    assert info["git-commit-hash"] == commit_sha
+
 
 #
 # Pipeline for core-qrexec and host-fc37
