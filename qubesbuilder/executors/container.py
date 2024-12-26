@@ -219,6 +219,7 @@ class ContainerExecutor(Executor):
                     privileged=True,
                     environment=environment,
                     mounts=mounts,
+                    init=True,
                 )
 
                 # copy-in hook
