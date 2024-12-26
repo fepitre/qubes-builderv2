@@ -1,4 +1,4 @@
-FROM fedora@sha256:a1aff3e01bb667ededb2e4d895a1f1f88b7d329bd22402d4a5ba5e7f1c7a48cb
+FROM fedora@sha256:3ec60eb34fa1a095c0c34dd37cead9fd38afb62612d43892fcf1d3425c32bc1e
 MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
 
 # Install dependencies for Qubes Builder

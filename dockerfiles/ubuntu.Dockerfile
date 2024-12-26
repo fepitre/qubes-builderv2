@@ -1,4 +1,4 @@
-FROM ubuntu@sha256:99c35190e22d294cdace2783ac55effc69d32896daaa265f0bbedbcde4fbe3e5
+FROM ubuntu@sha256:6e75a10070b0fcb0bead763c5118a369bc7cc30dfc1b0749c491bbb21f15c3c7
 MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
 
 ARG DEBIAN_FRONTEND=noninteractive
