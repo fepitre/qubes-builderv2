@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     try:
         from _hashlib import HASH
     except ModuleNotFoundError:
-        from _sha512 import sha512 as HASH
+        from _sha512 import sha512 as HASH  # type: ignore[no-redef]
 
 import pathspec
 import yaml
