@@ -228,10 +228,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix",
                     f"+whonix-workstation:{executor.get_sources_dir()}/template-whonix",
                 ]
-            if self.template.flavor in (
-                "kicksecure-17"
-            ):
-                self.dependencies += [ComponentDependency("template-kicksecure")]
+            if self.template.flavor in ("kicksecure-17"):
+                self.dependencies += [
+                    ComponentDependency("template-kicksecure")
+                ]
                 template_content_dir = str(
                     executor.get_sources_dir() / "template-kicksecure"
                 )
