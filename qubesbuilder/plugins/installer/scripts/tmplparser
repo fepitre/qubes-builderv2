@@ -152,10 +152,11 @@ def main():
             if r[0] == "installpkg":
                 packages += parse_installpkg(pkgs=r[1:], dbo=dnfbase)
 
+    packages = sorted(packages, key=lambda x: not x.startswith("--"))
     if args.extract_packages_to:
         try:
             with open(args.extract_packages_to, "w") as pkgs_fd:
-                pkgs_fd.write(" ".join(packages))
+                pkgs_fd.write("\n".join(packages) + "\n")
         except EnvironmentError:
             print(
                 f"Cannot write packages list to {args.extract_packages_to}",

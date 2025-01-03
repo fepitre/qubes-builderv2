@@ -96,6 +96,9 @@ def main():
 
         if args.extract_packages_to:
             packages = []
+            for pkg in ksparser.handler.packages.excludedList:
+                packages.append("--exclude=%s" % pkg)
+
             for group in ksparser.handler.packages.groupList:
                 packages.append("@%s" % group.name)
 
@@ -105,12 +108,9 @@ def main():
             # for group in ksparser.handler.packages.excludedGroupList:
             #     packages.append('--exclude=@%s' % group.name)
 
-            for pkg in ksparser.handler.packages.excludedList:
-                packages.append("--exclude=%s" % pkg)
-
             try:
                 with open(args.extract_packages_to, "w") as pkgs_fd:
-                    pkgs_fd.write(" ".join(packages))
+                    pkgs_fd.write("\n".join(packages) + "\n")
             except EnvironmentError:
                 print("Cannot write packages list to %s" % args.extract_packages_to)
                 return 1
