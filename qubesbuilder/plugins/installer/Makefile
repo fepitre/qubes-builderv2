@@ -40,7 +40,7 @@ ISO_VOLID := $(shell echo $(ISO_NAME) | tr a-z A-Z | tr -s -c [:alnum:]'\n' - | 
 BASE_DIR := $(INSTALLER_DIR)/work/$(ISO_VERSION)/x86_64
 TMP_DIR:= $(BUILDER_DIR)/tmp
 
-DNF := /usr/bin/dnf
+DNF := /usr/bin/dnf-3
 DNF_ROOT := $(BUILDER_DIR)/dnfroot
 DNF_REPO := $(DNF_ROOT)/etc/yum.repos.d/installer.repo
 DNF_PACKAGES := $(DNF_ROOT)/tmp/packages.list
