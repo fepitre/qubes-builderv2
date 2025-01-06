@@ -464,7 +464,7 @@ def test_component_host_fc37_sign(artifacts_dir):
     )
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         # Better copy testing keyring into a separate directory to prevent locks inside
         # local sources (when executed locally).
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
@@ -526,7 +526,7 @@ def test_component_host_fc37_sign(artifacts_dir):
 def test_component_host_fc37_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -746,7 +746,7 @@ def test_component_host_fc37_publish(artifacts_dir):
 def test_component_host_fc37_upload(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
         builder_conf = tmpdir + "/builder.yml"
@@ -852,7 +852,7 @@ def test_component_host_fc37_build_skip(artifacts_dir):
 def test_component_host_fc37_sign_skip(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -893,7 +893,7 @@ def test_component_host_fc37_sign_skip(artifacts_dir):
 def test_component_host_fc37_unpublish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -1101,7 +1101,7 @@ def test_component_vm_bookworm_build(artifacts_dir):
 def test_component_vm_bookworm_sign(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -1152,7 +1152,7 @@ def test_component_vm_bookworm_sign(artifacts_dir):
 def test_component_vm_bookworm_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -1338,7 +1338,7 @@ def test_component_vm_bookworm_build_skip(artifacts_dir):
 def test_component_vm_bookworm_sign_skip(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -1376,7 +1376,7 @@ def test_component_vm_bookworm_unpublish(artifacts_dir):
 
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -1492,7 +1492,7 @@ def test_increment_component_fetch(artifacts_dir):
 def test_increment_component_build(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -1658,7 +1658,7 @@ def test_component_vm_archlinux_sign(artifacts_dir):
     env = os.environ.copy()
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         # Better copy testing keyring into a separate directory to prevent locks inside
         # local sources (when executed locally).
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
@@ -1702,7 +1702,7 @@ def test_component_vm_archlinux_sign(artifacts_dir):
 def test_component_vm_archlinux_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -1823,7 +1823,7 @@ def test_component_vm_archlinux_publish(artifacts_dir):
 def test_component_vm_archlinux_upload(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
         builder_conf = tmpdir + "/builder.yml"
@@ -1960,7 +1960,7 @@ def test_template_fedora_40_build(artifacts_dir):
 def test_template_fedora_40_minimal_sign(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         # Better copy testing keyring into a separate directory to prevent locks inside
         # local sources (when executed locally).
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
@@ -1969,6 +1969,7 @@ def test_template_fedora_40_minimal_sign(artifacts_dir):
         env["GNUPGHOME"] = gnupghome
         # We prevent rpm to find ~/.rpmmacros
         env["HOME"] = tmpdir
+
 
         qb_call(
             DEFAULT_BUILDER_CONF,
@@ -2004,7 +2005,7 @@ def test_template_fedora_40_minimal_sign(artifacts_dir):
 def test_template_fedora_40_minimal_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -2095,7 +2096,7 @@ def test_template_fedora_40_minimal_publish(artifacts_dir):
 def test_template_fedora_40_minimal_publish_new(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -2220,7 +2221,7 @@ def test_template_fedora_40_minimal_publish_new(artifacts_dir):
 def test_template_fedora_40_minimal_unpublish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -2407,7 +2408,7 @@ def test_template_debian_12_minimal_build(artifacts_dir):
 def test_template_debian_12_minimal_sign(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         # Better copy testing keyring into a separate directory to prevent locks inside
         # local sources (when executed locally).
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
@@ -2451,7 +2452,7 @@ def test_template_debian_12_minimal_sign(artifacts_dir):
 def test_template_debian_12_minimal_publish(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 

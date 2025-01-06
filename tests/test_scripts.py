@@ -29,7 +29,7 @@ def temp_directory():
 
 @pytest.fixture
 def home_directory(temp_directory):
-    gnupghome = f"{temp_directory}/.gnupg"
+    gnupghome = f"{temp_directory}/gnupg"
     shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
     os.chmod(gnupghome, 0o700)
     # Initialize the conf
@@ -390,7 +390,7 @@ def test_non_qubesos_repository_with_maintainer_and_signed_tag(
 def test_repository_with_multiple_distinct_signatures(
     temp_directory, home_directory
 ):
-    gnupg_dir = home_directory / ".gnupg"
+    gnupg_dir = home_directory / "gnupg"
     remote_repo_dir = temp_directory / "remote_repo"
     repo_dir = temp_directory / "repo"
     key_ids = [
@@ -443,7 +443,7 @@ def test_repository_with_multiple_distinct_signatures(
 def test_repository_with_multiple_non_distinct_signatures(
     temp_directory, home_directory
 ):
-    gnupg_dir = home_directory / ".gnupg"
+    gnupg_dir = home_directory / "gnupg"
     remote_repo_dir = temp_directory / "remote_repo"
     repo_dir = temp_directory / "repo"
     key_ids = [
@@ -502,7 +502,7 @@ def test_repository_with_multiple_non_distinct_signatures(
 def test_repository_with_multiple_distinct_signatures_not_in_maintainers(
     temp_directory, home_directory
 ):
-    gnupg_dir = home_directory / ".gnupg"
+    gnupg_dir = home_directory / "gnupg"
     remote_repo_dir = temp_directory / "remote_repo"
     repo_dir = temp_directory / "repo"
     key_ids = [
@@ -553,7 +553,7 @@ def test_repository_with_multiple_distinct_signatures_not_in_maintainers(
 
 
 def test_repository_with_signed_commit(capsys, temp_directory, home_directory):
-    gnupg_dir = home_directory / ".gnupg"
+    gnupg_dir = home_directory / "gnupg"
     remote_repo_dir = temp_directory / "remote_repo"
     repo_dir = temp_directory / "repo"
     key_ids = [
