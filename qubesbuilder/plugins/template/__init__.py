@@ -237,6 +237,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 )
                 self.environment.update(
                     {
+                        "TEMPLATE_ENV_WHITELIST": "DERIVATIVE_APT_REPOSITORY_OPTS",
                         "APPMENUS_DIR": template_content_dir,
                         "FLAVORS_DIR": template_content_dir,
                         "DERIVATIVE_APT_REPOSITORY_OPTS": "stable",
