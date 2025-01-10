@@ -5,6 +5,17 @@ set -e -o pipefail
 CERTIFICATE="$1"
 [[ -z "$CERTIFICATE" ]] && { echo "Please provide certificate name" >&2; exit 1; };
 
+PESIGN_ARGS=()
+# support per-certificate extra args, needed for hardware tokens
+if [ -e "$HOME/.config/qubes-pesign/${CERTIFICATE}" ]; then
+    # this may also override CERTIFICATE
+    # shellcheck disable=SC1090
+    . "$HOME/.config/qubes-pesign/${CERTIFICATE}"
+else
+    # just demangle name
+    CERTIFICATE="${CERTIFICATE//__/ }"
+fi
+
 PAYLOAD_DIR="$(mktemp -d)"
 
 cleanup() {
@@ -28,6 +39,6 @@ if [ "$(stat --format=%s "$payload")" -ge $((100 * 1024 * 1024)) ]; then
     exit 1
 fi
 
-pesign -s -c "${CERTIFICATE//__/ }" -i "$payload" -o "$payload".signed
+pesign -s "${PESIGN_ARGS[@]}" -c "${CERTIFICATE}" -i "$payload" -o "$payload".signed
 
 cat "$payload".signed
