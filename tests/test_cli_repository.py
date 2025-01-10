@@ -57,7 +57,7 @@ def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
 def test_repository_create_vm_fc40(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -98,7 +98,7 @@ def test_repository_create_vm_fc40(artifacts_dir):
 def test_repository_create_vm_bookworm(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 
@@ -130,7 +130,7 @@ def test_repository_create_vm_bookworm(artifacts_dir):
 def test_repository_create_template(artifacts_dir):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
-        gnupghome = f"{tmpdir}/.gnupg"
+        gnupghome = f"{tmpdir}/gnupg"
         shutil.copytree(PROJECT_PATH / "tests/gnupg", gnupghome)
         os.chmod(gnupghome, 0o700)
 

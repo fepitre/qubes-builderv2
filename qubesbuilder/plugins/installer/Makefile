@@ -40,7 +40,7 @@ ISO_VOLID := $(shell echo $(ISO_NAME) | tr a-z A-Z | tr -s -c [:alnum:]'\n' - | 
 BASE_DIR := $(INSTALLER_DIR)/work/$(ISO_VERSION)/x86_64
 TMP_DIR:= $(BUILDER_DIR)/tmp
 
-DNF := /usr/bin/dnf
+DNF := /usr/bin/dnf-3
 DNF_ROOT := $(BUILDER_DIR)/dnfroot
 DNF_REPO := $(DNF_ROOT)/etc/yum.repos.d/installer.repo
 DNF_PACKAGES := $(DNF_ROOT)/tmp/packages.list
@@ -130,12 +130,12 @@ iso-packages-anaconda:
 	$(DNF) $(DNF_OPTS) clean all
 	# workaround for https://github.com/rpm-software-management/dnf/issues/1974
 	rpmkeys --root=$(DNF_ROOT) --import $$(sed -n '/gpgkey *= *file:/{s,.*file://,,;p}' $(DNF_ROOT)/etc/yum.repos.d/*.repo)
-	umask 022; $(DNF) $(DNF_OPTS) download --destdir=$(BASE_DIR)/os/Packages --resolve $(shell cat $(DNF_PACKAGES))
+	umask 022; $(DNF) $(DNF_OPTS) --downloaddir=$(BASE_DIR)/os/Packages --downloadonly install $(shell cat $(DNF_PACKAGES))
 	pushd $(BASE_DIR)/os/ && $(CREATEREPO) -q -g $(TMP_DIR)/comps.xml .
 
 iso-packages-lorax:
 	$(DNF) $(DNF_OPTS) clean all
-	umask 022; $(DNF) $(DNF_OPTS) download --destdir=$(INSTALLER_DIR)/yum/installer/rpm --resolve $(shell cat $(LORAX_PACKAGES))
+	umask 022; $(DNF) $(DNF_OPTS) --downloaddir=$(INSTALLER_DIR)/yum/installer/rpm --downloadonly install $(shell cat $(LORAX_PACKAGES))
 	pushd $(INSTALLER_DIR)/yum/installer && $(CREATEREPO) -q -g $(TMP_DIR)/comps.xml --update .
 
 iso-templates-cache: iso-prepare iso-parse-kickstart
@@ -149,7 +149,7 @@ iso-templates-cache: iso-prepare iso-parse-kickstart
 
 	$(DNF) $(DNF_OPTS) clean all
 	rpmkeys --root=$(DNF_ROOT) --import $$(sed -n '/gpgkey *= *file:/{s,.*file://,,;p}' $(DNF_ROOT)/etc/yum.repos.d/*.repo)
-	umask 022; $(DNF) $(DNF_OPTS_TEMPLATES) download --destdir=$(BUILDER_DIR)/repository/templates $(TEMPLATE_PACKAGES)
+	umask 022; $(DNF) $(DNF_OPTS_TEMPLATES) --downloaddir=$(INSTALLER_DIR)/yum/installer/rpm --downloaddir=$(BUILDER_DIR)/repository/templates download $(TEMPLATE_PACKAGES)
 
 #
 # CAGE -> MOCK
