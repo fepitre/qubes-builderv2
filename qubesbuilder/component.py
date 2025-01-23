@@ -219,15 +219,15 @@ class QubesComponent:
         if self.is_plugin or not self.has_packages:
             return {}
 
-        placeholders = placeholders or {}
-        placeholders.update(
-            {"@VERSION@": self.get_version(), "@REL@": self.get_release()}
-        )
-
         if not build_file.exists():
             raise NoQubesBuilderFileError(
                 f"Cannot find '.qubesbuilder' in {self.source_dir}."
             )
+
+        placeholders = placeholders or {}
+        placeholders.update(
+            {"@VERSION@": self.get_version(), "@REL@": self.get_release()}
+        )
 
         with open(build_file) as f:
             data = f.read()

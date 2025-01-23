@@ -117,6 +117,8 @@ def test_component_no_source():
 
 def test_component_no_version():
     with tempfile.TemporaryDirectory() as source_dir:
+        with open(f"{source_dir}/.qubesbuilder", "w"):
+            pass
         with pytest.raises(ComponentError) as e:
             QubesComponent(source_dir).get_parameters()
         msg = f"Cannot determine version for {source_dir}."
@@ -125,6 +127,8 @@ def test_component_no_version():
 
 def test_component_invalid_version():
     with tempfile.TemporaryDirectory() as source_dir:
+        with open(f"{source_dir}/.qubesbuilder", "w"):
+            pass
         with open(f"{source_dir}/version", "w") as f:
             f.write("wrongversion")
         with pytest.raises(ComponentError) as e:
@@ -147,6 +151,8 @@ def test_component_no_release():
 
 def test_component_invalid_release():
     with tempfile.TemporaryDirectory() as source_dir:
+        with open(f"{source_dir}/.qubesbuilder", "w"):
+            pass
         with open(f"{source_dir}/version", "w") as f:
             f.write("1.2.3")
         with open(f"{source_dir}/rel", "w") as f:
@@ -159,6 +165,8 @@ def test_component_invalid_release():
 
 def test_component_invalid_release2():
     with tempfile.TemporaryDirectory() as source_dir:
+        with open(f"{source_dir}/.qubesbuilder", "w"):
+            pass
         with open(f"{source_dir}/version", "w") as f:
             f.write("1.2.3")
         with open(f"{source_dir}/rel", "w") as f:
