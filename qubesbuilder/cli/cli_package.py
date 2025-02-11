@@ -21,40 +21,31 @@ def package():
 
 def _component_stage(
     config: Config,
-    manager: PluginManager,
-    components: List[QubesComponent],
-    distributions: List[QubesDistribution],
     stage_name: str,
 ):
     """
     Generic function to trigger stage for a standard component
     """
     QubesBuilderLogger.info(f"Running stage '{stage_name}'")
-
-    plugins = manager.get_component_instances(
-        stage=stage_name,
-        components=components,
-        distributions=distributions,
-        config=config,
-    )
-    for p in plugins:
-        p.run(stage=stage_name)
+    # FIXME
+    for stage in config.get_stages([stage_name]):
+        stage.run()
 
 
-@click.command(name="all", short_help="Run all package stages.")
-@click.pass_obj
-def _all_package_stage(obj: ContextObj):
-    stages = STAGES
-    if obj.config.automatic_upload_on_publish:
-        stages.remove("upload")
-    for stage in stages:
-        _component_stage(
-            config=obj.config,
-            manager=obj.manager,
-            components=obj.components,
-            distributions=obj.distributions,
-            stage_name=stage,
-        )
+
+# @click.command(name="all", short_help="Run all package stages.")
+# @click.pass_obj
+# def _all_package_stage(obj: ContextObj):
+#     stages = STAGES
+#     if obj.config.automatic_upload_on_publish:
+#         stages.remove("upload")
+#     for stage in stages:
+#         _component_stage(
+#             config=obj.config,
+#                 components=obj.components,
+#             distributions=obj.distributions,
+#             stage_name=stage,
+#         )
 
 
 @package.command()
@@ -62,9 +53,6 @@ def _all_package_stage(obj: ContextObj):
 def fetch(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="fetch",
     )
 
@@ -74,9 +62,6 @@ def fetch(obj: ContextObj):
 def prep(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="prep",
     )
 
@@ -86,9 +71,6 @@ def prep(obj: ContextObj):
 def build(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="build",
     )
 
@@ -98,9 +80,6 @@ def build(obj: ContextObj):
 def post(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="post",
     )
 
@@ -110,9 +89,6 @@ def post(obj: ContextObj):
 def verify(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="verify",
     )
 
@@ -122,9 +98,6 @@ def verify(obj: ContextObj):
 def sign(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="sign",
     )
 
@@ -134,17 +107,11 @@ def sign(obj: ContextObj):
 def publish(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="publish",
     )
     if obj.config.automatic_upload_on_publish:
         _component_stage(
             config=obj.config,
-            manager=obj.manager,
-            components=obj.components,
-            distributions=obj.distributions,
             stage_name="upload",
         )
 
@@ -154,9 +121,6 @@ def publish(obj: ContextObj):
 def upload(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="upload",
     )
 
@@ -166,9 +130,6 @@ def upload(obj: ContextObj):
 def init_cache(obj: ContextObj):
     _component_stage(
         config=obj.config,
-        manager=obj.manager,
-        components=obj.components,
-        distributions=obj.distributions,
         stage_name="init-cache",
     )
 
@@ -176,7 +137,7 @@ def init_cache(obj: ContextObj):
 @package.command()
 @click.pass_obj
 def diff(obj: ContextObj):
-    for component in obj.components:
+    for component in obj.config.components:
         if not component.source_dir.exists():
             continue
         status = subprocess.run(
@@ -200,7 +161,7 @@ package.add_command(verify)
 package.add_command(sign)
 package.add_command(publish)
 package.add_command(upload)
-package.add_command(_all_package_stage)
+# package.add_command(_all_package_stage)
 
 # utils commands
 package.add_command(diff)

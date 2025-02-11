@@ -48,7 +48,9 @@ class BuildPlugin(DistributionComponentPlugin):
         config: Config,
         manager: PluginManager,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component, dist=dist, config=config, manager=manager
+        )
 
     def run(self, stage: str):
         # Run stage defined by parent class

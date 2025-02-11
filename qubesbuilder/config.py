@@ -31,12 +31,14 @@ from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.executors.qubes import LinuxQubesExecutor
+from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import (
     DistributionPlugin,
     DistributionComponentPlugin,
     ComponentPlugin,
     TemplatePlugin,
 )
+from qubesbuilder.stage import Stage
 from qubesbuilder.template import QubesTemplate
 
 QUBES_RELEASE_RE = re.compile(r"r([1-9]\.[0-9]+).*")
@@ -85,7 +87,7 @@ class Config:
         self._dists: List = []
 
         # Default Qubes OS build pipeline stages
-        self._stages: Dict = {}
+        self._stages: List[Stage] = []
 
         # Qubes OS components
         self._components: List[QubesComponent] = []
@@ -330,8 +332,7 @@ class Config:
                 if not found:
                     raise ConfigError(f"No such component: {fc}")
             return result
-        else:
-            return self._components
+        return self._components
 
     @property
     def artifacts_dir(self):
@@ -603,3 +604,40 @@ class Config:
                 f"Cannot parse Qubes OS release: '{self.qubes_release}'"
             )
         return parsed_release
+
+    def get_stages(self, filtered_stages: List[str] = None) -> List[Stage]:
+        if not self._stages:
+            manager = PluginManager(self.get_plugins_dirs())
+            components = self.get_components()
+            distributions = self.get_distributions()
+            stages = []
+            for s in self._conf.get("stages", []):
+                if isinstance(s, str):
+                    stage_name = s
+                elif isinstance(s, dict):
+                    stage_name = next(iter(s))
+                else:
+                    raise ConfigError(f"Invalid stage definition: {s}")
+                plugins = manager.get_component_instances(
+                    stage=stage_name,
+                    components=components,
+                    distributions=distributions,
+                    config=self,
+                )
+                stages.append(
+                    Stage(name=stage_name, config=self, plugins=plugins)
+                )
+            self._stages = stages
+
+        if filtered_stages:
+            result = []
+            for fs in filtered_stages:
+                for stage in self._stages:
+                    if stage.name == fs:
+                        result.append(stage)
+                        break
+                else:
+                    raise ConfigError(f"No such stage: {fs}")
+            return result
+
+        return self._stages

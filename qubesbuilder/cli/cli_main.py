@@ -149,25 +149,12 @@ def parse_config_from_cli(array):
     return result
 
 
-def init_context_obj(
-    builder_conf: str,
-    component: Optional[List] = None,
-    distribution: Optional[List] = None,
-    template: Optional[List] = None,
-    option: List = None,
-):
+def init_context_obj(builder_conf: str, option: List = None):
     try:
         options = parse_config_from_cli(option) if option else {}
     except ValueError as e:
         raise CliError(f"Failed to parse CLI options: '{str(e)}'")
-
-    config = Config(conf_file=builder_conf, options=options)
-
-    obj = ContextObj(config)
-    obj.components = obj.config.get_components(component)
-    obj.distributions = obj.config.get_distributions(distribution)
-    obj.templates = obj.config.get_templates(template)
-
+    obj = ContextObj(Config(conf_file=builder_conf, options=options))
     return obj
 
 
@@ -238,19 +225,18 @@ def main(
     Main CLI
 
     """
-    obj = init_context_obj(
-        builder_conf=builder_conf,
-        component=component,
-        distribution=distribution,
-        template=template,
-        option=option,
-    )
+    obj = init_context_obj(builder_conf=builder_conf, option=option)
 
     # verbose/debug modes are also provided by builder configuration
     obj.config.set(
         "verbose", verbose if verbose is not None else obj.config.verbose
     )
     obj.config.set("debug", debug if debug is not None else obj.config.debug)
+
+    # FIXME
+    obj.config._components = obj.config.get_components(component)
+    obj.config._distributions = obj.config.get_distributions(distribution)
+    obj.config._templates = obj.config.get_components(template)
 
     # debug will show traceback
     ctx.command.debug = obj.config.debug

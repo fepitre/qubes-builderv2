@@ -28,12 +28,9 @@ from typing import Callable, List
 
 import click
 
-from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
-from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.log import QubesBuilderLogger
-from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.template import QubesTemplate
+from qubesbuilder.stage import Stage
 
 
 class ContextObj:
@@ -43,10 +40,7 @@ class ContextObj:
 
     def __init__(self, config: Config):
         self.config = config
-        self.manager = PluginManager(config.get_plugins_dirs())
-        self.components: List[QubesComponent] = []
-        self.distributions: List[QubesDistribution] = []
-        self.templates: List[QubesTemplate] = []
+        self.stages: List[Stage] = []
         self.dry_run = False
 
 
