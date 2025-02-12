@@ -48,14 +48,14 @@ class BuildPlugin(DistributionComponentPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        stage: str
+        stage: str,
     ):
         super().__init__(
             component=component,
             dist=dist,
             config=config,
             manager=manager,
-            stage=stage
+            stage=stage,
         )
 
     def run(self, stage: str):

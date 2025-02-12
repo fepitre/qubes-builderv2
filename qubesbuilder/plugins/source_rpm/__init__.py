@@ -70,7 +70,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             dist=dist,
             config=config,
             manager=manager,
-            stage=stage
+            stage=stage,
         )
 
         # Add some environment variables needed to render mock root configuration
