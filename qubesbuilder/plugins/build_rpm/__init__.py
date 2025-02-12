@@ -131,6 +131,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
@@ -138,6 +139,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             dist=dist,
             config=config,
             manager=manager,
+            stage=stage
         )
 
         # Add some environment variables needed to render mock root configuration

@@ -628,14 +628,17 @@ class Config:
                         if "DistributionComponentPlugin" in [
                             c.__name__ for c in plugin.__mro__
                         ]:
-                            jobs_by_stage[stage_name].append(
-                                plugin.from_args(
+                            job = plugin.from_args(
                                     dist=distribution,
                                     component=component,
                                     manager=manager,
                                     config=self,
                                     stage=stage_name,
                                 )
+                            if not job:
+                                continue
+                            jobs_by_stage[stage_name].append(
+                                job
                             )
 
             # ComponentPlugin
@@ -646,13 +649,16 @@ class Config:
                         "ComponentPlugin" in classes
                         and "DistributionComponentPlugin" not in classes
                     ):
-                        jobs_by_stage[stage_name].append(
-                            plugin.from_args(
+                        job = plugin.from_args(
                                 component=component,
                                 manager=manager,
                                 config=self,
                                 stage=stage_name,
                             )
+                        if not job:
+                            continue
+                        jobs_by_stage[stage_name].append(
+                            job
                         )
 
             # DistributionPlugin
@@ -664,14 +670,15 @@ class Config:
                         and "DistributionComponentPlugin" not in classes
                         and "TemplatePlugin" not in classes
                     ):
-                        jobs_by_stage[stage_name].append(
-                            plugin.from_args(
+                        job = plugin.from_args(
                                 dist=distribution,
                                 manager=manager,
                                 config=self,
                                 stage=stage_name,
                             )
-                        )
+                        if not job:
+                            continue
+                        jobs_by_stage[stage_name].append(job)
 
         return jobs_by_stage
 
