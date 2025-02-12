@@ -30,7 +30,7 @@ from dateutil.parser import parse as parsedate
 
 from qubesbuilder.config import Config, ConfigError
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import ExecutorError
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
@@ -64,10 +64,13 @@ class InstallerPlugin(DistributionPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        executor: Executor,
         templates: List[QubesTemplate] = [],
         **kwargs,
     ):
-        super().__init__(config=config, manager=manager, dist=dist)
+        super().__init__(
+            config=config, manager=manager, executor=executor, dist=dist
+        )
 
         self.iso_name = ""
         self.iso_version = ""

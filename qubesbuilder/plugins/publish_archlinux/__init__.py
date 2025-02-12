@@ -22,7 +22,7 @@ import os
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import ExecutorError
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
@@ -49,10 +49,15 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        executor: Executor,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            manager=manager,
+            executor=executor,
         )
 
     def sign_metadata(self, executor, directory, sign_key, repository_db):

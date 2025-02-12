@@ -19,6 +19,7 @@
 
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.executors import Executor
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import (
     DistributionPlugin,
@@ -42,5 +43,8 @@ class ChrootPlugin(DistributionPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        executor: Executor,
     ):
-        super().__init__(dist=dist, config=config, manager=manager)
+        super().__init__(
+            dist=dist, config=config, manager=manager, executor=executor
+        )

@@ -89,14 +89,14 @@ class Plugin:
         # Plugin manager
         self.manager = manager
 
+        # Executor
+        self.executor = self.config.get_executor_from_config(kwargs.get("stage"), self)
+
         # Default placeholders
         self._placeholders: Dict[str, Any] = {}
 
         # Plugin parameters
         self._parameters: Dict[str, Any] = {}
-
-        # Executors
-        self._executors: Dict[str, Executor] = {}
 
         # Environment
         self.environment = {}
@@ -143,16 +143,6 @@ class Plugin:
 
     def update_placeholders(self, stage: str):
         self._placeholders.setdefault(stage, {})
-        self._placeholders[stage].update(
-            self.get_executor_from_config(stage).get_placeholders()
-        )
-
-    def get_executor_from_config(self, stage: str):
-        if not self._executors.get(stage, None):
-            self._executors[stage] = self.config.get_executor_from_config(
-                stage, self
-            )
-        return self._executors[stage]
 
     def get_placeholders(self, stage: str):
         self.update_placeholders(stage)
@@ -248,21 +238,22 @@ class ComponentPlugin(Plugin):
     def __init__(
         self,
         component: QubesComponent,
-        config,
+        config: "Config",
         manager: PluginManager,
+        executor: Executor,
         **kwargs,
     ):
         self.component = component
-        super().__init__(config=config, manager=manager, **kwargs)
+        super().__init__(
+            config=config, manager=manager, executor=executor, **kwargs
+        )
         self._source_hash = ""
 
     def update_placeholders(self, stage: str):
         super().update_placeholders(stage)
         self._placeholders[stage].update(
             {
-                "@SOURCE_DIR@": self.get_executor_from_config(
-                    stage
-                ).get_builder_dir()
+                "@SOURCE_DIR@": self.executor.get_builder_dir()
                 / self.component.name,
                 "@BACKEND_VMM@": self.config.backend_vmm,
             }
@@ -328,7 +319,9 @@ class ComponentPlugin(Plugin):
 class DistributionPlugin(Plugin):
     def __init__(self, dist, config, manager, **kwargs):
         self.dist = dist
-        super().__init__(config=config, manager=manager, **kwargs)
+        super().__init__(
+            config=config, manager=manager, executor=executor, **kwargs
+        )
 
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
@@ -371,11 +364,16 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        config,
+        config: "Config",
         manager: PluginManager,
+        executor: Executor,
     ):
         super().__init__(
-            dist=dist, component=component, config=config, manager=manager
+            dist=dist,
+            component=component,
+            config=config,
+            manager=manager,
+            executor=executor,
         )
 
     def update_parameters(self, stage: str):
@@ -476,10 +474,15 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
 
 
 class TemplatePlugin(DistributionPlugin):
-    def __init__(self, template: QubesTemplate, config, manager: PluginManager):
+    def __init__(
+        self, template: QubesTemplate, config: "Config", manager: PluginManager
+    ):
         self.template = template
         super().__init__(
-            config=config, manager=manager, dist=template.distribution
+            config=config,
+            manager=manager,
+            executor=executor,
+            dist=template.distribution,
         )
 
     @classmethod

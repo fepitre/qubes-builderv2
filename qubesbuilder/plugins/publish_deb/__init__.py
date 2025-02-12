@@ -21,7 +21,7 @@ import datetime
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import ExecutorError
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
@@ -48,10 +48,15 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        executor: Executor,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            manager=manager,
+            executor=executor,
         )
 
     @classmethod

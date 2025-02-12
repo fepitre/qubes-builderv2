@@ -104,10 +104,5 @@ class PluginManager:
             self._entities = self._get_plugin_entities()
         return self._entities
 
-    def get_component_instances(self, **kwargs):
+    def get_instances(self, **kwargs):
         return self._get_instances_with_attr("PLUGINS", manager=self, **kwargs)
-
-    def get_template_instances(self, **kwargs):
-        return self._get_instances_with_attr(
-            "TEMPLATE_PLUGINS", manager=self, **kwargs
-        )

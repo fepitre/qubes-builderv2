@@ -605,11 +605,15 @@ class Config:
             )
         return parsed_release
 
-    def get_stages(self, filtered_stages: List[str] = None) -> List[Stage]:
+    def get_stages(
+        self,
+        components: List[QubesComponent],
+        distributions: List[QubesDistribution],
+        templates: List[QubesTemplate],
+        filtered_stages: List[str] = None,
+    ) -> List[Stage]:
         if not self._stages:
             manager = PluginManager(self.get_plugins_dirs())
-            components = self.get_components()
-            distributions = self.get_distributions()
             stages = []
             for s in self._conf.get("stages", []):
                 if isinstance(s, str):
@@ -618,10 +622,11 @@ class Config:
                     stage_name = next(iter(s))
                 else:
                     raise ConfigError(f"Invalid stage definition: {s}")
-                plugins = manager.get_component_instances(
+                plugins = manager.get_instances(
                     stage=stage_name,
                     components=components,
                     distributions=distributions,
+                    templates=templates,
                     config=self,
                 )
                 stages.append(

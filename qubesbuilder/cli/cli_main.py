@@ -233,10 +233,9 @@ def main(
     )
     obj.config.set("debug", debug if debug is not None else obj.config.debug)
 
-    # FIXME
-    obj.config._components = obj.config.get_components(component)
-    obj.config._distributions = obj.config.get_distributions(distribution)
-    obj.config._templates = obj.config.get_components(template)
+    obj.components = obj.config.get_components(component)
+    obj.distributions = obj.config.get_distributions(distribution)
+    obj.templates = obj.config.get_components(template)
 
     # debug will show traceback
     ctx.command.debug = obj.config.debug

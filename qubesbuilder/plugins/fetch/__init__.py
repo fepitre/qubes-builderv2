@@ -31,7 +31,7 @@ from qubesbuilder.common import VerificationMode, get_archive_name
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.exc import NoQubesBuilderFileError
-from qubesbuilder.executors import ExecutorError
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ComponentPlugin, PluginError
@@ -58,15 +58,6 @@ class FetchPlugin(ComponentPlugin):
 
     name = "fetch"
     stages = ["fetch"]
-
-    def __init__(
-        self,
-        component: QubesComponent,
-        config: Config,
-        manager: PluginManager,
-        **kwargs,
-    ):
-        super().__init__(component=component, config=config, manager=manager)
 
     def update_parameters(self, stage: str):
         """
@@ -96,7 +87,7 @@ class FetchPlugin(ComponentPlugin):
             executor = LocalExecutor()
             executor.log = self.log.getChild(stage)
         else:
-            executor = self.get_executor_from_config(stage)
+            executor = self.executor
 
         # Source component directory
         local_source_dir = self.config.sources_dir / self.component.name
@@ -188,7 +179,7 @@ class FetchPlugin(ComponentPlugin):
         # is now available.
         super().run(stage)
 
-        executor = self.get_executor_from_config(stage)
+        executor = self.executor
         parameters = self.get_parameters(stage)
         distfiles_dir = self.get_component_distfiles_dir()
         distfiles_dir.mkdir(parents=True, exist_ok=True)
@@ -229,7 +220,7 @@ class FetchPlugin(ComponentPlugin):
             executor = LocalExecutor()
             executor.log = self.log.getChild(stage)
         else:
-            executor = self.get_executor_from_config(stage)
+            executor = self.executor
 
         # Source component directory inside executors
         source_dir = executor.get_builder_dir() / self.component.name
@@ -349,7 +340,7 @@ class FetchPlugin(ComponentPlugin):
             # Create modules archives
             #
 
-            executor = self.get_executor_from_config(stage)
+            executor = self.executor
             source_dir = executor.get_builder_dir() / self.component.name
 
             copy_in = [

@@ -20,6 +20,7 @@
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
+from qubesbuilder.executors import Executor
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
 
@@ -47,9 +48,14 @@ class BuildPlugin(DistributionComponentPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        executor: Executor,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            manager=manager,
+            executor=executor,
         )
 
     def run(self, stage: str):

@@ -21,7 +21,7 @@ import shutil
 
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import ExecutorError
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootPlugin, ChrootError
@@ -43,9 +43,12 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        executor: Executor,
         **kwargs,
     ):
-        super().__init__(dist=dist, config=config, manager=manager)
+        super().__init__(
+            dist=dist, config=config, manager=manager, executor=executor
+        )
 
     def run(self, stage: str):
         """

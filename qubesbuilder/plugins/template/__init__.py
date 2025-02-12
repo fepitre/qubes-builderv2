@@ -32,7 +32,7 @@ from qubesbuilder.config import (
     QUBES_RELEASE_DEFAULT,
     ConfigError,
 )
-from qubesbuilder.executors import ExecutorError
+from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import (
@@ -87,9 +87,12 @@ class TemplateBuilderPlugin(TemplatePlugin):
         template: QubesTemplate,
         config: Config,
         manager: PluginManager,
+        executor: Executor,
         **kwargs,
     ):
-        super().__init__(template=template, config=config, manager=manager)
+        super().__init__(
+            template=template, config=config, manager=manager, executor=executor
+        )
         self.template_version = ""
 
     def get_template_version(self):
@@ -902,4 +905,4 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ) from e
 
 
-TEMPLATE_PLUGINS = [TemplateBuilderPlugin]
+PLUGINS = [TemplateBuilderPlugin]
