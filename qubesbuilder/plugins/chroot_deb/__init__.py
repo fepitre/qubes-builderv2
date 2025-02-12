@@ -43,7 +43,6 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(

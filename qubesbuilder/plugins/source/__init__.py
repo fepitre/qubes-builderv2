@@ -53,14 +53,12 @@ class SourcePlugin(DistributionComponentPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
     ):
         super().__init__(
             component=component,
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
     def update_parameters(self, stage: str):

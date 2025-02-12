@@ -122,7 +122,6 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -130,7 +129,6 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
         # Add some environment variables needed to render mock root configuration

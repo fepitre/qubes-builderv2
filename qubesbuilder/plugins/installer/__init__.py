@@ -64,13 +64,10 @@ class InstallerPlugin(DistributionPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         templates: List[QubesTemplate] = [],
         **kwargs,
     ):
-        super().__init__(
-            config=config, manager=manager, executor=executor, dist=dist
-        )
+        super().__init__(config=config, manager=manager, dist=dist)
 
         self.iso_name = ""
         self.iso_version = ""

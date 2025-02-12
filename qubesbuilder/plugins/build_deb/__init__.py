@@ -105,7 +105,6 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -113,7 +112,6 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
     def run(self, stage: str):

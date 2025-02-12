@@ -613,7 +613,6 @@ class Config:
         filtered_stages: List[str] = None,
     ) -> List[Stage]:
         if not self._stages:
-            manager = PluginManager(self.get_plugins_dirs())
             stages = []
             for s in self._conf.get("stages", []):
                 if isinstance(s, str):
@@ -622,15 +621,14 @@ class Config:
                     stage_name = next(iter(s))
                 else:
                     raise ConfigError(f"Invalid stage definition: {s}")
-                plugins = manager.get_instances(
-                    stage=stage_name,
-                    components=components,
-                    distributions=distributions,
-                    templates=templates,
-                    config=self,
-                )
                 stages.append(
-                    Stage(name=stage_name, config=self, plugins=plugins)
+                    Stage(
+                        name=stage_name,
+                        config=self,
+                        components=components,
+                        distributions=distributions,
+                        templates=templates,
+                    )
                 )
             self._stages = stages
 

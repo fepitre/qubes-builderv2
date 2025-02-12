@@ -59,7 +59,6 @@ class PublishPlugin(DistributionComponentPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -67,7 +66,6 @@ class PublishPlugin(DistributionComponentPlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
     def validate_repository_publish(self, repository_publish):

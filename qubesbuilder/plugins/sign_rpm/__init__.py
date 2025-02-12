@@ -55,7 +55,6 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -63,7 +62,6 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
     def run(self, stage: str):

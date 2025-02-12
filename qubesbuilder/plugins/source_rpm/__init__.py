@@ -62,7 +62,6 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -70,7 +69,6 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
         # Add some environment variables needed to render mock root configuration

@@ -29,6 +29,7 @@ from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.executors import Executor
 from qubesbuilder.log import QubesBuilderLogger
 from qubesbuilder.pluginmanager import PluginManager
+from qubesbuilder.stage import Stage
 from qubesbuilder.template import QubesTemplate
 
 
@@ -82,15 +83,15 @@ class Plugin:
     def from_args(cls, **kwargs):
         return []
 
-    def __init__(self, config, manager, **kwargs):
+    def __init__(self, config, manager, stage, **kwargs):
         # Qubes builder config
         self.config = config
 
         # Plugin manager
         self.manager = manager
 
-        # Executor
-        self.executor = self.config.get_executor_from_config(kwargs.get("stage"), self)
+        # Stage
+        self.stage = stage
 
         # Default placeholders
         self._placeholders: Dict[str, Any] = {}
@@ -106,7 +107,11 @@ class Plugin:
             self.environment["DEBUG"] = "1"
         self.environment["BACKEND_VMM"] = self.config.backend_vmm
 
+        # Logger
         self.log = QubesBuilderLogger.getChild(self.name, self)
+
+        # Executor
+        self.executor = self.config.get_executor_from_config(stage.name, self)
 
     def check_dependencies(self):
         for dependency in self.dependencies:
@@ -230,7 +235,10 @@ class ComponentPlugin(Plugin):
     @classmethod
     def from_args(cls, **kwargs):
         instances = []
-        if kwargs.get("stage") in cls.stages:
+        if (
+            isinstance(kwargs.get("stage"), Stage)
+            and kwargs["stage"].name in cls.stages
+        ):
             for component in kwargs.get("components", []):
                 instances.append(cls(component=component, **kwargs))
         return instances
@@ -240,13 +248,10 @@ class ComponentPlugin(Plugin):
         component: QubesComponent,
         config: "Config",
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         self.component = component
-        super().__init__(
-            config=config, manager=manager, executor=executor, **kwargs
-        )
+        super().__init__(config=config, manager=manager, **kwargs)
         self._source_hash = ""
 
     def update_placeholders(self, stage: str):
@@ -319,9 +324,7 @@ class ComponentPlugin(Plugin):
 class DistributionPlugin(Plugin):
     def __init__(self, dist, config, manager, **kwargs):
         self.dist = dist
-        super().__init__(
-            config=config, manager=manager, executor=executor, **kwargs
-        )
+        super().__init__(config=config, manager=manager, **kwargs)
 
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
@@ -330,7 +333,10 @@ class DistributionPlugin(Plugin):
     @classmethod
     def from_args(cls, **kwargs):
         instances = []
-        if kwargs.get("stage", None) in cls.stages:
+        if (
+            isinstance(kwargs.get("stage"), Stage)
+            and kwargs["stage"].name in cls.stages
+        ):
             for dist in kwargs.get("distributions", []):
                 if not cls.supported_distribution(dist):
                     continue
@@ -366,14 +372,12 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         dist: QubesDistribution,
         config: "Config",
         manager: PluginManager,
-        executor: Executor,
     ):
         super().__init__(
             dist=dist,
             component=component,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
     def update_parameters(self, stage: str):
@@ -481,7 +485,6 @@ class TemplatePlugin(DistributionPlugin):
         super().__init__(
             config=config,
             manager=manager,
-            executor=executor,
             dist=template.distribution,
         )
 

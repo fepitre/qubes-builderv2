@@ -46,12 +46,9 @@ class UploadPlugin(DistributionPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
-        super().__init__(
-            config=config, manager=manager, executor=executor, dist=dist
-        )
+        super().__init__(config=config, manager=manager, dist=dist)
 
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):

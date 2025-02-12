@@ -51,7 +51,6 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -59,7 +58,6 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
     def run(self, stage: str):

@@ -48,7 +48,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -56,7 +55,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
     @classmethod

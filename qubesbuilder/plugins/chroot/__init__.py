@@ -43,7 +43,6 @@ class ChrootPlugin(DistributionPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
     ):
         super().__init__(
             dist=dist, config=config, manager=manager, executor=executor

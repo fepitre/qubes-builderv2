@@ -87,7 +87,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
         template: QubesTemplate,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(

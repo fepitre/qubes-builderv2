@@ -46,7 +46,6 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -54,7 +53,6 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
         self.environment.update({"DIST": self.dist.name, "LC_ALL": "C"})

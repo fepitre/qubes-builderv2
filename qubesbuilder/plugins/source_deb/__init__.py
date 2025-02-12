@@ -56,7 +56,6 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
-        executor: Executor,
         **kwargs,
     ):
         super().__init__(
@@ -64,7 +63,6 @@ class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
             dist=dist,
             config=config,
             manager=manager,
-            executor=executor,
         )
 
         self.environment.update(
