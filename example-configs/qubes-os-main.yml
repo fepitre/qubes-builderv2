@@ -178,6 +178,15 @@ components:
   - antievilmaid
   - xscreensaver
   - remote-support
+  - installer-qubes-os:
+      host-fc41:
+        needs:
+          - component: installer-qubes-os
+            distribution: vm-win10
+            stage: sign
+          - component: installer-qubes-os
+            distribution: vm-win10
+            stage: sign
 
 #executor:
 #  type: docker

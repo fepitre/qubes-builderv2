@@ -26,10 +26,8 @@ from dateutil.parser import parse as parsedate
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.exc import QubesBuilderError
-from qubesbuilder.executors import Executor
 from qubesbuilder.log import QubesBuilderLogger
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.stage import Stage
 from qubesbuilder.template import QubesTemplate
 
 
@@ -42,7 +40,7 @@ class Dependency:
     def __init__(self, name, builder_object):
         self.name = name
 
-        if builder_object not in ["plugin", "component"]:
+        if builder_object not in ["plugin", "component", "job"]:
             raise QubesBuilderError(
                 f"Unsupported dependency type '{builder_object}'."
             )
@@ -57,6 +55,12 @@ class PluginDependency(Dependency):
 class ComponentDependency(Dependency):
     def __init__(self, name):
         super().__init__(name=name, builder_object="component")
+
+
+class JobDependency(Dependency):
+    def __init__(self, name):
+        super().__init__(name=name, builder_object="job")
+        # FIXME
 
 
 class PluginError(QubesBuilderError):
@@ -76,7 +80,6 @@ class Plugin:
 
     name = "_undefined_"
     stages: List[str] = []
-    priority: int = 10
     dependencies: List[Dependency] = []
 
     @classmethod
@@ -111,7 +114,7 @@ class Plugin:
         self.log = QubesBuilderLogger.getChild(self.name, self)
 
         # Executor
-        self.executor = self.config.get_executor_from_config(stage.name, self)
+        self.executor = self.config.get_executor_from_config(stage, self)
 
     def check_dependencies(self):
         for dependency in self.dependencies:
@@ -234,24 +237,19 @@ class ComponentPlugin(Plugin):
 
     @classmethod
     def from_args(cls, **kwargs):
-        instances = []
-        if (
-            isinstance(kwargs.get("stage"), Stage)
-            and kwargs["stage"].name in cls.stages
-        ):
-            for component in kwargs.get("components", []):
-                instances.append(cls(component=component, **kwargs))
-        return instances
+        if kwargs.get("stage") in cls.stages and kwargs.get("component"):
+            return cls(**kwargs)
 
     def __init__(
         self,
         component: QubesComponent,
         config: "Config",
         manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         self.component = component
-        super().__init__(config=config, manager=manager, **kwargs)
+        super().__init__(config=config, manager=manager, stage=stage, **kwargs)
         self._source_hash = ""
 
     def update_placeholders(self, stage: str):
@@ -322,9 +320,9 @@ class ComponentPlugin(Plugin):
 
 
 class DistributionPlugin(Plugin):
-    def __init__(self, dist, config, manager, **kwargs):
+    def __init__(self, dist, config, manager, stage, **kwargs):
         self.dist = dist
-        super().__init__(config=config, manager=manager, **kwargs)
+        super().__init__(config=config, manager=manager, stage=stage, **kwargs)
 
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
@@ -332,16 +330,10 @@ class DistributionPlugin(Plugin):
 
     @classmethod
     def from_args(cls, **kwargs):
-        instances = []
-        if (
-            isinstance(kwargs.get("stage"), Stage)
-            and kwargs["stage"].name in cls.stages
+        if kwargs.get("stage") in cls.stages and cls.supported_distribution(
+            kwargs.get("dist")
         ):
-            for dist in kwargs.get("distributions", []):
-                if not cls.supported_distribution(dist):
-                    continue
-                instances.append(cls(dist=dist, **kwargs))
-        return instances
+            return cls(**kwargs)
 
 
 class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
@@ -355,16 +347,12 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
 
     @classmethod
     def from_args(cls, **kwargs):
-        instances = []
-        if kwargs.get("stage", None) in cls.stages:
-            for component in kwargs.get("components", []):
-                for dist in kwargs.get("distributions", []):
-                    if not cls.supported_distribution(dist):
-                        continue
-                    instances.append(
-                        cls(component=component, dist=dist, **kwargs)
-                    )
-        return instances
+        if (
+            kwargs.get("stage", None) in cls.stages
+            and kwargs.get("component")
+            and cls.supported_distribution(kwargs.get("dist"))
+        ):
+            return cls(**kwargs)
 
     def __init__(
         self,
@@ -372,12 +360,14 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
         dist: QubesDistribution,
         config: "Config",
         manager: PluginManager,
+        stage: str,
     ):
         super().__init__(
             dist=dist,
             component=component,
             config=config,
             manager=manager,
+            stage=stage,
         )
 
     def update_parameters(self, stage: str):
@@ -479,13 +469,18 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
 
 class TemplatePlugin(DistributionPlugin):
     def __init__(
-        self, template: QubesTemplate, config: "Config", manager: PluginManager
+        self,
+        template: QubesTemplate,
+        config: "Config",
+        manager: PluginManager,
+        stage: str,
     ):
         self.template = template
         super().__init__(
             config=config,
             manager=manager,
             dist=template.distribution,
+            stage=stage,
         )
 
     @classmethod
@@ -494,12 +489,8 @@ class TemplatePlugin(DistributionPlugin):
 
     @classmethod
     def from_args(cls, templates, **kwargs):
-        instances = []
-        for template in templates:
-            if not cls.supported_template(template):
-                continue
-            instances.append(cls(template=template, **kwargs))
-        return instances
+        if cls.supported_template(kwargs.get("template")):
+            return cls(template=kwargs["template"], **kwargs)
 
     def get_template_artifacts_info(self, stage: str) -> Dict:
         fileinfo = (

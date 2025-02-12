@@ -32,7 +32,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.log import QubesBuilderLogger
-from qubesbuilder.stage import Stage
+from qubesbuilder.job import Job
 from qubesbuilder.template import QubesTemplate
 
 
@@ -43,7 +43,6 @@ class ContextObj:
 
     def __init__(self, config: Config):
         self.config = config
-        self.stages: List[Stage] = []
         self.components: List[QubesComponent] = []
         self.distributions: List[QubesDistribution] = []
         self.templates: List[QubesTemplate] = []

@@ -29,13 +29,11 @@ def _component_stage(
     Generic function to trigger stage for a standard component
     """
     QubesBuilderLogger.info(f"Running stage '{stage_name}'")
-    for stage in config.get_stages(
-        components=components,
-        distributions=distributions,
-        templates=[],
-        filtered_stages=[stage_name],
+
+    for job in config.get_jobs(
+        components=components, distributions=distributions, templates=[]
     ):
-        stage.run()
+        job.run()
 
 
 # @click.command(name="all", short_help="Run all package stages.")

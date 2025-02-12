@@ -38,7 +38,7 @@ from qubesbuilder.plugins import (
     ComponentPlugin,
     TemplatePlugin,
 )
-from qubesbuilder.stage import Stage
+from qubesbuilder.job import Job
 from qubesbuilder.template import QubesTemplate
 
 QUBES_RELEASE_RE = re.compile(r"r([1-9]\.[0-9]+).*")
@@ -85,9 +85,6 @@ class Config:
 
         # Qubes OS distributions
         self._dists: List = []
-
-        # Default Qubes OS build pipeline stages
-        self._stages: List[Stage] = []
 
         # Qubes OS components
         self._components: List[QubesComponent] = []
@@ -605,42 +602,140 @@ class Config:
             )
         return parsed_release
 
-    def get_stages(
+    def get_jobs(
         self,
         components: List[QubesComponent],
         distributions: List[QubesDistribution],
         templates: List[QubesTemplate],
-        filtered_stages: List[str] = None,
-    ) -> List[Stage]:
-        if not self._stages:
-            stages = []
-            for s in self._conf.get("stages", []):
-                if isinstance(s, str):
-                    stage_name = s
-                elif isinstance(s, dict):
-                    stage_name = next(iter(s))
-                else:
-                    raise ConfigError(f"Invalid stage definition: {s}")
-                stages.append(
-                    Stage(
-                        name=stage_name,
-                        config=self,
-                        components=components,
-                        distributions=distributions,
-                        templates=templates,
-                    )
-                )
-            self._stages = stages
+    ):
 
-        if filtered_stages:
-            result = []
-            for fs in filtered_stages:
-                for stage in self._stages:
-                    if stage.name == fs:
-                        result.append(stage)
-                        break
-                else:
-                    raise ConfigError(f"No such stage: {fs}")
-            return result
+        manager = PluginManager(self.get_plugins_dirs())
+        plugins = manager.get_plugins()
 
-        return self._stages
+        jobs_by_stage = {}
+        for stage in self._conf.get("stages", []):
+            if isinstance(stage, dict):
+                stage_name = next(iter(stage))
+            else:
+                stage_name = stage
+
+            jobs_by_stage.setdefault(stage_name, [])
+
+            # DistributionComponentPlugin
+            for distribution in distributions:
+                for component in components:
+                    for plugin in plugins:
+                        if "DistributionComponentPlugin" in [
+                            c.__name__ for c in plugin.__mro__
+                        ]:
+                            jobs_by_stage[stage_name].append(
+                                plugin.from_args(
+                                    dist=distribution,
+                                    component=component,
+                                    manager=manager,
+                                    config=self,
+                                    stage=stage_name,
+                                )
+                            )
+
+            # ComponentPlugin
+            for component in components:
+                for plugin in plugins:
+                    classes = [c.__name__ for c in plugin.__mro__]
+                    if (
+                        "ComponentPlugin" in classes
+                        and "DistributionComponentPlugin" not in classes
+                    ):
+                        jobs_by_stage[stage_name].append(
+                            plugin.from_args(
+                                component=component,
+                                manager=manager,
+                                config=self,
+                                stage=stage_name,
+                            )
+                        )
+
+            # DistributionPlugin
+            for distribution in distributions:
+                for plugin in plugins:
+                    classes = [c.__name__ for c in plugin.__mro__]
+                    if (
+                        "DistributionPlugin" in classes
+                        and "DistributionComponentPlugin" not in classes
+                        and "TemplatePlugin" not in classes
+                    ):
+                        jobs_by_stage[stage_name].append(
+                            plugin.from_args(
+                                dist=distribution,
+                                manager=manager,
+                                config=self,
+                                stage=stage_name,
+                            )
+                        )
+
+        return jobs_by_stage
+
+
+def build_dependency_graph(jobs):
+    """
+    Create a dictionary mapping job IDs to a dict containing the job itself
+    and a list of dependent job IDs.
+    """
+    graph = {}
+    for job in jobs:
+        # Assume each job has a unique attribute, e.g., job.id,
+        # and a list of dependency IDs in job.dependencies
+        graph[job.id] = {
+            "job": job,
+            "deps": [dep.id for dep in job.dependencies],
+        }
+    return graph
+
+
+def topological_sort(graph):
+    sorted_jobs = []
+    visited = set()
+
+    def visit(job_id, temp_marks):
+        if job_id in temp_marks:
+            raise Exception("Circular dependency detected!")
+        if job_id not in visited:
+            temp_marks.add(job_id)
+            for dep in graph[job_id]["deps"]:
+                visit(dep, temp_marks)
+            temp_marks.remove(job_id)
+            visited.add(job_id)
+            sorted_jobs.append(graph[job_id]["job"])
+
+    for job_id in graph:
+        visit(job_id, set())
+    return sorted_jobs
+
+
+# # For each stage, resolve ordering:
+# ordered_jobs = []
+# for stage in stage_order:
+#     if stage in jobs_by_stage:
+#         graph = build_dependency_graph(jobs_by_stage[stage])
+#         stage_jobs = topological_sort(graph)
+#
+#         stage_jobs.sort(key=lambda job: job.priority)
+#         ordered_jobs.extend(stage_jobs)
+
+
+# def schedule_jobs(jobs, stage_order, type_order):
+#     # Stage order might be ['fetch', 'prep', 'build', 'post', 'verify', ...]
+#     # Type order might be ['component', 'distribution', 'dist_component']
+#     sorted_jobs = []
+#     for stage in stage_order:
+#         stage_jobs = [job for job in jobs if job.stage == stage]
+#         for job_type in type_order:
+#             type_jobs = [job for job in stage_jobs if job.job_type == job_type]
+#             if type_jobs:
+#                 # Resolve inter-job dependencies here, e.g., with a topological sort:
+#                 graph = build_dependency_graph(type_jobs)
+#                 ordered_type_jobs = topological_sort(graph)
+#                 # And as a fallback, sort by plugin priority:
+#                 ordered_type_jobs.sort(key=lambda job: job.priority)
+#                 sorted_jobs.extend(ordered_type_jobs)
+#     return sorted_jobs
