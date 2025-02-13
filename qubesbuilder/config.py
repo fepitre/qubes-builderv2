@@ -692,3 +692,63 @@ class Config:
                         jobs_by_stage[stage_name].append(job)
 
         return jobs_by_stage
+
+
+#
+# def build_dependency_graph(jobs):
+#     graph = {}
+#     for job in jobs:
+#         graph[job.id] = {
+#             "job": job,
+#             "deps": [dep.id for dep in job.dependencies],
+#         }
+#     return graph
+#
+#
+# def topological_sort(graph):
+#     sorted_jobs = []
+#     visited = set()
+#
+#     def visit(job_id, temp_marks):
+#         if job_id in temp_marks:
+#             raise Exception("Circular dependency detected!")
+#         if job_id not in visited:
+#             temp_marks.add(job_id)
+#             for dep in graph[job_id]["deps"]:
+#                 visit(dep, temp_marks)
+#             temp_marks.remove(job_id)
+#             visited.add(job_id)
+#             sorted_jobs.append(graph[job_id]["job"])
+#
+#     for job_id in graph:
+#         visit(job_id, set())
+#     return sorted_jobs
+#
+
+# # For each stage, resolve ordering:
+# ordered_jobs = []
+# for stage in stage_order:
+#     if stage in jobs_by_stage:
+#         graph = build_dependency_graph(jobs_by_stage[stage])
+#         stage_jobs = topological_sort(graph)
+#
+#         stage_jobs.sort(key=lambda job: job.priority)
+#         ordered_jobs.extend(stage_jobs)
+
+
+# def schedule_jobs(jobs, stage_order, type_order):
+#     # Stage order might be ['fetch', 'prep', 'build', 'post', 'verify', ...]
+#     # Type order might be ['component', 'distribution', 'dist_component']
+#     sorted_jobs = []
+#     for stage in stage_order:
+#         stage_jobs = [job for job in jobs if job.stage == stage]
+#         for job_type in type_order:
+#             type_jobs = [job for job in stage_jobs if job.job_type == job_type]
+#             if type_jobs:
+#                 # Resolve inter-job dependencies here, e.g., with a topological sort:
+#                 graph = build_dependency_graph(type_jobs)
+#                 ordered_type_jobs = topological_sort(graph)
+#                 # And as a fallback, sort by plugin priority:
+#                 ordered_type_jobs.sort(key=lambda job: job.priority)
+#                 sorted_jobs.extend(ordered_type_jobs)
+#     return sorted_jobs

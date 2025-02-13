@@ -50,6 +50,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
@@ -57,6 +58,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             dist=dist,
             config=config,
             manager=manager,
+            stage=stage,
         )
 
     def get_target_dir(self, repository_publish):

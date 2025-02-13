@@ -32,7 +32,7 @@ def _component_stage(
 
     for job in config.get_jobs(
         components=components, distributions=distributions, templates=[]
-    ):
+    ).get(stage_name, []):
         job.run()
 
 

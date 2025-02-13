@@ -60,7 +60,6 @@ class ComponentDependency(Dependency):
 class JobDependency(Dependency):
     def __init__(self, name):
         super().__init__(name=name, builder_object="job")
-        # FIXME
 
 
 class PluginError(QubesBuilderError):
@@ -140,7 +139,7 @@ class Plugin:
                     f"dependency '{dependency.name}' (commit hash: {component[0].get_source_commit_hash()})"
                 )
 
-    def run(self, stage: str):
+    def run(self):
         log_file = self.log.get_log_file()
         if log_file:
             self.log.info(f"Log file: {log_file}")

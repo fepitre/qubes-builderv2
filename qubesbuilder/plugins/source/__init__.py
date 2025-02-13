@@ -26,6 +26,7 @@ from qubesbuilder.plugins import (
     DistributionComponentPlugin,
     PluginError,
     PluginDependency,
+    JobDependency,
 )
 
 
@@ -45,7 +46,6 @@ class SourcePlugin(DistributionComponentPlugin):
     """
 
     name = "source"
-    # FIXME: add JobDependency
     dependencies = [PluginDependency("fetch")]
 
     def __init__(
@@ -63,6 +63,7 @@ class SourcePlugin(DistributionComponentPlugin):
             manager=manager,
             stage=stage,
         )
+        self.dependencies.append(JobDependency((component.name, "fetch")))
 
     def update_parameters(self, stage: str):
         super().update_parameters(stage)
@@ -79,11 +80,11 @@ class SourcePlugin(DistributionComponentPlugin):
             parameters.get(self.dist.distribution, {}).get("source", {})
         )
 
-    def run(self, stage: str):
+    def run(self):
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "prep" or not self.has_component_packages("prep"):
+        if self.stage != "prep" or not self.has_component_packages("prep"):
             return
 
         # Compare previous artifacts hash with current source hash

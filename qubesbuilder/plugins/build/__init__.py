@@ -20,9 +20,12 @@
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import Executor
 from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
+from qubesbuilder.plugins import (
+    DistributionComponentPlugin,
+    PluginError,
+    JobDependency,
+)
 
 
 class BuildError(PluginError):
@@ -57,20 +60,13 @@ class BuildPlugin(DistributionComponentPlugin):
             manager=manager,
             stage=stage,
         )
+        self.dependencies.append(
+            JobDependency((dist.distribution, component.name, "prep"))
+        )
 
-    def run(self, stage: str):
+    def run(self):
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "build" or not self.has_component_packages("build"):
+        if self.stage != "build" or not self.has_component_packages("build"):
             return
-
-        if not self.get_parameters(stage).get("build", []):
-            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-            return
-
-        # Ensure all build targets artifacts exist from previous required stage
-        try:
-            self.check_dist_stage_artifacts(stage="prep")
-        except PluginError as e:
-            raise BuildError(str(e)) from e

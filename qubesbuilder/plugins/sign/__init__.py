@@ -49,6 +49,7 @@ class SignPlugin(DistributionComponentPlugin):
         dist: QubesDistribution,
         config: Config,
         manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
@@ -56,6 +57,7 @@ class SignPlugin(DistributionComponentPlugin):
             dist=dist,
             config=config,
             manager=manager,
+            stage=stage,
         )
 
     def run(self, stage: str):
