@@ -45,6 +45,7 @@ class SourcePlugin(DistributionComponentPlugin):
     """
 
     name = "source"
+    # FIXME: add JobDependency
     dependencies = [PluginDependency("fetch")]
 
     def __init__(
