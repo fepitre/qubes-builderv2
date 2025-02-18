@@ -801,7 +801,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     f"Refusing to publish to '{repository_publish}' as template is not uploaded "
                     f"to '{repository_publish}-testing' for at least {self.config.min_age_days} days."
                 )
-                raise TemplateError(failure_msg)
+                self.log.critical(failure_msg)
+                return
 
             # Ensure dbpath from sign stage (still) exists
             db_path = template_artifacts_dir / "rpmdb"
