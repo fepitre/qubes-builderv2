@@ -25,7 +25,6 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.sign import SignPlugin, SignError
 
@@ -43,32 +42,35 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
 
     name = "sign_archlinux"
     stages = ["sign"]
-    dependencies = [PluginDependency("sign")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
 
-    def run(self, stage: str):
+        self.dependencies.append(PluginDependency("sign"))
+
+    def run(self):
         """
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "sign" or not self.has_component_packages("sign"):
+        if self.stage != "sign" or not self.has_component_packages("sign"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -92,7 +94,7 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
             stage="build"
         )
         # Sign artifacts
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        artifacts_dir = self.get_dist_component_artifacts_dir(self.stage)
 
         if artifacts_dir.exists():
             shutil.rmtree(artifacts_dir)
@@ -109,7 +111,7 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
             f"gpg2 --homedir {keyring_dir} --import {sign_key_asc}",
         ]
         try:
-            executor.run(cmd)
+            self.executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}: Failed to export public signing key."
             raise SignError(msg) from e
@@ -144,7 +146,7 @@ class ArchlinuxSignPlugin(ArchlinuxDistributionPlugin, SignPlugin):
                     cmd = [
                         f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign -u {sign_key} {pkg} > {pkg}.sig",
                     ]
-                    executor.run(cmd)
+                    self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{directory}: Failed to sign PKGs."
                 raise SignError(msg) from e

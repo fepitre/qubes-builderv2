@@ -32,7 +32,6 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import RPMDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
@@ -50,23 +49,26 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
 
     name = "source_rpm"
     stages = ["prep"]
-    dependencies = [
-        PluginDependency("fetch"),
-        PluginDependency("source"),
-        PluginDependency("chroot_rpm"),
-    ]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
+
+        self.dependencies += [
+            PluginDependency("source"),
+            PluginDependency("chroot_rpm"),
+        ]
 
         # Add some environment variables needed to render mock root configuration
         # FIXME: Review legacy usage of "dom0" in components.
@@ -83,18 +85,17 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             }
         )
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "prep" or not self.has_component_packages("prep"):
+        if self.stage != "prep" or not self.has_component_packages("prep"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
         # Check if we have RPM related content defined
         if not parameters.get("build", []):
@@ -104,7 +105,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
         # Compare previous artifacts hash with current source hash
         if all(
             self.component.get_source_hash()
-            == self.get_dist_artifacts_info(stage, build.mangle()).get(
+            == self.get_dist_artifacts_info(self.stage, build.mangle()).get(
                 "source-hash", None
             )
             for build in parameters["build"]
@@ -114,7 +115,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             )
             return
 
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        artifacts_dir = self.get_dist_component_artifacts_dir(self.stage)
         distfiles_dir = self.get_component_distfiles_dir()
 
         # Get fetch info
@@ -138,21 +139,21 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             temp_dir = Path(tempfile.mkdtemp())
 
             # Source component directory inside executors
-            source_dir = executor.get_builder_dir() / self.component.name
+            source_dir = self.executor.get_builder_dir() / self.component.name
 
             # spec file basename will be used as prefix for some artifacts
             build_bn = build.mangle()
 
             # generate expected artifacts info filename for sanity checks
             artifacts_info_filename = self.get_artifacts_info_filename(
-                stage, build_bn
+                self.stage, build_bn
             )
 
             # Generate %{name}-%{version}-%{release} and %Source0
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
-                (self.component.source_dir, executor.get_builder_dir()),
+                (self.component.source_dir, self.executor.get_builder_dir()),
             ]
 
             copy_out = [
@@ -166,11 +167,11 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 dist_tag = self.dist.tag
 
             cmd = [
-                f"{executor.get_plugins_dir()}/source_rpm/scripts/get-source-info "
+                f"{self.executor.get_plugins_dir()}/source_rpm/scripts/get-source-info "
                 f"{source_dir} {source_dir / build} {dist_tag}"
             ]
             try:
-                executor.run(
+                self.executor.run(
                     cmd, copy_in, copy_out, environment=self.environment
                 )
             except ExecutorError as e:
@@ -190,6 +191,8 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             ):
                 msg = f"{self.component}:{self.dist}:{build}: Invalid source rpm name."
                 raise SourceError(msg)
+
+            source_orig = None
             if create_archive:
                 # Source0 may contain a URL.
                 source_orig = os.path.basename(data[1])
@@ -215,15 +218,15 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
 
             # Copy-in distfiles, content and source
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
-                (distfiles_dir, executor.get_distfiles_dir()),
-                (self.component.source_dir, executor.get_builder_dir()),
+                (distfiles_dir, self.executor.get_distfiles_dir()),
+                (self.component.source_dir, self.executor.get_builder_dir()),
             ]
 
             # Copy-out source RPM
             copy_out = [
-                (executor.get_build_dir() / source_rpm, artifacts_dir),
+                (self.executor.get_build_dir() / source_rpm, artifacts_dir),
             ]
 
             # Run 'mock' to generate source RPM
@@ -237,9 +240,11 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             )
             chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():
-                copy_in += [(chroot_cache_topdir, executor.get_cache_dir())]
+                copy_in += [
+                    (chroot_cache_topdir, self.executor.get_cache_dir())
+                ]
                 cmd += [
-                    f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"
+                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
                 ]
 
             if self.component.is_salt():
@@ -254,31 +259,31 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                         )
                     ]
                 cmd += [
-                    f"{executor.get_plugins_dir()}/source/salt/yaml-dumper "
+                    f"{self.executor.get_plugins_dir()}/source/salt/yaml-dumper "
                     "--env VERBOSE "
                     f"--outfile {source_dir}/Makefile.vars -- "
-                    f"{executor.get_plugins_dir()}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
+                    f"{self.executor.get_plugins_dir()}/source/salt/FORMULA-DEFAULTS {source_dir}/FORMULA"
                 ]
             if create_archive:
                 # If no Source0 is provided, we expect 'source' from query-spec.
                 if source_orig != "source":
                     cmd += [
-                        f"{executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
+                        f"{self.executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
                     ]
 
             for file in parameters.get("files", []):
                 fn = get_archive_name(file)
                 cmd.append(
-                    f"mv {executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
+                    f"mv {self.executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
                 )
                 if file.get("signature", None):
                     cmd.append(
-                        f"mv {executor.get_distfiles_dir() / self.component.name / os.path.basename(file['signature'])} {source_dir}"
+                        f"mv {self.executor.get_distfiles_dir() / self.component.name / os.path.basename(file['signature'])} {source_dir}"
                     )
 
             for module in fetch_info.get("modules", []):
                 cmd.append(
-                    f"mv {executor.get_distfiles_dir() / self.component.name / module['archive']} {source_dir}"
+                    f"mv {self.executor.get_distfiles_dir() / self.component.name / module['archive']} {source_dir}"
                 )
                 cmd.append(
                     f"sed -i 's/@{module['name']}@/{module['archive']}/g' {source_dir / build}.in"
@@ -287,9 +292,9 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
             # Generate the spec that Mock will use for creating source RPM ensure 'mock'
             # group can access build directory
             cmd += [
-                f"{executor.get_plugins_dir()}/source_rpm/scripts/generate-spec {source_dir} {source_dir / build}.in {source_dir / build}",
-                f"mkdir -p {executor.get_build_dir()}",
-                f"sudo chown -R {executor.get_user()}:mock {executor.get_build_dir()}",
+                f"{self.executor.get_plugins_dir()}/source_rpm/scripts/generate-spec {source_dir} {source_dir / build}.in {source_dir / build}",
+                f"mkdir -p {self.executor.get_build_dir()}",
+                f"sudo chown -R {self.executor.get_user()}:mock {self.executor.get_build_dir()}",
             ]
 
             mock_cmd = [
@@ -298,12 +303,12 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 "--verbose",
                 "--buildsrpm",
                 f"--spec {source_dir / build}",
-                f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
+                f"--root {self.executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
                 f"--sources={source_dir}",
-                f"--resultdir={executor.get_build_dir()}",
+                f"--resultdir={self.executor.get_build_dir()}",
                 "--disablerepo=builder-local",
             ]
-            if isinstance(executor, ContainerExecutor):
+            if isinstance(self.executor, ContainerExecutor):
                 msg = f"{self.component}:{self.dist}:{build}: Mock isolation set to 'simple', build has full network access. Use 'qubes' executor for network-isolated build."
                 self.log.warning(msg)
                 mock_cmd.append("--isolation=simple")
@@ -322,7 +327,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
 
             cmd += [" ".join(mock_cmd)]
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,
@@ -352,7 +357,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                     }
                 )
                 self.save_dist_artifacts_info(
-                    stage=stage, basename=build_bn, info=info
+                    stage=self.stage, basename=build_bn, info=info
                 )
 
                 # Clean temporary directory

@@ -19,12 +19,12 @@
 import datetime
 import os
 import shutil
+from typing import Optional
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import RPMDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
@@ -42,19 +42,25 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
 
     name = "publish_rpm"
     stages = ["publish"]
-    dependencies = [PluginDependency("publish"), PluginDependency("sign_rpm")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
+        self.dependencies += [
+            PluginDependency("publish"),
+            PluginDependency("sign_rpm"),
+        ]
 
     def get_target_dir(self, repository_publish):
         artifacts_dir = self.config.repository_publish_dir / self.dist.type
@@ -314,8 +320,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
 
     def run(
         self,
-        stage: str,
-        repository_publish: str = None,
+        repository_publish: Optional[str] = None,
         ignore_min_age: bool = False,
         unpublish: bool = False,
         **kwargs,
@@ -324,13 +329,14 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "publish" or not self.has_component_packages("publish"):
+        if self.stage != "publish" or not self.has_component_packages(
+            "publish"
+        ):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -389,7 +395,8 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                 )
                 # Update metalink in case of previous failure on creating it
                 self.create_metalink(
-                    executor=executor, repository_publish=repository_publish
+                    executor=self.executor,
+                    repository_publish=repository_publish,
                 )
                 return
 
@@ -414,7 +421,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                     stage="build", basename=build_bn
                 )
                 publish_info = self.get_dist_artifacts_info(
-                    stage=stage, basename=build_bn
+                    stage=self.stage, basename=build_bn
                 )
 
                 if not build_info:
@@ -439,7 +446,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
                         info = publish_info
 
                 self.publish(
-                    executor=executor,
+                    executor=self.executor,
                     build=build,
                     sign_key=sign_key,
                     db_path=db_path,
@@ -474,7 +481,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
             for build in parameters["build"]:
                 build_bn = build.mangle()
                 publish_info = self.get_dist_artifacts_info(
-                    stage=stage, basename=build_bn
+                    stage=self.stage, basename=build_bn
                 )
 
                 self.unpublish(

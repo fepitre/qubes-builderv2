@@ -49,7 +49,7 @@ def qb_call(builder_conf, artifacts_dir, *args, **kwargs):
         "--builder-conf",
         str(builder_conf),
         "--option",
-        f"artifacts-dir={artifacts_dir}",
+        f"artifacts-dir={str(artifacts_dir)}",
         *args,
     ]
     return subprocess.check_call(cmd, **kwargs)
@@ -62,7 +62,7 @@ def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
         "--builder-conf",
         str(builder_conf),
         "--option",
-        f"artifacts-dir={artifacts_dir}",
+        f"artifacts-dir={str(artifacts_dir)}",
         *args,
     ]
     return subprocess.check_output(cmd, stderr=subprocess.STDOUT, **kwargs)
@@ -786,7 +786,7 @@ def test_component_host_fc37_publish(artifacts_dir):
             artifacts_dir / "repository-publish/rpm/r4.2/current/host/fc37"
         ).exists()
 
-    rpms = [
+    rpms = {
         "qubes-core-qrexec-4.2.18-1.fc37.src.rpm",
         "qubes-core-qrexec-4.2.18-1.fc37.x86_64.rpm",
         "qubes-core-qrexec-debugsource-4.2.18-1.fc37.x86_64.rpm",
@@ -797,13 +797,13 @@ def test_component_host_fc37_publish(artifacts_dir):
         "qubes-core-qrexec-dom0-4.2.18-1.fc37.x86_64.rpm",
         "qubes-core-qrexec-dom0-debuginfo-4.2.18-1.fc37.x86_64.rpm",
         "qubes-core-qrexec-dom0-debugsource-4.2.18-1.fc37.x86_64.rpm",
-    ]
+    }
 
     # Check that packages are in the published repository
     for repository in ["unstable", "current-testing", "current"]:
         repository_dir = f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc37"
         packages = rpm_packages_list(repository_dir)
-        assert set(rpms) == set(packages)
+        assert rpms == set(packages)
 
 
 def test_component_host_fc37_upload(artifacts_dir):
@@ -1026,7 +1026,7 @@ def test_component_host_fc37_unpublish(artifacts_dir):
         }
 
     # Check that packages are in the published repository
-    rpms = [
+    rpms = {
         "qubes-core-qrexec-4.2.18-1.fc37.src.rpm",
         "qubes-core-qrexec-4.2.18-1.fc37.x86_64.rpm",
         "qubes-core-qrexec-debugsource-4.2.18-1.fc37.x86_64.rpm",
@@ -1037,14 +1037,14 @@ def test_component_host_fc37_unpublish(artifacts_dir):
         "qubes-core-qrexec-dom0-4.2.18-1.fc37.x86_64.rpm",
         "qubes-core-qrexec-dom0-debuginfo-4.2.18-1.fc37.x86_64.rpm",
         "qubes-core-qrexec-dom0-debugsource-4.2.18-1.fc37.x86_64.rpm",
-    ]
+    }
     for repository in ["unstable", "current-testing", "current"]:
         repository_dir = f"file://{artifacts_dir}/repository-publish/rpm/r4.2/{repository}/host/fc37"
         packages = rpm_packages_list(repository_dir)
         if repository == "current":
             assert packages == []
         else:
-            assert set(rpms) == set(packages)
+            assert rpms == set(packages)
 
     assert "[qb.publish_rpm.core-qrexec.host-fc37]" in result
     assert "[qb.upload.host-fc37]" in result
@@ -1148,10 +1148,10 @@ def test_component_vm_bookworm_build(artifacts_dir):
         "python-qasync_0.23.0-2+deb12u1_amd64.changes",
         "python-qasync_0.23.0-2+deb12u1_amd64.buildinfo",
     ]
-    for f in files:
+    for file in files:
         file_path = (
             artifacts_dir
-            / f"components/python-qasync/0.23.0-2/vm-bookworm/build/{f}"
+            / f"components/python-qasync/0.23.0-2/vm-bookworm/build/{file}"
         )
         assert file_path.exists()
         result = subprocess.run(

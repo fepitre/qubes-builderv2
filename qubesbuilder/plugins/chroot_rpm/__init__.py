@@ -22,7 +22,6 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import RPMDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootError, ChrootPlugin
 
@@ -42,20 +41,18 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
         self,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
-        super().__init__(dist=dist, config=config, manager=manager)
+        super().__init__(dist=dist, config=config, stage=stage, **kwargs)
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
 
-        if stage != "init-cache":
+        if self.stage != "init-cache":
             return
-
-        executor = self.get_executor_from_config(stage)
 
         mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
 
@@ -83,10 +80,10 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
         mock_cmd = [
             f"sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
             f"/usr/libexec/mock/mock",
-            f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
+            f"--root {self.executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
             "--disablerepo=builder-local",
         ]
-        if isinstance(executor, ContainerExecutor):
+        if isinstance(self.executor, ContainerExecutor):
             msg = (
                 f"{self.dist}: Mock isolation set to 'simple', build has full network "
                 f"access. Use 'qubes' executor for network-isolated build."
@@ -100,17 +97,17 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
 
         # Create a first cage to generate the mock chroot
         copy_in = self.default_copy_in(
-            executor.get_plugins_dir(), executor.get_sources_dir()
+            self.executor.get_plugins_dir(), self.executor.get_sources_dir()
         )
         copy_out = [
             (
-                executor.get_cache_dir() / f"mock/{mock_chroot_name}",
+                self.executor.get_cache_dir() / f"mock/{mock_chroot_name}",
                 chroot_dir,
             )
         ]
         cmd = [" ".join(mock_cmd + ["--init"])]
         try:
-            executor.run(
+            self.executor.run(
                 cmd,
                 copy_in,
                 copy_out,
@@ -132,16 +129,16 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             if (chroot_dir / mock_chroot_name / "dnf_cache").exists():
                 shutil.rmtree(chroot_dir / mock_chroot_name / "dnf_cache")
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
                 (
                     chroot_dir / mock_chroot_name,
-                    executor.get_cache_dir() / f"mock",
+                    self.executor.get_cache_dir() / f"mock",
                 ),
             ]
             copy_out = [
                 (
-                    executor.get_cache_dir()
+                    self.executor.get_cache_dir()
                     / f"mock/{mock_chroot_name}/dnf_cache",
                     chroot_dir / mock_chroot_name,
                 )
@@ -150,7 +147,7 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
                 mock_cmd += ["--install", f"'{package}'"]
             cmd.append(" ".join(mock_cmd))
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,

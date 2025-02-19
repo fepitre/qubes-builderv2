@@ -24,12 +24,10 @@ from pathlib import Path
 from typing import List
 
 from qubesbuilder.common import extract_lines_before
-
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
@@ -97,39 +95,45 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
 
     name = "build_deb"
     stages = ["build"]
-    dependencies = [PluginDependency("chroot_deb"), PluginDependency("build")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
 
-    def run(self, stage: str):
+        self.dependencies += [
+            PluginDependency("chroot_deb"),
+            PluginDependency("build"),
+        ]
+
+    def run(self):
         """
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "build" or not self.has_component_packages("build"):
+        if self.stage != "build" or not self.has_component_packages("build"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        parameters = self.get_parameters(self.stage)
+        artifacts_dir = self.get_dist_component_artifacts_dir(self.stage)
 
         # Compare previous artifacts hash with current source hash
         if all(
             self.component.get_source_hash()
             == self.get_dist_artifacts_info(
-                stage=stage, basename=directory.mangle()
+                stage=self.stage, basename=directory.mangle()
             ).get("source-hash", None)
             for directory in parameters["build"]
         ):
@@ -179,17 +183,20 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
 
             # Copy-in plugin, repository and sources
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
                 (
                     self.manager.entities["chroot_deb"].directory / "pbuilder",
-                    executor.get_builder_dir(),
+                    self.executor.get_builder_dir(),
                 ),
-                (repository_dir, executor.get_repository_dir()),
+                (repository_dir, self.executor.get_repository_dir()),
             ]
 
             copy_in += [
-                (prep_artifacts_dir / source_info[f], executor.get_build_dir())
+                (
+                    prep_artifacts_dir / source_info[f],
+                    self.executor.get_build_dir(),
+                )
                 for f in debian_source_files
             ]
 
@@ -198,7 +205,9 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
                 "@BUILDER_DIR@/pbuilder/pbuilderrc"
             ]
 
-            results_dir = executor.get_builder_dir() / "pbuilder" / "results"
+            results_dir = (
+                self.executor.get_builder_dir() / "pbuilder" / "results"
+            )
             source_info["changes"] = source_info["dsc"].replace(
                 ".dsc", "_amd64.changes"
             )
@@ -232,15 +241,15 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             # extra_sources = ""
 
             cmd = [
-                f"mkdir -p {executor.get_cache_dir()}/aptcache",
-                f"{executor.get_plugins_dir()}/build_deb/scripts/create-local-repo {executor.get_repository_dir()} {self.dist.fullname} {self.dist.name}",
+                f"mkdir -p {self.executor.get_cache_dir()}/aptcache",
+                f"{self.executor.get_plugins_dir()}/build_deb/scripts/create-local-repo {self.executor.get_repository_dir()} {self.dist.fullname} {self.dist.name}",
             ]
 
             # If provided, use the first mirror given in builder configuration mirrors list
             mirrors = self.config.get("mirrors", {}).get(self.dist.fullname, [])
             if mirrors:
                 cmd += [
-                    f"sed -i 's@MIRRORSITE=https://deb.debian.org/debian@MIRRORSITE={mirrors[0]}@' {executor.get_builder_dir()}/pbuilder/pbuilderrc"
+                    f"sed -i 's@MIRRORSITE=https://deb.debian.org/debian@MIRRORSITE={mirrors[0]}@' {self.executor.get_builder_dir()}/pbuilder/pbuilderrc"
                 ]
 
             if self.config.use_qubes_repo.get("version", None):
@@ -256,8 +265,8 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
                 )
                 cmd += [
                     f"gpg --dearmor "
-                    f"< {executor.get_plugins_dir()}/chroot_deb/keys/{keyring_file} "
-                    f"> {executor.get_builder_dir()}/pbuilder/qubes-keyring.gpg"
+                    f"< {self.executor.get_plugins_dir()}/chroot_deb/keys/{keyring_file} "
+                    f"> {self.executor.get_builder_dir()}/pbuilder/qubes-keyring.gpg"
                 ]
                 if self.config.use_qubes_repo.get("testing", False):
                     extra_sources = f"{extra_sources}|deb [arch=amd64] https://{repo_server}/r{qubes_version}/vm {self.dist.name}-testing main"
@@ -273,46 +282,46 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             if aptcache_dir.exists():
                 copy_in += [(
                     chroot_dir / "pbuilder/aptcache",
-                    executor.get_cache_dir(),
+                    self.executor.get_cache_dir(),
                 )]
             if base_tgz.exists():
                 copy_in += [
-                    (base_tgz, executor.get_builder_dir() / "pbuilder")
+                    (base_tgz, self.executor.get_builder_dir() / "pbuilder")
                 ]
                 cmd += [
                     f"sudo -E pbuilder update "
                     f"--distribution {self.dist.name} "
-                    f"--configfile {executor.get_builder_dir()}/pbuilder/pbuilderrc "
+                    f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc "
                     f"--othermirror \"{extra_sources}\""
                 ]
             else:
                 cmd += [
                     f"sudo -E pbuilder create "
                     f"--distribution {self.dist.name} "
-                    f"--configfile {executor.get_builder_dir()}/pbuilder/pbuilderrc "
+                    f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc "
                     f"--othermirror \"{extra_sources}\""
                 ]
 
             cmd += [
                 f"sudo -E pbuilder build --override-config "
                 f"--distribution {self.dist.name} "
-                f"--configfile {executor.get_builder_dir()}/pbuilder/pbuilderrc "
+                f"--configfile {self.executor.get_builder_dir()}/pbuilder/pbuilderrc "
                 f"--othermirror \"{extra_sources}\" "
-                f"{str(executor.get_build_dir() / source_info['dsc'])}"
+                f"{str(self.executor.get_build_dir() / source_info['dsc'])}"
             ]
 
             # Patch .changes path to have source package checksums of the original source,
             # not the one rebuilt during binary build. They should be reproducible
             # in theory, but due to dpkg-source bugs sometimes they are not.
             cmd += [
-                f"{executor.get_plugins_dir()}/build_deb/scripts/patch-changes "
-                f"{str(executor.get_build_dir() / source_info['dsc'])} "
+                f"{self.executor.get_plugins_dir()}/build_deb/scripts/patch-changes "
+                f"{str(self.executor.get_build_dir() / source_info['dsc'])} "
                 f"{str(results_dir / source_info['buildinfo'])} "
                 f"{str(results_dir / source_info['changes'])}"
             ]
             # fmt: on
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,
@@ -366,7 +375,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             info["packages"] = packages_list
             info["source-hash"] = self.component.get_source_hash()
             self.save_dist_artifacts_info(
-                stage=stage, basename=directory_bn, info=info
+                stage=self.stage, basename=directory_bn, info=info
             )
 
 

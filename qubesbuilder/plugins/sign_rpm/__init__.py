@@ -24,7 +24,6 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import RPMDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildError
 from qubesbuilder.plugins.build_rpm import (
@@ -47,32 +46,34 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
 
     name = "sign_rpm"
     stages = ["sign"]
-    dependencies = [PluginDependency("sign")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
+        self.dependencies.append(PluginDependency("sign"))
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "sign" or not self.has_component_packages("sign"):
+        if self.stage != "sign" or not self.has_component_packages("sign"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -111,7 +112,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
             f"rpmkeys --dbpath={db_path} --import {sign_key_asc}",
         ]
         try:
-            executor.run(cmd)
+            self.executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.component}:{self.dist}: Failed to create RPM dbpath."
             raise SignError(msg) from e
@@ -156,7 +157,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
                         f"{self.manager.entities['sign_rpm'].directory}/scripts/sign-rpm "
                         f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm}"
                     ]
-                    executor.run(cmd)
+                    self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to sign RPMs."
                 raise SignError(msg) from e
@@ -172,7 +173,7 @@ class RPMSignPlugin(RPMDistributionPlugin, SignPlugin):
                 cmd = [
                     f"{self.manager.entities['sign_rpm'].directory}/scripts/update-rpmbuildinfo {buildinfo_file} {self.config.gpg_client} {sign_key}"
                 ]
-                executor.run(cmd)
+                self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.component}:{self.dist}:{build}: Failed to sign buildinfo file."
                 raise SignError(msg) from e
