@@ -39,28 +39,14 @@ log = get_logger("WindowsExecutor")
 
 ESCAPE_RE = re.compile(rb"--|-([A-F0-9]{2})")
 
-def decode_part(part):
-    if not re.match(r"^[a-zA-Z0-9._-]*$", part):
-        raise DecodeError("illegal characters found")
-
-    part = part.encode("ascii")
-
-    # Check if no '-' remains outside of legal escape sequences.
-    if b"-" in ESCAPE_RE.sub(b"", part):
-        raise DecodeError("'-' can be used only in '-HH' or '--'")
-
-    def convert(m):
-        if m.group(0) == b"--":
-            return b"-"
-        num = int(m.group(1), 16)
-        return bytes([num])
-
-    return ESCAPE_RE.sub(convert, part).decode("utf-8")
-
 
 class WindowsExecutor(Executor):
-    def __init__(self, ewdk: str, vm: str = "win-build", user: str = "user", **kwargs):
-        log.debug(f"Windows executor init: {ewdk=}, {vm=}, {user=}, params: {kwargs}")
+    def __init__(
+        self, ewdk: str, vm: str = "win-build", user: str = "user", **kwargs
+    ):
+        log.debug(
+            f"Windows executor init: {ewdk=}, {vm=}, {user=}, params: {kwargs}"
+        )
         super().__init__(**kwargs)
         self.vm_name = vm
         self.user = user
@@ -74,18 +60,14 @@ class WindowsExecutor(Executor):
         log.debug(f"{self.use_qrexec=}")
         self.ensure_worker()
 
-
     def get_builder_dir(self):
         return PureWindowsPath("c:\\builder")
-
 
     def get_user(self):
         return self.user
 
-
     def get_threads(self) -> int:
         return self._kwargs.get("threads", 1)
-
 
     def run_local_cmd(self, cmd: List[str]):
         try:
@@ -99,20 +81,27 @@ class WindowsExecutor(Executor):
             msg = f"command '{cmd}' failed"
             raise ExecutorError(msg, name=self.vm_name) from e
 
-
     def ssh_cmd(self, cmd: List[str]):
-        self.run_local_cmd([
-            "ssh",
-            "-i", self.ssh_key,
-            "-o", "BatchMode yes",
-            "-o", "StrictHostKeyChecking accept-new",
-            "-o", "ConnectTimeout 60",
-            self.ssh_host,
-            "cmd", "/e", "/v:on", "/c",
-            " & ".join(cmd),
-            " & exit !errorlevel!",
-        ])
-
+        self.run_local_cmd(
+            [
+                "ssh",
+                "-i",
+                self.ssh_key,
+                "-o",
+                "BatchMode yes",
+                "-o",
+                "StrictHostKeyChecking accept-new",
+                "-o",
+                "ConnectTimeout 60",
+                self.ssh_host,
+                "cmd",
+                "/e",
+                "/v:on",
+                "/c",
+                " & ".join(cmd),
+                " & exit !errorlevel!",
+            ]
+        )
 
     # Get loop device id for the EWDK iso if mounted, otherwise None
     def _get_ewdk_loop(self) -> Optional[str]:
@@ -132,7 +121,9 @@ class WindowsExecutor(Executor):
                 return None
 
         except subprocess.CalledProcessError as e:
-            raise ExecutorError(f"Failed to run losetup: {proc.stderr.decode()}") from e
+            raise ExecutorError(
+                f"Failed to run losetup: {proc.stderr.decode()}"
+            ) from e
 
     def _get_ewdk_assignment(self) -> DeviceAssignment:
         if not Path(self.ewdk_path).is_file():
@@ -150,7 +141,9 @@ class WindowsExecutor(Executor):
                     capture_output=True,
                 )
             except subprocess.CalledProcessError as e:
-                raise ExecutorError(f"Failed to run losetup: {proc.stderr.decode() if proc else e}") from e
+                raise ExecutorError(
+                    f"Failed to run losetup: {proc.stderr.decode() if proc else e}"
+                ) from e
 
             loop_id = self._get_ewdk_loop()
             if not loop_id:
@@ -161,10 +154,12 @@ class WindowsExecutor(Executor):
         # wait for device to appear
         self_vm = QubesVM(self.app, self.app.local_name)
         timeout = 10
-        while isinstance(self_vm.devices['block'][loop_id], UnknownDevice):
+        while isinstance(self_vm.devices["block"][loop_id], UnknownDevice):
             if timeout == 0:
-                raise ExecutorError(f"Failed to attach EWDK ({self.ewdk_path}): "
-                    f"wait for loopback device timed out")
+                raise ExecutorError(
+                    f"Failed to attach EWDK ({self.ewdk_path}): "
+                    f"wait for loopback device timed out"
+                )
             timeout -= 1
             sleep(1)
 
@@ -176,12 +171,11 @@ class WindowsExecutor(Executor):
                 "devtype": "cdrom",
                 "read-only": True,
             },
-            persistent=True)
-
+            persistent=True,
+        )
 
     def create_dispvm(self) -> QubesVM:
         return DispVM.from_appvm(self.app, self._kwargs.get("dispvm"))
-
 
     def check_qrexec(self) -> bool:
         try:
@@ -191,7 +185,6 @@ class WindowsExecutor(Executor):
         except QubesException as e:
             log.debug(f"VMShell failed: {e}")
             return False
-
 
     def start_worker(self):
         if not self.vm.is_running():
@@ -207,7 +200,6 @@ class WindowsExecutor(Executor):
 
             self.vm.start()
 
-
     def ensure_worker(self):
         try:
             if self.use_qrexec:
@@ -217,7 +209,6 @@ class WindowsExecutor(Executor):
         except ExecutorError as e:
             msg = f"Worker VM {self.vm_name} failed to start or respond"
             raise ExecutorError(msg, name=self.vm_name) from e
-
 
     def copy_in(self, source_path: Path, destination_dir: PurePath):
         src = str(source_path.expanduser().resolve())
@@ -234,25 +225,33 @@ class WindowsExecutor(Executor):
                 )
                 proc.communicate()
                 if proc.returncode != 0:
-                    raise QubesException(f"qubesbuilder.WinFileCopyIn returned with code {proc.returncode}")
+                    raise QubesException(
+                        f"qubesbuilder.WinFileCopyIn returned with code {proc.returncode}"
+                    )
             except QubesException as e:
                 msg = f"Failed to run qubesbuilder.WinFileCopyIn service in qube '{self.vm_name}'"
                 raise ExecutorError(msg, name=self.vm_name) from e
 
             return
 
-        self.ssh_cmd([
-            f"if not exist \"{dst}\" md \"{dst}\"",
-        ])
+        self.ssh_cmd(
+            [
+                f'if not exist "{dst}" md "{dst}"',
+            ]
+        )
 
-        self.run_local_cmd([
-            "scp",
-            "-i", self.ssh_key,
-            "-r", "-B", "-q",
-            src,
-            f"{self.ssh_host}:{dst}",
-        ])
-
+        self.run_local_cmd(
+            [
+                "scp",
+                "-i",
+                self.ssh_key,
+                "-r",
+                "-B",
+                "-q",
+                src,
+                f"{self.ssh_host}:{dst}",
+            ]
+        )
 
     def copy_out(self, source_path: PurePath, destination_dir: Path):
         log.debug(f"copy_out: {source_path} -> {destination_dir}")
@@ -274,21 +273,27 @@ class WindowsExecutor(Executor):
                 )
                 proc.communicate()
                 if proc.returncode != 0:
-                    raise QubesException(f"qubesbuilder.WinFileCopyOut returned with code {proc.returncode}")
+                    raise QubesException(
+                        f"qubesbuilder.WinFileCopyOut returned with code {proc.returncode}"
+                    )
             except QubesException as e:
                 msg = f"Failed to run qubesbuilder.WinFileCopyOut service in qube '{self.vm_name}'"
                 raise ExecutorError(msg, name=self.vm_name) from e
 
             return
 
-        self.run_local_cmd([
-            "scp",
-            "-i", self.ssh_key,
-            "-r", "-B", "-q",
-            f"{self.ssh_host}:{src.replace('\\', '/')}",
-            dst,
-        ])
-
+        self.run_local_cmd(
+            [
+                "scp",
+                "-i",
+                self.ssh_key,
+                "-r",
+                "-B",
+                "-q",
+                f"{self.ssh_host}:{src.replace('\\', '/')}",
+                dst,
+            ]
+        )
 
     def run(
         self,
@@ -312,21 +317,29 @@ class WindowsExecutor(Executor):
                 )
                 proc.communicate()
                 if proc.returncode != 0:
-                    raise QubesException(f"qubes.Filecopy returned with code {proc.returncode}")
+                    raise QubesException(
+                        f"qubes.Filecopy returned with code {proc.returncode}"
+                    )
 
                 inc_dir = f"c:\\users\\{self.user}\\Documents\\QubesIncoming\\{os.uname().nodename}"
 
                 prep_cmd = [
-                    f"move /y \"{inc_dir}\\qubesbuilder.WinFileCopyIn\" \"%QUBES_TOOLS%\\qubes-rpc\\\"",
-                    f"move /y \"{inc_dir}\\qubesbuilder.WinFileCopyOut\" \"%QUBES_TOOLS%\\qubes-rpc\\\"",
-                    f"move /y \"{inc_dir}\\qubesbuilder-file-copy-in.ps1\" \"%QUBES_TOOLS%\\qubes-rpc-services\\\"",
-                    f"move /y \"{inc_dir}\\qubesbuilder-file-copy-out.ps1\" \"%QUBES_TOOLS%\\qubes-rpc-services\\\"",
+                    f'move /y "{inc_dir}\\qubesbuilder.WinFileCopyIn" "%QUBES_TOOLS%\\qubes-rpc\\"',
+                    f'move /y "{inc_dir}\\qubesbuilder.WinFileCopyOut" "%QUBES_TOOLS%\\qubes-rpc\\"',
+                    f'move /y "{inc_dir}\\qubesbuilder-file-copy-in.ps1" "%QUBES_TOOLS%\\qubes-rpc-services\\"',
+                    f'move /y "{inc_dir}\\qubesbuilder-file-copy-out.ps1" "%QUBES_TOOLS%\\qubes-rpc-services\\"',
                 ]
 
                 proc = self.vm.run_service("qubes.VMShell")
-                proc.communicate((" & ".join(prep_cmd) + " & exit !errorlevel!" + "\r\n").encode("utf-8"))
+                proc.communicate(
+                    (
+                        " & ".join(prep_cmd) + " & exit !errorlevel!" + "\r\n"
+                    ).encode("utf-8")
+                )
                 if proc.returncode != 0:
-                    raise QubesException(f"qubes.VMShell returned with code {proc.returncode}")
+                    raise QubesException(
+                        f"qubes.VMShell returned with code {proc.returncode}"
+                    )
             except QubesException as e:
                 msg = f"Failed to copy builder RPC services to qube '{self.vm_name}'"
                 raise ExecutorError(msg, name=self.vm_name) from e
@@ -335,12 +348,16 @@ class WindowsExecutor(Executor):
             self.copy_in(src_in, dst_in)
 
         if self.use_qrexec:
-            bin_cmd = (" & ".join(cmd) + " & exit !errorlevel!" + "\r\n").encode("utf-8")
+            bin_cmd = (
+                " & ".join(cmd) + " & exit !errorlevel!" + "\r\n"
+            ).encode("utf-8")
             log.debug(f"{bin_cmd=}")
             proc = self.vm.run_service("qubes.VMShell")
             stdout, stderr = proc.communicate(bin_cmd)
             if proc.returncode != 0:
-                raise QubesException(f"qubes.VMShell returned with code {proc.returncode}: {stderr.decode("utf-8")}")
+                raise QubesException(
+                    f"qubes.VMShell returned with code {proc.returncode}: {stderr.decode("utf-8")}"
+                )
             log.debug(stdout.decode("utf-8"))
         else:
             self.ssh_cmd(cmd)

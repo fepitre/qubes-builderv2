@@ -162,7 +162,7 @@ A separate vault-type qube is needed for code-signing Windows binaries. Let's as
 `vault-sign`. This qube has access to actual signing keys used, either production ones (TODO:
 in a HSM), or ephemeral self-signed keys. Communication with the `vault-sign` qube goes through
 Qubes RPC: install RPC service scripts from `rpc/qubes.WinSign.*` in the vault qube (make sure
-they are permanent in `/etc/qubes-rpc`, see [bind dirs](https://www.qubes-os.org/doc/bind-dirs/)).
+they are permanent in `/usr/local/etc/qubes-rpc`.
 You also need to configure RPC policy in `dom0`, copy `rpc/policy/51-qubesbuilder-windows.policy`
 to `/etc/qubes/policy.d` there (make sure the qube names are correct).
 
