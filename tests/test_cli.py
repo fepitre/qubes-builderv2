@@ -380,6 +380,85 @@ def test_common_component_fetch_commit_fresh(artifacts_dir_single):
     assert info["git-commit-hash"] == commit_sha
 
 
+def test_common_existent_command(artifacts_dir):
+    result = qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "config",
+        "get-components",
+        "get-templates",
+    )
+    assert result == 0
+
+
+def test_common_non_existent_command(artifacts_dir):
+    with pytest.raises(subprocess.CalledProcessError):
+        result = qb_call(
+            DEFAULT_BUILDER_CONF, artifacts_dir, "non-existent-command"
+        )
+        assert result == 2
+
+
+def test_common_non_existent_component(artifacts_dir):
+    with pytest.raises(subprocess.CalledProcessError):
+        result = qb_call(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "non-existent-component",
+            "package",
+            "all",
+        )
+        assert result == 2
+
+
+def test_common_component_dependencies_01(artifacts_dir):
+    with pytest.raises(subprocess.CalledProcessError) as e:
+        qb_call_output(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "core-qrexec",
+            "-d",
+            "host-fc37",
+            "package",
+            "prep",
+        )
+    assert (
+        b"<JobReference(component=core-qrexec, stage=fetch, build=source)>"
+        in e.value.output
+    )
+
+
+def test_common_component_dependencies_02(artifacts_dir):
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-c",
+        "core-qrexec",
+        "-d",
+        "host-fc37",
+        "package",
+        "fetch",
+    )
+
+    with pytest.raises(subprocess.CalledProcessError) as e:
+        qb_call_output(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "core-qrexec",
+            "-d",
+            "host-fc37",
+            "package",
+            "build",
+        )
+    assert (
+        b"<JobReference(component=core-qrexec, dist=host-fc37, stage=prep, build=rpm_spec_qubes-qrexec.spec)>"
+        in e.value.output
+    )
+
+
 #
 # Pipeline for core-qrexec and host-fc37
 #
@@ -2629,82 +2708,3 @@ def test_installer_init_cache(artifacts_dir):
     rpms = list(templates_cache.glob("*.rpm"))
     assert rpms
     assert rpms[0].name.startswith("qubes-template-debian-12-minimal-4.2.0")
-
-
-def test_existent_command(artifacts_dir):
-    result = qb_call(
-        DEFAULT_BUILDER_CONF,
-        artifacts_dir,
-        "config",
-        "get-components",
-        "get-templates",
-    )
-    assert result == 0
-
-
-def test_non_existent_command(artifacts_dir):
-    with pytest.raises(subprocess.CalledProcessError):
-        result = qb_call(
-            DEFAULT_BUILDER_CONF, artifacts_dir, "non-existent-command"
-        )
-        assert result == 2
-
-
-def test_non_existent_component(artifacts_dir):
-    with pytest.raises(subprocess.CalledProcessError):
-        result = qb_call(
-            DEFAULT_BUILDER_CONF,
-            artifacts_dir,
-            "-c",
-            "non-existent-component",
-            "package",
-            "all",
-        )
-        assert result == 2
-
-
-def test_component_dependencies_01(artifacts_dir):
-    with pytest.raises(subprocess.CalledProcessError) as e:
-        qb_call_output(
-            DEFAULT_BUILDER_CONF,
-            artifacts_dir,
-            "-c",
-            "core-qrexec",
-            "-d",
-            "host-fc37",
-            "package",
-            "prep",
-        )
-    assert (
-        b"<JobReference(component=core-qrexec, stage=fetch, build=source)>"
-        in e.value.output
-    )
-
-
-def test_component_dependencies_02(artifacts_dir):
-    qb_call(
-        DEFAULT_BUILDER_CONF,
-        artifacts_dir,
-        "-c",
-        "core-qrexec",
-        "-d",
-        "host-fc37",
-        "package",
-        "fetch",
-    )
-
-    with pytest.raises(subprocess.CalledProcessError) as e:
-        qb_call_output(
-            DEFAULT_BUILDER_CONF,
-            artifacts_dir,
-            "-c",
-            "core-qrexec",
-            "-d",
-            "host-fc37",
-            "package",
-            "build",
-        )
-    assert (
-        b"<JobReference(component=core-qrexec, dist=host-fc37, stage=prep, build=rpm_spec_qubes-qrexec.spec)>"
-        in e.value.output
-    )
