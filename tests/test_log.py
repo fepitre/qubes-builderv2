@@ -51,7 +51,7 @@ def plugins(config):
         stage="prep",
         components=config.get_components(),
         distributions=config.get_distributions(),
-        templates=[]
+        templates=[],
     )
 
 

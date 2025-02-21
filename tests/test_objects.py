@@ -205,7 +205,11 @@ executor:
         component = QubesComponent(source_dir, has_packages=False)
 
         plugin = DistributionComponentPlugin(
-            component=component, dist=fcdist, config=config, manager=manager, stage="prep"
+            component=component,
+            dist=fcdist,
+            config=config,
+            manager=manager,
+            stage="prep",
         )
         assert not plugin.has_component_packages(stage="prep")
 
@@ -839,7 +843,7 @@ executor:
                 components=config.get_components(),
                 distributions=config.get_distributions(),
                 templates=[],
-                stage = "fetch"
+                stage="fetch",
             )
             executor = config.get_executor_from_config("build", jobs[0])
             assert isinstance(executor, ContainerExecutor)

@@ -355,6 +355,7 @@ def test_common_component_fetch_skip_files(artifacts_dir_single):
         in result
     )
 
+
 def test_common_component_fetch_commit_fresh(artifacts_dir_single):
     artifacts_dir = artifacts_dir_single
     commit_sha = "0589ae8a242b3be6a1b8985c6eb8900e5236152a"
@@ -370,8 +371,8 @@ def test_common_component_fetch_commit_fresh(artifacts_dir_single):
     ).decode()
 
     fetch_artifact = (
-        artifacts_dir /
-        "components/core-qrexec/4.2.20-1/nodist/fetch/source.fetch.yml"
+        artifacts_dir
+        / "components/core-qrexec/4.2.20-1/nodist/fetch/source.fetch.yml"
     )
     assert fetch_artifact.exists()
     with open(fetch_artifact) as f:
@@ -2033,7 +2034,6 @@ def test_template_fedora_40_minimal_sign(artifacts_dir):
         # We prevent rpm to find ~/.rpmmacros
         env["HOME"] = tmpdir
 
-
         qb_call(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
@@ -2661,3 +2661,50 @@ def test_non_existent_component(artifacts_dir):
             "all",
         )
         assert result == 2
+
+
+def test_component_dependencies_01(artifacts_dir):
+    with pytest.raises(subprocess.CalledProcessError) as e:
+        qb_call_output(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "core-qrexec",
+            "-d",
+            "host-fc37",
+            "package",
+            "prep",
+        )
+    assert (
+        b"<JobReference(component=core-qrexec, stage=fetch, build=source)>"
+        in e.value.output
+    )
+
+
+def test_component_dependencies_02(artifacts_dir):
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-c",
+        "core-qrexec",
+        "-d",
+        "host-fc37",
+        "package",
+        "fetch",
+    )
+
+    with pytest.raises(subprocess.CalledProcessError) as e:
+        qb_call_output(
+            DEFAULT_BUILDER_CONF,
+            artifacts_dir,
+            "-c",
+            "core-qrexec",
+            "-d",
+            "host-fc37",
+            "package",
+            "build",
+        )
+    assert (
+        b"<JobReference(component=core-qrexec, dist=host-fc37, stage=prep, build=rpm_spec_qubes-qrexec.spec)>"
+        in e.value.output
+    )

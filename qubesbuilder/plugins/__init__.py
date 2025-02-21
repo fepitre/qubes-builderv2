@@ -68,7 +68,9 @@ class JobReference(JobReferenceBase):
         if self.build is not None:
             parts.append(f"build={self.build}")
         return (
-            f"JobReference({', '.join(parts)})" if parts else "JobReference()"
+            f"<JobReference({', '.join(parts)})>"
+            if parts
+            else "<JobReference()>"
         )
 
 
@@ -228,15 +230,21 @@ class Plugin:
                     f"dependency '{dependency.reference}' (commit hash: {component[0].get_source_commit_hash()})"
                 )
             elif dependency.builder_object == "job":
-                artifact_path = get_artifact_path(
-                    self.config,
-                    dependency.reference,
-                )
-                if not artifact_path or not artifact_path.exists():
-                    # FIXME: improve formatting
-                    raise PluginError(
-                        f"Error retrieving artifact path for job dependency '{str(dependency.reference)}'"
+                artifact_path = None
+                try:
+                    artifact_path = get_artifact_path(
+                        self.config,
+                        dependency.reference,
                     )
+                finally:
+                    if not artifact_path or (
+                        isinstance(artifact_path, Path)
+                        and not artifact_path.exists()
+                    ):
+                        # FIXME: improve formatting
+                        raise PluginError(
+                            f"Failed to retrieve artifact path for job '{str(dependency.reference)}'"
+                        )
             else:
                 raise PluginError(
                     f"Unknown dependency associated with builder object '{dependency.builder_object}'."
