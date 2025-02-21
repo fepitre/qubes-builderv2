@@ -75,7 +75,7 @@ class PluginManager:
 
         return entities
 
-    def _get_instances_with_attr(self, module_attr, **kwargs):
+    def _get_instances_with_attr(self, module_attr):
         # Ensure plugin class name are uniq
         plugin_names = []
         for entity in self.entities.values():
@@ -88,15 +88,12 @@ class PluginManager:
         if len(set(plugin_names)) != len(plugin_names):
             raise PluginManagerError("Conflicting plugin name detected.")
 
-        instances = []
+        plugins = []
         for entity in self.entities.values():
             if not hasattr(entity.module, module_attr):
                 continue
-            for plugin in getattr(entity.module, module_attr):
-                instances += plugin.from_args(
-                    **kwargs,
-                )
-        return instances
+            plugins += getattr(entity.module, module_attr)
+        return plugins
 
     @property
     def entities(self):
@@ -104,10 +101,5 @@ class PluginManager:
             self._entities = self._get_plugin_entities()
         return self._entities
 
-    def get_component_instances(self, **kwargs):
-        return self._get_instances_with_attr("PLUGINS", manager=self, **kwargs)
-
-    def get_template_instances(self, **kwargs):
-        return self._get_instances_with_attr(
-            "TEMPLATE_PLUGINS", manager=self, **kwargs
-        )
+    def get_plugins(self):
+        return self._get_instances_with_attr("PLUGINS")

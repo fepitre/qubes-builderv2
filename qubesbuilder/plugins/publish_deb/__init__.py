@@ -17,12 +17,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 import datetime
+from typing import Optional
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
@@ -40,19 +40,23 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
 
     name = "publish_deb"
     stages = ["publish"]
-    dependencies = [PluginDependency("publish")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
+
+        self.dependencies.append(PluginDependency("publish"))
 
     @classmethod
     def get_debian_suite_from_repository_publish(cls, dist, repository_publish):
@@ -271,8 +275,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
 
     def run(
         self,
-        stage: str,
-        repository_publish: str = None,
+        repository_publish: Optional[str] = None,
         ignore_min_age: bool = False,
         unpublish: bool = False,
         **kwargs,
@@ -281,13 +284,14 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "publish" or not self.has_component_packages("publish"):
+        if self.stage != "publish" or not self.has_component_packages(
+            "publish"
+        ):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -367,7 +371,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     stage="build", basename=directory_bn
                 )
                 publish_info = self.get_dist_artifacts_info(
-                    stage=stage, basename=directory_bn
+                    stage=self.stage, basename=directory_bn
                 )
 
                 if not build_info:
@@ -388,7 +392,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                             "repository-publish", []
                         ):
                             self.unpublish(
-                                executor=executor,
+                                executor=self.executor,
                                 directory=directory,
                                 repository_publish=repository,
                             )
@@ -396,7 +400,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                         info = publish_info
 
                 self.publish(
-                    executor=executor,
+                    executor=self.executor,
                     directory=directory,
                     keyring_dir=keyring_dir,
                     repository_publish=repository_publish,
@@ -433,11 +437,11 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 directory_bn = directory.mangle()
 
                 publish_info = self.get_dist_artifacts_info(
-                    stage=stage, basename=directory_bn
+                    stage=self.stage, basename=directory_bn
                 )
 
                 self.unpublish(
-                    executor=executor,
+                    executor=self.executor,
                     directory=directory,
                     repository_publish=repository_publish,
                 )
@@ -467,9 +471,11 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 # same repository. This is because reprepro does not manage multiversions officially.
                 for (
                     artifacts_dir
-                ) in self.get_dist_component_artifacts_dir_history(stage=stage):
+                ) in self.get_dist_component_artifacts_dir_history(
+                    stage=self.stage
+                ):
                     publish_info = self.get_dist_artifacts_info(
-                        stage=stage,
+                        stage=self.stage,
                         basename=directory_bn,
                         artifacts_dir=artifacts_dir,
                     )
@@ -480,7 +486,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                             f"{self.component}:{self.dist}:{directory}: Updating repository."
                         )
                         self.publish(
-                            executor=executor,
+                            executor=self.executor,
                             directory=directory,
                             keyring_dir=keyring_dir,
                             repository_publish=repository_publish,

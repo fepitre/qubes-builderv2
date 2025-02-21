@@ -26,7 +26,6 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
@@ -38,34 +37,37 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
 
     name = "source_archlinux"
     stages = ["prep"]
-    dependencies = [PluginDependency("fetch"), PluginDependency("source")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
+
+        self.dependencies.append(PluginDependency("source"))
 
         self.environment.update({"DIST": self.dist.name, "LC_ALL": "C"})
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "prep" or not self.has_component_packages("prep"):
+        if self.stage != "prep" or not self.has_component_packages("prep"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
         # Check if we have Archlinux related content defined
         if not parameters.get("build", []):
@@ -75,7 +77,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
         # Compare previous artifacts hash with current source hash
         if all(
             self.component.get_source_hash()
-            == self.get_dist_artifacts_info(stage, build.mangle()).get(
+            == self.get_dist_artifacts_info(self.stage, build.mangle()).get(
                 "source-hash", None
             )
             for build in parameters["build"]
@@ -92,7 +94,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
             artifacts_dir=self.get_component_artifacts_dir("fetch"),
         )
 
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        artifacts_dir = self.get_dist_component_artifacts_dir(self.stage)
 
         # Clean previous build artifacts
         if artifacts_dir.exists():
@@ -104,7 +106,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
             temp_dir = Path(tempfile.mkdtemp())
 
             # Source component directory inside executors
-            source_dir = executor.get_builder_dir() / self.component.name
+            source_dir = self.executor.get_builder_dir() / self.component.name
 
             # spec file basename will be used as prefix for some artifacts
             build_bn = build.mangle()
@@ -115,9 +117,9 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
 
             # Generate packages list
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
-                (self.component.source_dir, executor.get_builder_dir()),
+                (self.component.source_dir, self.executor.get_builder_dir()),
             ]
 
             copy_out = [
@@ -126,11 +128,11 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
             ]
 
             cmd = [
-                f"{executor.get_plugins_dir()}/source_archlinux/scripts/get-source-info "
+                f"{self.executor.get_plugins_dir()}/source_archlinux/scripts/get-source-info "
                 f"{source_dir} {source_dir / build}"
             ]
             try:
-                executor.run(
+                self.executor.run(
                     cmd, copy_in, copy_out, environment=self.environment
                 )
             except ExecutorError as e:
@@ -172,8 +174,8 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
 
             # Create source archive
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
-            ) + [(self.component.source_dir, executor.get_builder_dir())]
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
+            ) + [(self.component.source_dir, self.executor.get_builder_dir())]
 
             copy_out = [
                 (source_dir / "PKGBUILD", artifacts_dir),
@@ -191,17 +193,17 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
             create_archive = parameters.get("create-archive", create_archive)
             if create_archive:
                 cmd.append(
-                    f"{executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
+                    f"{self.executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
                 )
                 copy_out.append(
                     (source_dir / source_orig, artifacts_dir),
                 )
 
             cmd.append(
-                f"{executor.get_plugins_dir()}/source_archlinux/scripts/generate-pkgbuild {source_dir}/{build}/PKGBUILD.in {source_dir}/PKGBUILD {self.component.version} {release}",
+                f"{self.executor.get_plugins_dir()}/source_archlinux/scripts/generate-pkgbuild {source_dir}/{build}/PKGBUILD.in {source_dir}/PKGBUILD {self.component.version} {release}",
             )
             try:
-                executor.run(
+                self.executor.run(
                     cmd, copy_in, copy_out, environment=self.environment
                 )
             except ExecutorError as e:
@@ -220,7 +222,7 @@ class ArchLinuxSourcePlugin(ArchlinuxDistributionPlugin, SourcePlugin):
                 if create_archive:
                     info["source-archive"] = source_orig
                 self.save_dist_artifacts_info(
-                    stage=stage, basename=build_bn, info=info
+                    stage=self.stage, basename=build_bn, info=info
                 )
 
                 # Clean temporary directory

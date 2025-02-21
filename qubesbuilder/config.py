@@ -31,6 +31,7 @@ from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.executors.qubes import LinuxQubesExecutor
+from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.executors.windows import WindowsExecutor
 from qubesbuilder.plugins import (
     DistributionPlugin,
@@ -84,9 +85,6 @@ class Config:
 
         # Qubes OS distributions
         self._dists: List = []
-
-        # Default Qubes OS build pipeline stages
-        self._stages: Dict = {}
 
         # Qubes OS components
         self._components: List[QubesComponent] = []
@@ -331,8 +329,7 @@ class Config:
                 if not found:
                     raise ConfigError(f"No such component: {fc}")
             return result
-        else:
-            return self._components
+        return self._components
 
     @property
     def artifacts_dir(self):
@@ -606,3 +603,93 @@ class Config:
                 f"Cannot parse Qubes OS release: '{self.qubes_release}'"
             )
         return parsed_release
+
+    # FIXME: Maybe we want later Stage objects but for now, keep it as strings.
+    def get_stages(self) -> List[str]:
+        return [
+            next(iter(stage)) if isinstance(stage, dict) else stage
+            for stage in self._conf.get("stages", [])
+        ]
+
+    def get_plugin_manager(self):
+        return PluginManager(self.get_plugins_dirs())
+
+    def get_jobs(
+        self,
+        components: List[QubesComponent],
+        distributions: List[QubesDistribution],
+        templates: List[QubesTemplate],
+        stage: str,
+    ):
+
+        manager = self.get_plugin_manager()
+        plugins = manager.get_plugins()
+        jobs = []
+
+        # DistributionComponentPlugin
+        for distribution in distributions:
+            for component in components:
+                for plugin in plugins:
+                    if "DistributionComponentPlugin" in [
+                        c.__name__ for c in plugin.__mro__
+                    ]:
+                        job = plugin.from_args(
+                            dist=distribution,
+                            component=component,
+                            config=self,
+                            stage=stage,
+                        )
+                        if not job:
+                            continue
+                        jobs.append(job)
+
+        # ComponentPlugin
+        for component in components:
+            for plugin in plugins:
+                classes = [c.__name__ for c in plugin.__mro__]
+                if (
+                    "ComponentPlugin" in classes
+                    and "DistributionComponentPlugin" not in classes
+                ):
+                    job = plugin.from_args(
+                        component=component,
+                        config=self,
+                        stage=stage,
+                    )
+                    if not job:
+                        continue
+                    jobs.append(job)
+
+        # DistributionPlugin
+        for distribution in distributions:
+            for plugin in plugins:
+                classes = [c.__name__ for c in plugin.__mro__]
+                if (
+                    "DistributionPlugin" in classes
+                    and "DistributionComponentPlugin" not in classes
+                    and "TemplatePlugin" not in classes
+                ):
+                    job = plugin.from_args(
+                        dist=distribution,
+                        config=self,
+                        stage=stage,
+                    )
+                    if not job:
+                        continue
+                    jobs.append(job)
+
+        # TemplatePlugin
+        for template in templates:
+            for plugin in plugins:
+                classes = [c.__name__ for c in plugin.__mro__]
+                if "TemplatePlugin" in classes:
+                    job = plugin.from_args(
+                        template=template,
+                        config=self,
+                        stage=stage,
+                    )
+                    if not job:
+                        continue
+                    jobs.append(job)
+
+        return jobs

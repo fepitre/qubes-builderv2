@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List
 
 import click
 import yaml
@@ -9,14 +9,12 @@ from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.component import QubesComponent, ComponentError
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import PluginError
 from qubesbuilder.plugins.publish import PublishPlugin, COMPONENT_REPOSITORIES
 from qubesbuilder.plugins.template import (
     TemplateBuilderPlugin,
     TEMPLATE_REPOSITORIES,
 )
-from qubesbuilder.plugins.upload import UploadPlugin
 from qubesbuilder.template import QubesTemplate
 
 
@@ -29,7 +27,6 @@ def repository():
 
 def _publish(
     config: Config,
-    manager: PluginManager,
     components: List[QubesComponent],
     distributions: List[QubesDistribution],
     templates: List[QubesTemplate],
@@ -39,25 +36,27 @@ def _publish(
     create_and_sign_metadata_only: bool = False,
 ):
     if repository_publish in COMPONENT_REPOSITORIES:
-        plugins = manager.get_component_instances(
-            stage="publish",
+        jobs = config.get_jobs(
             components=components,
             distributions=distributions,
-            config=config,
+            templates=[],
+            stage="publish",
         )
     elif repository_publish in TEMPLATE_REPOSITORIES:
-        plugins = manager.get_template_instances(
-            stage="publish", templates=templates, config=config
+        jobs = config.get_jobs(
+            templates=templates,
+            components=[],
+            distributions=[],
+            stage="publish",
         )
     else:
         raise CliError(f"Unknown repository '{repository_publish}'")
 
-    for p in plugins:
+    for job in jobs:
         if create_and_sign_metadata_only:
-            p.create(repository_publish=repository_publish)
+            job.create(repository_publish=repository_publish)
         else:
-            p.run(
-                stage="publish",
+            job.run(
                 repository_publish=repository_publish,
                 ignore_min_age=ignore_min_age,
                 unpublish=unpublish,
@@ -86,7 +85,6 @@ def publish(
 ):
     _publish(
         config=obj.config,
-        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         templates=obj.templates,
@@ -96,7 +94,6 @@ def publish(
     if obj.config.automatic_upload_on_publish:
         _upload(
             config=obj.config,
-            manager=obj.manager,
             distributions=obj.distributions,
             templates=obj.templates,
             repository_publish=repository_publish,
@@ -117,7 +114,6 @@ def publish(
 def unpublish(obj: ContextObj, repository_publish: str):
     _publish(
         config=obj.config,
-        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         templates=obj.templates,
@@ -127,7 +123,6 @@ def unpublish(obj: ContextObj, repository_publish: str):
     if obj.config.automatic_upload_on_publish:
         _upload(
             config=obj.config,
-            manager=obj.manager,
             distributions=obj.distributions,
             templates=obj.templates,
             repository_publish=repository_publish,
@@ -147,16 +142,13 @@ def unpublish(obj: ContextObj, repository_publish: str):
 def check_release_status_for_component(obj: ContextObj):
     release_status = _check_release_status_for_component(
         config=obj.config,
-        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
     )
     click.secho(yaml.dump(release_status))
 
 
-def _check_release_status_for_component(
-    config, manager, components, distributions
-):
+def _check_release_status_for_component(config, components, distributions):
     release_status: Dict[str, Any] = {}
     for component in components:
         release_status.setdefault(component.name, {})
@@ -165,9 +157,9 @@ def _check_release_status_for_component(
             try:
                 plugin = PublishPlugin(
                     config=config,
-                    manager=manager,
                     component=component,
                     dist=dist,
+                    stage="publish",
                 )
                 parameters = plugin.get_parameters("publish")
             except ComponentError:
@@ -293,17 +285,17 @@ def check_release_status_for_template(
     obj: ContextObj,
 ):
     release_status = _check_release_status_for_template(
-        config=obj.config, manager=obj.manager, templates=obj.templates
+        config=obj.config, templates=obj.templates
     )
     click.secho(yaml.dump(release_status))
 
 
-def _check_release_status_for_template(config, manager, templates):
+def _check_release_status_for_template(config, templates):
     release_status: Dict[str, Any] = {}
     for template in templates:
         release_status.setdefault(template.name, {})
         plugin = TemplateBuilderPlugin(
-            template=template, config=config, manager=manager
+            template=template, config=config, stage="publish"
         )
         try:
             found = False
@@ -364,7 +356,6 @@ def _check_release_status_for_template(config, manager, templates):
 def upload(obj: ContextObj, repository_publish: str):
     _upload(
         config=obj.config,
-        manager=obj.manager,
         distributions=obj.distributions,
         templates=obj.templates,
         repository_publish=repository_publish,
@@ -373,26 +364,27 @@ def upload(obj: ContextObj, repository_publish: str):
 
 def _upload(
     config: Config,
-    manager: PluginManager,
     distributions: List[QubesDistribution],
     templates: List[QubesTemplate],
     repository_publish: str,
 ):
-    plugins: List[Union[UploadPlugin, TemplateBuilderPlugin]] = []
+    jobs = []
     if repository_publish in COMPONENT_REPOSITORIES:
-        plugins = manager.get_component_instances(
-            stage="upload",
+        jobs = config.get_jobs(
             distributions=distributions,
-            config=config,
+            components=[],
+            templates=[],
+            stage="upload",
         )
     elif repository_publish in TEMPLATE_REPOSITORIES:
-        plugins = manager.get_template_instances(
-            stage="upload",
+        jobs = config.get_jobs(
             templates=templates,
-            config=config,
+            distributions=[],
+            components=[],
+            stage="upload",
         )
-    for p in plugins:
-        p.run(stage="upload", repository_publish=repository_publish)
+    for job in jobs:
+        job.run(repository_publish=repository_publish)
 
 
 @click.command(
@@ -404,7 +396,6 @@ def _upload(
 def create(obj: ContextObj, repository_publish: str):
     _publish(
         config=obj.config,
-        manager=obj.manager,
         components=obj.components,
         distributions=obj.distributions,
         templates=obj.templates,
@@ -414,7 +405,6 @@ def create(obj: ContextObj, repository_publish: str):
     if obj.config.automatic_upload_on_publish:
         _upload(
             config=obj.config,
-            manager=obj.manager,
             distributions=obj.distributions,
             templates=obj.templates,
             repository_publish=repository_publish,

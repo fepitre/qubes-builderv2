@@ -23,7 +23,7 @@ from pathlib import Path, PurePath
 from shlex import quote
 from typing import List, Tuple, Union
 
-from qubesbuilder.common import sanitize_line, str_to_bool
+from qubesbuilder.common import sanitize_line
 from qubesbuilder.executors import Executor, ExecutorError
 
 try:

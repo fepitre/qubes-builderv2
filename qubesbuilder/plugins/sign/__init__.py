@@ -21,8 +21,12 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
+from qubesbuilder.plugins import (
+    DistributionComponentPlugin,
+    PluginError,
+    JobDependency,
+    JobReference,
+)
 
 
 class SignError(PluginError):
@@ -47,32 +51,36 @@ class SignPlugin(DistributionComponentPlugin):
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
 
-    def run(self, stage: str):
+        if self.has_component_packages(stage="build"):
+            for build in self.get_parameters(stage="build").get("build", []):
+                self.dependencies.append(
+                    JobDependency(
+                        JobReference(
+                            component=self.component,
+                            dist=self.dist,
+                            stage="build",
+                            build=build.mangle(),
+                            template=None,
+                        )
+                    )
+                )
+
+    def run(self):
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "sign" or not self.has_component_packages("sign"):
+        if self.stage != "sign" or not self.has_component_packages("sign"):
             return
 
-        executor = self.get_executor_from_config(stage)
-
-        # Check if we have Debian related content defined
-        if not self.get_parameters(stage).get("build", []):
-            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-            return
-
-        if not isinstance(executor, LocalExecutor):
+        if not isinstance(self.executor, LocalExecutor):
             raise SignError("This plugin only supports local executor.")
-
-        # Ensure all build targets artifacts exist from previous required stage
-        try:
-            self.check_dist_stage_artifacts(stage="build")
-        except PluginError as e:
-            raise SignError(str(e)) from e

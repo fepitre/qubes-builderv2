@@ -16,6 +16,7 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+from typing import Optional
 
 from qubesbuilder.distribution import QubesDistribution, DistributionError
 from qubesbuilder.exc import TemplateError
@@ -45,7 +46,7 @@ class QubesTemplate:
 
         self.flavor = template_desc.get("flavor", "")
         self.options = template_desc.get("options", [])
-        self.timestamp: str = ""
+        self.timestamp: Optional[str] = None
         self.timeout: int = template_desc.get("timeout", 3600)
 
     def to_str(self) -> str:

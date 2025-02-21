@@ -28,7 +28,6 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 from qubesbuilder.plugins.chroot_archlinux import (
@@ -111,21 +110,17 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
     name = "build_archlinux"
     stages = ["build"]
-    dependencies = [
-        PluginDependency("chroot_archlinux"),
-        PluginDependency("build"),
-    ]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component, dist=dist, config=config, stage=stage, **kwargs
         )
 
         # Add some environment variables needed to render mock root configuration
@@ -148,6 +143,11 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 }
             )
 
+        self.dependencies += [
+            PluginDependency("chroot_archlinux"),
+            PluginDependency("build"),
+        ]
+
     def update_parameters(self, stage: str):
         super().update_parameters(stage)
 
@@ -163,25 +163,24 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             parameters.get(self.dist.distribution, {}).get("source", {})
         )
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "build" or not self.has_component_packages("build"):
+        if self.stage != "build" or not self.has_component_packages("build"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
-        if isinstance(executor, LocalExecutor):
+        if isinstance(self.executor, LocalExecutor):
             raise BuildError("This plugin does not yet support local executor.")
 
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        artifacts_dir = self.get_dist_component_artifacts_dir(self.stage)
         distfiles_dir = self.get_component_distfiles_dir()
-        source_dir = executor.get_builder_dir() / self.component.name
+        source_dir = self.executor.get_builder_dir() / self.component.name
         pkgs_dir = artifacts_dir / "pkgs"
 
         qubes_repo_version = self.config.use_qubes_repo.get("version", None)
@@ -189,7 +188,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
         # Compare previous artifacts hash with current source hash
         if all(
             self.component.get_source_hash()
-            == self.get_dist_artifacts_info(stage, build.mangle()).get(
+            == self.get_dist_artifacts_info(self.stage, build.mangle()).get(
                 "source-hash", None
             )
             for build in parameters["build"]
@@ -237,12 +236,12 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             # Copy-in source
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
-                (self.component.source_dir, executor.get_builder_dir()),
+                (self.component.source_dir, self.executor.get_builder_dir()),
                 (prep_artifacts_dir / "PKGBUILD", source_dir),
-                (distfiles_dir, executor.get_distfiles_dir()),
-                (repository_dir, executor.get_repository_dir()),
+                (distfiles_dir, self.executor.get_distfiles_dir()),
+                (repository_dir, self.executor.get_repository_dir()),
             ]
 
             if qubes_repo_version:
@@ -250,7 +249,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                     (
                         self.manager.entities["chroot_archlinux"].directory
                         / f"keys/qubes-repo-archlinux-key-r{qubes_repo_version}.asc",
-                        executor.get_builder_dir(),
+                        self.executor.get_builder_dir(),
                     )
                 ]
 
@@ -263,25 +262,25 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 )
 
             copy_out = [
-                (executor.get_builder_dir() / source_dir / pkg, pkgs_dir)
+                (self.executor.get_builder_dir() / source_dir / pkg, pkgs_dir)
                 for pkg in source_info["packages"]
             ]
 
             # pacman and makepkg configuration files
-            pacman_conf_template = f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
+            pacman_conf_template = f"{self.executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
 
             pacman_conf = (
                 "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
             )
 
-            makepkg_conf = f"{executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
+            makepkg_conf = f"{self.executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
 
             cmd = [
                 f"sudo cp {makepkg_conf} /usr/local/share/devtools/makepkg.conf.d/qubes-x86_64.conf",
             ]
 
             pacman_base_args = {
-                "gen_path": f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
+                "gen_path": f"{self.executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
                 "conf_template": pacman_conf_template,
                 "conf": pacman_conf,
                 "servers": self.config.get("mirrors", {}).get(
@@ -307,13 +306,13 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 )
 
                 copy_in += [
-                    (chroot_dir / chroot_archive, executor.get_cache_dir())
+                    (chroot_dir / chroot_archive, self.executor.get_cache_dir())
                 ]
 
                 cmd += [
-                    f"sudo mkdir -p {executor.get_cache_dir()}/qubes-x86_64",
-                    f"cd {executor.get_cache_dir()}/qubes-x86_64",
-                    f"sudo tar xf {executor.get_cache_dir() / chroot_archive}",
+                    f"sudo mkdir -p {self.executor.get_cache_dir()}/qubes-x86_64",
+                    f"cd {self.executor.get_cache_dir()}/qubes-x86_64",
+                    f"sudo tar xf {self.executor.get_cache_dir() / chroot_archive}",
                 ] + get_pacman_cmd(
                     **pacman_args,
                 )
@@ -330,7 +329,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 )
                 # We don't need builder-local to create fresh chroot
                 cmd += get_pacman_cmd(**pacman_base_args) + get_archchroot_cmd(
-                    executor.get_cache_dir() / "qubes-x86_64" / "root",
+                    self.executor.get_cache_dir() / "qubes-x86_64" / "root",
                     pacman_conf,
                     makepkg_conf,
                 )
@@ -343,31 +342,31 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             if qubes_repo_version:
                 files_inside_executor_with_placeholders += [
-                    executor.get_plugins_dir()
+                    self.executor.get_plugins_dir()
                     / "chroot_archlinux/scripts/add-qubes-repository-key"
                 ]
                 cmd += [
-                    f"sudo {executor.get_plugins_dir()}/chroot_archlinux/scripts/add-qubes-repository-key {qubes_repo_version}"
+                    f"sudo {self.executor.get_plugins_dir()}/chroot_archlinux/scripts/add-qubes-repository-key {qubes_repo_version}"
                 ]
 
             # Create local repository inside chroot
             cmd += pacman_cmd + [
-                f"sudo {executor.get_plugins_dir()}/build_archlinux/scripts/update-local-repo.sh {executor.get_cache_dir()}/qubes-x86_64/root {executor.get_repository_dir()}",
+                f"sudo {self.executor.get_plugins_dir()}/build_archlinux/scripts/update-local-repo.sh {self.executor.get_cache_dir()}/qubes-x86_64/root {self.executor.get_repository_dir()}",
             ]
 
             for file in parameters.get("files", []):
                 fn = get_archive_name(file)
                 cmd.append(
-                    f"mv {executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
+                    f"mv {self.executor.get_distfiles_dir() / self.component.name / fn} {source_dir}"
                 )
                 if file.get("signature", None):
                     cmd.append(
-                        f"mv {executor.get_distfiles_dir() / self.component.name / os.path.basename(file['signature'])} {source_dir}"
+                        f"mv {self.executor.get_distfiles_dir() / self.component.name / os.path.basename(file['signature'])} {source_dir}"
                     )
 
             build_command = [
-                f"sudo qubes-x86_64-build -r {executor.get_cache_dir()} -- ",
-                f"-d {executor.get_repository_dir()}:/builder/repository -- ",
+                f"sudo qubes-x86_64-build -r {self.executor.get_cache_dir()} -- ",
+                f"-d {self.executor.get_repository_dir()}:/builder/repository -- ",
                 f"--syncdeps --noconfirm --skipinteg",
             ]
             # make stdout a pipe instead of pts, to not confuse gpgme
@@ -376,7 +375,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             cmd += [f"cd {source_dir}", " ".join(build_command)]
 
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,
@@ -414,7 +413,7 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
 
             # Save package information we parsed for next stages
             self.save_dist_artifacts_info(
-                stage=stage, basename=build_bn, info=info
+                stage=self.stage, basename=build_bn, info=info
             )
 
 

@@ -20,11 +20,12 @@
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import (
     DistributionComponentPlugin,
     PluginError,
     PluginDependency,
+    JobDependency,
+    JobReference,
 )
 
 
@@ -44,18 +45,32 @@ class SourcePlugin(DistributionComponentPlugin):
     """
 
     name = "source"
-    dependencies = [PluginDependency("fetch")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
+        self.dependencies += [
+            PluginDependency("fetch"),
+            JobDependency(
+                JobReference(
+                    component=self.component,
+                    stage="fetch",
+                    build="source",
+                    dist=None,
+                    template=None,
+                )
+            ),
+        ]
 
     def update_parameters(self, stage: str):
         super().update_parameters(stage)
@@ -71,23 +86,3 @@ class SourcePlugin(DistributionComponentPlugin):
         self._parameters[stage].update(
             parameters.get(self.dist.distribution, {}).get("source", {})
         )
-
-    def run(self, stage: str):
-        # Run stage defined by parent class
-        super().run(stage=stage)
-
-        if stage != "prep" or not self.has_component_packages("prep"):
-            return
-
-        # Compare previous artifacts hash with current source hash
-        fetch_info = self.get_dist_artifacts_info(
-            "fetch",
-            "source",
-            artifacts_dir=self.get_component_artifacts_dir("fetch"),
-        )
-
-        # Compare previous artifacts hash with current source hash
-        if not fetch_info.get("source-hash"):
-            raise SourceError(
-                f"{self.component}:{self.dist}: Missing 'fetch' stage artifacts!"
-            )

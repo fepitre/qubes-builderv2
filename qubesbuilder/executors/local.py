@@ -24,9 +24,8 @@ import shutil
 import subprocess
 import uuid
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
-from qubesbuilder.common import str_to_bool
 from qubesbuilder.executors import Executor, ExecutorError
 
 

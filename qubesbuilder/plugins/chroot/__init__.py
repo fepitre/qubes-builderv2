@@ -19,7 +19,6 @@
 
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import (
     DistributionPlugin,
     PluginError,
@@ -38,9 +37,6 @@ class ChrootPlugin(DistributionPlugin):
     name = "chroot"
 
     def __init__(
-        self,
-        dist: QubesDistribution,
-        config: Config,
-        manager: PluginManager,
+        self, dist: QubesDistribution, config: Config, stage: str, **kwargs
     ):
-        super().__init__(dist=dist, config=config, manager=manager)
+        super().__init__(dist=dist, config=config, stage=stage, **kwargs)

@@ -20,7 +20,6 @@
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootError, ChrootPlugin
 
@@ -102,20 +101,18 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         self,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
-        super().__init__(dist=dist, config=config, manager=manager)
+        super().__init__(dist=dist, config=config, stage=stage, **kwargs)
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
 
-        if stage != "init-cache":
+        if self.stage != "init-cache":
             return
-
-        executor = self.get_executor_from_config(stage)
 
         cache_chroot_dir = self.config.cache_dir / "chroot" / self.dist.name
         cache_chroot_dir.mkdir(exist_ok=True, parents=True)
@@ -125,7 +122,7 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         (cache_chroot_dir / chroot_archive).unlink(missing_ok=True)
 
         copy_in = self.default_copy_in(
-            executor.get_plugins_dir(), executor.get_sources_dir()
+            self.executor.get_plugins_dir(), self.executor.get_sources_dir()
         )
         self.environment.update(
             {
@@ -135,20 +132,18 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         )
         copy_out = [
             (
-                executor.get_cache_dir() / chroot_archive,
+                self.executor.get_cache_dir() / chroot_archive,
                 cache_chroot_dir,
             )
         ]
 
-        pacman_conf_template = (
-            f"{executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
-        )
+        pacman_conf_template = f"{self.executor.get_plugins_dir()}/chroot_archlinux/conf/pacman.conf.j2"
 
         pacman_conf = (
             "/usr/local/share/devtools/pacman.conf.d/qubes-x86_64.conf"
         )
 
-        makepkg_conf = f"{executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
+        makepkg_conf = f"{self.executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
 
         additional_packages = (
             self.config.get("cache", {})
@@ -161,13 +156,13 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         ) or self.config.get("mirrors", {}).get(self.dist.name, [])
 
         pacman_cmd = get_pacman_cmd(
-            gen_path=f"{executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
+            gen_path=f"{self.executor.get_plugins_dir()}/chroot_archlinux/scripts/generate-pacman",
             conf_template=pacman_conf_template,
             conf=pacman_conf,
             servers=servers,
         )
 
-        chroot_dir = executor.get_cache_dir() / chroot_name
+        chroot_dir = self.executor.get_cache_dir() / chroot_name
 
         cmd = pacman_cmd + get_archchroot_cmd(
             chroot_dir,
@@ -177,12 +172,12 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         )
 
         cmd += [
-            f"cd {executor.get_cache_dir()}",
+            f"cd {self.executor.get_cache_dir()}",
             f"sudo tar cf {chroot_archive} {chroot_name}",
         ]
 
         try:
-            executor.run(
+            self.executor.run(
                 cmd,
                 copy_in,
                 copy_out,
