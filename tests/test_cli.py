@@ -412,11 +412,11 @@ def test_common_non_existent_component(artifacts_dir):
         assert result == 2
 
 
-def test_common_component_dependencies_01(artifacts_dir):
+def test_common_component_dependencies_01(artifacts_dir_single):
     with pytest.raises(subprocess.CalledProcessError) as e:
         qb_call_output(
             DEFAULT_BUILDER_CONF,
-            artifacts_dir,
+            artifacts_dir_single,
             "-c",
             "core-qrexec",
             "-d",
@@ -430,10 +430,10 @@ def test_common_component_dependencies_01(artifacts_dir):
     )
 
 
-def test_common_component_dependencies_02(artifacts_dir):
+def test_common_component_dependencies_02(artifacts_dir_single):
     qb_call(
         DEFAULT_BUILDER_CONF,
-        artifacts_dir,
+        artifacts_dir_single,
         "-c",
         "core-qrexec",
         "-d",
@@ -445,7 +445,7 @@ def test_common_component_dependencies_02(artifacts_dir):
     with pytest.raises(subprocess.CalledProcessError) as e:
         qb_call_output(
             DEFAULT_BUILDER_CONF,
-            artifacts_dir,
+            artifacts_dir_single,
             "-c",
             "core-qrexec",
             "-d",
