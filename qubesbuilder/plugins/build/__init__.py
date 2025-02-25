@@ -20,8 +20,12 @@
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
+from qubesbuilder.plugins import (
+    DistributionComponentPlugin,
+    PluginError,
+    JobDependency,
+    JobReference,
+)
 
 
 class BuildError(PluginError):
@@ -46,23 +50,25 @@ class BuildPlugin(DistributionComponentPlugin):
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
     ):
-        super().__init__(component=component, dist=dist, config=config, manager=manager)
+        super().__init__(
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
+        )
 
-    def run(self, stage: str):
-        # Run stage defined by parent class
-        super().run(stage=stage)
-
-        if stage != "build" or not self.has_component_packages("build"):
-            return
-
-        if not self.get_parameters(stage).get("build", []):
-            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-            return
-
-        # Ensure all build targets artifacts exist from previous required stage
-        try:
-            self.check_dist_stage_artifacts(stage="prep")
-        except PluginError as e:
-            raise BuildError(str(e)) from e
+        if self.has_component_packages(stage="build"):
+            for build in self.get_parameters(stage="build").get("build", []):
+                self.dependencies.append(
+                    JobDependency(
+                        JobReference(
+                            component=self.component,
+                            dist=self.dist,
+                            stage="prep",
+                            build=build.mangle(),
+                            template=None,
+                        )
+                    )
+                )

@@ -205,7 +205,11 @@ executor:
         component = QubesComponent(source_dir, has_packages=False)
 
         plugin = DistributionComponentPlugin(
-            component=component, dist=fcdist, config=config, manager=manager
+            component=component,
+            dist=fcdist,
+            config=config,
+            manager=manager,
+            stage="prep",
         )
         assert not plugin.has_component_packages(stage="prep")
 
@@ -224,13 +228,13 @@ vm:
 
         # build for RPM
         plugin = DistributionComponentPlugin(
-            component=component, dist=fcdist, config=config, manager=manager
+            component=component, dist=fcdist, config=config, stage="prep"
         )
         assert plugin.has_component_packages(stage="prep")
 
         # no build for DEB
         plugin = DistributionComponentPlugin(
-            component=component, dist=debdist, config=config, manager=manager
+            component=component, dist=debdist, config=config, stage="prep"
         )
         assert not plugin.has_component_packages(stage="prep")
 
@@ -643,7 +647,7 @@ def test_config_options():
 force-fetch: false
 
 executor:
-  type: podman
+  type: docker
   options:
     image: myimage
     something: else
@@ -683,7 +687,7 @@ components:
  - kernel
 
 executor:
-  type: podman
+  type: docker
   options:
     image: myimage
     something: else
@@ -740,7 +744,7 @@ components:
   - kernel
 
 executor:
-  type: podman
+  type: docker
   options:
     image: myimage
     something: else
@@ -787,7 +791,7 @@ components:
   - kernel-latest
 
 executor:
-  type: podman
+  type: docker
   options:
     image: myimage
     something: else
@@ -835,14 +839,13 @@ executor:
             )
             config_file_main.flush()
             config = Config(config_file_main.name)
-            manager = PluginManager(config.get_plugins_dirs())
-            plugins = manager.get_component_instances(
-                stage="build",
+            jobs = config.get_jobs(
                 components=config.get_components(),
                 distributions=config.get_distributions(),
-                config=config,
+                templates=[],
+                stage="fetch",
             )
-            executor = config.get_executor_from_config("build", plugins[0])
+            executor = config.get_executor_from_config("build", jobs[0])
             assert isinstance(executor, ContainerExecutor)
 
 
@@ -887,9 +890,9 @@ components:
       stages:
         - build:
             executor:
-              type: podman
+              type: docker
               options:
-                image: totoimg
+                image: fedora:latest
 """
 
 
@@ -899,7 +902,6 @@ def test_config_executor():
         config_file.flush()
         config = Config(config_file.name)
 
-        manager = PluginManager([])
         fcdist = QubesDistribution("vm-fc42")
         debdist = QubesDistribution("vm-jammy")
         with tempfile.TemporaryDirectory() as tmp_source_dir:
@@ -927,7 +929,7 @@ def test_config_executor():
             component = QubesComponent(source_dir)
 
             plugin = DistributionComponentPlugin(
-                component=component, dist=fcdist, config=config, manager=manager
+                component=component, dist=fcdist, config=config, stage="fetch"
             )
 
             fetch_options = config.get_executor_options_from_config("fetch")
@@ -940,10 +942,10 @@ def test_config_executor():
                 "build", plugin
             )
             assert build_options == {
-                "type": "podman",
+                "type": "docker",
                 "options": {
                     "clean": False,
-                    "image": "totoimg",
+                    "image": "fedora:latest",
                     "dispvm": "@dispvm",
                 },
             }
@@ -961,18 +963,18 @@ def test_config_executor():
                 component=component,
                 dist=debdist,
                 config=config,
-                manager=manager,
+                stage="build",
             )
 
             build_options = config.get_executor_options_from_config(
                 "build", plugin
             )
             assert build_options == {
-                "type": "podman",
+                "type": "docker",
                 "options": {
                     "clean": False,
                     "dispvm": "qubes-builder-debian-dvm",
-                    "image": "totoimg",
+                    "image": "fedora:latest",
                 },
             }
 
@@ -999,7 +1001,6 @@ def test_config_executor_include_dist_no_dict():
         config_file_included.flush()
         config = Config(config_file_main.name)
 
-        manager = PluginManager([])
         debdist = QubesDistribution("vm-jammy")
         with tempfile.TemporaryDirectory() as tmp_source_dir:
             source_dir = f"{tmp_source_dir}/linux-kernel"
@@ -1028,18 +1029,18 @@ def test_config_executor_include_dist_no_dict():
                 component=component,
                 dist=debdist,
                 config=config,
-                manager=manager,
+                stage="fetch",
             )
 
             build_options = config.get_executor_options_from_config(
                 "build", plugin
             )
             assert build_options == {
-                "type": "podman",
+                "type": "docker",
                 "options": {
                     "clean": False,
                     "dispvm": "qubes-builder-debian-dvm",
-                    "image": "totoimg",
+                    "image": "fedora:latest",
                 },
             }
 
@@ -1075,7 +1076,6 @@ def test_config_executor_include_dist_dict():
         )
         config_file_included.flush()
         config = Config(config_file_main.name)
-        manager = PluginManager([])
         debdist = QubesDistribution("vm-jammy")
         with tempfile.TemporaryDirectory() as tmp_source_dir:
             source_dir = f"{tmp_source_dir}/linux-kernel"
@@ -1104,18 +1104,18 @@ def test_config_executor_include_dist_dict():
                 component=component,
                 dist=debdist,
                 config=config,
-                manager=manager,
+                stage="build",
             )
 
             build_options = config.get_executor_options_from_config(
                 "build", plugin
             )
             assert build_options == {
-                "type": "podman",
+                "type": "docker",
                 "options": {
                     "clean": False,
                     "dispvm": "qubes-builder-fedora-dvm",
-                    "image": "totoimg",
+                    "image": "fedora:latest",
                 },
             }
 

@@ -22,7 +22,6 @@ import shutil
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DEBDistributionPlugin
 from qubesbuilder.plugins.chroot import ChrootPlugin, ChrootError
 
@@ -42,20 +41,15 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         self,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
-        super().__init__(dist=dist, config=config, manager=manager)
+        super().__init__(dist=dist, config=config, stage=stage, **kwargs)
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
-
-        if stage != "init-cache":
-            return
-
-        executor = self.get_executor_from_config(stage)
 
         chroot_dir = (
             self.config.cache_dir / "chroot" / self.dist.name / "pbuilder"
@@ -73,17 +67,17 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
 
         # Create a first cage to generate the base.tgz
         copy_in = self.default_copy_in(
-            executor.get_plugins_dir(), executor.get_sources_dir()
+            self.executor.get_plugins_dir(), self.executor.get_sources_dir()
         )
         copy_out = [
             (
-                executor.get_builder_dir() / "pbuilder/base.tgz",
+                self.executor.get_builder_dir() / "pbuilder/base.tgz",
                 chroot_dir,
             )
         ]
         cmd = [
-            f"sed -i '/qubes-deb/d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
-            f"mkdir -p {executor.get_cache_dir()}/aptcache",
+            f"sed -i '/qubes-deb/d' {self.executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+            f"mkdir -p {self.executor.get_cache_dir()}/aptcache",
         ]
         # If provided, use the first mirror given in builder configuration mirrors list
         mirrors = self.config.get("mirrors", {}).get(
@@ -91,15 +85,15 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         ) or self.config.get("mirrors", {}).get(self.dist.fullname, [])
         if mirrors:
             cmd += [
-                f"sed -i 's@MIRRORSITE=https://deb.debian.org/debian@MIRRORSITE={mirrors[0]}@' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc"
+                f"sed -i 's@MIRRORSITE=https://deb.debian.org/debian@MIRRORSITE={mirrors[0]}@' {self.executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc"
             ]
         pbuilder_cmd = [
             f"sudo -E pbuilder create --distribution {self.dist.name}",
-            f"--configfile {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+            f"--configfile {self.executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
         ]
         cmd.append(" ".join(pbuilder_cmd))
         try:
-            executor.run(
+            self.executor.run(
                 cmd,
                 copy_in,
                 copy_out,
@@ -118,32 +112,32 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         )
         if additional_packages:
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
                 (
                     chroot_dir / "base.tgz",
-                    executor.get_builder_dir() / "pbuilder",
+                    self.executor.get_builder_dir() / "pbuilder",
                 )
             ]
             copy_out = [
                 (
-                    executor.get_cache_dir() / "aptcache",
+                    self.executor.get_cache_dir() / "aptcache",
                     chroot_dir,
                 )
             ]
             cmd = [
-                f"sed -i '/qubes-deb/d' {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
-                f"mkdir -p {executor.get_cache_dir()}/aptcache",
+                f"sed -i '/qubes-deb/d' {self.executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+                f"mkdir -p {self.executor.get_cache_dir()}/aptcache",
             ]
             pbuilder_cmd = [
                 f"sudo -E pbuilder execute --distribution {self.dist.name}",
-                f"--configfile {executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
-                f"--bindmounts {executor.get_cache_dir()}/aptcache:/tmp/aptcache",
-                f"-- {executor.get_plugins_dir()}/chroot_deb/scripts/apt-download-packages {' '.join(additional_packages)}",
+                f"--configfile {self.executor.get_plugins_dir()}/chroot_deb/pbuilder/pbuilderrc",
+                f"--bindmounts {self.executor.get_cache_dir()}/aptcache:/tmp/aptcache",
+                f"-- {self.executor.get_plugins_dir()}/chroot_deb/scripts/apt-download-packages {' '.join(additional_packages)}",
             ]
             cmd.append(" ".join(pbuilder_cmd))
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,

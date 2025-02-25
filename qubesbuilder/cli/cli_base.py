@@ -32,7 +32,6 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.log import QubesBuilderLogger
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.template import QubesTemplate
 
 
@@ -43,7 +42,6 @@ class ContextObj:
 
     def __init__(self, config: Config):
         self.config = config
-        self.manager = PluginManager(config.get_plugins_dirs())
         self.components: List[QubesComponent] = []
         self.distributions: List[QubesDistribution] = []
         self.templates: List[QubesTemplate] = []

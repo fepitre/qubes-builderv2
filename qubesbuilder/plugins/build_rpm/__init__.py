@@ -24,14 +24,15 @@ from pathlib import Path
 from typing import List
 
 from qubesbuilder.common import extract_lines_before
-
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
-from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.plugins import RPMDistributionPlugin, PluginDependency
+from qubesbuilder.plugins import (
+    RPMDistributionPlugin,
+    PluginDependency,
+)
 from qubesbuilder.plugins.build import BuildPlugin, BuildError
 
 
@@ -123,19 +124,26 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
 
     name = "build_rpm"
     stages = ["build"]
-    dependencies = [PluginDependency("chroot_rpm"), PluginDependency("build")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
+
+        self.dependencies += [
+            PluginDependency("chroot_rpm"),
+            PluginDependency("build"),
+        ]
 
         # Add some environment variables needed to render mock root configuration
         self.environment.update(
@@ -163,26 +171,24 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
                 }
             )
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "build" or not self.has_component_packages("build"):
+        if not self.has_component_packages("build"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
-        distfiles_dir = self.get_component_distfiles_dir()
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        parameters = self.get_parameters(self.stage)
+        artifacts_dir = self.get_dist_component_artifacts_dir(self.stage)
         rpms_dir = artifacts_dir / "rpm"
 
         # Compare previous artifacts hash with current source hash
         if all(
             self.component.get_source_hash()
-            == self.get_dist_artifacts_info(stage, build.mangle()).get(
+            == self.get_dist_artifacts_info(self.stage, build.mangle()).get(
                 "source-hash", None
             )
             for build in parameters["build"]
@@ -236,27 +242,29 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
 
             # Copy-in distfiles, content and source RPM
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
-                (repository_dir, executor.get_repository_dir()),
+                (repository_dir, self.executor.get_repository_dir()),
                 (
                     prep_artifacts_dir / source_info["srpm"],
-                    executor.get_build_dir(),
+                    self.executor.get_build_dir(),
                 ),
             ]
 
             copy_out = [
-                (executor.get_build_dir() / "rpm" / rpm, rpms_dir)
+                (self.executor.get_build_dir() / "rpm" / rpm, rpms_dir)
                 for rpm in source_info["rpms"]
             ]
-            copy_out += [(executor.get_build_dir() / buildinfo_file, rpms_dir)]
+            copy_out += [
+                (self.executor.get_build_dir() / buildinfo_file, rpms_dir)
+            ]
 
             # Createrepo of local builder repository and ensure 'mock' group can access
             # build directory
             cmd = [
-                f"cd {executor.get_repository_dir()}",
+                f"cd {self.executor.get_repository_dir()}",
                 "createrepo_c .",
-                f"sudo chown -R {executor.get_user()}:mock {executor.get_build_dir()}",
+                f"sudo chown -R {self.executor.get_user()}:mock {self.executor.get_build_dir()}",
             ]
 
             # Run 'mock' to build source RPM
@@ -267,9 +275,11 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             )
             chroot_cache = chroot_cache_topdir / mock_conf.replace(".cfg", "")
             if chroot_cache.exists():
-                copy_in += [(chroot_cache_topdir, executor.get_cache_dir())]
+                copy_in += [
+                    (chroot_cache_topdir, self.executor.get_cache_dir())
+                ]
                 cmd += [
-                    f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"
+                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
                 ]
 
             if self.config.increment_devel_versions:
@@ -287,11 +297,11 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             mock_cmd = [
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION",
                 "/usr/libexec/mock/mock --no-cleanup-after --verbose",
-                f"--rebuild {executor.get_build_dir() / source_info['srpm']}",
-                f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
-                f"--resultdir={executor.get_build_dir()}",
+                f"--rebuild {self.executor.get_build_dir() / source_info['srpm']}",
+                f"--root {self.executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
+                f"--resultdir={self.executor.get_build_dir()}",
             ]
-            if isinstance(executor, ContainerExecutor):
+            if isinstance(self.executor, ContainerExecutor):
                 msg = f"{self.component}:{self.dist}:{build}: Mock isolation set to 'simple', build has full network access. Use 'qubes' executor for network-isolated build."
                 self.log.warning(msg)
                 mock_cmd.append("--isolation=simple")
@@ -320,8 +330,8 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             buildinfo_cmd = [
                 "sudo --preserve-env=DIST,PACKAGE_SET,USE_QUBES_REPO_VERSION,BIND_MOUNT_ENABLE",
                 "/usr/libexec/mock/mock",
-                f"--root {executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
-                f'--chroot /plugins/build_rpm/scripts/rpmbuildinfo /builddir/build/SRPMS/{source_info["srpm"]} > {executor.get_build_dir()}/{buildinfo_file}',
+                f"--root {self.executor.get_plugins_dir()}/chroot_rpm/mock/{mock_conf}",
+                f'--chroot /plugins/build_rpm/scripts/rpmbuildinfo /builddir/build/SRPMS/{source_info["srpm"]} > {self.executor.get_build_dir()}/{buildinfo_file}',
             ]
 
             cmd += [" ".join(mock_cmd), " ".join(buildinfo_cmd)]
@@ -329,11 +339,11 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
             # Move RPMs into a separate dir and generate packages list based on given
             # distribution tag. For example, 'fc32', 'fc32.qubes', etc.
             cmd += [
-                f"{executor.get_plugins_dir()}/build_rpm/scripts/filter-packages-by-dist-arch "
-                f"{executor.get_build_dir()} {executor.get_build_dir()}/rpm {dist_tag} {self.dist.architecture}"
+                f"{self.executor.get_plugins_dir()}/build_rpm/scripts/filter-packages-by-dist-arch "
+                f"{self.executor.get_build_dir()} {self.executor.get_build_dir()}/rpm {dist_tag} {self.dist.architecture}"
             ]
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,
@@ -388,7 +398,7 @@ class RPMBuildPlugin(RPMDistributionPlugin, BuildPlugin):
 
             # Save package information we parsed for next stages
             self.save_dist_artifacts_info(
-                stage=stage, basename=build_bn, info=info
+                stage=self.stage, basename=build_bn, info=info
             )
 
 

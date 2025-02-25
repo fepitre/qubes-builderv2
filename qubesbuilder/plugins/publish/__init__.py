@@ -23,8 +23,10 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.pluginmanager import PluginManager
-from qubesbuilder.plugins import DistributionComponentPlugin, PluginError
+from qubesbuilder.plugins import (
+    DistributionComponentPlugin,
+    PluginError,
+)
 
 # Define the minimum age for which packages can be published to 'current'
 COMPONENT_REPOSITORIES = [
@@ -51,17 +53,21 @@ class PublishPlugin(DistributionComponentPlugin):
     """
 
     name = "publish"
+    stages = ["publish"]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
 
     def validate_repository_publish(self, repository_publish):
@@ -122,19 +128,12 @@ class PublishPlugin(DistributionComponentPlugin):
     def create(self, repository_publish: str):
         return
 
-    def run(self, stage: str):
+    def run(self):
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "publish" or not self.has_component_packages("publish"):
+        if not self.has_component_packages("publish"):
             return
 
-        executor = self.get_executor_from_config(stage)
-
-        if not isinstance(executor, LocalExecutor):
+        if not isinstance(self.executor, LocalExecutor):
             raise PublishError("This plugin only supports local executor.")
-
-        # Check if we have Debian related content defined
-        if not self.get_parameters(stage).get("build", []):
-            self.log.info(f"{self.component}:{self.dist}: Nothing to be done.")
-            return

@@ -28,12 +28,9 @@ from shlex import quote
 from typing import Any, List, Union
 
 from qubesbuilder.common import VerificationMode, get_archive_name
-from qubesbuilder.component import QubesComponent
-from qubesbuilder.config import Config
 from qubesbuilder.exc import NoQubesBuilderFileError
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ComponentPlugin, PluginError
 
 
@@ -59,15 +56,6 @@ class FetchPlugin(ComponentPlugin):
     name = "fetch"
     stages = ["fetch"]
 
-    def __init__(
-        self,
-        component: QubesComponent,
-        config: Config,
-        manager: PluginManager,
-        **kwargs,
-    ):
-        super().__init__(component=component, config=config, manager=manager)
-
     def update_parameters(self, stage: str):
         """
         Update plugin parameters based on component .qubesbuilder.
@@ -83,20 +71,17 @@ class FetchPlugin(ComponentPlugin):
             return
         self._parameters[stage].update(parameters.get("source", {}))
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
 
-        if stage != "fetch":
-            return
-
         # Override provided executor for git phase only
         if self.config.get("git-run-inplace", False):
             executor = LocalExecutor()
-            executor.log = self.log.getChild(stage)
+            executor.log = self.log.getChild(self.stage)
         else:
-            executor = self.get_executor_from_config(stage)
+            executor = self.executor
 
         # Source component directory
         local_source_dir = self.config.sources_dir / self.component.name
@@ -186,10 +171,10 @@ class FetchPlugin(ComponentPlugin):
 
         # Update parameters based on previously fetched sources as .qubesbuilder
         # is now available.
-        super().run(stage)
+        super().run()
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        executor = self.executor
+        parameters = self.get_parameters(self.stage)
         distfiles_dir = self.get_component_distfiles_dir()
         distfiles_dir.mkdir(parents=True, exist_ok=True)
 
@@ -215,7 +200,7 @@ class FetchPlugin(ComponentPlugin):
 
         # Keep existing fetch info if it is up-to-date
         source_hash = self.component.get_source_hash(force_update=True)
-        old_info = self.get_artifacts_info(stage=stage, basename="source")
+        old_info = self.get_artifacts_info(stage=self.stage, basename="source")
         if "source-hash" in old_info and old_info["source-hash"] == source_hash:
             return
 
@@ -227,9 +212,9 @@ class FetchPlugin(ComponentPlugin):
 
         if self.config.get("git-run-inplace", False):
             executor = LocalExecutor()
-            executor.log = self.log.getChild(stage)
+            executor.log = self.log.getChild(self.stage)
         else:
-            executor = self.get_executor_from_config(stage)
+            executor = self.executor
 
         # Source component directory inside executors
         source_dir = executor.get_builder_dir() / self.component.name
@@ -349,7 +334,7 @@ class FetchPlugin(ComponentPlugin):
             # Create modules archives
             #
 
-            executor = self.get_executor_from_config(stage)
+            executor = self.executor
             source_dir = executor.get_builder_dir() / self.component.name
 
             copy_in = [
@@ -394,7 +379,9 @@ class FetchPlugin(ComponentPlugin):
             self.component.increment_devel_versions()
 
         try:
-            self.save_artifacts_info(stage=stage, basename="source", info=info)
+            self.save_artifacts_info(
+                stage=self.stage, basename="source", info=info
+            )
             # Clean temp_dir
             shutil.rmtree(temp_dir)
         except OSError as e:

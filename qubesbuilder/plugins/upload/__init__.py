@@ -16,11 +16,11 @@
 # with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+from typing import Optional
 
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor, ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import DistributionPlugin, PluginError
 from qubesbuilder.plugins.publish_deb import DEBPublishPlugin
 
@@ -44,10 +44,10 @@ class UploadPlugin(DistributionPlugin):
         self,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
-        super().__init__(config=config, manager=manager, dist=dist)
+        super().__init__(config=config, dist=dist, stage=stage, **kwargs)
 
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):
@@ -58,13 +58,8 @@ class UploadPlugin(DistributionPlugin):
             or distribution.is_archlinux()
         )
 
-    def run(self, stage: str, repository_publish: str = None):
-        if stage != "upload":
-            return
-
-        executor = self.get_executor_from_config(stage)
-
-        if not isinstance(executor, LocalExecutor):
+    def run(self, repository_publish: Optional[str] = None):
+        if not isinstance(self.executor, LocalExecutor):
             raise UploadError("This plugin only supports local executor.")
 
         remote_path = self.config.repository_upload_remote_host.get(
@@ -113,7 +108,7 @@ class UploadPlugin(DistributionPlugin):
                 cmd = [
                     f"rsync --partial --progress --hard-links -air --mkpath -- {local_path / relative_dir}/ {remote_path}/{relative_dir}/"
                 ]
-                executor.run(cmd)
+                self.executor.run(cmd)
         except ExecutorError as e:
             raise UploadError(
                 f"{self.dist}: Failed to upload to remote host: {str(e)}"

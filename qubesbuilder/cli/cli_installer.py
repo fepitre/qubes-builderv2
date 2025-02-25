@@ -6,7 +6,6 @@ from qubesbuilder.cli.cli_base import aliased_group, ContextObj
 from qubesbuilder.cli.cli_exc import CliError
 from qubesbuilder.common import STAGES, STAGES_ALIAS
 from qubesbuilder.config import Config
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins.installer import InstallerPlugin
 from qubesbuilder.template import QubesTemplate
 
@@ -20,7 +19,6 @@ def installer():
 
 def _installer_stage(
     config: Config,
-    manager: PluginManager,
     stage_name: str,
     iso_timestamp: str = None,
     templates: List[QubesTemplate] = None,
@@ -40,10 +38,9 @@ def _installer_stage(
 
     dist = host_distributions[0]
     installer_plugin = InstallerPlugin(
-        dist=dist, config=config, manager=manager, templates=templates or []
+        dist=dist, config=config, stage=stage_name, templates=templates or []
     )
     installer_plugin.run(
-        stage=stage_name,
         iso_timestamp=iso_timestamp,
         cache_templates_only=templates_only,
     )
@@ -55,7 +52,6 @@ def _all_installer_stage(obj: ContextObj):
     for s in STAGES:
         _installer_stage(
             config=obj.config,
-            manager=obj.manager,
             templates=obj.templates,
             stage_name=s,
         )
@@ -66,7 +62,6 @@ def _all_installer_stage(obj: ContextObj):
 def fetch(obj: ContextObj):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         templates=obj.templates,
         stage_name="fetch",
     )
@@ -82,7 +77,6 @@ def fetch(obj: ContextObj):
 def prep(obj: ContextObj, iso_timestamp: str):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         stage_name="prep",
         iso_timestamp=iso_timestamp,
         templates=obj.templates,
@@ -94,7 +88,6 @@ def prep(obj: ContextObj, iso_timestamp: str):
 def build(obj: ContextObj):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         templates=obj.templates,
         stage_name="build",
     )
@@ -105,7 +98,6 @@ def build(obj: ContextObj):
 def post(obj: ContextObj):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         templates=obj.templates,
         stage_name="post",
     )
@@ -116,7 +108,6 @@ def post(obj: ContextObj):
 def verify(obj: ContextObj):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         templates=obj.templates,
         stage_name="verify",
     )
@@ -127,7 +118,6 @@ def verify(obj: ContextObj):
 def sign(obj: ContextObj):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         templates=obj.templates,
         stage_name="sign",
     )
@@ -138,7 +128,6 @@ def sign(obj: ContextObj):
 def publish(obj: ContextObj):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         templates=obj.templates,
         stage_name="publish",
     )
@@ -149,7 +138,6 @@ def publish(obj: ContextObj):
 def upload(obj: ContextObj):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         templates=obj.templates,
         stage_name="upload",
     )
@@ -166,7 +154,6 @@ def upload(obj: ContextObj):
 def init_cache(obj: ContextObj, templates_only: bool):
     _installer_stage(
         config=obj.config,
-        manager=obj.manager,
         templates=obj.templates,
         stage_name="init-cache",
         templates_only=templates_only,

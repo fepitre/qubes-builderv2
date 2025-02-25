@@ -34,7 +34,6 @@ from qubesbuilder.config import (
 )
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import (
     PluginError,
     TemplatePlugin,
@@ -80,17 +79,23 @@ class TemplateBuilderPlugin(TemplatePlugin):
         )
 
     name = "template"
-    dependencies = [PluginDependency("publish")]
 
     def __init__(
         self,
         template: QubesTemplate,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
-        super().__init__(template=template, config=config, manager=manager)
+        super().__init__(
+            template=template,
+            config=config,
+            stage=stage,
+            **kwargs,
+        )
         self.template_version = ""
+
+        self.dependencies.append(PluginDependency("publish"))
 
     def get_template_version(self):
         if not self.template_version:
@@ -105,7 +110,6 @@ class TemplateBuilderPlugin(TemplatePlugin):
         return self.template_version
 
     def update_parameters(self, stage: str):
-        executor = self.get_executor_from_config(stage)
         template_options = [self.template.flavor] + self.template.options
         template_flavor_dir = []
         parsed_release = QUBES_RELEASE_RE.match(
@@ -124,18 +128,18 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "TEMPLATE_VERSION": self.get_template_version(),
                 "TEMPLATE_FLAVOR": self.template.flavor,
                 "TEMPLATE_OPTIONS": " ".join(template_options),
-                "INSTALL_DIR": f"{executor.get_builder_dir()}/mnt",
-                "ARTIFACTS_DIR": str(executor.get_build_dir()),
-                "PLUGINS_DIR": str(executor.get_plugins_dir()),
-                "PACKAGES_DIR": str(executor.get_repository_dir()),
+                "INSTALL_DIR": f"{self.executor.get_builder_dir()}/mnt",
+                "ARTIFACTS_DIR": str(self.executor.get_build_dir()),
+                "PLUGINS_DIR": str(self.executor.get_plugins_dir()),
+                "PACKAGES_DIR": str(self.executor.get_repository_dir()),
                 "DISCARD_PREPARED_IMAGE": "1",
                 "BUILDER_TURBO_MODE": "1",
                 "CACHE_DIR": str(
-                    executor.get_cache_dir() / f"cache_{self.dist.name}"
+                    self.executor.get_cache_dir() / f"cache_{self.dist.name}"
                 ),
                 "RELEASE": parsed_release.group(1),
                 "TEMPLATE_SCRIPTS_DIR": str(
-                    executor.get_plugins_dir() / "template/scripts"
+                    self.executor.get_plugins_dir() / "template/scripts"
                 ),
             }
         )
@@ -173,13 +177,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ComponentDependency("builder-rpm"),
             ]
             template_content_dir = str(
-                executor.get_sources_dir() / "builder-rpm/template_rpm"
+                self.executor.get_sources_dir() / "builder-rpm/template_rpm"
             )
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": template_content_dir,
                     "KEYS_DIR": str(
-                        executor.get_plugins_dir() / "chroot_rpm/keys"
+                        self.executor.get_plugins_dir() / "chroot_rpm/keys"
                     ),
                 }
             )
@@ -194,14 +198,14 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ComponentDependency("builder-debian"),
             ]
             template_content_dir = str(
-                executor.get_sources_dir()
+                self.executor.get_sources_dir()
                 / f"builder-debian/template_{self.dist.fullname}"
             )
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": template_content_dir,
                     "KEYS_DIR": str(
-                        executor.get_plugins_dir() / "chroot_deb/keys"
+                        self.executor.get_plugins_dir() / "chroot_deb/keys"
                     ),
                 }
             )
@@ -212,7 +216,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             ):
                 self.dependencies += [ComponentDependency("template-whonix")]
                 template_content_dir = str(
-                    executor.get_sources_dir() / "template-whonix"
+                    self.executor.get_sources_dir() / "template-whonix"
                 )
                 self.environment.update(
                     {
@@ -225,15 +229,15 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     }
                 )
                 template_flavor_dir += [
-                    f"+whonix-gateway:{executor.get_sources_dir()}/template-whonix",
-                    f"+whonix-workstation:{executor.get_sources_dir()}/template-whonix",
+                    f"+whonix-gateway:{self.executor.get_sources_dir()}/template-whonix",
+                    f"+whonix-workstation:{self.executor.get_sources_dir()}/template-whonix",
                 ]
             if self.template.flavor in ("kicksecure-17",):
                 self.dependencies += [
                     ComponentDependency("template-kicksecure")
                 ]
                 template_content_dir = str(
-                    executor.get_sources_dir() / "template-kicksecure"
+                    self.executor.get_sources_dir() / "template-kicksecure"
                 )
                 self.environment.update(
                     {
@@ -246,7 +250,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             if self.template.flavor.startswith("kali"):
                 self.dependencies += [ComponentDependency("template-kali")]
                 template_content_dir = str(
-                    executor.get_sources_dir() / "template-kali"
+                    self.executor.get_sources_dir() / "template-kali"
                 )
                 self.environment.update(
                     {
@@ -255,10 +259,10 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     }
                 )
                 template_flavor_dir += [
-                    f"+kali:{executor.get_sources_dir()}/template-kali",
-                    f"+kali-core:{executor.get_sources_dir()}/template-kali",
-                    f"+kali-large:{executor.get_sources_dir()}/template-kali",
-                    f"+kali-everything:{executor.get_sources_dir()}/template-kali",
+                    f"+kali:{self.executor.get_sources_dir()}/template-kali",
+                    f"+kali-core:{self.executor.get_sources_dir()}/template-kali",
+                    f"+kali-large:{self.executor.get_sources_dir()}/template-kali",
+                    f"+kali-everything:{self.executor.get_sources_dir()}/template-kali",
                 ]
 
         elif self.template.distribution.is_archlinux():
@@ -267,16 +271,17 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 ComponentDependency("builder-archlinux"),
             ]
             template_content_dir = str(
-                executor.get_sources_dir()
+                self.executor.get_sources_dir()
                 / "builder-archlinux/template_archlinux"
             )
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": template_content_dir,
-                    "CACHE_DIR": str(executor.get_cache_dir()),
+                    "CACHE_DIR": str(self.executor.get_cache_dir()),
                     # We would use chroot_archlinux when deprecating legacy builder.
                     "KEYS_DIR": str(
-                        executor.get_sources_dir() / "builder-archlinux/keys"
+                        self.executor.get_sources_dir()
+                        / "builder-archlinux/keys"
                     ),
                 }
             )
@@ -284,14 +289,14 @@ class TemplateBuilderPlugin(TemplatePlugin):
         elif self.template.distribution.is_gentoo():
             self.dependencies += [ComponentDependency("builder-gentoo")]
             template_content_dir = str(
-                executor.get_sources_dir() / "builder-gentoo/scripts"
+                self.executor.get_sources_dir() / "builder-gentoo/scripts"
             )
             self.environment.update(
                 {
                     "TEMPLATE_CONTENT_DIR": template_content_dir,
-                    "CACHE_DIR": str(executor.get_cache_dir()),
+                    "CACHE_DIR": str(self.executor.get_cache_dir()),
                     "KEYS_DIR": str(
-                        executor.get_sources_dir() / "builder-gentoo/keys"
+                        self.executor.get_sources_dir() / "builder-gentoo/keys"
                     ),
                 }
             )
@@ -317,8 +322,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         ]
         cmd = [" ".join(create_skeleton_cmd)]
         try:
-            executor = self.get_executor_from_config("publish")
-            executor.run(cmd)
+            self.executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.template}: Failed to create repository skeleton."
             raise TemplateError(msg) from e
@@ -381,7 +385,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         cmd = [f"cd {target_dir}", "createrepo_c ."]
         try:
             shutil.rmtree(target_dir / "repodata")
-            executor.run(cmd)
+            self.executor.run(cmd)
         except (ExecutorError, OSError) as e:
             msg = f"{self.template}: Failed to 'createrepo_c'"
             raise TemplateError(msg) from e
@@ -393,7 +397,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             f"{self.config.gpg_client} --batch --no-tty --yes --detach-sign --armor -u {sign_key} {repomd} > {repomd}.asc",
         ]
         try:
-            executor.run(cmd)
+            self.executor.run(cmd)
         except (ExecutorError, OSError) as e:
             msg = f"{self.template}: Failed to sign metadata"
             raise TemplateError(msg) from e
@@ -464,7 +468,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             cmd = [
                 f"python3 {self.manager.entities['publish'].directory}/mirrors/qubesmirror/metalink.py -b {repo_basedir} -- {self.manager.entities['publish_rpm'].directory}/mirrors.list {repomd} > {repomd}.metalink"
             ]
-            executor.run(cmd)
+            self.executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.template.name}: Failed to create metalink for '{repomd}': {str(e)}."
             self.log.error(msg)
@@ -490,7 +494,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 f"{self.manager.entities['sign_rpm'].directory}/scripts/sign-rpm "
                 f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm} --check-only"
             ]
-            executor.run(cmd)
+            self.executor.run(cmd)
         except ExecutorError as e:
             msg = f"{self.template}: Failed to check signatures."
             raise TemplateError(msg) from e
@@ -559,14 +563,12 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
     def run(
         self,
-        stage: str,
         repository_publish: Optional[str] = None,
         ignore_min_age: bool = False,
         unpublish: bool = False,
         template_timestamp: Optional[str] = None,
     ):
-        self.update_parameters(stage)
-        executor = self.get_executor_from_config(stage)
+        self.update_parameters(self.stage)
         repository_dir = self.config.repository_dir / self.dist.distribution
         template_artifacts_dir = self.config.templates_dir
         qubeized_image = (
@@ -580,7 +582,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         # Prep
         #
 
-        if stage == "prep":
+        if self.stage == "prep":
             if template_timestamp:
                 template_timestamp = parsedate(template_timestamp).strftime(
                     "%Y%m%d%H%M"
@@ -594,32 +596,32 @@ class TemplateBuilderPlugin(TemplatePlugin):
             self.environment.update({"TEMPLATE_TIMESTAMP": template_timestamp})
 
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
-            ) + [(repository_dir, executor.get_repository_dir())]
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
+            ) + [(repository_dir, self.executor.get_repository_dir())]
 
             copy_out = [
                 (
-                    executor.get_build_dir()
+                    self.executor.get_build_dir()
                     / "qubeized_images"
                     / self.template.name
                     / "root.img",
                     qubeized_image,
                 ),
                 (
-                    executor.get_build_dir() / "appmenus",
+                    self.executor.get_build_dir() / "appmenus",
                     template_artifacts_dir / self.template.name,
                 ),
                 (
-                    executor.get_build_dir() / "template.conf",
+                    self.executor.get_build_dir() / "template.conf",
                     template_artifacts_dir / self.template.name,
                 ),
             ]
 
             cmd = [
-                f"make -C {executor.get_plugins_dir()}/template prepare build-rootimg"
+                f"make -C {self.executor.get_plugins_dir()}/template prepare build-rootimg"
             ]
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,
@@ -634,13 +636,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
             prep_info = {
                 "timestamp": self.template.timestamp,
             }
-            self.save_artifacts_info(stage, prep_info)
+            self.save_artifacts_info(self.stage, prep_info)
 
         #
         # Build
         #
 
-        if stage == "build":
+        if self.stage == "build":
             if not self.template.timestamp:
                 self.template.timestamp = self.get_template_timestamp("prep")
 
@@ -651,13 +653,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
             rpm_fn = f"qubes-template-{self.template.name}-{self.get_template_version()}-{self.template.timestamp}.noarch.rpm"
 
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + (
                 [
-                    (repository_dir, executor.get_repository_dir()),
+                    (repository_dir, self.executor.get_repository_dir()),
                     (
                         qubeized_image / "root.img",
-                        executor.get_build_dir()
+                        self.executor.get_build_dir()
                         / "qubeized_images"
                         / self.template.name,
                     ),
@@ -665,13 +667,13 @@ class TemplateBuilderPlugin(TemplatePlugin):
                         template_artifacts_dir
                         / self.template.name
                         / "template.conf",
-                        executor.get_build_dir(),
+                        self.executor.get_build_dir(),
                     ),
                     (
                         template_artifacts_dir
                         / self.template.name
                         / "appmenus",
-                        executor.get_build_dir(),
+                        self.executor.get_build_dir(),
                     ),
                 ]
             )
@@ -679,16 +681,17 @@ class TemplateBuilderPlugin(TemplatePlugin):
             # Copy-in previously prepared base root img
             copy_out = [
                 (
-                    executor.get_build_dir() / f"rpmbuild/RPMS/noarch/{rpm_fn}",
+                    self.executor.get_build_dir()
+                    / f"rpmbuild/RPMS/noarch/{rpm_fn}",
                     template_artifacts_dir / "rpm",
                 ),
             ]
 
             cmd = [
-                f"make -C {executor.get_plugins_dir()}/template prepare build-rpm"
+                f"make -C {self.executor.get_plugins_dir()}/template prepare build-rpm"
             ]
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,
@@ -703,14 +706,14 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 "rpms": [str(rpm_fn)],
                 "timestamp": self.template.timestamp,
             }
-            self.save_artifacts_info(stage, build_info)
+            self.save_artifacts_info(self.stage, build_info)
 
         # Check that we have LocalExecutor for next stages
-        if stage in ("sign", "publish", "upload") and not isinstance(
-            executor, LocalExecutor
+        if self.stage in ("sign", "publish", "upload") and not isinstance(
+            self.executor, LocalExecutor
         ):
             raise TemplateError(
-                f"This plugin only supports local executor for '{stage}' stage."
+                f"This plugin only supports local executor for '{self.stage}' stage."
             )
 
         #
@@ -718,7 +721,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         #
 
         # Sign stage for templates
-        if stage == "sign":
+        if self.stage == "sign":
             db_path = template_artifacts_dir / "rpmdb"
             # We ensure to create a clean keyring for RPM
             if db_path.exists():
@@ -737,7 +740,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 f"rpmkeys --dbpath={db_path} --import {sign_key_asc}",
             ]
             try:
-                executor.run(cmd)
+                self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to create RPM dbpath."
                 raise TemplateError(msg) from e
@@ -763,7 +766,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     f"{self.manager.entities['sign_rpm'].directory}/scripts/sign-rpm "
                     f"--sign-key {sign_key} --db-path {db_path} --rpm {rpm}"
                 ]
-                executor.run(cmd)
+                self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.template}: Failed to sign template RPM '{rpm}'."
                 raise TemplateError(msg) from e
@@ -772,7 +775,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
         # Publish
         #
 
-        if stage in ("publish", "upload"):
+        if self.stage in ("publish", "upload"):
             repository_publish = (
                 repository_publish
                 or self.config.repository_publish.get("templates")
@@ -781,7 +784,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 raise TemplateError("Cannot determine repository for publish")
 
         # Publish stage for template components
-        if stage == "publish" and not unpublish:
+        if self.stage == "publish" and not unpublish:
             self.validate_repository_publish(repository_publish)
 
             if self.is_published(repository_publish):
@@ -801,7 +804,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     f"Refusing to publish to '{repository_publish}' as template is not uploaded "
                     f"to '{repository_publish}-testing' for at least {self.config.min_age_days} days."
                 )
-                raise TemplateError(failure_msg)
+                self.log.critical(failure_msg)
+                return
 
             # Ensure dbpath from sign stage (still) exists
             db_path = template_artifacts_dir / "rpmdb"
@@ -812,7 +816,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
             # Create skeleton
             self.create_repository_skeleton()
 
-            publish_info = self.get_template_artifacts_info(stage=stage)
+            publish_info = self.get_template_artifacts_info(stage=self.stage)
             build_info = self.get_template_artifacts_info(stage="build")
             if not (
                 publish_info
@@ -822,7 +826,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 publish_info = build_info
 
             self.publish(
-                executor=executor,
+                executor=self.executor,
                 db_path=db_path,
                 repository_publish=repository_publish,
             )
@@ -837,23 +841,23 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 }
             )
             # Save package information we published for committing into current
-            self.save_artifacts_info(stage, publish_info)
+            self.save_artifacts_info(self.stage, publish_info)
 
-        if stage == "publish" and unpublish:
+        if self.stage == "publish" and unpublish:
             if not self.is_published(repository_publish):
                 self.log.info(
                     f"{self.template}: Not published to '{repository_publish}'."
                 )
                 return
 
-            publish_info = self.get_template_artifacts_info(stage=stage)
+            publish_info = self.get_template_artifacts_info(stage=self.stage)
             self.unpublish(
-                executor=executor,
+                executor=self.executor,
                 repository_publish=repository_publish,
             )
 
             # Save package information we published for committing into current. If the packages
-            # are not published into another repository, we delete the publish stage information.
+            # are not published into another repository, we delete the "publish" stage information.
             publish_info["repository-publish"] = [
                 r
                 for r in publish_info.get("repository-publish", [])
@@ -867,7 +871,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
                 )
                 self.delete_artifacts_info(stage="publish")
 
-        if stage == "upload":
+        if self.stage == "upload":
             remote_path = self.config.repository_upload_remote_host.get(
                 "rpm", None
             )
@@ -895,11 +899,11 @@ class TemplateBuilderPlugin(TemplatePlugin):
                     cmd = [
                         f"rsync --partial --progress --hard-links -air --mkpath -- {local_path / relative_dir}/ {remote_path}/{relative_dir}/"
                     ]
-                    executor.run(cmd)
+                    self.executor.run(cmd)
             except ExecutorError as e:
                 raise TemplateError(
                     f"{self.dist}: Failed to upload to remote host: {str(e)}"
                 ) from e
 
 
-TEMPLATE_PLUGINS = [TemplateBuilderPlugin]
+PLUGINS = [TemplateBuilderPlugin]

@@ -28,6 +28,11 @@ def config(tmp_path):
     with tempfile.NamedTemporaryFile("w", dir=tmp_path) as config_file_main:
         config_file_main.write(
             """
+executor:
+  type: docker
+  options:
+    image: "qubes-builder-fedora:latest"
+
 components:
   - linux-utils
 
@@ -42,12 +47,11 @@ distributions:
 
 @pytest.fixture
 def plugins(config):
-    manager = PluginManager(config.get_plugins_dirs())
-    return manager.get_component_instances(
-        stage="build",
+    return config.get_jobs(
+        stage="prep",
         components=config.get_components(),
         distributions=config.get_distributions(),
-        config=config,
+        templates=[],
     )
 
 

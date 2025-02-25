@@ -18,12 +18,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import datetime
 import os
+from typing import Optional
 
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import ArchlinuxDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
@@ -41,19 +41,22 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
 
     name = "publish_archlinux"
     stages = ["publish"]
-    dependencies = [PluginDependency("publish")]
 
     def __init__(
         self,
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component,
+            dist=dist,
+            config=config,
+            stage=stage,
         )
+        self.dependencies.append(PluginDependency("publish"))
 
     def sign_metadata(self, executor, directory, sign_key, repository_db):
         self.log.info(
@@ -217,8 +220,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
 
     def run(
         self,
-        stage: str,
-        repository_publish: str = None,
+        repository_publish: Optional[str] = None,
         ignore_min_age: bool = False,
         unpublish: bool = False,
         **kwargs,
@@ -227,13 +229,12 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "publish" or not self.has_component_packages("publish"):
+        if not self.has_component_packages("publish"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
         # Check if we have a signing key provided
         sign_key = self.config.sign_key.get(
@@ -309,7 +310,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                     stage="build", basename=directory_bn
                 )
                 publish_info = self.get_dist_artifacts_info(
-                    stage=stage, basename=directory_bn
+                    stage=self.stage, basename=directory_bn
                 )
 
                 if not build_info:
@@ -330,7 +331,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                             "repository-publish", []
                         ):
                             self.unpublish(
-                                executor=executor,
+                                executor=self.executor,
                                 directory=directory,
                                 sign_key=sign_key,
                                 repository_publish=repository,
@@ -339,7 +340,7 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                         info = publish_info
 
                 self.publish(
-                    executor=executor,
+                    executor=self.executor,
                     directory=directory,
                     keyring_dir=keyring_dir,
                     sign_key=sign_key,
@@ -377,18 +378,18 @@ class ArchlinuxPublishPlugin(ArchlinuxDistributionPlugin, PublishPlugin):
                 directory_bn = directory.mangle()
 
                 publish_info = self.get_dist_artifacts_info(
-                    stage=stage, basename=directory_bn
+                    stage=self.stage, basename=directory_bn
                 )
 
                 self.unpublish(
-                    executor=executor,
+                    executor=self.executor,
                     directory=directory,
                     sign_key=sign_key,
                     repository_publish=repository_publish,
                 )
 
                 # Save package information we published for committing into current. If the packages
-                # are not published into another repository, we delete the publish stage information.
+                # are not published into another repository, we delete the "publish" stage information.
                 publish_info["repository-publish"] = [
                     r
                     for r in publish_info.get("repository-publish", [])

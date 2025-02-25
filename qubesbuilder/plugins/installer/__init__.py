@@ -33,7 +33,6 @@ from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import (
     PluginError,
     DistributionPlugin,
@@ -54,25 +53,26 @@ class InstallerPlugin(DistributionPlugin):
 
     name = "installer"
     stages = ["init-cache", "prep", "build", "sign", "upload"]
-    dependencies = [
-        PluginDependency("chroot_rpm"),
-        ComponentDependency("qubes-release"),
-    ]
 
     def __init__(
         self,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
-        templates: List[QubesTemplate] = [],
+        stage: str,
+        templates: List[QubesTemplate] = None,
         **kwargs,
     ):
-        super().__init__(config=config, manager=manager, dist=dist)
+        super().__init__(config=config, dist=dist, stage=stage, **kwargs)
+
+        self.dependencies += [
+            PluginDependency("chroot_rpm"),
+            ComponentDependency("qubes-release"),
+        ]
 
         self.iso_name = ""
         self.iso_version = ""
         self.iso_timestamp = ""
-        self.templates = templates
+        self.templates = templates or []
 
         self.kickstart_path = self.config.get_absolute_path_from_config(
             config.installer_kickstart,
@@ -138,15 +138,14 @@ class InstallerPlugin(DistributionPlugin):
         return self.iso_timestamp
 
     def update_parameters(self, stage: str, iso_timestamp: str = None):
-        executor = self.get_executor_from_config(stage)
         self.environment.update(
             {
                 "DIST": self.dist.name,
-                "INSTALL_DIR": f"{executor.get_builder_dir()}/mnt",
-                "ARTIFACTS_DIR": str(executor.get_build_dir()),
-                "PLUGINS_DIR": str(executor.get_plugins_dir()),
-                "PACKAGES_DIR": str(executor.get_repository_dir()),
-                "CACHE_DIR": str(executor.get_cache_dir()),
+                "INSTALL_DIR": f"{self.executor.get_builder_dir()}/mnt",
+                "ARTIFACTS_DIR": str(self.executor.get_build_dir()),
+                "PLUGINS_DIR": str(self.executor.get_plugins_dir()),
+                "PACKAGES_DIR": str(self.executor.get_repository_dir()),
+                "CACHE_DIR": str(self.executor.get_cache_dir()),
                 "ISO_USE_KERNEL_LATEST": (
                     "1" if self.config.iso_use_kernel_latest else "0"
                 ),
@@ -169,13 +168,13 @@ class InstallerPlugin(DistributionPlugin):
 
         # Kickstart will be copied under installer conf directory
         self.environment["INSTALLER_KICKSTART"] = (
-            executor.get_sources_dir()
+            self.executor.get_sources_dir()
             / f"qubes-release/conf/_builder_{self.kickstart_path.name}"
         )
 
         # Comps will be copied under builder directory
         self.environment["COMPS_FILE"] = (
-            executor.get_builder_dir() / self.comps_path.name
+            self.executor.get_builder_dir() / self.comps_path.name
         )
 
         # We don't need to process more ISO information
@@ -258,22 +257,16 @@ class InstallerPlugin(DistributionPlugin):
                     f"{self.dist}:{template.name}: Cannot find {rpm_path}."
                 )
                 continue
-            yield rpm_path, executor.get_repository_dir()
+            yield rpm_path, self.executor.get_repository_dir()
 
     def run(
         self,
-        stage: str,
         iso_timestamp: str = None,
         cache_templates_only: bool = False,
     ):
-        if stage not in self.stages:
-            return
+        super().run()
 
-        super().run(stage=stage)
-
-        self.update_parameters(stage=stage, iso_timestamp=iso_timestamp)
-
-        executor = self.get_executor_from_config(stage)
+        self.update_parameters(stage=self.stage, iso_timestamp=iso_timestamp)
 
         mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
         repository_dir = self.config.repository_dir / self.dist.distribution
@@ -292,11 +285,11 @@ class InstallerPlugin(DistributionPlugin):
         chroot_dir = cache_dir / "chroot/mock"
         templates_cache_dir = cache_dir / "templates"
 
-        if iso.exists() and stage in ("prep", "build"):
+        if iso.exists() and self.stage in ("prep", "build"):
             msg = f"{self.dist}:{self.iso_name}: ISO already exists."
             raise InstallerError(msg)
 
-        if not iso.exists() and stage in ("sign", "upload"):
+        if not iso.exists() and self.stage in ("sign", "upload"):
             msg = f"{self.iso_name}: Cannot find ISO '{iso}'."
             raise InstallerError(msg)
 
@@ -313,7 +306,7 @@ class InstallerPlugin(DistributionPlugin):
             for t in self.config.get("cache", {}).get("templates", [])
         ]
 
-        if stage == "init-cache":
+        if self.stage == "init-cache":
             chroot_dir.mkdir(exist_ok=True, parents=True)
 
             if not cache_templates_only:
@@ -323,17 +316,21 @@ class InstallerPlugin(DistributionPlugin):
                     shutil.rmtree(chroot_dir / mock_chroot_name)
 
                 copy_in = self.default_copy_in(
-                    executor.get_plugins_dir(), executor.get_sources_dir()
+                    self.executor.get_plugins_dir(),
+                    self.executor.get_sources_dir(),
                 )
 
                 # Copy-in builder local repository
                 if repository_dir.exists():
-                    copy_in += [(repository_dir, executor.get_repository_dir())]
-                copy_in.extend(self.templates_copy_in(executor))
+                    copy_in += [
+                        (repository_dir, self.executor.get_repository_dir())
+                    ]
+                copy_in.extend(self.templates_copy_in(self.executor))
 
                 copy_out = [
                     (
-                        executor.get_cache_dir() / f"mock/{mock_chroot_name}",
+                        self.executor.get_cache_dir()
+                        / f"mock/{mock_chroot_name}",
                         chroot_dir,
                     )
                 ]
@@ -341,10 +338,10 @@ class InstallerPlugin(DistributionPlugin):
                 mock_cmd = [
                     f"sudo --preserve-env=DIST,USE_QUBES_REPO_VERSION",
                     f"/usr/libexec/mock/mock",
-                    f"--root {executor.get_plugins_dir()}/installer/mock/{mock_conf}",
+                    f"--root {self.executor.get_plugins_dir()}/installer/mock/{mock_conf}",
                     "--init",
                 ]
-                if isinstance(executor, ContainerExecutor):
+                if isinstance(self.executor, ContainerExecutor):
                     msg = (
                         f"{self.dist}: Mock isolation set to 'simple', build has full network "
                         f"access. Use 'qubes' executor for network-isolated build."
@@ -372,18 +369,18 @@ class InstallerPlugin(DistributionPlugin):
 
                 # Create builder-local repository (could be empty) inside the cage
                 cmd_for_build_repo = [
-                    f"mkdir -p {executor.get_repository_dir()}",
-                    f"cd {executor.get_repository_dir()}",
+                    f"mkdir -p {self.executor.get_repository_dir()}",
+                    f"cd {self.executor.get_repository_dir()}",
                     "createrepo_c .",
                 ]
 
                 cmd = cmd_for_build_repo + [" ".join(mock_cmd)]
                 cmd += [
-                    f"sudo chmod a+rX -R {executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/"
+                    f"sudo chmod a+rX -R {self.executor.get_cache_dir()}/mock/{mock_chroot_name}/dnf_cache/"
                 ]
 
                 try:
-                    executor.run(
+                    self.executor.run(
                         cmd,
                         copy_in,
                         copy_out,
@@ -404,25 +401,26 @@ class InstallerPlugin(DistributionPlugin):
                 temp_dir = Path(tempfile.mkdtemp(dir=self.config.temp_dir))
 
                 copy_in = self.default_copy_in(
-                    executor.get_plugins_dir(), executor.get_sources_dir()
+                    self.executor.get_plugins_dir(),
+                    self.executor.get_sources_dir(),
                 ) + [
-                    (self.kickstart_path, executor.get_builder_dir()),
-                    (self.comps_path, executor.get_builder_dir()),
-                    (templates_cache_dir, executor.get_repository_dir()),
+                    (self.kickstart_path, self.executor.get_builder_dir()),
+                    (self.comps_path, self.executor.get_builder_dir()),
+                    (templates_cache_dir, self.executor.get_repository_dir()),
                 ]
                 copy_out = [
                     (
-                        executor.get_repository_dir()
+                        self.executor.get_repository_dir()
                         / templates_cache_dir.name,
                         temp_dir,
                     )
                 ]
                 cmd = [
-                    f"mv {executor.get_builder_dir() / self.kickstart_path.name} {executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}",
-                    f"sudo --preserve-env={','.join(self.environment.keys())} make -C {executor.get_plugins_dir()}/installer iso-parse-kickstart iso-templates-cache",
+                    f"mv {self.executor.get_builder_dir() / self.kickstart_path.name} {self.executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}",
+                    f"sudo --preserve-env={','.join(self.environment.keys())} make -C {self.executor.get_plugins_dir()}/installer iso-parse-kickstart iso-templates-cache",
                 ]
                 try:
-                    executor.run(
+                    self.executor.run(
                         cmd, copy_in, copy_out, environment=self.environment
                     )
                 except ExecutorError as e:
@@ -434,7 +432,7 @@ class InstallerPlugin(DistributionPlugin):
                 # Merge downloaded templates into the temporary
                 # directory into templates cache dir
                 local_executor = LocalExecutor()
-                local_executor.log = self.log.getChild(stage)
+                local_executor.log = self.log.getChild(self.stage)
                 try:
                     copy_in = self.default_copy_in(
                         local_executor.get_plugins_dir(),
@@ -459,55 +457,60 @@ class InstallerPlugin(DistributionPlugin):
                 finally:
                     shutil.rmtree(temp_dir)
 
-        if stage == "prep":
+        if self.stage == "prep":
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
-                (self.kickstart_path, executor.get_builder_dir()),
-                (self.comps_path, executor.get_builder_dir()),
+                (self.kickstart_path, self.executor.get_builder_dir()),
+                (self.comps_path, self.executor.get_builder_dir()),
             ]
 
             # Copy-in builder local repository
             if repository_dir.exists():
-                copy_in += [(repository_dir, executor.get_repository_dir())]
-            copy_in.extend(self.templates_copy_in(executor))
+                copy_in += [
+                    (repository_dir, self.executor.get_repository_dir())
+                ]
+            copy_in.extend(self.templates_copy_in(self.executor))
 
             # Prepare cmd
             cmd = [
-                f"mv {executor.get_builder_dir() / self.kickstart_path.name} {executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}"
+                f"mv {self.executor.get_builder_dir() / self.kickstart_path.name} {self.executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}"
             ]
 
             # Create builder-local repository (could be empty) inside the cage
             cmd += [
-                f"mkdir -p {executor.get_repository_dir()}",
-                f"cd {executor.get_repository_dir()}",
+                f"mkdir -p {self.executor.get_repository_dir()}",
+                f"cd {self.executor.get_repository_dir()}",
                 "createrepo_c .",
             ]
 
             # Add prepared chroot cache
             if chroot_cache.exists():
-                copy_in += [(chroot_cache.parent, executor.get_cache_dir())]
+                copy_in += [
+                    (chroot_cache.parent, self.executor.get_cache_dir())
+                ]
                 cmd += [
-                    f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"
+                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
                 ]
 
             # Add downloaded templates into builder-local repository
             if templates_cache_dir.exists():
                 copy_in += [
-                    (templates_cache_dir, executor.get_repository_dir())
+                    (templates_cache_dir, self.executor.get_repository_dir())
                 ]
 
             copy_out = [
                 (
-                    executor.get_plugins_dir() / f"installer/work",
+                    self.executor.get_plugins_dir() / f"installer/work",
                     cache_dir / self.iso_name,
                 ),
                 (
-                    executor.get_plugins_dir() / f"installer/yum/installer/rpm",
+                    self.executor.get_plugins_dir()
+                    / f"installer/yum/installer/rpm",
                     cache_dir / self.iso_name,
                 ),
                 (
-                    executor.get_builder_dir()
+                    self.executor.get_builder_dir()
                     / f"dnfroot/etc/yum.repos.d/installer.repo",
                     cache_dir / self.iso_name,
                 ),
@@ -520,10 +523,10 @@ class InstallerPlugin(DistributionPlugin):
             mock_cmd = [
                 f"sudo --preserve-env={','.join(self.environment.keys())}",
                 f"/usr/libexec/mock/mock",
-                f"--root {executor.get_plugins_dir()}/installer/mock/{mock_conf}",
-                f"--chroot 'env {self.get_env()} make -C {executor.get_plugins_dir()}/installer iso-prepare iso-parse-kickstart iso-parse-tmpl'",
+                f"--root {self.executor.get_plugins_dir()}/installer/mock/{mock_conf}",
+                f"--chroot 'env {self.get_env()} make -C {self.executor.get_plugins_dir()}/installer iso-prepare iso-parse-kickstart iso-parse-tmpl'",
             ]
-            if isinstance(executor, ContainerExecutor):
+            if isinstance(self.executor, ContainerExecutor):
                 msg = (
                     f"{self.dist}: Mock isolation set to 'simple', build has full network "
                     f"access. Use 'qubes' executor for network-isolated build."
@@ -561,12 +564,12 @@ class InstallerPlugin(DistributionPlugin):
 
             cmd += [
                 f"sudo --preserve-env={','.join(self.environment.keys())} "
-                f"make -C {executor.get_plugins_dir()}/installer "
+                f"make -C {self.executor.get_plugins_dir()}/installer "
                 f"iso-prepare iso-packages-anaconda iso-packages-lorax",
             ]
 
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,
@@ -590,42 +593,46 @@ class InstallerPlugin(DistributionPlugin):
                         f"File with forbidden extension detected: '{f}'."
                     )
 
-        if stage == "build":
+        if self.stage == "build":
             copy_in = self.default_copy_in(
-                executor.get_plugins_dir(), executor.get_sources_dir()
+                self.executor.get_plugins_dir(), self.executor.get_sources_dir()
             ) + [
                 (
                     cache_dir / self.iso_name / "work",
-                    executor.get_plugins_dir() / "installer",
+                    self.executor.get_plugins_dir() / "installer",
                 ),
                 (
                     cache_dir / self.iso_name / "rpm",
-                    executor.get_plugins_dir() / "installer/yum/installer",
+                    self.executor.get_plugins_dir() / "installer/yum/installer",
                 ),
-                (self.kickstart_path, executor.get_builder_dir()),
-                (self.comps_path, executor.get_builder_dir()),
+                (self.kickstart_path, self.executor.get_builder_dir()),
+                (self.comps_path, self.executor.get_builder_dir()),
             ]
 
             # Copy-in builder local repository
             if repository_dir.exists():
-                copy_in += [(repository_dir, executor.get_repository_dir())]
-            copy_in.extend(self.templates_copy_in(executor))
+                copy_in += [
+                    (repository_dir, self.executor.get_repository_dir())
+                ]
+            copy_in.extend(self.templates_copy_in(self.executor))
 
             # Prepare installer cmd
             cmd = [
-                f"mv {executor.get_builder_dir() / self.kickstart_path.name} {executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}"
+                f"mv {self.executor.get_builder_dir() / self.kickstart_path.name} {self.executor.get_sources_dir()}/qubes-release/conf/_builder_{self.kickstart_path.name}"
             ]
 
             # Add prepared chroot cache
             if chroot_cache.exists():
-                copy_in += [(chroot_cache.parent, executor.get_cache_dir())]
+                copy_in += [
+                    (chroot_cache.parent, self.executor.get_cache_dir())
+                ]
                 cmd += [
-                    f"sudo chown -R root:mock {executor.get_cache_dir() / 'mock'}"
+                    f"sudo chown -R root:mock {self.executor.get_cache_dir() / 'mock'}"
                 ]
 
             copy_out = [
                 (
-                    executor.get_plugins_dir()
+                    self.executor.get_plugins_dir()
                     / f"installer/work/{self.iso_version}/{self.dist.architecture}/iso/{self.iso_name}.iso",
                     iso_dir,
                 )
@@ -633,8 +640,8 @@ class InstallerPlugin(DistributionPlugin):
 
             # Create builder-local repository (could be empty) inside the cage
             cmd += [
-                f"mkdir -p {executor.get_repository_dir()}",
-                f"cd {executor.get_repository_dir()}",
+                f"mkdir -p {self.executor.get_repository_dir()}",
+                f"cd {self.executor.get_repository_dir()}",
                 "createrepo_c .",
             ]
 
@@ -645,11 +652,11 @@ class InstallerPlugin(DistributionPlugin):
             mock_cmd = [
                 f"sudo --preserve-env={','.join(self.environment.keys())}",
                 f"/usr/libexec/mock/mock",
-                f"--root {executor.get_plugins_dir()}/installer/mock/{mock_conf}",
+                f"--root {self.executor.get_plugins_dir()}/installer/mock/{mock_conf}",
                 "--disablerepo='*'",
-                f"--chroot 'env {self.get_env()} make -C {executor.get_plugins_dir()}/installer iso-prepare iso-parse-kickstart iso-installer-lorax iso-installer-mkisofs'",
+                f"--chroot 'env {self.get_env()} make -C {self.executor.get_plugins_dir()}/installer iso-prepare iso-parse-kickstart iso-installer-lorax iso-installer-mkisofs'",
             ]
-            if isinstance(executor, ContainerExecutor):
+            if isinstance(self.executor, ContainerExecutor):
                 msg = (
                     f"{self.dist}: Mock isolation set to 'simple', build has full network "
                     f"access. Use 'qubes' executor for network-isolated build."
@@ -670,7 +677,7 @@ class InstallerPlugin(DistributionPlugin):
             cmd += [" ".join(mock_cmd)]
 
             try:
-                executor.run(
+                self.executor.run(
                     cmd,
                     copy_in,
                     copy_out,
@@ -685,7 +692,7 @@ class InstallerPlugin(DistributionPlugin):
             info = {
                 "iso": iso.name,
                 "version": self.iso_version,
-                "timestamp": self.get_iso_timestamp(stage),
+                "timestamp": self.get_iso_timestamp(self.stage),
                 "kickstart": str(self.config.installer_kickstart),
                 "packages": {
                     "runtime": [
@@ -703,9 +710,9 @@ class InstallerPlugin(DistributionPlugin):
                     ],
                 },
             }
-            self.save_artifacts_info(stage, info)
+            self.save_artifacts_info(self.stage, info)
 
-        if stage == "sign":
+        if self.stage == "sign":
             # Check if we have a signing key provided
             sign_key = self.config.sign_key.get("iso", None)
             if not sign_key:
@@ -722,12 +729,12 @@ class InstallerPlugin(DistributionPlugin):
                 cmd = [
                     f"{self.manager.entities['installer'].directory}/scripts/release-iso {iso} {self.config.gpg_client} {sign_key}"
                 ]
-                executor.run(cmd)
+                self.executor.run(cmd)
             except ExecutorError as e:
                 msg = f"{self.iso_name}: Failed to sign ISO '{iso}'."
                 raise InstallerError(msg) from e
 
-        if stage == "upload":
+        if self.stage == "upload":
             remote_path = self.config.repository_upload_remote_host.get(
                 "iso", None
             )
@@ -741,7 +748,7 @@ class InstallerPlugin(DistributionPlugin):
                 cmd = [
                     f"rsync --partial --progress --hard-links -air --mkpath -- {iso_dir}/ {remote_path}"
                 ]
-                executor.run(cmd)
+                self.executor.run(cmd)
             except ExecutorError as e:
                 raise InstallerError(
                     f"{self.dist}: Failed to upload to remote host: {str(e)}"

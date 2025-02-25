@@ -19,9 +19,8 @@
 import os
 import re
 import shutil
-import tempfile
 import subprocess
-
+import tempfile
 from enum import Enum
 from pathlib import Path
 from string import digits, ascii_letters
