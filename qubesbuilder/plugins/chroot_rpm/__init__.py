@@ -51,9 +51,6 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
         Run plugin for given stage.
         """
 
-        if self.stage != "init-cache":
-            return
-
         mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
 
         chroot_dir = self.config.cache_dir / "chroot" / self.dist.name / "mock"

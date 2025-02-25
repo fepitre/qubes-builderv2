@@ -75,7 +75,7 @@ class PluginManager:
 
         return entities
 
-    def _get_instances_with_attr(self, module_attr):
+    def _get_plugins_with_attr(self, module_attr):
         # Ensure plugin class name are uniq
         plugin_names = []
         for entity in self.entities.values():
@@ -102,4 +102,4 @@ class PluginManager:
         return self._entities
 
     def get_plugins(self):
-        return self._get_instances_with_attr("PLUGINS")
+        return self._get_plugins_with_attr("PLUGINS")

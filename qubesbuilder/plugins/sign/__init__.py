@@ -45,6 +45,7 @@ class SignPlugin(DistributionComponentPlugin):
     """
 
     name = "sign"
+    stages = ["sign"]
 
     def __init__(
         self,
@@ -79,7 +80,7 @@ class SignPlugin(DistributionComponentPlugin):
         # Run stage defined by parent class
         super().run()
 
-        if self.stage != "sign" or not self.has_component_packages("sign"):
+        if not self.has_component_packages("sign"):
             return
 
         if not isinstance(self.executor, LocalExecutor):

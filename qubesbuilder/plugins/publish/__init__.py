@@ -53,6 +53,7 @@ class PublishPlugin(DistributionComponentPlugin):
     """
 
     name = "publish"
+    stages = ["publish"]
 
     def __init__(
         self,
@@ -131,9 +132,7 @@ class PublishPlugin(DistributionComponentPlugin):
         # Run stage defined by parent class
         super().run()
 
-        if self.stage != "publish" or not self.has_component_packages(
-            "publish"
-        ):
+        if not self.has_component_packages("publish"):
             return
 
         if not isinstance(self.executor, LocalExecutor):

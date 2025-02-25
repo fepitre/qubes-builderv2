@@ -92,7 +92,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
         # Run stage defined by parent class
         super().run()
 
-        if self.stage != "prep" or not self.has_component_packages("prep"):
+        if not self.has_component_packages("prep"):
             return
 
         parameters = self.get_parameters(self.stage)

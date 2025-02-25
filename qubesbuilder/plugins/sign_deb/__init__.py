@@ -72,7 +72,7 @@ class DEBSignPlugin(DEBDistributionPlugin, SignPlugin):
         # Run stage defined by parent class
         super().run()
 
-        if self.stage != "sign" or not self.has_component_packages("sign"):
+        if not self.has_component_packages("sign"):
             return
 
         parameters = self.get_parameters(self.stage)

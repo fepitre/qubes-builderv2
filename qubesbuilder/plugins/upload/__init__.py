@@ -59,9 +59,6 @@ class UploadPlugin(DistributionPlugin):
         )
 
     def run(self, repository_publish: Optional[str] = None):
-        if self.stage != "upload":
-            return
-
         if not isinstance(self.executor, LocalExecutor):
             raise UploadError("This plugin only supports local executor.")
 

@@ -206,12 +206,7 @@ class Plugin:
     def check_dependencies(self):
         for dependency in self.dependencies:
             if dependency.builder_object == "plugin":
-                if (
-                    dependency.builder_object == "plugin"
-                    and not self.manager.entities.get(
-                        dependency.reference, None
-                    )
-                ):
+                if not self.manager.entities.get(dependency.reference, None):
                     raise PluginError(f"Cannot find plugin '{dependency}'.")
             elif dependency.builder_object == "component":
                 component = self.config.get_components(
@@ -221,7 +216,9 @@ class Plugin:
                     raise PluginError(
                         f"Cannot find component '{dependency}' in configuration file."
                     )
-                if not self.config.sources_dir / dependency.reference:
+                if not (
+                    self.config.sources_dir / dependency.reference
+                ).exists():
                     raise PluginError(
                         f"Cannot find source component '{dependency.reference}' in artifacts."
                         f"Is package fetch stage done for '{dependency.reference}'"

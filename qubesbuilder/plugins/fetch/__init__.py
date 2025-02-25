@@ -76,9 +76,6 @@ class FetchPlugin(ComponentPlugin):
         Run plugin for given stage.
         """
 
-        if self.stage != "fetch":
-            return
-
         # Override provided executor for git phase only
         if self.config.get("git-run-inplace", False):
             executor = LocalExecutor()

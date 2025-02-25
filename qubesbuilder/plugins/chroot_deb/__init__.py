@@ -51,9 +51,6 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
         Run plugin for given stage.
         """
 
-        if self.stage != "init-cache":
-            return
-
         chroot_dir = (
             self.config.cache_dir / "chroot" / self.dist.name / "pbuilder"
         )

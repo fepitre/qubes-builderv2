@@ -111,9 +111,6 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         Run plugin for given stage.
         """
 
-        if self.stage != "init-cache":
-            return
-
         cache_chroot_dir = self.config.cache_dir / "chroot" / self.dist.name
         cache_chroot_dir.mkdir(exist_ok=True, parents=True)
 

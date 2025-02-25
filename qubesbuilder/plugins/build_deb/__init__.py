@@ -123,7 +123,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
         # Run stage defined by parent class
         super().run()
 
-        if self.stage != "build" or not self.has_component_packages("build"):
+        if not self.has_component_packages("build"):
             return
 
         parameters = self.get_parameters(self.stage)

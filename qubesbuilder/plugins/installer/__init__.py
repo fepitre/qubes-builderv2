@@ -264,9 +264,6 @@ class InstallerPlugin(DistributionPlugin):
         iso_timestamp: str = None,
         cache_templates_only: bool = False,
     ):
-        if self.stage not in self.stages:
-            return
-
         super().run()
 
         self.update_parameters(stage=self.stage, iso_timestamp=iso_timestamp)

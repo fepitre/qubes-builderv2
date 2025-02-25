@@ -331,9 +331,7 @@ class RPMPublishPlugin(RPMDistributionPlugin, PublishPlugin):
         # Run stage defined by parent class
         super().run()
 
-        if self.stage != "publish" or not self.has_component_packages(
-            "publish"
-        ):
+        if not self.has_component_packages("publish"):
             return
 
         parameters = self.get_parameters(self.stage)
