@@ -12,9 +12,11 @@ try {
     # Create destination directory
     New-Item -ItemType Directory -Path $decoded -Force | Out-Null
 
+    $parent = Split-Path -Parent $decoded
+    LogDebug "parent: $parent"
     # All Windows RPC executables use | as argument separator and powershell adds an extra space to the command line
     # see https://github.com/PowerShell/PowerShell/issues/13094
-    Start-Process -FilePath $fileReceiver -ArgumentList "$decoded|" -LoadUserProfile -NoNewWindow -Wait
+    Start-Process -FilePath $fileReceiver -ArgumentList "$parent|" -LoadUserProfile -NoNewWindow -Wait
 } catch [DecodeError] {
     Write-Error $_.Exception.Message
 }

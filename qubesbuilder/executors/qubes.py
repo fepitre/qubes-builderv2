@@ -22,10 +22,15 @@ import shutil
 import subprocess
 from pathlib import Path, PurePath
 from shlex import quote
-from typing import List, Tuple, Union
+from time import sleep
+from typing import List, Optional, Tuple, Union
 
+from qubesadmin.devices import DeviceAssignment, UnknownDevice
+from qubesadmin.exc import DeviceAlreadyAttached, QubesException
+from qubesadmin.vm import QubesVM
 from qubesbuilder.common import sanitize_line, PROJECT_PATH
 from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors.windows import BaseWindowsExecutor
 
 
 # From https://github.com/QubesOS/qubes-core-admin-client/blob/main/qubesadmin/utils.py#L159-L173
@@ -65,6 +70,9 @@ class QubesExecutor(Executor):
             self._dispvm_template = "dom0"
         else:
             self._dispvm_template = dispvm
+        self.dispvm: Optional[str] = None  # actual dispvm name
+        self.copy_in_service = "qubesbuilder.FileCopyIn"
+        self.copy_out_service = "qubesbuilder.FileCopyOut"
 
     def get_user(self):
         return "user"
@@ -72,15 +80,16 @@ class QubesExecutor(Executor):
     def get_group(self):
         return "user"
 
-    def copy_in(self, vm: str, source_path: Path, destination_dir: PurePath):  # type: ignore
+    def copy_in(self, source_path: Path, destination_dir: PurePath):  # type: ignore
+        assert self.dispvm
         src = source_path.expanduser().resolve()
         dst = destination_dir
         encoded_dst_path = encode_for_vmexec(str((dst / src.name).as_posix()))
         copy_in_cmd = [
             "/usr/lib/qubes/qrexec-client-vm",
             "--",
-            vm,
-            f"qubesbuilder.FileCopyIn+{encoded_dst_path}",
+            self.dispvm,
+            f"{self.copy_in_service}+{encoded_dst_path}",
             "/usr/lib/qubes/qfile-agent",
             str(src),
         ]
@@ -93,15 +102,15 @@ class QubesExecutor(Executor):
             else:
                 content = str(e)
             msg = f"Failed to copy-in: {content}"
-            raise ExecutorError(msg, name=vm)
+            raise ExecutorError(msg, name=self.dispvm)
 
     def copy_out(
         self,
-        vm: str,
         source_path: PurePath,
         destination_dir: Path,
         dig_holes=False,
     ):  # type: ignore
+        assert self.dispvm
         src = source_path
         dst = destination_dir.resolve()
 
@@ -124,8 +133,8 @@ class QubesExecutor(Executor):
         encoded_src_path = encode_for_vmexec(str(src))
         cmd = [
             "/usr/lib/qubes/qrexec-client-vm",
-            vm,
-            f"qubesbuilder.FileCopyOut+{encoded_src_path}",
+            self.dispvm,
+            f"{self.copy_out_service}+{encoded_src_path}",
             unpacker_path,
             str(os.getuid()),
             str(dst),
@@ -147,7 +156,71 @@ class QubesExecutor(Executor):
             else:
                 content = str(e)
             msg = f"Failed to copy-out: {content}"
-            raise ExecutorError(msg, name=vm)
+            raise ExecutorError(msg, name=self.dispvm)
+
+    def create_dispvm(self):
+        result = subprocess.run(
+            [
+                "qrexec-client-vm",
+                "--",
+                self._dispvm_template,
+                "admin.vm.CreateDisposable",
+            ],
+            capture_output=True,
+            stdin=subprocess.DEVNULL,
+        )
+        stdout = result.stdout
+        if not stdout.startswith(b"0\x00"):
+            raise ExecutorError("Failed to create disposable qube.")
+        stdout = stdout[2:]
+        if not re.match(rb"\Adisp(0|[1-9][0-9]{0,8})\Z", stdout):
+            raise ExecutorError("Failed to create disposable qube.")
+        try:
+            self.dispvm = stdout.decode("ascii", "strict")
+        except UnicodeDecodeError as e:
+            raise ExecutorError(
+                f"Failed to obtain disposable qube name: {str(e)}"
+            )
+
+    def start_dispvm(self):
+        assert self.dispvm
+        subprocess.run(
+            [
+                "/usr/lib/qubes/qrexec-client-vm",
+                self.dispvm,
+                "admin.vm.Start",
+            ],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            check=True,
+        )
+
+    def copy_rpc_services(self):
+        assert self.dispvm
+        copy_rpc_cmd = [
+            "/usr/lib/qubes/qrexec-client-vm",
+            "--filter-escape-chars-stderr",
+            self.dispvm,
+            "qubes.Filecopy",
+            "/usr/lib/qubes/qfile-agent",
+            str(PROJECT_PATH / "rpc" / self.copy_in_service),
+            str(PROJECT_PATH / "rpc" / self.copy_out_service),
+        ]
+        subprocess.run(
+            copy_rpc_cmd,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            check=True,
+        )
+
+    @staticmethod
+    def cleanup(dispvm: str):
+        # Kill the DispVM to prevent hanging for while
+        subprocess.run(
+            ["qrexec-client-vm", "--", dispvm, "admin.vm.Kill"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+        )
 
 
 class LinuxQubesExecutor(QubesExecutor):
@@ -155,15 +228,6 @@ class LinuxQubesExecutor(QubesExecutor):
         self, dispvm: str = "dom0", clean: Union[str, bool] = True, **kwargs
     ):
         super().__init__(dispvm=dispvm, clean=clean, **kwargs)
-
-    @staticmethod
-    def cleanup(dispvm):
-        # Kill the DispVM to prevent hanging for while
-        subprocess.run(
-            ["qrexec-client-vm", "--", dispvm, "admin.vm.Kill"],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-        )
 
     def run(  # type: ignore
         self,
@@ -175,62 +239,14 @@ class LinuxQubesExecutor(QubesExecutor):
         no_fail_copy_out_allowed_patterns=None,
         dig_holes: bool = False,
     ):
-        dispvm = None
         try:
-            result = subprocess.run(
-                [
-                    "qrexec-client-vm",
-                    "--",
-                    self._dispvm_template,
-                    "admin.vm.CreateDisposable",
-                ],
-                capture_output=True,
-                stdin=subprocess.DEVNULL,
-            )
-            stdout = result.stdout
-            if not stdout.startswith(b"0\x00"):
-                raise ExecutorError("Failed to create disposable qube.")
-            stdout = stdout[2:]
-            if not re.match(rb"\Adisp(0|[1-9][0-9]{0,8})\Z", stdout):
-                raise ExecutorError("Failed to create disposable qube.")
-            try:
-                dispvm = stdout.decode("ascii", "strict")
-            except UnicodeDecodeError as e:
-                raise ExecutorError(
-                    f"Failed to obtain disposable qube name: {str(e)}"
-                )
+            self.create_dispvm()
+            self.start_dispvm()
+            self.copy_rpc_services()
 
-            # Start the DispVM
-            subprocess.run(
-                [
-                    "/usr/lib/qubes/qrexec-client-vm",
-                    dispvm,
-                    "admin.vm.Start",
-                ],
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                check=True,
-            )
-
-            # Copy qubes-builder RPC
-            copy_rpc_cmd = [
-                "/usr/lib/qubes/qrexec-client-vm",
-                "--filter-escape-chars-stderr",
-                dispvm,
-                "qubes.Filecopy",
-                "/usr/lib/qubes/qfile-agent",
-                str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyIn"),
-                str(PROJECT_PATH / "rpc" / "qubesbuilder.FileCopyOut"),
-            ]
-            subprocess.run(
-                copy_rpc_cmd,
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                check=True,
-            )
-
+            assert self.dispvm
             prep_cmd = build_run_cmd_and_list(
-                dispvm,
+                self.dispvm,
                 [
                     [
                         "sudo",
@@ -282,7 +298,7 @@ class LinuxQubesExecutor(QubesExecutor):
             for src_in, dst_in in sorted(
                 set(copy_in or []), key=lambda x: x[1]
             ):
-                self.copy_in(dispvm, source_path=src_in, destination_dir=dst_in)
+                self.copy_in(source_path=src_in, destination_dir=dst_in)
 
             # replace placeholders
             if files_inside_executor_with_placeholders and isinstance(
@@ -304,7 +320,7 @@ class LinuxQubesExecutor(QubesExecutor):
                     .replace("\n", "\\\n")
                 )
                 sed_cmd = build_run_cmd(
-                    dispvm,
+                    self.dispvm,
                     [
                         "sed",
                         "-i",
@@ -325,7 +341,7 @@ class LinuxQubesExecutor(QubesExecutor):
                     bash_env.append(f"{str(key)}={str(val)}")
 
             qvm_run_cmd = build_run_cmd(
-                dispvm,
+                self.dispvm,
                 [
                     "env",
                     "--",
@@ -336,14 +352,14 @@ class LinuxQubesExecutor(QubesExecutor):
                 ],
             )
 
-            self.log.info(f"Using executor qubes:{dispvm}.")
+            self.log.info(f"Using executor qubes:{self.dispvm}.")
             self.log.debug(" ".join(qvm_run_cmd))
 
             # stream output for command
             rc = self.execute(qvm_run_cmd)
             if rc != 0:
                 msg = f"Failed to run '{' '.join(qvm_run_cmd)}' (status={rc})."
-                raise ExecutorError(msg, name=dispvm)
+                raise ExecutorError(msg, name=self.dispvm)
 
             # copy-out hook
             for src_out, dst_out in sorted(
@@ -351,7 +367,6 @@ class LinuxQubesExecutor(QubesExecutor):
             ):
                 try:
                     self.copy_out(
-                        dispvm,
                         source_path=src_out,
                         destination_dir=dst_out,
                         dig_holes=dig_holes,
@@ -372,9 +387,200 @@ class LinuxQubesExecutor(QubesExecutor):
                         continue
                     raise e
         except (subprocess.CalledProcessError, ExecutorError) as e:
-            if dispvm and self._clean_on_error:
-                self.cleanup(dispvm)
+            if self.dispvm and self._clean_on_error:
+                self.cleanup(self.dispvm)
             raise e
         else:
-            if dispvm and self._clean:
-                self.cleanup(dispvm)
+            if self.dispvm and self._clean:
+                self.cleanup(self.dispvm)
+
+
+class WindowsQubesExecutor(BaseWindowsExecutor, QubesExecutor):
+    def __init__(
+        self,
+        ewdk: str,
+        dispvm: str = "win-build",
+        user: str = "user",
+        clean: Union[str, bool] = True,
+        **kwargs,
+    ):
+        super().__init__(dispvm=dispvm, user=user, clean=clean, **kwargs)
+        self.ewdk_path = ewdk
+        self.copy_in_service = "qubesbuilder.WinFileCopyIn"
+        self.copy_out_service = "qubesbuilder.WinFileCopyOut"
+
+    # Get loop device id for the EWDK iso if attached to the builder vm, otherwise None
+    def _get_ewdk_loop(self) -> Optional[str]:
+        try:
+            proc = subprocess.run(
+                ["losetup", "-j", self.ewdk_path],
+                check=True,
+                capture_output=True,
+            )
+            stdout = proc.stdout.decode()
+            if "/dev/loop" in stdout:
+                loop_dev = stdout.split(":", 1)[0]
+                loop_id = loop_dev.removeprefix("/dev/")
+                self.log.debug(f"ewdk loop id: {loop_id}")
+                return loop_id
+            else:
+                return None
+
+        except subprocess.CalledProcessError as e:
+            raise ExecutorError(
+                f"Failed to run losetup: {proc.stderr.decode()}"
+            ) from e
+
+    def _get_ewdk_assignment(self) -> DeviceAssignment:
+        if not Path(self.ewdk_path).is_file():
+            raise ExecutorError(f"EWDK image not found at '{self.ewdk_path}'")
+
+        loop_id = self._get_ewdk_loop()
+        if not loop_id:
+            # attach EWDK image
+            proc = None
+            try:
+                self.log.debug(f"attaching EWDK from '{self.ewdk_path}'")
+                proc = subprocess.run(
+                    ["sudo", "losetup", "-f", self.ewdk_path],
+                    check=True,
+                    capture_output=True,
+                )
+            except subprocess.CalledProcessError as e:
+                raise ExecutorError(
+                    f"Failed to run losetup: {proc.stderr.decode() if proc else e}"
+                ) from e
+
+            loop_id = self._get_ewdk_loop()
+            if not loop_id:
+                raise ExecutorError(f"Failed to attach EWDK ({self.ewdk_path})")
+
+            self.log.debug(f"attached EWDK as '{loop_id}'")
+
+        # wait for device to appear
+        self_vm = QubesVM(self.app, self.app.local_name)
+        timeout = 10
+        while isinstance(self_vm.devices["block"][loop_id], UnknownDevice):
+            if timeout == 0:
+                raise ExecutorError(
+                    f"Failed to attach EWDK ({self.ewdk_path}): "
+                    f"wait for loopback device timed out"
+                )
+            timeout -= 1
+            sleep(1)
+
+        return DeviceAssignment(
+            backend_domain=self.app.local_name,
+            ident=loop_id,
+            devclass="block",
+            options={
+                "devtype": "cdrom",
+                "read-only": True,
+            },
+            persistent=True,
+        )
+
+    def start_worker(self) -> QubesVM:
+        # we need the dispvm in a stopped state to attach EWDK block device
+        self.create_dispvm()
+        vm = QubesVM(self.app, self.dispvm)
+        self.log.debug(f"dispvm: {vm.name}")
+        ewdk_assignment = self._get_ewdk_assignment()
+        try:
+            vm.devices["block"].attach(ewdk_assignment)
+        except DeviceAlreadyAttached:
+            pass
+        except Exception as e:
+            msg = f"Failed to assign EWDK iso image to '{self.dispvm}'"
+            raise ExecutorError(msg, name=self.dispvm) from e
+
+        vm.start()
+
+        # wait for startup
+        for _ in range(10):
+            try:
+                proc = vm.run_service("qubes.VMShell")
+                proc.communicate(b"exit 0")
+                if proc.returncode == 0:
+                    return vm  # all good
+                else:
+                    self.log.debug(f"VMShell failed: {proc.returncode}")
+            except QubesException as e:
+                self.log.debug(f"VMShell failed: {e}")
+            sleep(5)
+        raise ExecutorError(
+            f"Failed to communicate with windows dispvm '{self.dispvm}'"
+        )
+
+    def run(
+        self,
+        cmd: List[str],
+        copy_in: List[Tuple[Path, PurePath]] = None,
+        copy_out: List[Tuple[PurePath, Path]] = None,
+    ):
+        try:
+            # copy the rpc handlers
+            # TODO: don't require two scripts per service
+            files = [
+                str(PROJECT_PATH / "rpc" / "qubesbuilder.WinFileCopyIn"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder.WinFileCopyOut"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder-file-copy-in.ps1"),
+                str(PROJECT_PATH / "rpc" / "qubesbuilder-file-copy-out.ps1"),
+            ]
+
+            vm = self.start_worker()
+            proc = vm.run_service(
+                "qubes.Filecopy",
+                localcmd=f"/usr/lib/qubes/qfile-agent {' '.join(files)}",
+            )
+            _, stderr = proc.communicate()
+            if proc.returncode != 0:
+                raise ExecutorError(
+                    f"Failed to copy builder RPC services to qube '{self.dispvm}': {stderr.decode('utf-8')}"
+                )
+
+            inc_dir = f"c:\\users\\{self.user}\\Documents\\QubesIncoming\\{os.uname().nodename}"
+
+            prep_cmd = [
+                f'move /y "{inc_dir}\\qubesbuilder.WinFileCopyIn" "%QUBES_TOOLS%\\qubes-rpc\\"',
+                f'move /y "{inc_dir}\\qubesbuilder.WinFileCopyOut" "%QUBES_TOOLS%\\qubes-rpc\\"',
+                f'move /y "{inc_dir}\\qubesbuilder-file-copy-in.ps1" "%QUBES_TOOLS%\\qubes-rpc-services\\"',
+                f'move /y "{inc_dir}\\qubesbuilder-file-copy-out.ps1" "%QUBES_TOOLS%\\qubes-rpc-services\\"',
+            ]
+
+            proc = vm.run_service("qubes.VMShell")
+            _, stderr = proc.communicate(
+                (" & ".join(prep_cmd) + " & exit !errorlevel!" + "\r\n").encode(
+                    "utf-8"
+                )
+            )
+            if proc.returncode != 0:
+                raise ExecutorError(
+                    f"Failed to copy builder RPC services to qube '{self.dispvm}': {stderr}"
+                )
+
+            for src_in, dst_in in copy_in or []:
+                self.copy_in(src_in, dst_in)
+
+            bin_cmd = (
+                " & ".join(cmd) + " & exit !errorlevel!" + "\r\n"
+            ).encode("utf-8")
+            self.log.debug(f"{bin_cmd=}")
+
+            # TODO: this doesn't stream stdout, use execute()
+            proc = vm.run_service("qubes.VMShell")
+            stdout, stderr = proc.communicate(bin_cmd)
+            if proc.returncode != 0:
+                raise ExecutorError(
+                    f"Failed to run command in qube {self.dispvm}: {stderr.decode('utf-8')}"
+                )
+            self.log.debug(stdout.decode("utf-8"))
+
+            for src_out, dst_out in copy_out or []:
+                self.copy_out(src_out, dst_out)
+        except QubesException as e:
+            suffix = f" in qube {self.dispvm}" if self.dispvm else ""
+            raise ExecutorError(f"Failed to run command{suffix}: {str(e)}")
+        finally:
+            if self.dispvm:
+                self.kill_vm(self.dispvm)

@@ -38,12 +38,15 @@ distributions:
             sign-key-name: "Qubes Windows Tools"
             test-sign: true
             executor:
+              #type: windows-ssh
               type: windows
               options:
-                vm: win-build
-                ssh-key: /home/user/.ssh/win-build.key
+                dispvm: win-build
+                user: user
                 ewdk: tools/windows/ewdk.iso
                 threads: 1
+                #ssh-ip: 10.137.0.20
+                #ssh-key-path: /home/user/.ssh/win-build.key
 
 components:
   - vmm-xen-windows-pvdrivers

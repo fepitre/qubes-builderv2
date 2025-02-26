@@ -26,8 +26,6 @@ from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.executors import ExecutorError
-from qubesbuilder.pluginmanager import PluginManager
 from qubesbuilder.plugins import WindowsDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
@@ -46,25 +44,24 @@ class WindowsSourcePlugin(WindowsDistributionPlugin, SourcePlugin):
         component: QubesComponent,
         dist: QubesDistribution,
         config: Config,
-        manager: PluginManager,
+        stage: str,
         **kwargs,
     ):
         super().__init__(
-            component=component, dist=dist, config=config, manager=manager
+            component=component, dist=dist, config=config, stage=stage
         )
 
-    def run(self, stage: str):
+    def run(self):
         """
         Run plugin for given stage.
         """
         # Run stage defined by parent class
-        super().run(stage=stage)
+        super().run()
 
-        if stage != "prep" or not self.has_component_packages("prep"):
+        if self.stage != "prep" or not self.has_component_packages("prep"):
             return
 
-        executor = self.get_executor_from_config(stage)
-        parameters = self.get_parameters(stage)
+        parameters = self.get_parameters(self.stage)
 
         # Check if we have distribution related content defined
         if not parameters.get("build", []):
@@ -72,9 +69,9 @@ class WindowsSourcePlugin(WindowsDistributionPlugin, SourcePlugin):
             return
 
         # Compare previous artifacts hash with current source hash
-        hash = self.get_dist_artifacts_info(stage, self.component.name).get(
-            "source-hash", None
-        )
+        hash = self.get_dist_artifacts_info(
+            self.stage, self.component.name
+        ).get("source-hash", None)
         if self.component.get_source_hash() == hash:
             self.log.info(
                 f"{self.component}:{self.dist}: Source hash is the same as already prepared source. Skipping."
@@ -88,7 +85,7 @@ class WindowsSourcePlugin(WindowsDistributionPlugin, SourcePlugin):
             artifacts_dir=self.get_component_artifacts_dir("fetch"),
         )
 
-        artifacts_dir = self.get_dist_component_artifacts_dir(stage)
+        artifacts_dir = self.get_dist_component_artifacts_dir(self.stage)
 
         # Clean previous build artifacts
         if artifacts_dir.exists():
@@ -104,7 +101,7 @@ class WindowsSourcePlugin(WindowsDistributionPlugin, SourcePlugin):
         )
 
         self.save_dist_artifacts_info(
-            stage=stage, basename=self.component.name, info=info
+            stage=self.stage, basename=self.component.name, info=info
         )
 
         # TODO: create source archive if needed
@@ -113,7 +110,7 @@ class WindowsSourcePlugin(WindowsDistributionPlugin, SourcePlugin):
         for target in parameters["build"]:
             # this dummy info can't be an empty dict
             self.save_dist_artifacts_info(
-                stage=stage, basename=target.mangle(), info={"dummy": 1}
+                stage=self.stage, basename=target.mangle(), info={"dummy": 1}
             )
 
 
