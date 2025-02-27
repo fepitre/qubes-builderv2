@@ -23,18 +23,20 @@ from abc import ABC
 from pathlib import Path, PurePath, PureWindowsPath
 from typing import List, Tuple
 
-from qubesadmin import Qubes
-from qubesadmin.exc import QubesException
-from qubesadmin.vm import DispVM, QubesVM
 from qubesbuilder.common import sanitize_line
 from qubesbuilder.executors import Executor, ExecutorError
+from qubesbuilder.executors.qrexec import (
+    create_dispvm,
+    kill_vm as qkill_vm,
+    qrexec_call,
+    start_vm,
+)
 
 
 class BaseWindowsExecutor(Executor, ABC):
     def __init__(self, user: str = "user", **kwargs):
         super().__init__(**kwargs)
         self.user = user
-        self.app = Qubes()
 
     def get_builder_dir(self):
         return PureWindowsPath("c:\\builder")
@@ -47,19 +49,13 @@ class BaseWindowsExecutor(Executor, ABC):
 
     # starts dispvm from default template (not windows)
     def start_dispvm(self) -> str:
-        dvm = DispVM.from_appvm(self.app, None)
-        dvm.start()
-        self.log.debug(f"created dispvm {dvm.name}")
-        return dvm.name
+        name = create_dispvm(self.log, "dom0")
+        self.log.debug(f"created dispvm {name}")
+        start_vm(self.log, name)
+        return name
 
-    def kill_vm(self, vm_name: str):
-        vm = QubesVM(self.app, vm_name)
-        if vm:
-            # Don't check is_running() since that depends on qrexec connectivity
-            if vm.is_halted():
-                del self.app.domains[vm_name]
-            else:
-                vm.kill()
+    def kill_vm(self, vm: str):
+        qkill_vm(self.log, vm)
 
     def run_rpc_service(
         self,
@@ -67,24 +63,17 @@ class BaseWindowsExecutor(Executor, ABC):
         service: str,
         description: str,
         stdin: bytes = b"",
-        check_return: bool = True,
     ) -> bytes:
-        try:
-            proc = self.app.run_service(
-                target,
-                service,
-            )
-
-            stdout, stderr = proc.communicate(stdin)
-            if check_return and proc.returncode != 0:
-                msg = f"Failed to {description}.\n"
-                msg += stderr.decode("utf-8")
-                raise ExecutorError(msg, name=target)
-        except QubesException as e:
-            msg = f"Failed to {description}: failed to run service '{service}' in qube '{target}'."
-            raise ExecutorError(msg, name=target) from e
-
-        return stdout
+        out = qrexec_call(
+            log=self.log,
+            what=description,
+            vm=target,
+            service=service,
+            capture_output=True,
+            stdin=stdin,
+        )
+        assert out is not None
+        return out
 
 
 class SSHWindowsExecutor(BaseWindowsExecutor):

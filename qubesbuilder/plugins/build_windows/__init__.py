@@ -198,7 +198,6 @@ class WindowsBuildPlugin(WindowsDistributionPlugin, BuildPlugin):
         test_sign: bool,
     ) -> bytes:
         if test_sign:
-            self.log.debug(f"creating key '{key_name}' in qube '{qube}'")
             self.executor.run_rpc_service(
                 target=qube,
                 service=f"qubesbuilder.WinSign.CreateKey+{mangle_key_name(key_name)}",
@@ -218,12 +217,11 @@ class WindowsBuildPlugin(WindowsDistributionPlugin, BuildPlugin):
         key_name: str,
         file: Path,
     ) -> bytes:
-        self.log.debug(f"signing '{file}' with '{key_name}'")
         with open(file, "rb") as f:
             return self.executor.run_rpc_service(
                 target=qube,
                 service=f"qubesbuilder.WinSign.Sign+{mangle_key_name(key_name)}",
-                description=f"sign '{file}' with key '{key_name}'",
+                description=f"authenticode sign '{file}' with key '{key_name}'",
                 stdin=f.read(),
             )
 
@@ -233,7 +231,6 @@ class WindowsBuildPlugin(WindowsDistributionPlugin, BuildPlugin):
             target=qube,
             service=f"qubesbuilder.WinSign.QueryKey+{mangle_key_name(key_name)}",
             description=f"query signing key '{key_name}'",
-            check_return=False,
         )
 
         if f"Key '{mangle_key_name(key_name)}' exists" not in out.decode(
@@ -242,7 +239,6 @@ class WindowsBuildPlugin(WindowsDistributionPlugin, BuildPlugin):
             self.log.debug(f"key '{key_name}' does not exist")
             return
 
-        self.log.debug(f"deleting key '{key_name}' in qube '{qube}'")
         self.executor.run_rpc_service(
             target=qube,
             service=f"qubesbuilder.WinSign.DeleteKey+{mangle_key_name(key_name)}",

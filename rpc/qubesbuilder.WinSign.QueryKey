@@ -22,8 +22,6 @@ ensure_db
 set +e
 if check_key_exists "${1//__/ }"; then
     echo "Key '$1' exists"
-    exit 0
 else
     echo "Key '$1' does not exist"
-    exit 2
 fi
