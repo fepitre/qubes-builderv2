@@ -42,12 +42,6 @@ SigLevel = Required DatabaseOptional
 Server = {{ server }}/$repo/os/$arch
 {%- endfor %}
 
-[community]
-SigLevel = Required DatabaseOptional
-{%- for server in servers %}
-Server = {{ server }}/$repo/os/$arch
-{%- endfor %}
-
 [extra]
 SigLevel = Required DatabaseOptional
 {%- for server in servers %}
