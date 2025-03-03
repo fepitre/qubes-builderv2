@@ -49,6 +49,7 @@ distributions:
   - vm-trixie
   - vm-fc40
   - vm-fc41
+  - vm-fc42
   - vm-archlinux
   - vm-focal
   - vm-jammy
