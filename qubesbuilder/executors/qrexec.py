@@ -115,19 +115,42 @@ def start_vm(log, vm: str):
     )
 
 
-def kill_vm(log, vm: str):
-    qrexec_call(
+def vm_state(log, vm: str) -> str:
+    response = qrexec_call(
         log=log,
-        what="kill vm",
+        what="query vm state",
         vm=vm,
-        service="admin.vm.Kill",
-        ignore_errors=True,
+        service="admin.vm.CurrentState",
     )
 
-    qrexec_call(
-        log=log,
-        what="remove vm",
-        vm=vm,
-        service="admin.vm.Remove",
-        ignore_errors=True,
+    assert response is not None
+    for state in response.decode("ascii", "strict").split():
+        assert "=" in state
+        kv = state.split("=")
+        if kv[0] == "power_state":
+            return kv[1]
+
+    raise ExecutorError(
+        f"Invalid response from admin.vm.CurrentState for '{vm}'"
     )
+
+
+def kill_vm(log, vm: str):
+    state = vm_state(log, vm)
+
+    if state != "Halted":
+        qrexec_call(
+            log=log,
+            what="kill vm",
+            vm=vm,
+            service="admin.vm.Kill",
+            ignore_errors=True,
+        )
+    else:
+        qrexec_call(
+            log=log,
+            what="remove vm",
+            vm=vm,
+            service="admin.vm.Remove",
+            ignore_errors=True,
+        )
