@@ -62,9 +62,7 @@ LOOP_ID="${LODEV#'/dev/'}"
 
 echo "[*] Preparing a DispVM..."
 SELF=$(qubesdb-read /name)
-read -r -a result <<< "$(qrexec_call "${SELF}" admin.vm.property.Get+default_dispvm)"
-dispvm_template="${result[2]}"  # default=False type=vm vm-name
-DISPVM=$(qrexec_call "$dispvm_template" admin.vm.CreateDisposable)
+DISPVM=$(qrexec_call "dom0" admin.vm.CreateDisposable)
 
 qrexec_call "${DISPVM}" "admin.vm.Start"
 qrexec_call "${DISPVM}" "admin.vm.device.block.Attach+${SELF}+${LOOP_ID}" "read-only=true"

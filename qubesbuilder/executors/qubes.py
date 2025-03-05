@@ -360,95 +360,17 @@ class WindowsQubesExecutor(BaseWindowsExecutor, QubesExecutor):
         clean: Union[str, bool] = True,
         **kwargs,
     ):
-        super().__init__(dispvm=dispvm, user=user, clean=clean, **kwargs)
-        self.ewdk_path = ewdk
+        super().__init__(
+            ewdk=ewdk, dispvm=dispvm, user=user, clean=clean, **kwargs
+        )
         self.copy_in_service = "qubesbuilder.WinFileCopyIn"
         self.copy_out_service = "qubesbuilder.WinFileCopyOut"
-
-    # Get loop device id for the EWDK iso if attached to the builder vm, otherwise None
-    def _get_ewdk_loop(self) -> Optional[str]:
-        try:
-            proc = subprocess.run(
-                ["losetup", "-j", self.ewdk_path],
-                check=True,
-                capture_output=True,
-            )
-            stdout = proc.stdout.decode()
-            if "/dev/loop" in stdout:
-                loop_dev = stdout.split(":", 1)[0]
-                loop_id = loop_dev.removeprefix("/dev/")
-                self.log.debug(f"ewdk loop id: {loop_id}")
-                return loop_id
-            else:
-                return None
-
-        except subprocess.CalledProcessError as e:
-            raise ExecutorError(
-                f"Failed to run losetup: {proc.stderr.decode()}"
-            ) from e
-
-    def attach_ewdk(self):
-        if not Path(self.ewdk_path).is_file():
-            raise ExecutorError(f"EWDK image not found at '{self.ewdk_path}'")
-
-        loop_id = self._get_ewdk_loop()
-        if not loop_id:
-            # attach EWDK image
-            proc = None
-            try:
-                self.log.debug(f"attaching EWDK from '{self.ewdk_path}'")
-                proc = subprocess.run(
-                    ["sudo", "losetup", "-f", self.ewdk_path],
-                    check=True,
-                    capture_output=True,
-                )
-            except subprocess.CalledProcessError as e:
-                raise ExecutorError(
-                    f"Failed to run losetup: {proc.stderr.decode() if proc else e}"
-                ) from e
-
-            loop_id = self._get_ewdk_loop()
-            if not loop_id:
-                raise ExecutorError(f"Failed to attach EWDK ({self.ewdk_path})")
-
-            self.log.debug(f"attached EWDK as '{loop_id}'")
-
-        # wait for device to appear
-        timeout = 10
-        while timeout > 0:
-            stdout = qrexec_call(
-                log=self.log,
-                what="ewdk loop device query",
-                vm=self.name,
-                service=f"admin.vm.device.block.Available+{loop_id}",
-            )
-
-            assert stdout is not None
-            assert self.dispvm
-            if stdout.decode("ascii", "strict").startswith(loop_id):
-                # loop device ready, attach to vm
-                qrexec_call(
-                    log=self.log,
-                    what="attach ewdk to dispvm",
-                    vm=self.dispvm,
-                    service=f"admin.vm.device.block.Attach+{self.name}+{loop_id}",
-                    stdin=b"devtype=cdrom read-only=true persistent=true",
-                )
-                return
-
-            timeout -= 1
-            sleep(1)
-
-        raise ExecutorError(
-            f"Failed to attach EWDK ({self.ewdk_path}): "
-            f"wait for loopback device timed out"
-        )
 
     def start_worker(self):
         # we need the dispvm in a stopped state to attach EWDK block device
         self.dispvm = create_dispvm(self.log, self._dispvm_template)
         self.log.debug(f"dispvm: {self.dispvm}")
-        self.attach_ewdk()
+        self.attach_ewdk(self.dispvm)
         start_vm(self.log, self.dispvm)
 
         # wait for startup
