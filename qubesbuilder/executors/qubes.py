@@ -84,17 +84,23 @@ class QubesExecutor(Executor):
     def get_group(self):
         return "user"
 
-    def copy_in(self, source_path: Path, destination_dir: PurePath):  # type: ignore
+    def copy_in(self, source_path: Path, destination_dir: PurePath, ignore_symlinks: bool = False):  # type: ignore
         assert self.dispvm
         src = source_path.expanduser().resolve()
         dst = destination_dir
         encoded_dst_path = encode_for_vmexec(str((dst / src.name).as_posix()))
+
+        args = ["/usr/lib/qubes/qfile-agent"]
+        if ignore_symlinks:
+            args += ["--ignore-symlinks"]
+        args += [str(src)]
+
         qrexec_call(
             log=self.log,
             what="copy-in",
             vm=self.dispvm,
             service=f"{self.copy_in_service}+{encoded_dst_path}",
-            args=["/usr/lib/qubes/qfile-agent", str(src)],
+            args=args,
         )
 
     def copy_out(
@@ -512,7 +518,7 @@ class WindowsQubesExecutor(BaseWindowsExecutor, QubesExecutor):
             )
 
             for src_in, dst_in in copy_in or []:
-                self.copy_in(src_in, dst_in)
+                self.copy_in(src_in, dst_in, ignore_symlinks=True)
 
             bin_cmd = (
                 " & ".join(cmd) + " & exit !errorlevel!" + "\r\n"
