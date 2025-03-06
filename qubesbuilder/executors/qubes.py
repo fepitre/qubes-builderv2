@@ -31,7 +31,9 @@ from qubesbuilder.executors.qrexec import (
     create_dispvm,
     kill_vm,
     qrexec_call,
+    remove_vm,
     start_vm,
+    vm_state,
 )
 from qubesbuilder.executors.windows import BaseWindowsExecutor
 
@@ -391,6 +393,17 @@ class WindowsQubesExecutor(BaseWindowsExecutor, QubesExecutor):
             f"Failed to communicate with windows dispvm '{self.dispvm}'"
         )
 
+    def cleanup(self):
+        if self.dispvm is None:
+            return
+
+        state = vm_state(self.log, self.dispvm)
+
+        if state != "Halted":
+            kill_vm(self.log, self.dispvm)
+        else:
+            remove_vm(self.log, self.dispvm)
+
     def run(
         self,
         cmd: List[str],
@@ -467,5 +480,4 @@ class WindowsQubesExecutor(BaseWindowsExecutor, QubesExecutor):
                 f"Failed to run command{suffix}: {str(e)}"
             ) from e
         finally:
-            if self.dispvm:
-                kill_vm(self.log, self.dispvm)
+            self.cleanup()

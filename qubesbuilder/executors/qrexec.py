@@ -136,21 +136,19 @@ def vm_state(log, vm: str) -> str:
 
 
 def kill_vm(log, vm: str):
-    state = vm_state(log, vm)
+    qrexec_call(
+        log=log,
+        what="kill vm",
+        vm=vm,
+        service="admin.vm.Kill",
+        ignore_errors=True,
+    )
 
-    if state != "Halted":
-        qrexec_call(
-            log=log,
-            what="kill vm",
-            vm=vm,
-            service="admin.vm.Kill",
-            ignore_errors=True,
-        )
-    else:
-        qrexec_call(
-            log=log,
-            what="remove vm",
-            vm=vm,
-            service="admin.vm.Remove",
-            ignore_errors=True,
-        )
+
+def remove_vm(log, vm: str):
+    qrexec_call(
+        log=log,
+        what="remove vm",
+        vm=vm,
+        service="admin.vm.Remove",
+    )
