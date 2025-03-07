@@ -501,7 +501,7 @@ class WindowsBuildPlugin(WindowsDistributionPlugin, BuildPlugin):
                 info = source_info
                 info.update(
                     {
-                        "artifacts": artifacts.artifacts,
+                        "files": artifacts.artifacts,
                         "source-hash": self.component.get_source_hash(),
                     }
                 )
