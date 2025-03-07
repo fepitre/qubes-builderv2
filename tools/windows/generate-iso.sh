@@ -18,7 +18,7 @@ Options:
 "
 }
 
-if ! OPTS=$(getopt -o hi:o: --long help,iso,output: -n "$0" -- "$@"); then
+if ! OPTS=$(getopt -o hi:o: --long help,iso:,output: -n "$0" -- "$@"); then
     exit 1
 fi
 

@@ -56,7 +56,7 @@ SCRIPT_DIR=$(dirname "$0")
 SCRIPT_DIR=$(readlink -f "${SCRIPT_DIR}")
 
 echo "[*] Setting up a loop device for the ISO..."
-LODEV=$(losetup -f)
+LODEV=$(sudo losetup -f)
 sudo losetup "${LODEV}" "${INPUT}"
 LOOP_ID="${LODEV#'/dev/'}"
 
