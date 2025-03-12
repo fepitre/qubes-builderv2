@@ -57,8 +57,10 @@ components:
         - '916B8D99C38EAF5E8ADC7A2A8D66066A2EEACCDA'
   - vmm-xen
   - vmm-xen-guest
+  - vmm-xen-windows-pvdrivers
   - core-libvirt
   - core-vchan-xen
+  - windows-utils
   - core-qubesdb
   - core-qrexec
   - linux-utils
@@ -75,6 +77,7 @@ components:
   - core-admin-addon-whonix
   - core-admin-linux
   - core-agent-linux
+  - core-agent-windows
   - intel-microcode:
       branch: main
   - linux-firmware
@@ -91,6 +94,7 @@ components:
   - gui-common
   - gui-daemon
   - gui-agent-linux
+  - gui-agent-windows
   - seabios
   - vmm-xen-stubdom-linux
   - app-linux-split-gpg:
@@ -177,6 +181,7 @@ components:
   - antievilmaid
   - xscreensaver
   - remote-support
+  - installer-qubes-os-windows-tools
 
 
 #executor:
