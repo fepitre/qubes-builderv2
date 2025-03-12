@@ -351,6 +351,7 @@ class RPMSourcePlugin(RPMDistributionPlugin, SourcePlugin):
                 info = fetch_info
                 info.update(
                     {
+                        "files": [source_rpm],
                         "srpm": source_rpm,
                         "rpms": packages_list,
                         "source-hash": self.component.get_source_hash(),

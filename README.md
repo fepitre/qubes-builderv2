@@ -510,14 +510,17 @@ In a `.qubesbuilder` file, there exist several placeholder values that are
 replaced when loading `.qubesbuilder` content. Here is the list of
 currently-supported placeholders:
 
+- `@COMPONENT@` --- Replaced by component name
 - `@VERSION@` --- Replaced by component version (provided by the `version` file
   inside the component source directory)
 - `@REL@` --- Replaced by component release (provided by the `rel` file inside
   the component source directory, if it exists)
+- `@VERREL@` --- Replaced by component version and release as `<VERSION>-<RELEASE>`
 - `@BUILDER_DIR@` --- Replaced by `/builder` (inside a cage)
 - `@BUILD_DIR@` --- Replaced by `/builder/build`  (inside a cage)
 - `@PLUGINS_DIR@` --- Replaced by `/builder/plugins`  (inside a cage)
 - `@DISTFILES_DIR@` --- Replaced by `/builder/distfiles`  (inside a cage)
+- `@DEPENDENCIES_DIR@` --- Replaced by `/builder/dependencies` (inside a cage)
 - `@SOURCE_DIR@` --- Replaced by `/builder/<COMPONENT_NAME>` (inside a cage
   where, `<COMPONENT_NAME>` is the component directory name)
 - `@CONFIGURATION@` --- `build_windows` specific, replaced by the project configuration
@@ -1031,4 +1034,5 @@ components:
                   build: vs2022/installer.sln
 ```
 
+In this example, stage artifacts of `installer-qubes-os-windows-tools` for `vm-win10`, build referenced by `vs2022/installer.sln` and stages `build` and `sign` located into `artifacts/components` are copied into the corresponding cage to `/builder/dependencies/components` using the same directory structure.
 This example shows how to specify multiple dependencies for different stages (build and sign) under a given distribution.

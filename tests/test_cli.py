@@ -472,7 +472,9 @@ def test_common_component_dependencies_03(artifacts_dir_single):
     fc40_dir.mkdir(parents=True, exist_ok=True)
 
     # Create empty file
-    (fc40_dir / "dummy.spec.build.yml").touch()
+    (fc40_dir / "dummy.spec.build.yml").write_text(
+        yaml.dump({"files": ["some.exe"]})
+    )
 
     # Write executable content to "some.exe"
     (fc40_dir / "some.exe").write_text("some executable")
@@ -482,7 +484,9 @@ def test_common_component_dependencies_03(artifacts_dir_single):
     fc41_dir.mkdir(parents=True, exist_ok=True)
 
     # Create empty file
-    (fc41_dir / "dummy.spec.build.yml").touch()
+    (fc41_dir / "dummy.spec.build.yml").write_text(
+        yaml.dump({"files": ["another.exe"]})
+    )
 
     # Write executable content to "another.exe"
     (fc41_dir / "another.exe").write_text("another executable")
