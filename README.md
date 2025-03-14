@@ -1022,7 +1022,7 @@ components:
   - installer-qubes-os-windows-tools:
       host-fc41:
         stages:
-          - build:
+          - prep:
               needs:
                 - component: installer-qubes-os-windows-tools
                   distribution: vm-win10
