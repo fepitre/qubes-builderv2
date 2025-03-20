@@ -746,7 +746,7 @@ class InstallerPlugin(DistributionPlugin):
 
             try:
                 cmd = [
-                    f"rsync --partial --progress --hard-links -air --mkpath -- {iso_dir}/ {remote_path}"
+                    f"rsync --partial --progress --hard-links -OJair --mkpath -- {iso_dir}/ {remote_path}"
                 ]
                 self.executor.run(cmd)
             except ExecutorError as e:
