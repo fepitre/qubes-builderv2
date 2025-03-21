@@ -72,6 +72,13 @@ class SourcePlugin(DistributionComponentPlugin):
             ),
         ]
 
+    @classmethod
+    def from_args(cls, **kwargs):
+        component = kwargs.get("component")
+        if component and not component.has_packages:
+            return None
+        return super().from_args(**kwargs)
+
     def update_parameters(self, stage: str):
         super().update_parameters(stage)
 

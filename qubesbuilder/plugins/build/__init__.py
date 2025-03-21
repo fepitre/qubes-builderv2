@@ -72,3 +72,10 @@ class BuildPlugin(DistributionComponentPlugin):
                         )
                     )
                 )
+
+    @classmethod
+    def from_args(cls, **kwargs):
+        component = kwargs.get("component")
+        if component and not component.has_packages:
+            return None
+        return super().from_args(**kwargs)
