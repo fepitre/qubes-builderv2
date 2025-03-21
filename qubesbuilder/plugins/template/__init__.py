@@ -897,7 +897,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
 
                 for relative_dir in directories_to_upload:
                     cmd = [
-                        f"rsync --partial --progress --hard-links -air --mkpath -- {local_path / relative_dir}/ {remote_path}/{relative_dir}/"
+                        f"rsync --partial --progress --hard-links -OJair --mkpath -- {local_path / relative_dir}/ {remote_path}/{relative_dir}/"
                     ]
                     self.executor.run(cmd)
             except ExecutorError as e:
