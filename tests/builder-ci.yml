@@ -102,6 +102,8 @@ components:
       branch: files-git-builderv2-tests
       verification-mode: less-secure-signed-commits-sufficient
   - dummy-component:
+      # disable by default, as most CI jobs build only one dist at a time
+      packages: false
       url: https://github.com/fepitre/qubes-dummy-component
       verification-mode: less-secure-signed-commits-sufficient
       host-fc37:

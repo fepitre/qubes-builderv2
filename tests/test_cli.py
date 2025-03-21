@@ -496,6 +496,8 @@ def test_common_component_dependencies_03(artifacts_dir_single):
         artifacts_dir,
         "-c",
         "dummy-component",
+        "-o",
+        "+components+dummy-component:packages=true",
         "-d",
         "host-fc37",
         "package",
