@@ -21,7 +21,12 @@ from typing import Optional
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor, ExecutorError
-from qubesbuilder.plugins import DistributionPlugin, PluginError
+from qubesbuilder.plugins import (
+    DistributionPlugin,
+    PluginError,
+    JobDependency,
+    JobReference,
+)
 from qubesbuilder.plugins.publish_deb import DEBRepoPlugin
 
 
@@ -48,6 +53,25 @@ class UploadPlugin(DistributionPlugin):
         **kwargs,
     ):
         super().__init__(config=config, dist=dist, stage=stage, **kwargs)
+
+        # order upload after all publish jobs
+        for component in config.get_components():
+            if not component.has_packages:
+                continue
+            # specify build as "None" to skip implicit copy-in and
+            # check_dependencies - some configured packages may not be
+            # published and that's okay; but still order after all publish jobs
+            self.dependencies.append(
+                JobDependency(
+                    JobReference(
+                        component=component,
+                        dist=self.dist,
+                        stage="publish",
+                        build=None,
+                        template=None,
+                    )
+                )
+            )
 
     @classmethod
     def supported_distribution(cls, distribution: QubesDistribution):

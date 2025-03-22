@@ -26,6 +26,8 @@ from qubesbuilder.executors.local import LocalExecutor
 from qubesbuilder.plugins import (
     DistributionComponentPlugin,
     PluginError,
+    JobDependency,
+    JobReference,
 )
 
 # Define the minimum age for which packages can be published to 'current'
@@ -69,6 +71,19 @@ class PublishPlugin(DistributionComponentPlugin):
             config=config,
             stage=stage,
         )
+        if self.has_component_packages(stage="build"):
+            for build in self.get_parameters(stage="build").get("build", []):
+                self.dependencies.append(
+                    JobDependency(
+                        JobReference(
+                            component=self.component,
+                            dist=self.dist,
+                            stage="build",
+                            build=build.mangle(),
+                            template=None,
+                        )
+                    )
+                )
 
     @classmethod
     def from_args(cls, **kwargs):
