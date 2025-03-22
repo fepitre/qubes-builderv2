@@ -34,6 +34,7 @@ from qubesbuilder.config import (
 )
 from qubesbuilder.executors import ExecutorError
 from qubesbuilder.executors.local import LocalExecutor
+from qubesbuilder.log import QubesBuilderLogger
 from qubesbuilder.plugins import (
     PluginError,
     TemplatePlugin,
@@ -66,6 +67,8 @@ class TemplateBuilderPlugin(TemplatePlugin):
         - upload - Upload published repository for given distribution to remote mirror.
     """
 
+    _publish_not_configured_warned = False
+
     @classmethod
     def supported_template(cls, template: QubesTemplate):
         return any(
@@ -96,6 +99,24 @@ class TemplateBuilderPlugin(TemplatePlugin):
         self.template_version = ""
 
         self.dependencies.append(PluginDependency("publish"))
+
+    @classmethod
+    def from_args(cls, **kwargs):
+        config = kwargs.get("config")
+        stage = kwargs.get("stage")
+        template = kwargs.get("template")
+        if config and template and stage in ("publish", "upload"):
+            repository_publish = config.repository_publish.get("templates")
+            if not repository_publish:
+                if not cls._publish_not_configured_warned:
+                    QubesBuilderLogger.info(
+                        f"{cls.name}:{template}: "
+                        f"'repository-publish:templates' not set."
+                    )
+                    cls._publish_not_configured_warned = True
+                return None
+
+        return super().from_args(**kwargs)
 
     def get_template_version(self):
         if not self.template_version:

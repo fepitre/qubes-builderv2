@@ -79,7 +79,13 @@ class SignPlugin(DistributionComponentPlugin):
     @classmethod
     def from_args(cls, **kwargs):
         component = kwargs.get("component")
+        config = kwargs.get("config")
+        dist = kwargs.get("dist")
         if component and not component.has_packages:
+            return None
+        if not cls.supported_distribution(dist):
+            return None
+        if not cls.is_signing_configured(config, dist, component):
             return None
         return super().from_args(**kwargs)
 

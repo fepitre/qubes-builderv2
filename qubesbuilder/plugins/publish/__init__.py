@@ -23,6 +23,7 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor
+from qubesbuilder.log import QubesBuilderLogger
 from qubesbuilder.plugins import (
     DistributionComponentPlugin,
     PluginError,
@@ -54,6 +55,7 @@ class PublishPlugin(DistributionComponentPlugin):
         - build
     """
 
+    _publish_not_configured_warned = False
     name = "publish"
     stages = ["publish"]
 
@@ -86,9 +88,28 @@ class PublishPlugin(DistributionComponentPlugin):
                 )
 
     @classmethod
+    def is_publish_configured(cls, config, dist, component):
+        if not cls.supported_distribution(dist):
+            return False
+        if not cls.is_signing_configured(config, dist, component):
+            return False
+        if not config.repository_publish.get("components"):
+            if not cls._publish_not_configured_warned:
+                QubesBuilderLogger.info(
+                    f"{cls.name}:{dist}: 'repository-publish:components' not set."
+                )
+                cls._publish_not_configured_warned = True
+            return False
+        return True
+
+    @classmethod
     def from_args(cls, **kwargs):
         component = kwargs.get("component")
+        config = kwargs.get("config")
+        dist = kwargs.get("dist")
         if component and not component.has_packages:
+            return None
+        if not cls.is_publish_configured(config, dist, component):
             return None
         return super().from_args(**kwargs)
 

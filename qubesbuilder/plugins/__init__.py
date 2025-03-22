@@ -453,6 +453,8 @@ class ComponentPlugin(Plugin):
 
 
 class DistributionPlugin(Plugin):
+    _signing_not_configured_warned = False
+
     def __init__(self, dist, config, stage, **kwargs):
         self.dist = dist
         super().__init__(config=config, stage=stage, **kwargs)
@@ -460,6 +462,28 @@ class DistributionPlugin(Plugin):
     @classmethod
     def supported_distribution(cls, distribution):
         raise NotImplementedError
+
+    @classmethod
+    def is_signing_configured(cls, config, dist, component):
+        sign_key = config.sign_key.get(
+            dist.distribution, None
+        ) or config.sign_key.get(dist.type, None)
+
+        if not sign_key:
+            if not cls._signing_not_configured_warned:
+                QubesBuilderLogger.info(
+                    f"{cls.name}:{dist}: No signing key found."
+                )
+                cls._signing_not_configured_warned = True
+            return False
+        if not config.gpg_client:
+            if not cls._signing_not_configured_warned:
+                QubesBuilderLogger.info(
+                    f"{cls.name}:{dist}: Please specify GPG client to use!"
+                )
+                cls._signing_not_configured_warned = True
+            return False
+        return True
 
     @classmethod
     def from_args(cls, **kwargs):
