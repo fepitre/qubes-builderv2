@@ -22,7 +22,7 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor, ExecutorError
 from qubesbuilder.plugins import DistributionPlugin, PluginError
-from qubesbuilder.plugins.publish_deb import DEBPublishPlugin
+from qubesbuilder.plugins.publish_deb import DEBRepoPlugin
 
 
 class UploadError(PluginError):
@@ -90,7 +90,7 @@ class UploadPlugin(DistributionPlugin):
                 )
             elif self.dist.is_deb() or self.dist.is_ubuntu():
                 debian_suite = (
-                    DEBPublishPlugin.get_debian_suite_from_repository_publish(
+                    DEBRepoPlugin.get_debian_suite_from_repository_publish(
                         self.dist, repository_publish
                     )
                 )

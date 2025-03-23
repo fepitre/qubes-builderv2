@@ -396,7 +396,7 @@ def _upload(
 def create(obj: ContextObj, repository_publish: str):
     _publish(
         config=obj.config,
-        components=obj.components,
+        components=[],
         distributions=obj.distributions,
         templates=obj.templates,
         repository_publish=repository_publish,

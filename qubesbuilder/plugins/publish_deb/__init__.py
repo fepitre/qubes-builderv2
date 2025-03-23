@@ -27,7 +27,7 @@ from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
 from qubesbuilder.plugins.publish import PublishPlugin, PublishError
 
 
-class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
+class DEBRepoPlugin(DEBDistributionPlugin):
     """
     DEBPublishPlugin manages Debian distribution publication.
 
@@ -41,20 +41,10 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
     name = "publish_deb"
     stages = ["publish"]
 
-    def __init__(
-        self,
-        component: QubesComponent,
-        dist: QubesDistribution,
-        config: Config,
-        stage: str,
-        **kwargs,
-    ):
-        super().__init__(
-            component=component,
-            dist=dist,
-            config=config,
-            stage=stage,
-        )
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.log_prefix = f"{self.name}:{self.dist}"
 
         self.dependencies.append(PluginDependency("publish"))
 
@@ -92,7 +82,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             executor = self.config.get_executor_from_config("publish", self)
             executor.run(cmd)
         except ExecutorError as e:
-            msg = f"{self.component}:{self.dist}: Failed to create repository skeleton."
+            msg = f"{self.log_prefix}: Failed to create repository skeleton."
             raise PublishError(msg) from e
 
     def create_metadata(self, repository_publish):
@@ -108,7 +98,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
             executor = self.config.get_executor_from_config("publish", self)
             executor.run(cmd)
         except ExecutorError as e:
-            msg = f"{self.component}:{self.dist}: Failed to create metadata."
+            msg = f"{self.log_prefix}: Failed to create metadata."
             raise PublishError(msg) from e
 
     def sign_metadata(self, repository_publish):
@@ -122,15 +112,13 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("deb", None)
 
         if not sign_key:
-            self.log.info(
-                f"{self.component}:{self.dist}: No signing key found."
-            )
+            self.log.info(f"{self.log_prefix}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
             self.log.info(
-                f"{self.component}: Please specify GPG client to use!"
+                f"{self.log_prefix}: Please specify GPG client to use!"
             )
             return
 
@@ -149,13 +137,41 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                     f"--batch --no-tty --output {release_dir / out_name} {release_dir / 'Release'}"
                 ]
                 self.log.info(
-                    f"{self.component}:{self.dist}: Signing metadata ({out_name})."
+                    f"{self.log_prefix}: Signing metadata ({out_name})."
                 )
                 executor = self.config.get_executor_from_config("publish", self)
                 executor.run(cmd)
             except ExecutorError as e:
-                msg = f"{self.component}:{self.dist}: Failed to sign metadata ({out_name})."
+                msg = (
+                    f"{self.log_prefix}: Failed to sign metadata ({out_name})."
+                )
                 raise PublishError(msg) from e
+
+    def create(self, repository_publish: str):
+        # Create skeleton
+        self.create_repository_skeleton()
+
+        # Create metadata
+        self.create_metadata(repository_publish=repository_publish)
+
+        # Sign metadata
+        self.sign_metadata(repository_publish=repository_publish)
+
+    def run(
+        self,
+        repository_publish: Optional[str] = None,
+        ignore_min_age: bool = False,
+        unpublish: bool = False,
+        **kwargs,
+    ):
+        super().run()
+
+
+class DEBPublishPlugin(DEBRepoPlugin, PublishPlugin):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.log_prefix = f"{self.component}:{self.dist}"
 
     def publish(self, executor, directory, keyring_dir, repository_publish):
         # directory basename will be used as prefix for some artifacts
@@ -172,9 +188,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         )
 
         if not build_info.get("changes", None):
-            self.log.info(
-                f"{self.component}:{self.dist}:{directory}: Nothing to publish."
-            )
+            self.log.info(f"{self.log_prefix}:{directory}: Nothing to publish.")
             return
 
         self.log.info(
@@ -184,7 +198,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         # Verify signatures (sanity check, refuse to publish if packages weren't signed)
         try:
             self.log.info(
-                f"{self.component}:{self.dist}:{directory}: Verifying signatures."
+                f"{self.log_prefix}:{directory}: Verifying signatures."
             )
             cmd = []
             for file in ("dsc", "changes", "buildinfo"):
@@ -192,7 +206,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 cmd += [f"gpg2 -q --homedir {keyring_dir} --verify {fname}"]
             executor.run(cmd)
         except ExecutorError as e:
-            msg = f"{self.component}:{self.dist}:{directory}: Failed to check signatures."
+            msg = f"{self.log_prefix}:{directory}: Failed to check signatures."
             raise PublishError(msg) from e
 
         # Publishing packages
@@ -228,14 +242,10 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         )
 
         if not build_info.get("changes", None):
-            self.log.info(
-                f"{self.component}:{self.dist}:{directory}: Nothing to publish."
-            )
+            self.log.info(f"{self.log_prefix}:{directory}: Nothing to publish.")
             return
 
-        self.log.info(
-            f"{self.component}:{self.dist}:{directory}: Unpublishing packages."
-        )
+        self.log.info(f"{self.log_prefix}:{directory}: Unpublishing packages.")
 
         # Unpublishing packages
         try:
@@ -263,16 +273,6 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
 
         self.sign_metadata(repository_publish=repository_publish)
 
-    def create(self, repository_publish: str):
-        # Create skeleton
-        self.create_repository_skeleton()
-
-        # Create metadata
-        self.create_metadata(repository_publish=repository_publish)
-
-        # Sign metadata
-        self.sign_metadata(repository_publish=repository_publish)
-
     def run(
         self,
         repository_publish: Optional[str] = None,
@@ -297,15 +297,13 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
         ) or self.config.sign_key.get("deb", None)
 
         if not sign_key:
-            self.log.info(
-                f"{self.component}:{self.dist}: No signing key found."
-            )
+            self.log.info(f"{self.log_prefix}: No signing key found.")
             return
 
         # Check if we have a gpg client provided
         if not self.config.gpg_client:
             self.log.info(
-                f"{self.component}: Please specify GPG client to use!"
+                f"{self.log_prefix}: Please specify GPG client to use!"
             )
             return
 
@@ -426,7 +424,7 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                 for directory in parameters["build"]
             ):
                 self.log.info(
-                    f"{self.component}:{self.dist}: Not published to '{repository_publish}'."
+                    f"{self.log_prefix}: Not published to '{repository_publish}'."
                 )
                 return
 
@@ -492,4 +490,4 @@ class DEBPublishPlugin(DEBDistributionPlugin, PublishPlugin):
                         break
 
 
-PLUGINS = [DEBPublishPlugin]
+PLUGINS = [DEBRepoPlugin, DEBPublishPlugin]
