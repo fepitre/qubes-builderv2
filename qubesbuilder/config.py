@@ -631,20 +631,20 @@ class Config:
         self,
         component: QubesComponent,
         dist: QubesDistribution,
-        stage_name: str,
+        stage: str,
     ):
         needs = []
         stages = component.kwargs.get(dist.distribution, {}).get("stages", [])
-        for stage in stages:
-            if isinstance(stage, dict):
-                if next(iter(stage)) != stage_name:
+        for stage_config in stages:
+            if isinstance(stage_config, dict):
+                if next(iter(stage_config)) != stage:
                     continue
-                if not isinstance(stage[stage_name], dict):
+                if not isinstance(stage_config[stage], dict):
                     QubesBuilderLogger.warning(
-                        f"{component}:{dist}: Cannot parse provided stage '{str(stage)}'. Check stage format."
+                        f"{component}:{dist}: Cannot parse provided stage '{str(stage_config)}'. Check stage format."
                     )
                     continue
-                for need in stage[stage_name].get("needs", []):
+                for need in stage_config[stage].get("needs", []):
                     if all(
                         [
                             need.get("component", None),
@@ -684,7 +684,7 @@ class Config:
                         )
             else:
                 QubesBuilderLogger.warning(
-                    f"{component}:{dist}: Cannot parse provided stage '{str(stage)}'. Check stage format."
+                    f"{component}:{dist}: Cannot parse provided stage '{str(stage_config)}'. Check stage format."
                 )
         return needs
 
@@ -727,7 +727,7 @@ class Config:
                             job.dependencies += self.get_needs(
                                 component=component,
                                 dist=distribution,
-                                stage_name=stage,
+                                stage=stage,
                             )
                             depencies_dict[
                                 JobReference(
