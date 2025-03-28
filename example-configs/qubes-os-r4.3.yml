@@ -181,8 +181,15 @@ components:
   - antievilmaid
   - xscreensaver
   - remote-support
-  - installer-qubes-os-windows-tools
-
+  - installer-qubes-os-windows-tools:
+      host-fc41:
+        stages:
+        - prep:
+            needs:
+            - component: installer-qubes-os-windows-tools
+              distribution: vm-win10
+              stage: build
+              build: vs2022/installer.sln
 
 #executor:
 #  type: docker
