@@ -328,17 +328,23 @@ class Config:
         if filtered_components:
             result = []
             prefix = self.get("git", {}).get("prefix", "QubesOS/qubes-")
-            for fc in filtered_components:
-                found = False
-                for c in self._components:
-                    if c.name == fc:
-                        result.append(c)
-                        found = True
-                    elif url_match and c.url.partition(prefix)[2] == fc:
-                        result.append(c)
-                        found = True
-                if not found:
-                    raise ConfigError(f"No such component: {fc}")
+            filtered_components = set(filtered_components)
+            found_components = set()
+            for c in self._components:
+                if c.name in filtered_components:
+                    result.append(c)
+                    found_components.add(c.name)
+                elif (
+                    url_match
+                    and c.url.partition(prefix)[2] in filtered_components
+                ):
+                    result.append(c)
+                    found_components.add(c.url.partition(prefix)[2])
+            filtered_components -= found_components
+            if filtered_components:
+                raise ConfigError(
+                    f"No such component: {', '.join(filtered_components)}"
+                )
             return result
         return self._components
 
