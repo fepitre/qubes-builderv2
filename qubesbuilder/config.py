@@ -664,14 +664,14 @@ class Config:
                         )
                         if not filtered_components:
                             raise ConfigError(
-                                f"Cannot find dependency component name '{need["component"]}'."
+                                f"Cannot find dependency component name '{need['component']}'."
                             )
                         filtered_distributions = self.get_distributions(
                             [need["distribution"]]
                         )
                         if not filtered_distributions:
                             raise ConfigError(
-                                f"Cannot find dependency distribution name '{need["distribution"]}'."
+                                f"Cannot find dependency distribution name '{need['distribution']}'."
                             )
                         needs.append(
                             JobDependency(
