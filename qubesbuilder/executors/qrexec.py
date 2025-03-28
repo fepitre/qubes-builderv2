@@ -78,11 +78,11 @@ def qrexec_call(
 
                 if not ignore_errors:
                     raise ExecutorError(
-                        f"Failed to {what}: qrexec call failed: {stdout.decode("ascii", "strict")}"
+                        f"Failed to {what}: qrexec call failed: {stdout.decode('ascii', 'strict')}"
                     )
                 else:
                     log.debug(
-                        f"Failed to {what}: qrexec call failed: {stdout.decode("ascii", "strict")}"
+                        f"Failed to {what}: qrexec call failed: {stdout.decode('ascii', 'strict')}"
                     )
             stdout = stdout[2:]
         return stdout
