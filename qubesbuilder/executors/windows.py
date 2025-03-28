@@ -236,6 +236,7 @@ class SSHWindowsExecutor(BaseWindowsExecutor):
         dst = str(destination_dir.expanduser().resolve())
 
         target = f"{self.user}@{self.ip}"
+        target_path = src.replace("\\", "/")
         self.execute(
             [
                 "scp",
@@ -244,7 +245,7 @@ class SSHWindowsExecutor(BaseWindowsExecutor):
                 "-r",
                 "-B",
                 "-q",
-                f"{target}:{src.replace('\\', '/')}",
+                f"{target}:{target_path}",
                 dst,
             ]
         )
