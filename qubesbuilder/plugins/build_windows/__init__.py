@@ -492,6 +492,7 @@ class WindowsBuildPlugin(WindowsDistributionPlugin, BuildPlugin):
                             executor=self.executor,
                             vm=dvm,
                             service="qubesbuilder.WinSign.Timestamp",
+                            echo=False,
                             what=f"authenticode timestamp {file}",
                             stdin=signed_data,
                         )
