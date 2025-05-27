@@ -80,7 +80,7 @@ def get_archchroot_cmd(
         "sudo pacman-key --init",
         "sudo pacman-key --populate",
         f"sudo mkdir -p {chroot_dir.parent}",
-        " ".join(mkarchchroot_cmd) + " | cat",
+        " ".join(mkarchchroot_cmd),
     ]
 
     return cmd
