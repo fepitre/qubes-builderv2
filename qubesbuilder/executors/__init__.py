@@ -115,9 +115,12 @@ class Executor(ABC):
         return s
 
     @staticmethod
-    async def _read_stream(stream, callback, max_length=10000) -> bytes:
+    async def _read_stream(
+        stream, callback, collect=False, max_length=10000
+    ) -> bytes:
         remaining_line = b""
-        buffer = b""
+        if collect:
+            buffer = b""
 
         while True:
             chunk = await stream.read(4096)
@@ -126,7 +129,8 @@ class Executor(ABC):
                     callback(sanitize_line(remaining_line).rstrip())
                 break
 
-            buffer += chunk
+            if collect:
+                buffer += chunk
             lines = chunk.split(b"\n")
 
             lines[0] = remaining_line + lines[0]
@@ -142,10 +146,10 @@ class Executor(ABC):
                 if callback:
                     callback(sanitize_line(line).rstrip() + "\u2026")
 
-        return buffer
+        return buffer if collect else b""
 
     async def _stream_subprocess(
-        self, cmd, stdout_cb, stderr_cb, stdin=b"", **kwargs
+        self, cmd, stdout_cb, stderr_cb, stdin=b"", collect=False, **kwargs
     ) -> Tuple[int, bytes, bytes]:
         process = await asyncio.create_subprocess_exec(
             *cmd,
@@ -164,8 +168,8 @@ class Executor(ABC):
         process.stdin.close()
 
         results = await asyncio.gather(
-            self._read_stream(process.stdout, stdout_cb),
-            self._read_stream(process.stderr, stderr_cb),
+            self._read_stream(process.stdout, stdout_cb, collect),
+            self._read_stream(process.stderr, stderr_cb, collect),
         )
 
         rc = await process.wait()
@@ -180,6 +184,7 @@ class Executor(ABC):
                 stdout_cb=self.log.debug if echo else None,
                 stderr_cb=self.log.debug if echo else None,
                 stdin=stdin,
+                collect=collect,
                 **kwargs,
             )
         )
