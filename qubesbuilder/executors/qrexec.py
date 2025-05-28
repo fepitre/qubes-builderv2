@@ -59,7 +59,7 @@ def qrexec_call(
     )
 
     if not ignore_errors and rc != 0:
-        err = f"{stderr.decode("ascii", "strict")}, " if stderr else ""
+        err = sanitize_line(stderr).rstrip() if stderr else ""
         msg = f"Failed to {what}: {err}qrexec call failed with code {rc}"
         raise ExecutorError(msg, name=vm)
 
