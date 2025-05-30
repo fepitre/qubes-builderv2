@@ -165,6 +165,7 @@ components:
       branch: main
   - linux-scrypt
   - qubes-release
+  - dist-upgrade
   - blivet
   - lorax-templates
   - anaconda
