@@ -72,7 +72,7 @@ class BaseWindowsExecutor(Executor, ABC):
         )
         if rc != 0:
             raise ExecutorError(
-                f"Failed to run losetup: {stderr.decode("ascii", "strict")}, error code {rc}"
+                f"Failed to run losetup: {stderr.decode('ascii', 'strict')}, error code {rc}"
             )
 
         result = stdout.decode("ascii", "strict")
@@ -101,7 +101,7 @@ class BaseWindowsExecutor(Executor, ABC):
             )
             if rc != 0:
                 raise ExecutorError(
-                    f"Failed to run losetup: {stderr.decode("ascii", "strict")}, error code {rc}"
+                    f"Failed to run losetup: {stderr.decode('ascii', 'strict')}, error code {rc}"
                 )
 
             loop_id = self._get_ewdk_loop()
