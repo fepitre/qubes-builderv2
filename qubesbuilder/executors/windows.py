@@ -156,9 +156,9 @@ class SSHWindowsExecutor(BaseWindowsExecutor):
         self.key_path = ssh_key_path
         self.vm = ssh_vm
 
-    def ssh_cmd(self, cmd: List[str]):
+    def ssh_cmd(self, cmd: List[str]) -> str:
         target = f"{self.user}@{self.ip}"
-        ret = self.execute(
+        ret, stdout, stderr = self.execute(
             cmd=[
                 "ssh",
                 "-i",
@@ -177,9 +177,13 @@ class SSHWindowsExecutor(BaseWindowsExecutor):
                 " & ".join(cmd),
                 " & exit !errorlevel!",
             ],
+            collect=True,
         )
         if ret != 0:
-            raise ExecutorError(f"Failed to run SSH cmd {cmd}")
+            raise ExecutorError(
+                f"Failed to run SSH cmd {cmd}: {stderr.decode('ascii', 'strict')}"
+            )
+        return stdout.decode("utf-8")
 
     def copy_in(self, source_path: Path, destination_dir: PurePath):
         src = str(source_path.expanduser().resolve())
@@ -246,7 +250,7 @@ class SSHWindowsExecutor(BaseWindowsExecutor):
         cmd: List[str],
         copy_in: List[Tuple[Path, PurePath]] = None,
         copy_out: List[Tuple[PurePath, Path]] = None,
-    ):
+    ) -> str:
         if self.vm is not None:
             self.start_worker()
 
@@ -260,7 +264,9 @@ class SSHWindowsExecutor(BaseWindowsExecutor):
         for src_in, dst_in in copy_in or []:
             self.copy_in(src_in, dst_in)
 
-        self.ssh_cmd(cmd)
+        stdout = self.ssh_cmd(cmd)
 
         for src_out, dst_out in copy_out or []:
             self.copy_out(src_out, dst_out)
+
+        return stdout
