@@ -11,12 +11,10 @@ qubes-release: r4.2
 cache:
   vm-archlinux:
     packages:
-      - bin86
       - bridge-utils
       - conntrack-tools
       - dconf
       - desktop-file-utils
-      - dev86
       - fakeroot
       - gawk
       - gcc
