@@ -155,7 +155,6 @@ components:
   - desktop-linux-manager
   - desktop-linux-menu
   - disk-password-gui
-  - libwnck3
   - xfdesktop
   - fwupd
   - flashrom
@@ -165,15 +164,12 @@ components:
   - dummy-backlight
   - zfs
   - zfs-dkms
-  - xorg-x11-server
   - linux-pvgrub2
   - linux-gbulb:
       branch: main
   - linux-scrypt
   - qubes-release
-  - pykickstart
   - blivet
-  - lorax
   - lorax-templates
   - anaconda
   - anaconda-addon
