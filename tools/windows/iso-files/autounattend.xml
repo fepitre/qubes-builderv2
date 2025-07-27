@@ -197,9 +197,15 @@
             </OOBE>
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
+                    <CommandLine>c:\qubes\git.exe /silent</CommandLine>
+                    <Description>Install git</Description>
+                    <Order>1</Order>
+                    <RequiresUserInput>false</RequiresUserInput>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
                     <CommandLine>powershell -executionpolicy bypass -File c:\qubes\ssh.ps1</CommandLine>
                     <Description>Install sshd</Description>
-                    <Order>1</Order>
+                    <Order>2</Order>
                     <RequiresUserInput>false</RequiresUserInput>
                 </SynchronousCommand>
             </FirstLogonCommands>

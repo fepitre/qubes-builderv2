@@ -41,6 +41,9 @@ fi
 # download/verify prerequisites
 "$SCRIPT_DIR/get-files.sh" -o "$SCRIPT_DIR" "$SCRIPT_DIR/deps.txt"
 
+# git installer
+cp -f "${SCRIPT_DIR}/git.exe" "${SCRIPT_DIR}/iso-files/sources/\$OEM\$/\$1/qubes/"
+
 # sshd installer
 cp -f "${SCRIPT_DIR}/win-opensshd.msi" "${SCRIPT_DIR}/iso-files/sources/\$OEM\$/\$1/qubes"
 
