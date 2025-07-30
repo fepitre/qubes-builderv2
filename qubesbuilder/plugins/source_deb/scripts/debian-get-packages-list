@@ -34,10 +34,28 @@ def main(dsc):
         parsed_dsc = Dsc(f)
 
     version = parsed_dsc["Version"]
-    packages = parsed_dsc["Package-list"].strip("\n").splitlines()
+    package_list = parsed_dsc["Package-list"]
+    if isinstance(package_list, str):
+        # python-debian 0.1.49
+        packages = parsed_dsc["Package-list"].strip("\n").splitlines()
+    else:
+        # python-debian >= 0.1.50
+        # list of dicts already
+        packages = package_list
     for pkg in packages:
-        # See https://man7.org/linux/man-pages/man5/dsc.5.html
-        package, package_type, section, priority, key_value_list = pkg.split(maxsplit=5)
+        if isinstance(pkg, str):
+            # See https://man7.org/linux/man-pages/man5/dsc.5.html
+            package, package_type, section, priority, key_value_list = pkg.split(
+                maxsplit=5
+            )
+        else:
+            package, package_type, section, priority, key_value_list = (
+                pkg["package"],
+                pkg["package-type"],
+                pkg["section"],
+                pkg["priority"],
+                pkg["_other"],
+            )
         optional_keys = {}
         for val in key_value_list.strip().split():
             if val.startswith("arch="):
