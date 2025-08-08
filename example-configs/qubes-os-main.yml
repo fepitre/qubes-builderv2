@@ -18,7 +18,8 @@ qubes-release: r4.3
 distributions:
   - host-fc41
   - vm-bookworm
-  - vm-fc41
+  - vm-trixie
+  - vm-fc42
 
 templates:
   - fedora-41-xfce:
