@@ -19,6 +19,7 @@ RUN dnf -y update && \
         dpkg-dev \
         e2fsprogs \
         git \
+        hostname \
         m4 \
         mock \
         pacman \
