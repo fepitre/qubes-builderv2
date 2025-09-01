@@ -134,6 +134,7 @@ components:
   - mgmt-salt-dom0-qvm
   - mgmt-salt-dom0-virtual-machines
   - mgmt-salt-dom0-update
+  - ansible
   - infrastructure:
       branch: main
   - repo-templates
