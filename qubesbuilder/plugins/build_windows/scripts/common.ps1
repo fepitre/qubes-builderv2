@@ -25,9 +25,7 @@ function Launch-EWDK {
         $kv = $line.split("=")
         $var_name = $kv[0]
         $var_value = $kv[1]
-        if (! (Test-Path -Path "env:$var_name")) {
-            Set-Item -Path "env:$var_name" -Value $var_value
-        }
+        Set-Item -Path "env:$var_name" -Value $var_value
     }
 }
 

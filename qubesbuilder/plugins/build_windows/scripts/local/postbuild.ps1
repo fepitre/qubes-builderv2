@@ -1,0 +1,14 @@
+param (
+    [string]$component_src_dir, # component source directory
+    [string]$repo_root, # root repo directory for all components
+    [string]$build_configuration # Debug/Release
+)
+
+# Skip if running from Qubes Builder
+if (! (Test-Path -Path env:QB_LOCAL)) {
+    exit 0
+}
+
+. $PSScriptRoot\functions.ps1
+
+QB-LocalPostBuild $component_src_dir $repo_root $build_configuration

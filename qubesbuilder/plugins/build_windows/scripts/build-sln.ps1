@@ -69,6 +69,11 @@ $ewdk_lib_dir = "$env:EWDK_PATH\Program Files\Windows Kits\10\Lib\$ewdk_version"
 $ewdk_lib = "$ewdk_lib_dir\um\$arch;$ewdk_lib_dir\ucrt\$arch"
 
 $env:WindowsSDK_IncludePath = $ewdk_inc
+
+# Paths for native executables
+$env:EWDK_INCLUDES="$env:EWDK_PATH\Program Files\Windows Kits\10\Include\$env:Version_Number\km"
+$env:EWDK_LIBS="$env:EWDK_PATH\Program Files\Windows Kits\10\Lib\$env:Version_Number\um\x64"
+
 Set-Item -Path "env:WindowsSDK_LibraryPath_$arch" -Value $ewdk_lib
 $env:PATH += ";$env:EWDK_PATH\Program Files\Windows Kits\10\bin\$ewdk_version\$arch"
 
@@ -88,7 +93,7 @@ if ($testsign) {
 
 # Iterate over builder's local repository to collect dependencies
 if (! (Test-Path $repo -PathType Container)) {
-    LogError "Invalid repository directory: $repo"
+    New-Item -Path $repo -ItemType Directory -Force
 }
 
 $env:QUBES_REPO = Resolve-Path $repo
@@ -111,8 +116,11 @@ foreach ($dep in Get-ChildItem -Path $repo) {
     }
 }
 
+$env:QB_SCRIPTS = "$PSScriptRoot"
+
 LogDebug "QUBES_INCLUDES = $env:QUBES_INCLUDES"
 LogDebug "QUBES_LIBS = $env:QUBES_LIBS"
+LogDebug "QUBES_REPO = $env:QUBES_REPO"
 
 if ($distfiles -ne "") {
     if (! (Test-Path $distfiles -PathType Container)) {

@@ -13,6 +13,7 @@ if (! (Test-Path $cert_path)) {
     exit 0
 }
 
+echo "Deleting code signing certificate..."
 $tp = (Get-PfxCertificate -FilePath $cert_path).Thumbprint
 
 Remove-Item $cert_path
