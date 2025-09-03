@@ -29,7 +29,6 @@ from qubesbuilder.executors import Executor, ExecutorError
 try:
     from docker import DockerClient
     from docker.errors import DockerException
-    from docker.models.containers import Container
 except ImportError:
     DockerClient = None
     DockerException = ExecutorError
@@ -37,7 +36,6 @@ except ImportError:
 try:
     from podman import PodmanClient
     from podman.errors import PodmanError
-    from podman.domain.containers import Container
 except ImportError:
     PodmanClient = None
     PodmanError = ExecutorError
@@ -161,8 +159,9 @@ class ContainerExecutor(Executor):
             raise ExecutorError(msg, name=self.container.id)
 
     def cleanup(self):
-        self.container.wait()
-        self.container.remove()
+        if self.container:
+            self.container.wait()
+            self.container.remove()
 
     def run(  # type: ignore
         self,
