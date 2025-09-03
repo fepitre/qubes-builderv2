@@ -137,10 +137,7 @@ class ContainerExecutor(Executor):
             self.log.debug(f"copy-in (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
-            if e.stdout is not None:
-                content = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
-            else:
-                content = str(e)
+            content = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
             msg = f"Failed to copy-in: {content}"
             raise ExecutorError(msg, name=self.container.id)
 
@@ -159,10 +156,7 @@ class ContainerExecutor(Executor):
             dst.mkdir(parents=True, exist_ok=True)
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
-            if e.stdout is not None:
-                content = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
-            else:
-                content = str(e)
+            content = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
             msg = f"Failed to copy-out: {content}"
             raise ExecutorError(msg, name=self.container.id)
 
