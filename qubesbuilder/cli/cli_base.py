@@ -72,6 +72,9 @@ class AliasedGroup(click.Group):
             try:
                 fn()
             except Exception as e:
+                if self.debug:
+                    formatted_tb = "".join(traceback.format_exception(e))
+                    QubesBuilderLogger.error("\n" + formatted_tb.rstrip("\n"))
                 QubesBuilderLogger.error(f"Cleanup callback failed: {e}")
 
     def invoke(self, ctx):
