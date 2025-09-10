@@ -23,6 +23,7 @@ def _component_stage(
     components: List[QubesComponent],
     distributions: List[QubesDistribution],
     stages: List[str],
+    **kwargs,
 ):
     """
     Generic function to trigger stage for a standard component
@@ -40,7 +41,7 @@ def _component_stage(
     ):
         if hasattr(job, "executor") and hasattr(job.executor, "cleanup"):
             root_group.add_cleanup(job.executor.cleanup)
-        job.run()
+        job.run(**kwargs)
 
 
 @click.command(name="all", short_help="Run all package stages.")
@@ -59,6 +60,12 @@ def _all_package_stage(obj: ContextObj):
             stages=["fetch"],
         )
         stages.remove("fetch")
+    _component_stage(
+        config=obj.config,
+        components=obj.components,
+        distributions=obj.distributions,
+        stages=["init-cache"],
+    )
     _component_stage(
         config=obj.config,
         components=obj.components,
@@ -163,13 +170,20 @@ def upload(obj: ContextObj):
 
 
 @package.command()
+@click.option(
+    "--force",
+    default=False,
+    is_flag=True,
+    help="Force cleanup and recreation.",
+)
 @click.pass_obj
-def init_cache(obj: ContextObj):
+def init_cache(obj: ContextObj, force: bool = False):
     _component_stage(
         config=obj.config,
         components=obj.components,
         distributions=obj.distributions,
         stages=["init-cache"],
+        force=force,
     )
 
 

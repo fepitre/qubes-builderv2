@@ -46,20 +46,59 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
     ):
         super().__init__(dist=dist, config=config, stage=stage, **kwargs)
 
-    def run(self):
+    def run(self, force: bool = False):
         """
         Run plugin for given stage.
         """
 
         chroot_dir = (
-            self.config.cache_dir / "chroot" / self.dist.name / "pbuilder"
+            self.config.cache_dir
+            / "chroot"
+            / self.dist.distribution
+            / "pbuilder"
         )
-        chroot_dir.mkdir(exist_ok=True, parents=True)
 
-        if (chroot_dir / "base.tgz").exists():
-            os.remove(chroot_dir / "base.tgz")
-        if (chroot_dir / "aptcache").exists():
-            shutil.rmtree(chroot_dir / "aptcache")
+        artifacts_info = self.get_artifacts_info(
+            stage=self.stage,
+            basename="base",
+            artifacts_dir=chroot_dir,
+        )
+
+        existing_packages = artifacts_info.get("packages", [])
+
+        additional_packages = (
+            self.config.get("cache", {})
+            .get(self.dist.distribution, {})
+            .get("packages", [])
+        )
+
+        # Delete previous chroot if forced or package sets differ
+        if artifacts_info:
+            if force:
+                msg = f"{self.dist}: Forcing cache recreation..."
+                recreate = True
+            elif set(additional_packages) != set(existing_packages):
+                msg = (
+                    f"{self.dist}: Existing packages in cache differ from requested ones. "
+                    f"Recreating cache..."
+                )
+                recreate = True
+            else:
+                msg = (
+                    f"{self.dist}: Re-using existing cache. "
+                    f"Use --force to force cleanup and recreation."
+                )
+                recreate = False
+
+            self.log.info(msg)
+
+            if not recreate:
+                return
+
+            shutil.rmtree(chroot_dir)
+
+        # Create chroot cache dir
+        chroot_dir.mkdir(exist_ok=True, parents=True)
 
         files_inside_executor_with_placeholders = [
             "@PLUGINS_DIR@/chroot_deb/pbuilder/pbuilderrc"
@@ -105,11 +144,6 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
             raise ChrootError(msg) from e
 
         # Create a second cage for downloading the packages
-        additional_packages = (
-            self.config.get("cache", {})
-            .get(self.dist.distribution, {})
-            .get("packages", [])
-        )
         if additional_packages:
             copy_in = self.default_copy_in(
                 self.executor.get_plugins_dir(), self.executor.get_sources_dir()
@@ -149,6 +183,17 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
                     f"{self.dist}: Failed to download extra packages: {str(e)}."
                 )
                 raise ChrootError(msg) from e
+
+        # Save packages info into artifacts file
+        info = {
+            "packages": additional_packages,
+        }
+        self.save_artifacts_info(
+            stage=self.stage,
+            basename="base",
+            info=info,
+            artifacts_dir=chroot_dir,
+        )
 
 
 PLUGINS = [DEBChrootPlugin]

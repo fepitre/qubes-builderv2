@@ -307,6 +307,11 @@ pytest-cli-component:
   script:
     - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_common_
 
+pytest-cli-component-init-cache:
+  extends: .pytest
+  script:
+    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_init_cache_
+
 pytest-cli-increment-component:
   extends: .pytest
   script:

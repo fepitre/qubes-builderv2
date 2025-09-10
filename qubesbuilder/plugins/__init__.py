@@ -490,6 +490,7 @@ class DistributionPlugin(Plugin):
             kwargs.get("dist")
         ):
             return cls(**kwargs)
+        return None
 
 
 def get_stage_options(stage: str, options: dict):
@@ -507,6 +508,7 @@ class DistributionComponentPlugin(DistributionPlugin, ComponentPlugin):
             and cls.supported_distribution(kwargs.get("dist"))
         ):
             return cls(**kwargs)
+        return None
 
     def __init__(
         self,
