@@ -314,6 +314,25 @@ class Plugin:
             msg = f"Failed to read info from '{artifacts_info}'."
             raise PluginError(msg) from e
 
+    def save_artifacts_info(
+        self,
+        stage: str,
+        basename: str,
+        info: dict,
+        artifacts_dir: Path,
+    ):
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(
+                artifacts_dir
+                / self.get_artifacts_info_filename(stage, basename),
+                "w",
+            ) as f:
+                f.write(yaml.safe_dump(info))
+        except (PermissionError, yaml.YAMLError) as e:
+            msg = f"{basename}: Failed to write info for {stage} stage."
+            raise PluginError(msg) from e
+
     def get_artifacts_info(
         self, stage: str, basename: str, artifacts_dir: Path
     ) -> Dict:
@@ -409,26 +428,6 @@ class ComponentPlugin(Plugin):
     ) -> Dict:
         a_dir: Path = artifacts_dir or self.get_component_artifacts_dir(stage)
         return super().get_artifacts_info(stage, basename, a_dir)
-
-    def save_artifacts_info(
-        self,
-        stage: str,
-        basename: str,
-        info: dict,
-        artifacts_dir: Optional[Path] = None,
-    ):
-        artifacts_dir = artifacts_dir or self.get_component_artifacts_dir(stage)
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            with open(
-                artifacts_dir
-                / self.get_artifacts_info_filename(stage, basename),
-                "w",
-            ) as f:
-                f.write(yaml.safe_dump(info))
-        except (PermissionError, yaml.YAMLError) as e:
-            msg = f"{self.component}:{basename}: Failed to write info for {stage} stage."
-            raise PluginError(msg) from e
 
     def delete_artifacts_info(
         self, stage: str, basename: str, artifacts_dir: Optional[Path] = None
@@ -663,6 +662,7 @@ class TemplatePlugin(DistributionPlugin):
             kwargs.get("template"), QubesTemplate
         ) and cls.supported_template(kwargs["template"]):
             return cls(**kwargs)
+        return None
 
     def get_template_artifacts_info(self, stage: str) -> Dict:
         fileinfo = (
@@ -679,16 +679,6 @@ class TemplatePlugin(DistributionPlugin):
                 )
                 raise PluginError(msg) from e
         return {}
-
-    def save_artifacts_info(self, stage: str, info: dict):
-        artifacts_dir = self.config.templates_dir
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            with open(artifacts_dir / f"{self.template}.{stage}.yml", "w") as f:
-                f.write(yaml.safe_dump(info))
-        except (PermissionError, yaml.YAMLError) as e:
-            msg = f"{self.template}: Failed to write info for {stage} stage."
-            raise PluginError(msg) from e
 
     def delete_artifacts_info(self, stage: str):
         artifacts_dir = self.config.templates_dir

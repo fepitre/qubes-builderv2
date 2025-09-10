@@ -382,7 +382,10 @@ class FetchPlugin(ComponentPlugin):
 
         try:
             self.save_artifacts_info(
-                stage=self.stage, basename="source", info=info
+                stage=self.stage,
+                basename="source",
+                info=info,
+                artifacts_dir=self.get_component_artifacts_dir("fetch"),
             )
             # Clean temp_dir
             shutil.rmtree(temp_dir)

@@ -212,19 +212,6 @@ class InstallerPlugin(DistributionPlugin):
                 raise PluginError(msg) from e
         return {}
 
-    def save_artifacts_info(self, stage: str, info: dict):
-        artifacts_dir = self.config.installer_dir
-        artifacts_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            with open(
-                artifacts_dir / f"{self.dist.name}_{self.iso_name}.{stage}.yml",
-                "w",
-            ) as f:
-                f.write(yaml.safe_dump(info))
-        except (PermissionError, yaml.YAMLError) as e:
-            msg = f"{self.dist}: Failed to write info for {stage} stage."
-            raise PluginError(msg) from e
-
     def delete_artifacts_info(self, stage: str):
         artifacts_dir = self.config.installer_dir
         info_path = (
@@ -710,7 +697,12 @@ class InstallerPlugin(DistributionPlugin):
                     ],
                 },
             }
-            self.save_artifacts_info(self.stage, info)
+            self.save_artifacts_info(
+                self.stage,
+                f"{self.dist.name}_{self.iso_name}",
+                info,
+                self.config.installer_dir,
+            )
 
         if self.stage == "sign":
             # Check if we have a signing key provided
