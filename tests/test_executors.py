@@ -306,7 +306,7 @@ def test_container_on_error_noclean():
         container = client.containers.get(containerid)
 
     assert container is not None
-    executor.cleanup(container)
+    executor.cleanup()
 
 
 def test_local_clean_on_error():

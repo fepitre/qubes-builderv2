@@ -29,7 +29,6 @@ from qubesbuilder.executors import Executor, ExecutorError
 try:
     from docker import DockerClient
     from docker.errors import DockerException
-    from docker.models.containers import Container
 except ImportError:
     DockerClient = None
     DockerException = ExecutorError
@@ -82,6 +81,8 @@ class ContainerExecutor(Executor):
 
         self._attrs = docker_image.attrs
 
+        self.container: Container = None  # type: ignore
+
     @contextmanager
     def get_client(self):
         kwargs = {
@@ -107,7 +108,7 @@ class ContainerExecutor(Executor):
     def get_group(self):
         return self._group
 
-    def copy_in(self, container, source_path: Path, destination_dir: PurePath):  # type: ignore
+    def copy_in(self, source_path: Path, destination_dir: PurePath):  # type: ignore
         src = source_path.resolve()
         dst = destination_dir.as_posix()
 
@@ -121,7 +122,7 @@ class ContainerExecutor(Executor):
                         self._container_client,
                         "cp",
                         f"{empty_dir!s}/.",
-                        f"{container.id}:{parent}",
+                        f"{self.container.id}:{parent}",
                     ]
                     self.log.debug(f"copy-in (cmd): {' '.join(cmd)}")
                     subprocess.run(cmd, check=True, capture_output=True)
@@ -129,39 +130,38 @@ class ContainerExecutor(Executor):
                 self._container_client,
                 "cp",
                 str(src),
-                f"{container.id}:{dst}",
+                f"{self.container.id}:{dst}",
             ]
             self.log.debug(f"copy-in (cmd): {' '.join(cmd)}")
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
-            if e.stdout is not None:
-                content = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
-            else:
-                content = str(e)
+            content = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
             msg = f"Failed to copy-in: {content}"
-            raise ExecutorError(msg, name=container.id)
+            raise ExecutorError(msg, name=self.container.id)
 
-    def copy_out(self, container, source_path: PurePath, destination_dir: Path):  # type: ignore
+    def copy_out(self, source_path: PurePath, destination_dir: Path):  # type: ignore
         src = source_path.as_posix()
         dst = destination_dir.resolve()
 
-        cmd = [self._container_client, "cp", f"{container.id}:{src}", str(dst)]
+        cmd = [
+            self._container_client,
+            "cp",
+            f"{self.container.id}:{src}",
+            str(dst),
+        ]
         try:
             self.log.debug(f"copy-out (cmd): {' '.join(cmd)}")
             dst.mkdir(parents=True, exist_ok=True)
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:
-            if e.stdout is not None:
-                content = sanitize_line(e.stdout.rstrip(b"\n")).rstrip()
-            else:
-                content = str(e)
+            content = sanitize_line(e.stderr.rstrip(b"\n")).rstrip()
             msg = f"Failed to copy-out: {content}"
-            raise ExecutorError(msg, name=container.id)
+            raise ExecutorError(msg, name=self.container.id)
 
-    @staticmethod
-    def cleanup(container):
-        container.wait()
-        container.remove()
+    def cleanup(self):
+        if self.container:
+            self.container.wait()
+            self.container.remove()
 
     def run(  # type: ignore
         self,
@@ -173,7 +173,6 @@ class ContainerExecutor(Executor):
         no_fail_copy_out_allowed_patterns=None,
         **kwargs,
     ):
-        container = None
         try:
             with self.get_client() as client:
                 # prepare container for given image and command
@@ -213,7 +212,7 @@ class ContainerExecutor(Executor):
                         "target": "/dev/loop-control",
                     },
                 ]
-                container = client.containers.create(
+                self.container = client.containers.create(
                     image,
                     container_cmd,
                     privileged=True,
@@ -226,12 +225,10 @@ class ContainerExecutor(Executor):
                 for src_in, dst_in in sorted(
                     set(copy_in or []), key=lambda x: x[1]
                 ):
-                    self.copy_in(
-                        container, source_path=src_in, destination_dir=dst_in
-                    )
+                    self.copy_in(source_path=src_in, destination_dir=dst_in)
 
                 self.log.debug(
-                    f"Using executor {self._container_client}:{container.short_id} to run '{final_cmd}'."
+                    f"Using executor {self._container_client}:{self.container.short_id} to run '{final_cmd}'."
                 )
 
                 # FIXME: Use attach method when podman-py will implement.
@@ -240,12 +237,12 @@ class ContainerExecutor(Executor):
                     self._container_client,
                     "start",
                     "--attach",
-                    container.id,
+                    self.container.id,
                 ]
                 rc = self.execute(cmd)
                 if rc != 0:
                     msg = f"Failed to run '{final_cmd}' (status={rc})."
-                    raise ExecutorError(msg, name=container.id)
+                    raise ExecutorError(msg, name=self.container.id)
 
                 # copy-out hook
                 for src_out, dst_out in sorted(
@@ -253,7 +250,6 @@ class ContainerExecutor(Executor):
                 ):
                     try:
                         self.copy_out(
-                            container,
                             source_path=src_out,
                             destination_dir=dst_out,
                         )
@@ -273,9 +269,9 @@ class ContainerExecutor(Executor):
                             continue
                         raise e
         except ExecutorError as e:
-            if container and self._clean_on_error:
-                self.cleanup(container)
+            if self.container and self._clean_on_error:
+                self.cleanup()
             raise e
         else:
-            if container and self._clean:
-                self.cleanup(container)
+            if self.container and self._clean:
+                self.cleanup()

@@ -177,9 +177,15 @@ class QubesExecutor(Executor):
         )
 
     def cleanup(self):
-        # Kill the DispVM to prevent hanging for while
-        assert self.dispvm
-        kill_vm(self, self.dispvm)
+        if self.dispvm is None:
+            return
+
+        state = vm_state(self, self.dispvm)
+
+        if state != "Halted":
+            kill_vm(self, self.dispvm)
+        else:
+            remove_vm(self, self.dispvm)
 
 
 class LinuxQubesExecutor(QubesExecutor):
@@ -393,17 +399,6 @@ class WindowsQubesExecutor(BaseWindowsExecutor, QubesExecutor):
         raise ExecutorError(
             f"Failed to communicate with windows dispvm '{self.dispvm}'"
         )
-
-    def cleanup(self):
-        if self.dispvm is None:
-            return
-
-        state = vm_state(self, self.dispvm)
-
-        if state != "Halted":
-            kill_vm(self, self.dispvm)
-        else:
-            remove_vm(self, self.dispvm)
 
     def run(
         self,
