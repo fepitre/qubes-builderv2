@@ -2824,3 +2824,114 @@ def test_installer_init_cache(artifacts_dir):
     rpms = list(templates_cache.glob("*.rpm"))
     assert rpms
     assert rpms[0].name.startswith("qubes-template-debian-12-minimal-4.2.0")
+
+
+#
+# Tests for init-cache
+#
+
+
+def test_init_cache_reuse_and_force_rpm(artifacts_dir):
+    # Create cache
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "host-fc37",
+        "package",
+        "init-cache",
+    )
+
+    # Should reuse existing cache
+    output = qb_call_output(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "host-fc37",
+        "package",
+        "init-cache",
+    ).decode()
+    assert "Re-using existing cache" in output
+
+    # Force recreation
+    output = qb_call_output(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "host-fc37",
+        "package",
+        "init-cache",
+        "--force",
+    ).decode()
+    assert "Forcing cache recreation" in output
+
+
+def test_init_cache_packages_diff_recreates_deb(artifacts_dir):
+    # Create cache
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "vm-bookworm",
+        "package",
+        "init-cache",
+    )
+
+    # Patch builder config to request an extra package
+    new_conf = artifacts_dir / "builder-updated.yml"
+    with open(DEFAULT_BUILDER_CONF) as f:
+        config = yaml.safe_load(f)
+    config.setdefault("cache", {}).setdefault("vm-bookworm", {})["packages"] = [
+        "vim"
+    ]
+    with open(new_conf, "w") as f:
+        yaml.safe_dump(config, f)
+
+    # Run again: should detect package set difference
+    output = qb_call_output(
+        new_conf,
+        artifacts_dir,
+        "-d",
+        "vm-bookworm",
+        "package",
+        "init-cache",
+    ).decode()
+    assert (
+        "Existing packages in cache differ from requested ones. Recreating cache"
+        in output
+    )
+
+
+def test_init_cache_reuse_and_force_arch(artifacts_dir):
+    # Create cache
+    qb_call(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "vm-archlinux",
+        "package",
+        "init-cache",
+    )
+
+    # Must reuse cache
+    output = qb_call_output(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "vm-archlinux",
+        "package",
+        "init-cache",
+    ).decode()
+    assert "Re-using existing cache" in output
+
+    # Force recreation
+    output = qb_call_output(
+        DEFAULT_BUILDER_CONF,
+        artifacts_dir,
+        "-d",
+        "vm-archlinux",
+        "package",
+        "init-cache",
+        "--force",
+    ).decode()
+    assert "Forcing cache recreation" in output

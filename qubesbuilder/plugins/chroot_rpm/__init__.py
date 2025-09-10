@@ -46,22 +46,55 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
     ):
         super().__init__(dist=dist, config=config, stage=stage, **kwargs)
 
-    def run(self):
+    def run(self, force=False):
         """
         Run plugin for given stage.
         """
 
         mock_conf = f"{self.dist.fullname}-{self.dist.version}-{self.dist.architecture}.cfg"
 
-        chroot_dir = self.config.cache_dir / "chroot" / self.dist.name / "mock"
-        chroot_dir.mkdir(exist_ok=True, parents=True)
+        chroot_dir = (
+            self.config.cache_dir / "chroot" / self.dist.distribution / "mock"
+        )
 
         # FIXME: Parse from mock cfg?
         mock_chroot_name = mock_conf.replace(".cfg", "")
 
-        # Delete previous chroot
-        if (chroot_dir / mock_chroot_name).exists():
+        artifacts_info = self.get_artifacts_info(
+            stage=self.stage,
+            basename=mock_chroot_name,
+            artifacts_dir=chroot_dir / mock_chroot_name,
+        )
+
+        existing_packages = artifacts_info.get("packages", [])
+
+        additional_packages = (
+            self.config.get("cache", {})
+            .get(self.dist.distribution, {})
+            .get("packages", [])
+        )
+
+        # Delete previous chroot if forced to do it or if packages set differs
+        if artifacts_info:
+            if force:
+                msg = f"{self.dist}: Forcing cache recreation..."
+                recreate = True
+            elif set(additional_packages) != set(existing_packages):
+                msg = f"{self.dist}: Existing packages in cache differs from requested ones. Recreating cache..."
+                recreate = True
+            else:
+                msg = f"{self.dist}: Re-using existing cache. Use --force to force cleanup and recreation."
+                recreate = False
+
+            self.log.info(msg)
+
+            if not recreate:
+                return
+
             shutil.rmtree(chroot_dir / mock_chroot_name)
+
+        # Create chroot cache dir
+        chroot_dir.mkdir(exist_ok=True, parents=True)
 
         self.environment.update(
             {
@@ -116,11 +149,6 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
             raise ChrootError(msg) from e
 
         # Create a second cage for downloading the packages
-        additional_packages = (
-            self.config.get("cache", {})
-            .get(self.dist.distribution, {})
-            .get("packages", [])
-        )
         if additional_packages:
             # Remove dnf_cache
             if (chroot_dir / mock_chroot_name / "dnf_cache").exists():
@@ -156,6 +184,17 @@ class RPMChrootPlugin(RPMDistributionPlugin, ChrootPlugin):
                     f"{self.dist}: Failed to download extra packages: {str(e)}."
                 )
                 raise ChrootError(msg) from e
+
+        # Save packages info into artifacts file
+        info = {
+            "packages": additional_packages,
+        }
+        self.save_artifacts_info(
+            stage=self.stage,
+            basename=mock_chroot_name,
+            info=info,
+            artifacts_dir=chroot_dir / mock_chroot_name,
+        )
 
 
 PLUGINS = [RPMChrootPlugin]

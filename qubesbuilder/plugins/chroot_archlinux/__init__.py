@@ -106,17 +106,58 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
     ):
         super().__init__(dist=dist, config=config, stage=stage, **kwargs)
 
-    def run(self):
+    def run(self, force: bool = False):
         """
         Run plugin for given stage.
         """
 
-        cache_chroot_dir = self.config.cache_dir / "chroot" / self.dist.name
-        cache_chroot_dir.mkdir(exist_ok=True, parents=True)
-
+        cache_chroot_dir = (
+            self.config.cache_dir / "chroot" / self.dist.distribution
+        )
         chroot_name = "root"
         chroot_archive = f"{chroot_name}.tar.gz"
-        (cache_chroot_dir / chroot_archive).unlink(missing_ok=True)
+
+        artifacts_info = self.get_artifacts_info(
+            stage=self.stage,
+            basename=chroot_name,
+            artifacts_dir=cache_chroot_dir,
+        )
+
+        existing_packages = artifacts_info.get("packages", [])
+
+        additional_packages = (
+            self.config.get("cache", {})
+            .get(self.dist.distribution, {})
+            .get("packages", [])
+        )
+
+        # Delete previous chroot if forced or package sets differ
+        if artifacts_info:
+            if force:
+                msg = f"{self.dist}: Forcing cache recreation..."
+                recreate = True
+            elif set(additional_packages) != set(existing_packages):
+                msg = (
+                    f"{self.dist}: Existing packages in cache differ from requested ones. "
+                    f"Recreating cache..."
+                )
+                recreate = True
+            else:
+                msg = (
+                    f"{self.dist}: Re-using existing cache. "
+                    f"Use --force to force cleanup and recreation."
+                )
+                recreate = False
+
+            self.log.info(msg)
+
+            if not recreate:
+                return
+
+            (cache_chroot_dir / chroot_archive).unlink()
+
+        # Create chroot cache dir
+        cache_chroot_dir.mkdir(exist_ok=True, parents=True)
 
         copy_in = self.default_copy_in(
             self.executor.get_plugins_dir(), self.executor.get_sources_dir()
@@ -141,12 +182,6 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         )
 
         makepkg_conf = f"{self.executor.get_plugins_dir()}/chroot_archlinux/conf/makepkg-x86_64.conf"
-
-        additional_packages = (
-            self.config.get("cache", {})
-            .get(self.dist.distribution, {})
-            .get("packages", [])
-        )
 
         servers = self.config.get("mirrors", {}).get(
             self.dist.distribution, []
@@ -183,6 +218,17 @@ class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
         except ExecutorError as e:
             msg = f"{self.dist}: Failed to generate chroot: {str(e)}."
             raise ChrootError(msg) from e
+
+        # Save packages info into artifacts file
+        info = {
+            "packages": additional_packages,
+        }
+        self.save_artifacts_info(
+            stage=self.stage,
+            basename=chroot_name,
+            info=info,
+            artifacts_dir=cache_chroot_dir,
+        )
 
 
 PLUGINS = [ArchlinuxChrootPlugin]

@@ -491,6 +491,26 @@ class DistributionPlugin(Plugin):
             kwargs.get("dist")
         ):
             return cls(**kwargs)
+        return None
+
+    def save_artifacts_info(
+        self,
+        stage: str,
+        basename: str,
+        info: dict,
+        artifacts_dir: Path,
+    ):
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with open(
+                artifacts_dir
+                / self.get_artifacts_info_filename(stage, basename),
+                "w",
+            ) as f:
+                f.write(yaml.safe_dump(info))
+        except (PermissionError, yaml.YAMLError) as e:
+            msg = f"{self.dist}:{basename}: Failed to write info for {stage} stage."
+            raise PluginError(msg) from e
 
 
 def get_stage_options(stage: str, options: dict):
