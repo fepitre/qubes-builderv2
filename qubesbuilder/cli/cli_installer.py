@@ -29,8 +29,12 @@ def _installer_stage(
     """
     click.echo(f"Running installer stage: {stage_name}")
 
-    ctx = click.get_current_context()
-    root_group = ctx.find_root().command
+    try:
+        ctx = click.get_current_context()
+    except RuntimeError:
+        root_group = None
+    else:
+        root_group = ctx.find_root().command
 
     host_distributions = [
         d for d in config.get_distributions() if d.package_set == "host"
@@ -43,8 +47,10 @@ def _installer_stage(
     installer_plugin = InstallerPlugin(
         dist=dist, config=config, stage=stage_name, templates=templates or []
     )
-    if hasattr(installer_plugin, "executor") and hasattr(
-        installer_plugin.executor, "cleanup"
+    if (
+        hasattr(installer_plugin, "executor")
+        and hasattr(installer_plugin.executor, "cleanup")
+        and root_group
     ):
         root_group.add_cleanup(installer_plugin.executor.cleanup)
     installer_plugin.run(

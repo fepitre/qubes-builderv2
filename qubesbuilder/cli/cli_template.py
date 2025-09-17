@@ -26,15 +26,23 @@ def _template_stage(
     """
     click.echo(f"Running template stages: {', '.join(stages)}")
 
-    ctx = click.get_current_context()
-    root_group = ctx.find_root().command
+    try:
+        ctx = click.get_current_context()
+    except RuntimeError:
+        root_group = None
+    else:
+        root_group = ctx.find_root().command
 
     # Qubes templates
     jobs = config.get_jobs(
         templates=templates, components=[], distributions=[], stages=stages
     )
     for job in jobs:
-        if hasattr(job, "executor") and hasattr(job.executor, "cleanup"):
+        if (
+            hasattr(job, "executor")
+            and hasattr(job.executor, "cleanup")
+            and root_group
+        ):
             root_group.add_cleanup(job.executor.cleanup)
         job.run(template_timestamp=template_timestamp)
 
