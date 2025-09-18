@@ -151,6 +151,7 @@ components:
   - desktop-linux-xfce4-xfwm4-420:
       url: https://github.com/QubesOS/qubes-desktop-linux-xfce4-xfwm4
       branch: xfce-4.20
+  - xfce4-screensaver
   - desktop-linux-i3
   - desktop-linux-i3-settings-qubes
   - desktop-linux-awesome
