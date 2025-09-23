@@ -22,13 +22,13 @@ distributions:
   - vm-fc42
 
 templates:
-  - fedora-41-xfce:
-      dist: fc41
+  - fedora-42-xfce:
+      dist: fc42
       flavor: xfce
       options:
         - selinux
-  - debian-12-xfce:
-      dist: bookworm
+  - debian-13-xfce:
+      dist: trixie
       flavor: xfce
       options:
         - firmware
