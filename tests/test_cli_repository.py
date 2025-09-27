@@ -141,7 +141,7 @@ def test_repository_create_template(artifacts_dir):
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
             "-t",
-            "whonix-gateway-17",
+            "whonix-gateway-18",
             "repository",
             "create",
             "templates-community-testing",
