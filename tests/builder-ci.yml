@@ -163,6 +163,7 @@ less-secure-signed-commits-sufficient:
   - builder-debian
   - builder-archlinux
   - template-whonix
+  - template-kicksecure
   - python-qasync
   - core-vchan-xen
   - core-qrexec
