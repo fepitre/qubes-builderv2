@@ -298,7 +298,9 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
                 ),
             }
 
-            chroot_dir = self.config.cache_dir / "chroot" / self.dist.name
+            chroot_dir = (
+                self.config.cache_dir / "chroot" / self.dist.distribution
+            )
             chroot_archive = "root.tar.gz"
 
             if (chroot_dir / chroot_archive).exists():
