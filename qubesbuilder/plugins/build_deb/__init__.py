@@ -276,7 +276,7 @@ class DEBBuildPlugin(DEBDistributionPlugin, BuildPlugin):
             #  This is until we use shlex.quote.
 
             # Add downloaded packages and prepared chroot cache
-            chroot_dir = self.config.cache_dir / "chroot" / self.dist.name
+            chroot_dir = self.config.cache_dir / "chroot" / self.dist.distribution
             aptcache_dir = chroot_dir / "pbuilder/aptcache"
             base_tgz = chroot_dir / "pbuilder/base.tgz"
             if aptcache_dir.exists():
