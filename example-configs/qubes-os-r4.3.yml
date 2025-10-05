@@ -76,6 +76,7 @@ components:
   - core-admin
   - core-admin-client
   - core-admin-addon-whonix
+  - core-admin-addon-kicksecure
   - core-admin-linux
   - core-agent-linux
   - core-agent-windows
