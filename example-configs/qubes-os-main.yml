@@ -167,6 +167,7 @@ components:
   - dummy-backlight
   - zfs
   - zfs-dkms
+  - xorg-x11-server
   - linux-pvgrub2
   - linux-gbulb:
       branch: main
