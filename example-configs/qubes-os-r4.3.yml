@@ -1,7 +1,7 @@
 git:
   baseurl: https://github.com
   prefix: QubesOS/qubes-
-  branch: main
+  branch: release4.3
   maintainers:
     # marmarek
     - '0064428F455451B3EBE78A7F063938BA42CFA724'
