@@ -49,7 +49,7 @@ Server = {{ server }}/$repo/os/$arch
 {%- endfor %}
 
 [multilib]
-SigLevel = PackageRequired
+SigLevel = PackageRequired DatabaseOptional
 {%- for server in servers %}
 Server = {{ server }}/$repo/os/$arch
 {%- endfor %}
