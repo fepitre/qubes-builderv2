@@ -20,6 +20,7 @@ distributions:
   - vm-bookworm
   - vm-trixie
   - vm-fc42
+  - vm-fc43
 
 templates:
   - fedora-42-xfce:
