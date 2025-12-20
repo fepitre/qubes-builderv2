@@ -48,27 +48,22 @@ comps="$5"
 mkdir -p "$output_dir"
 cd "$output_dir"
 
-if [[ $release =~ r[1-9].[0-9] ]] && [[ $package_set =~ (host|dom0|vm) ]] && [[ $dist =~ (fc[1-9][0-9]|centos[1-9][0-9]*|centos-stream[1-9][0-9]*|tumbleweed|leap[1-9][0-9]\.[0-9]) ]]
-then
-    # Add comps
-    mkdir -p "$output_dir/$release"
+# Add comps
+mkdir -p "$output_dir/$release"
+if [ -e "$comps" ]; then
+    cp "$comps" "$output_dir/$release"
+fi
+
+for repo in current current-testing security-testing unstable
+do
+    mkdir -p "$release/$repo/$package_set/$dist/rpm"
+    # provided $comps has the format comps-${package_set}.xml
     if [ -e "$comps" ]; then
-        cp "$comps" "$output_dir/$release"
+        ln -sf "../../../comps-${package_set}.xml" "$release/$repo/$package_set/$dist/comps.xml"
     fi
+done
 
-    for repo in current current-testing security-testing unstable
-    do
-        mkdir -p "$release/$repo/$package_set/$dist/rpm"
-        # provided $comps has the format comps-${package_set}.xml
-        if [ -e "$comps" ]; then
-            ln -sf "../../../comps-${package_set}.xml" "$release/$repo/$package_set/$dist/comps.xml"
-        fi
-    done
-fi
-
-if [[ $release =~ r[1-9].[0-9] ]]; then
-    for repo in templates-itl templates-itl-testing templates-community templates-community-testing
-    do
-        mkdir -p "$release/$repo/rpm"
-    done
-fi
+for repo in templates-itl templates-itl-testing templates-community templates-community-testing
+do
+    mkdir -p "$release/$repo/rpm"
+done
