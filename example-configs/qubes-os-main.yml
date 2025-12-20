@@ -13,7 +13,7 @@ git:
 backend-vmm: xen
 debug: true
 verbose: true
-qubes-release: r4.3
+qubes-release: devel
 
 distributions:
   - host-fc41
