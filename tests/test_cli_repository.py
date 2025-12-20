@@ -13,6 +13,8 @@ from qubesbuilder.common import PROJECT_PATH
 DEFAULT_BUILDER_CONF = PROJECT_PATH / "tests/builder-ci.yml"
 HASH_RE = re.compile(r"[a-f0-9]{40}")
 
+releases = ["r4.2", "devel"]
+
 
 @pytest.fixture
 def artifacts_dir():
@@ -28,7 +30,7 @@ def artifacts_dir():
     yield artifacts_dir
 
 
-def qb_call(builder_conf, artifacts_dir, *args, **kwargs):
+def qb_call(builder_conf, artifacts_dir, release, *args, **kwargs):
     cmd = [
         "python3",
         str(PROJECT_PATH / "qb"),
@@ -37,12 +39,14 @@ def qb_call(builder_conf, artifacts_dir, *args, **kwargs):
         str(builder_conf),
         "--option",
         f"artifacts-dir={artifacts_dir}",
+        "--option",
+        f"qubes-release={release}",
         *args,
     ]
     subprocess.check_call(cmd, **kwargs)
 
 
-def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
+def qb_call_output(builder_conf, artifacts_dir, release, *args, **kwargs):
     cmd = [
         str(PROJECT_PATH / "qb"),
         "--verbose",
@@ -50,12 +54,15 @@ def qb_call_output(builder_conf, artifacts_dir, *args, **kwargs):
         str(builder_conf),
         "--option",
         f"artifacts-dir={artifacts_dir}",
+        "--option",
+        f"qubes-release={release}",
         *args,
     ]
     return subprocess.check_output(cmd, **kwargs)
 
 
-def test_repository_create_vm_fc40(artifacts_dir):
+@pytest.mark.parametrize("release", releases)
+def test_repository_create_vm_fc40(artifacts_dir, release):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/gnupg"
@@ -68,6 +75,7 @@ def test_repository_create_vm_fc40(artifacts_dir):
         qb_call(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
+            release,
             "-c",
             "qubes-release",
             "package",
@@ -78,6 +86,7 @@ def test_repository_create_vm_fc40(artifacts_dir):
         qb_call(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
+            release,
             "-c",
             "core-vchan-xen",
             "-d",
@@ -90,7 +99,7 @@ def test_repository_create_vm_fc40(artifacts_dir):
 
         metadata_dir = (
             artifacts_dir
-            / f"repository-publish/rpm/r4.2/current/vm/fc40/repodata"
+            / f"repository-publish/rpm/{release}/current/vm/fc40/repodata"
         )
         assert (metadata_dir / "repomd.xml.metalink").exists()
         with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
@@ -98,15 +107,15 @@ def test_repository_create_vm_fc40(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert (
-            "/pub/os/qubes/repo/yum/r4.2/current/vm/fc40/repodata/repomd.xml"
-            in (metadata_dir / "repomd.xml.metalink").read_text(
-                encoding="ascii"
-            )
+        assert f"/pub/os/qubes/repo/yum/{release}/current/vm/fc40/repodata/repomd.xml" in (
+            metadata_dir / "repomd.xml.metalink"
+        ).read_text(
+            encoding="ascii"
         )
 
 
-def test_repository_create_vm_bookworm(artifacts_dir):
+@pytest.mark.parametrize("release", releases)
+def test_repository_create_vm_bookworm(artifacts_dir, release):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/gnupg"
@@ -120,6 +129,7 @@ def test_repository_create_vm_bookworm(artifacts_dir):
             qb_call(
                 DEFAULT_BUILDER_CONF,
                 artifacts_dir,
+                release,
                 "-c",
                 "core-vchan-xen",
                 "-d",
@@ -130,7 +140,7 @@ def test_repository_create_vm_bookworm(artifacts_dir):
                 env=env,
             )
 
-        repository_dir = artifacts_dir / "repository-publish/deb/r4.2/vm"
+        repository_dir = artifacts_dir / f"repository-publish/deb/{release}/vm"
         for codename in ["bookworm-unstable", "bookworm-testing", "bookworm"]:
             assert (repository_dir / "dists" / codename / "InRelease").exists()
             assert (
@@ -138,7 +148,8 @@ def test_repository_create_vm_bookworm(artifacts_dir):
             ).exists()
 
 
-def test_repository_create_template(artifacts_dir):
+@pytest.mark.parametrize("release", releases)
+def test_repository_create_template(artifacts_dir, release):
     env = os.environ.copy()
     with tempfile.TemporaryDirectory() as tmpdir:
         gnupghome = f"{tmpdir}/gnupg"
@@ -151,6 +162,7 @@ def test_repository_create_template(artifacts_dir):
         qb_call(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
+            release,
             "-t",
             "whonix-gateway-18",
             "repository",
@@ -161,7 +173,7 @@ def test_repository_create_template(artifacts_dir):
 
         metadata_dir = (
             artifacts_dir
-            / f"repository-publish/rpm/r4.2/templates-community-testing/repodata"
+            / f"repository-publish/rpm/{release}/templates-community-testing/repodata"
         )
         assert (metadata_dir / "repomd.xml.metalink").exists()
         with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
@@ -169,7 +181,7 @@ def test_repository_create_template(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert "/pub/os/qubes/repo/yum/r4.2/templates-community-testing/repodata/repomd.xml" in (
+        assert f"/pub/os/qubes/repo/yum/{release}/templates-community-testing/repodata/repomd.xml" in (
             metadata_dir / "repomd.xml.metalink"
         ).read_text(
             encoding="ascii"
@@ -178,6 +190,7 @@ def test_repository_create_template(artifacts_dir):
         qb_call(
             DEFAULT_BUILDER_CONF,
             artifacts_dir,
+            release,
             "-t",
             "fedora-40-xfce",
             "repository",
@@ -188,7 +201,7 @@ def test_repository_create_template(artifacts_dir):
 
         metadata_dir = (
             artifacts_dir
-            / f"repository-publish/rpm/r4.2/templates-itl-testing/repodata"
+            / f"repository-publish/rpm/{release}/templates-itl-testing/repodata"
         )
         assert (metadata_dir / "repomd.xml.metalink").exists()
         with open((metadata_dir / "repomd.xml"), "rb") as repomd_f:
@@ -196,7 +209,7 @@ def test_repository_create_template(artifacts_dir):
         assert repomd_hash in (metadata_dir / "repomd.xml.metalink").read_text(
             encoding="ascii"
         )
-        assert "/pub/os/qubes/repo/yum/r4.2/templates-itl-testing/repodata/repomd.xml" in (
+        assert f"/pub/os/qubes/repo/yum/{release}/templates-itl-testing/repodata/repomd.xml" in (
             metadata_dir / "repomd.xml.metalink"
         ).read_text(
             encoding="ascii"

@@ -627,12 +627,15 @@ class Config:
         return config_path
 
     def parse_qubes_release(self):
+        qubes_release = self.qubes_release
+        if qubes_release == "devel":
+            qubes_release = "99.0"
         parsed_release = QUBES_RELEASE_RE.match(
-            self.qubes_release
+            qubes_release
         ) or QUBES_RELEASE_RE.match(QUBES_RELEASE_DEFAULT)
         if not parsed_release:
             raise ConfigError(
-                f"Cannot parse Qubes OS release: '{self.qubes_release}'"
+                f"Cannot parse Qubes OS release: '{qubes_release}'"
             )
         return parsed_release
 

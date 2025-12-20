@@ -28,8 +28,6 @@ from dateutil.parser import parse as parsedate
 
 from qubesbuilder.config import (
     Config,
-    QUBES_RELEASE_RE,
-    QUBES_RELEASE_DEFAULT,
     ConfigError,
 )
 from qubesbuilder.executors import ExecutorError
@@ -178,11 +176,7 @@ class TemplateBuilderPlugin(TemplatePlugin):
     def update_parameters(self, stage: str):
         template_options = [self.template.flavor] + self.template.options
         template_flavor_dir = []
-        parsed_release = QUBES_RELEASE_RE.match(
-            self.config.qubes_release
-        ) or QUBES_RELEASE_RE.match(QUBES_RELEASE_DEFAULT)
-        if not parsed_release:
-            raise TemplateError(f"Cannot parse template version.")
+        parsed_release = self.config.parse_qubes_release()
         self.environment.update(
             {
                 "DIST": self.dist.name,  # legacy value
