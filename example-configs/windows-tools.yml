@@ -10,8 +10,6 @@ git:
 debug: true
 verbose: true
 
-skip-git-fetch: false
-
 # this is for anything other than building, so source fetching etc
 executor:
   type: qubes

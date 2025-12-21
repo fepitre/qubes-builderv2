@@ -40,7 +40,8 @@ def _component_stage(
     # Mark whether 'fetch' was explicitly requested on the CLI.
     # This lets the Plugin distinguish "explicit fetch"
     # from "fetch only because of a dependency (e.g. prep)".
-    config.set("skip-git-fetch", "fetch" not in stages)
+    if config.get("skip-git-fetch", "default") == "default":
+        config.set("skip-git-fetch", "fetch" not in stages)
 
     for job in config.get_jobs(
         components=components,

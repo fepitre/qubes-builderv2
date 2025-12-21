@@ -17,8 +17,6 @@ debug: true
 verbose: true
 qubes-release: r4.2
 
-skip-git-fetch: true
-
 use-qubes-repo:
   version: 4.2
   testing: True
