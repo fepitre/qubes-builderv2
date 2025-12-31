@@ -386,7 +386,7 @@ Or publish all the templates provided in `builder.yml` in
 Similar commands are available for packages, for example:
 
 ```bash
-./qb -d host-fc32 -c core-qrexec repository publish current-testing
+./qb -d host-fc41 -c core-qrexec repository publish current-testing
 ```
 
 and
@@ -486,7 +486,7 @@ We provide the following list of available keys:
   plus a commit id or tag will be used.
 
 Here is a non-exhaustive list of distribution-specific keys:
-- `host-fc32` --- Fedora 32 for the `host` package set content only
+- `host-fc41` --- Fedora 41 for the `host` package set content only
 - `vm-bullseye` --- Bullseye for the `vm` package set only
 
 `build_windows` specific: all output artifacts for a component need to be specified in

@@ -16,15 +16,13 @@ MOCK_CONF="$2"
     exit 1
 }
 
-if [ "$CONTAINER_ENGINE" != "docker" ] && [ "$CONTAINER_ENGINE" != "podman" ]; then
-    echo "Only 'docker' and 'podman' are supported."
-    exit 1
-fi
-
 if [ "$CONTAINER_ENGINE" == "docker" ]; then
     CONTAINER_CMD="sudo docker"
-else
+elif [ "$CONTAINER_ENGINE" == "podman" ]; then
     CONTAINER_CMD="podman"
+else
+    echo "Only 'docker' and 'podman' are supported."
+    exit 1
 fi
 
 TOOLS_DIR="$(dirname "$0")"

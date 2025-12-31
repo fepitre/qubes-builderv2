@@ -1,5 +1,5 @@
 FROM docker.io/library/ubuntu@sha256:6e75a10070b0fcb0bead763c5118a369bc7cc30dfc1b0749c491bbb21f15c3c7
-MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
+LABEL org.opencontainers.image.authors="Frédéric Pierret <frederic@invisiblethingslab.com>"
 
 ARG DEBIAN_FRONTEND=noninteractive
 

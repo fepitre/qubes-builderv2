@@ -1,5 +1,5 @@
 FROM scratch
-MAINTAINER Frédéric Pierret <frederic@invisiblethingslab.com>
+LABEL org.opencontainers.image.authors="Frédéric Pierret <frederic@invisiblethingslab.com>"
 
 # Use Mock chroot
 ADD cache.tar.gz /
