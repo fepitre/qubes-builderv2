@@ -79,7 +79,7 @@ def get_archchroot_cmd(
         "sudo rm -rf /etc/pacman.d/gnupg/private-keys-v1.d",
         "sudo pacman-key --init",
         "sudo pacman-key --populate",
-        "sudo pacman-key --refresh-keys",
+        "(sudo pacman-key --refresh-keys || :)",
         "sudo pacman-key --updatedb",
         f"sudo mkdir -p {chroot_dir.parent}",
         " ".join(mkarchchroot_cmd),
