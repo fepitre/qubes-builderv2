@@ -299,7 +299,10 @@ class ArchlinuxBuildPlugin(ArchlinuxDistributionPlugin, BuildPlugin):
             }
 
             chroot_dir = (
-                self.config.cache_dir / "chroot" / self.dist.distribution
+                self.config.cache_dir
+                / "chroot"
+                / self.dist.distribution
+                / self.dist.nva
             )
             chroot_archive = "root.tar.gz"
 
