@@ -55,6 +55,7 @@ builderv2-github:
   artifacts:
     paths:
       - artifacts/htmlcov/
+      - artifacts/pytest.log
     reports:
       junit: artifacts/qubesbuilder.xml
       coverage_report:
@@ -62,18 +63,32 @@ builderv2-github:
         path: artifacts/coverage.xml
   coverage: '/TOTAL.*\s(\d+)%/'
   variables:
-    PYTEST_ARGS: -v --color=yes --showlocals --cov qubesbuilder --cov-report term --cov-report html:artifacts/htmlcov --cov-report xml:artifacts/coverage.xml --junitxml=artifacts/qubesbuilder.xml
-  # https://gitlab.com/gitlab-org/gitlab/-/issues/15603
+    PYTEST_ARGS: >-
+      -vv --color=yes --showlocals
+      --tb=long
+      --show-capture=all
+      -rA
+      -o truncation_limit_chars=0
+      -o truncation_limit_lines=0
+      -o junit_logging=all
+      --cov qubesbuilder
+      --cov-report term
+      --cov-report html:artifacts/htmlcov
+      --cov-report xml:artifacts/coverage.xml
+      --junitxml=artifacts/qubesbuilder.xml
   before_script:
     - sudo dnf install -y python3-pip python3-pytest-cov python3-pytest python3-pytest-mock python3-lxml python3-wheel sequoia-sqv sequoia-sq python3-pycdlib
     - sudo rm -rf ~/pytest-of-user/
     - docker pull registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest
     - docker tag registry.gitlab.com/qubesos/docker-images/qubes-builder-fedora:latest qubes-builder-fedora:latest
-    - mkdir ~/gitlab ~/tmp
+    - mkdir -p ~/gitlab ~/tmp artifacts
     - export PYTHONPATH=".:$PYTHONPATH" BASE_ARTIFACTS_DIR=~/gitlab TMPDIR=~/tmp
     - env
+  script:
+    - pytest-3 $PYTEST_ARGS $PYTEST_TARGETS 2>&1 | tee artifacts/pytest.log
+    - test ${PIPESTATUS[0]} -eq 0
   after_script:
-  - ci/codecov-wrapper -f artifacts/coverage.xml
+    - ci/codecov-wrapper -f artifacts/coverage.xml
 
 .init_cache_job:
   rules:
@@ -276,63 +291,63 @@ pytest:
   extends: .pytest
   tags:
     - qubes
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_executors.py tests/test_functions.py tests/test_objects.py tests/test_scripts.py tests/test_log.py
+  variables:
+    PYTEST_TARGETS: "tests/test_executors.py tests/test_functions.py tests/test_objects.py tests/test_scripts.py tests/test_log.py"
 
 pytest-cli-cleanup:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli_cleanup.py -k test_cleanup_
+  variables:
+    PYTEST_TARGETS: "tests/test_cli_cleanup.py -k test_cleanup_"
 
 pytest-cli-repository:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli_repository.py -k test_repository_
+  variables:
+    PYTEST_TARGETS: "tests/test_cli_repository.py -k test_repository_"
 
 pytest-cli-component-host-fc37:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_host_fc37_
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_component_host_fc37_"
 
 pytest-cli-component-vm-bookworm:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_vm_bookworm
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_component_vm_bookworm"
 
 pytest-cli-component-vm-archlinux:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_component_vm_archlinux
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_component_vm_archlinux"
 
 pytest-cli-component:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_common_
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_common_"
 
 pytest-cli-component-init-cache:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_init_cache_
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_init_cache_"
 
 pytest-cli-increment-component:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_increment_component_
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_increment_component_"
 
 pytest-cli-template-fedora:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_fedora
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_template_fedora"
 
 pytest-cli-template-debian:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_template_debian
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_template_debian"
 
 pytest-cli-installer-cache:
   extends: .pytest
-  script:
-    - pytest-3 $PYTEST_ARGS tests/test_cli.py -k test_installer_init_cache
+  variables:
+    PYTEST_TARGETS: "tests/test_cli.py -k test_installer_init_cache"
 
 #
 # Components
