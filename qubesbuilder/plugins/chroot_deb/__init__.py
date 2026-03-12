@@ -71,6 +71,8 @@ class DEBChrootPlugin(DEBDistributionPlugin, ChrootPlugin):
 
         # Delete previous chroot if forced or package sets differ
         if artifacts_info:
+            self.log.debug("Existing packages: %s", existing_packages)
+            self.log.debug("Additional packages: %s", additional_packages)
             if force:
                 msg = f"{self.dist}: Forcing cache recreation..."
                 recreate = True
