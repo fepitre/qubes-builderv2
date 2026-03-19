@@ -39,9 +39,6 @@ cache:
       - python3-devel
       - python3-sphinx
       - systemd-devel
-  vm-bookworm:
-    packages:
-      - quilt
 
 distributions:
   - host-fc37
