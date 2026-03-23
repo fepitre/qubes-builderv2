@@ -25,14 +25,17 @@ Options:
     --memory         RAM amount (MiB) (default: $VM_MEMORY)
     --cpus           Number of vcpus (default: $VM_CPUS)
     --build-vm-name  Name of the main builder qube (default: '$BUILD_VM_NAME')
+    --verbose        Enable shell trace output (set -x)
 "
 }
 
-if ! OPTS=$(getopt -o hi:n:l:m:c:b: --long help,iso:,name:,label:,memory:,cpus:,build-vm-name: -n "$0" -- "$@"); then
+if ! OPTS=$(getopt -o hi:n:l:m:c:b:v --long help,iso:,name:,label:,memory:,cpus:,build-vm-name:,verbose -n "$0" -- "$@"); then
     exit 1
 fi
 
 eval set -- "$OPTS"
+
+VERBOSE=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -43,9 +46,12 @@ while [[ $# -gt 0 ]]; do
         -m | --memory) VM_MEMORY="$2"; shift ;;
         -c | --cpus) VM_CPUS="$2"; shift ;;
         -b | --build-vm-name) BUILD_VM_NAME="$2"; shift ;;
+        -v | --verbose) VERBOSE=1 ;;
     esac
     shift
 done
+
+[ "${VERBOSE}" -eq 1 ] && set -x
 
 if [ -z "$ISO" ]; then
     usage && exit 1
