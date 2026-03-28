@@ -1,7 +1,7 @@
-import os.path
+import os
 import subprocess
 import tempfile
-from pathlib import Path, PurePath
+from pathlib import Path
 
 import pytest
 
@@ -9,7 +9,14 @@ from qubesbuilder.exc import QubesBuilderError
 from qubesbuilder.executors import Executor, ExecutorError
 from qubesbuilder.executors.container import ContainerExecutor
 from qubesbuilder.executors.local import LocalExecutor
-from qubesbuilder.executors.qubes import LinuxQubesExecutor
+from qubesbuilder.executors.qubes import (
+    LinuxQubesExecutor,
+    build_run_cmd,
+    build_run_cmd_and_list,
+    encode_for_vmexec,
+    quote_and_list,
+    quote_list,
+)
 
 
 class MockExecutor(Executor):
@@ -384,3 +391,19 @@ def test_qubes_on_error_noclean():
     )
 
     executor.cleanup()
+
+
+def test_qubes_command_helpers():
+    assert encode_for_vmexec("A b") == "A-20b"
+    assert encode_for_vmexec("a-b") == "a--b"
+    assert quote_list(["echo", "hello world"]) == "echo 'hello world'"
+    assert quote_and_list([["echo", "a"], ["echo", "b"]]) == "echo a && echo b"
+    assert build_run_cmd("builder-dvm", ["echo", "ok"]) == [
+        "/usr/bin/qvm-run-vm",
+        "--",
+        "builder-dvm",
+        "echo ok",
+    ]
+    assert build_run_cmd_and_list(
+        "builder-dvm", [["echo", "a"], ["echo", "b"]]
+    ) == ["/usr/bin/qvm-run-vm", "--", "builder-dvm", "echo a && echo b"]
