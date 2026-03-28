@@ -106,10 +106,25 @@ In `dom0`, render and install the RPC policy (adjust the variable values if
 your qube names differ):
 
 ```bash
-qvm-run --pass-io work-qubesos 'cat rpc/policy/50-qubesbuilder.policy.j2' \
-  | sed 's/{{ builder_qube_name }}/work-qubesos/g
-         s/{{ builder_dvm_name }}/qubes-builder-dvm/g' \
-  | sudo tee /etc/qubes/policy.d/50-qubesbuilder.policy
+SOURCE_QUBE=work-qubesos
+BUILDER_DVM=qubes-builder-dvm
+cat <<EOF | sudo tee /etc/qubes/policy.d/50-qubesbuilder.policy
+admin.vm.CreateDisposable * ${SOURCE_QUBE} dom0 allow target=dom0
+admin.vm.CreateDisposable * ${SOURCE_QUBE} ${BUILDER_DVM} allow target=dom0
+
+admin.vm.CurrentState * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow target=dom0
+admin.vm.List         * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow target=dom0
+admin.vm.Start        * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow target=dom0
+admin.vm.Kill         * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow target=dom0
+admin.vm.Remove       * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow target=dom0
+
+qubesbuilder.FileCopyIn  * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow
+qubesbuilder.FileCopyOut * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow
+
+qubes.Filecopy       * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow
+qubes.WaitForSession * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow
+qubes.VMShell        * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow
+EOF
 ```
 
 Now, start the disposable template `qubes-builder-dvm` and create the following
@@ -266,7 +281,7 @@ Setting up this dispvm template is a distinct procedure: install QWT (built via 
 qvm-prefs win-build template_for_dispvms true
 ```
 
-The `qubesbuilder.WinFileCopyIn` and `qubesbuilder.WinFileCopyOut` RPC services (from `rpc/`) must also be installed in `win-build` and made persistent via [bind-dirs](https://www.qubes-os.org/doc/bind-dirs/).
+The `qubesbuilder.WinFileCopyIn` and `qubesbuilder.WinFileCopyOut` RPC handlers (from `rpc/`) are copied into the disposable qube at runtime by the executor, so no manual persistent installation is required in `win-build`.
 
 Once `win-build` is ready, configure the builder:
 
@@ -318,11 +333,32 @@ Render and install the policy from `dom0` (adjust the variable values to match
 your qube names):
 
 ```bash
-qvm-run --pass-io work-qubesos 'cat rpc/policy/51-qubesbuilder-windows.policy.j2' \
-  | sed 's/{{ builder_qube_name }}/work-qubesos/g
-         s/{{ windows_builder_name }}/win-build/g
-         s/{{ vault_windows_name }}/vault-sign/g' \
-  | sudo tee /etc/qubes/policy.d/51-qubesbuilder-windows.policy
+SOURCE_QUBE=work-qubesos
+WINDOWS_BUILDER=win-build
+WINDOWS_VAULT=vault-sign
+cat <<EOF | sudo tee /etc/qubes/policy.d/51-qubesbuilder-windows.policy
+admin.vm.device.block.Attach    * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow target=dom0
+admin.vm.device.block.Assign    * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow target=dom0
+qubesbuilder.WinSign.Timestamp  * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow
+qubesbuilder.WinFileCopyIn      * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow
+qubesbuilder.WinFileCopyOut     * ${SOURCE_QUBE} @tag:disp-created-by-${SOURCE_QUBE} allow
+
+admin.vm.device.block.Available * ${SOURCE_QUBE} ${SOURCE_QUBE} allow target=dom0
+
+admin.vm.CurrentState           * ${SOURCE_QUBE} ${WINDOWS_BUILDER} allow target=dom0
+admin.vm.List                   * ${SOURCE_QUBE} ${WINDOWS_BUILDER} allow target=dom0
+admin.vm.Start                  * ${SOURCE_QUBE} ${WINDOWS_BUILDER} allow target=dom0
+admin.vm.device.block.Attached  * ${SOURCE_QUBE} ${WINDOWS_BUILDER} allow target=dom0
+admin.vm.device.block.Assigned  * ${SOURCE_QUBE} ${WINDOWS_BUILDER} allow target=dom0
+admin.vm.device.block.Attach    * ${SOURCE_QUBE} ${WINDOWS_BUILDER} allow target=dom0
+admin.vm.device.block.Assign    * ${SOURCE_QUBE} ${WINDOWS_BUILDER} allow target=dom0
+
+qubesbuilder.WinSign.QueryKey  +Qubes__Windows__Tools ${SOURCE_QUBE} ${WINDOWS_VAULT} allow
+qubesbuilder.WinSign.CreateKey +Qubes__Windows__Tools ${SOURCE_QUBE} ${WINDOWS_VAULT} allow
+qubesbuilder.WinSign.DeleteKey +Qubes__Windows__Tools ${SOURCE_QUBE} ${WINDOWS_VAULT} allow
+qubesbuilder.WinSign.GetCert   +Qubes__Windows__Tools ${SOURCE_QUBE} ${WINDOWS_VAULT} allow
+qubesbuilder.WinSign.Sign      +Qubes__Windows__Tools ${SOURCE_QUBE} ${WINDOWS_VAULT} allow
+EOF
 ```
 
 
