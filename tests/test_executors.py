@@ -266,17 +266,21 @@ def test_copy_out_error_ignored(executor):
 
 
 def test_container_not_running():
+    executor = ContainerExecutor(
+        "docker", "fedora:latest", base_url="tcp://127.0.0.1:1234"
+    )
+    cmd = ["true"]
     with pytest.raises(ExecutorError) as e:
-        ContainerExecutor(
-            "docker", "fedora:latest", base_url="tcp://127.0.0.1:1234"
-        )
+        executor.run(cmd, [], [])
     msg = "Cannot connect to container client."
     assert str(e.value) == msg
 
 
 def test_container_unknown_image():
+    executor = ContainerExecutor("docker", "fedora-unknown:latest")
+    cmd = ["true"]
     with pytest.raises(ExecutorError) as e:
-        ContainerExecutor("docker", "fedora-unknown:latest")
+        executor.run(cmd, [], [])
     msg = "Cannot find fedora-unknown:latest."
     assert str(e.value) == msg
 
