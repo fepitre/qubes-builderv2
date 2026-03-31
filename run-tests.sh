@@ -21,6 +21,7 @@ PYTEST_ARGS=(
 
 # before_script
 mkdir -p "$CI_PROJECT_DIR/artifacts"
+mkdir -p ~/results ~/tmp
 
 # script
 # shellcheck disable=SC2086
