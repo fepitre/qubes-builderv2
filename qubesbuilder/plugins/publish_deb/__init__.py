@@ -220,7 +220,6 @@ class DEBPublishPlugin(DEBRepoPlugin, PublishPlugin):
 
         # Publishing packages
         try:
-            changes_file = build_artifacts_dir / build_info["changes"]
             target_dir = self.get_target_dir()
 
             # reprepro options to ignore surprising binary and arch
@@ -230,7 +229,7 @@ class DEBPublishPlugin(DEBRepoPlugin, PublishPlugin):
                 self.dist, repository_publish
             )
 
-            # reprepro command
+            changes_file = build_artifacts_dir / build_info["changes"]
             cmd = [
                 f"reprepro {reprepro_options} include {debian_suite} {changes_file}"
             ]
@@ -259,9 +258,7 @@ class DEBPublishPlugin(DEBRepoPlugin, PublishPlugin):
         # Unpublishing packages
         try:
             target_dir = self.get_target_dir()
-
-            # reprepro options to ignore surprising binary and arch
-            reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch -b {target_dir}"
+            reprepro_options = f"--ignore=surprisingbinary --ignore=surprisingarch --delete -b {target_dir}"
 
             # set debian suite according to publish repository
             debian_suite = self.get_debian_suite_from_repository_publish(
