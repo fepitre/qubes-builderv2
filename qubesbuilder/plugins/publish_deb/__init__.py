@@ -245,7 +245,9 @@ class DEBPublishPlugin(DEBRepoPlugin, PublishPlugin):
 
         self.sign_metadata(repository_publish=repository_publish)
 
-    def unpublish(self, executor, directory, repository_publish, build_info=None):
+    def unpublish(
+        self, executor, directory, repository_publish, build_info=None
+    ):
         # directory basename will be used as prefix for some artifacts
         directory_bn = directory.mangle()
 
@@ -411,7 +413,9 @@ class DEBPublishPlugin(DEBRepoPlugin, PublishPlugin):
                     # No publish info for the current version. Check history for
                     # stale devel publications whose orig.tar.gz may still be in
                     # the reprepro pool with a different checksum.
-                    for hist_publish_dir in self.get_dist_component_artifacts_dir_history(
+                    for (
+                        hist_publish_dir
+                    ) in self.get_dist_component_artifacts_dir_history(
                         stage=self.stage
                     ):
                         hist_publish_info = self.get_dist_artifacts_info(
@@ -421,9 +425,9 @@ class DEBPublishPlugin(DEBRepoPlugin, PublishPlugin):
                         )
                         if not hist_publish_info:
                             continue
-                        if hist_publish_info.get("source-hash") == build_info.get(
+                        if hist_publish_info.get(
                             "source-hash"
-                        ):
+                        ) == build_info.get("source-hash"):
                             continue
                         # Stale publication with a different source hash.
                         self.log.info(

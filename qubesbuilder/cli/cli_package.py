@@ -3,7 +3,12 @@ from typing import List
 
 import click
 
-from qubesbuilder.cli.cli_base import aliased_group, ContextObj
+from qubesbuilder.cli.cli_base import (
+    aliased_group,
+    AliasedGroup,
+    ContextObj,
+    print_pipeline,
+)
 from qubesbuilder.common import STAGES_ALIAS
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
@@ -30,32 +35,39 @@ def _component_stage(
     """
     QubesBuilderLogger.info(f"Running stages: {', '.join(stages)}")
 
+    root_group: AliasedGroup | None = None
     try:
         ctx = click.get_current_context()
+        cmd = ctx.find_root().command
+        if isinstance(cmd, AliasedGroup):
+            root_group = cmd
     except RuntimeError:
-        root_group = None
-    else:
-        root_group = ctx.find_root().command
+        pass
 
-    # Mark whether 'fetch' was explicitly requested on the CLI.
-    # This lets the Plugin distinguish "explicit fetch"
-    # from "fetch only because of a dependency (e.g. prep)".
     if config.get("skip-git-fetch", "default") == "default":
         config.set("skip-git-fetch", "fetch" not in stages)
+    # Increment devel versions only when fetch is explicitly requested alone,
+    # not when it runs implicitly as part of a larger invocation.
+    config.set("fetch-only-mode", stages == ["fetch"])
 
-    for job in config.get_jobs(
-        components=components,
-        distributions=distributions,
-        templates=[],
-        stages=["fetch"],
-    ):
-        if (
-            hasattr(job, "executor")
-            and hasattr(job.executor, "cleanup")
-            and root_group
+    # Only run fetch for stages that consume sources; sign/publish/upload/
+    # init-cache work from artifact YAMLs and don't need fetch to run.
+    STAGES_NEEDING_FETCH = {"fetch", "prep", "build", "post", "verify"}
+
+    if any(s in STAGES_NEEDING_FETCH for s in stages):
+        for job in config.get_jobs(
+            components=components,
+            distributions=distributions,
+            templates=[],
+            stages=["fetch"],
         ):
-            root_group.add_cleanup(job.executor.cleanup)
-        job.run(**kwargs)
+            if (
+                hasattr(job, "executor")
+                and hasattr(job.executor, "cleanup")
+                and root_group
+            ):
+                root_group.add_cleanup(job.executor.cleanup)
+            job.run(**kwargs)
 
     if "fetch" in stages:
         stages.remove("fetch")
@@ -220,6 +232,33 @@ def diff(obj: ContextObj):
             )
 
 
+@package.command()
+@click.argument("stages", nargs=-1)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["text", "yaml"], case_sensitive=False),
+    default="text",
+    show_default=True,
+    help="Output format: human-readable text or YAML.",
+)
+@click.pass_obj
+def pipeline(obj: ContextObj, stages, fmt):
+    """Show the ordered pipeline of jobs for the given STAGES (default: all)."""
+    from qubesbuilder.common import STAGES
+
+    if not stages:
+        stages = list(STAGES)
+    pl = obj.config.get_pipeline(
+        components=obj.components,
+        distributions=obj.distributions,
+        templates=[],
+        stages=list(stages),
+    )
+    jobs = pl.sorted_jobs(obj.config)
+    print_pipeline(jobs, fmt=fmt)
+
+
 # stages commands
 package.add_command(init_cache, name="init-cache")
 package.add_command(prep)
@@ -233,5 +272,6 @@ package.add_command(_all_package_stage)
 
 # utils commands
 package.add_command(diff)
+package.add_command(pipeline)
 
 package.add_alias(**STAGES_ALIAS)
