@@ -26,11 +26,12 @@ from qubesbuilder.common import is_filename_valid
 from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.plugins import WindowsDistributionPlugin, PluginDependency
+from qubesbuilder.plugins import PluginDependency
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 
-class WindowsSourcePlugin(WindowsDistributionPlugin, SourcePlugin):
+class WindowsSourcePlugin(SourcePlugin):
+    dist_filter = staticmethod(lambda d: d.is_windows())
     """
     Manage Windows distribution source.
     """

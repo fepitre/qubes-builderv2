@@ -30,11 +30,12 @@ from qubesbuilder.component import QubesComponent
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.plugins import DEBDistributionPlugin, PluginDependency
+from qubesbuilder.plugins import PluginDependency
 from qubesbuilder.plugins.source import SourcePlugin, SourceError
 
 
-class DEBSourcePlugin(DEBDistributionPlugin, SourcePlugin):
+class DEBSourcePlugin(SourcePlugin):
+    dist_filter = staticmethod(lambda d: d.is_deb() or d.is_ubuntu())
     """
     DEBSourcePlugin manages Debian distribution source.
 

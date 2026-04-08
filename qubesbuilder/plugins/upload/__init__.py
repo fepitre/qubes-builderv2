@@ -22,7 +22,8 @@ from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors.local import LocalExecutor, ExecutorError
 from qubesbuilder.plugins import (
-    DistributionPlugin,
+    Plugin,
+    PluginContext,
     PluginError,
     JobDependency,
     JobReference,
@@ -34,7 +35,8 @@ class UploadError(PluginError):
     pass
 
 
-class UploadPlugin(DistributionPlugin):
+class UploadPlugin(Plugin):
+    dist: QubesDistribution
     """
     UploadPlugin manages generic distribution upload.
 
@@ -44,24 +46,32 @@ class UploadPlugin(DistributionPlugin):
 
     name = "upload"
     stages = ["upload"]
-
-    def __init__(
-        self,
-        dist: QubesDistribution,
-        config: Config,
-        stage: str,
-        **kwargs,
-    ):
-        super().__init__(config=config, dist=dist, stage=stage, **kwargs)
+    context = PluginContext.DIST
+    dist_filter = staticmethod(
+        lambda d: d.is_rpm()
+        or d.is_deb()
+        or d.is_ubuntu()
+        or d.is_archlinux()
+        or d.is_windows()
+    )
 
     @classmethod
-    def supported_distribution(cls, distribution: QubesDistribution):
-        return (
-            distribution.is_rpm()
-            or distribution.is_deb()
-            or distribution.is_ubuntu()
-            or distribution.is_archlinux()
-            or distribution.is_windows()
+    def supported_distribution(cls, distribution) -> bool:
+        return cls.dist_filter(distribution)
+
+    def __init__(self, dist, config, stage, **kwargs):
+        super().__init__(dist=dist, config=config, stage=stage, **kwargs)
+        # Depend on the dist-level publish job (no component).
+        self.dependencies.append(
+            JobDependency(
+                JobReference(
+                    component=None,
+                    dist=self.dist,
+                    template=None,
+                    stage="publish",
+                    build=None,
+                )
+            )
         )
 
     def run(self, repository_publish: Optional[str] = None, **kwargs):

@@ -20,7 +20,7 @@
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
 from qubesbuilder.executors import ExecutorError
-from qubesbuilder.plugins import ArchlinuxDistributionPlugin
+from qubesbuilder.plugins import PluginContext
 from qubesbuilder.plugins.chroot import ChrootError, ChrootPlugin
 
 
@@ -88,7 +88,8 @@ def get_archchroot_cmd(
     return cmd
 
 
-class ArchlinuxChrootPlugin(ArchlinuxDistributionPlugin, ChrootPlugin):
+class ArchlinuxChrootPlugin(ChrootPlugin):
+    dist_filter = staticmethod(lambda d: d.is_archlinux())
     """
     ArchlinuxChrootPlugin manages Archlinux chroot creation
 

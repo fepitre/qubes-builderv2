@@ -19,11 +19,12 @@
 
 from qubesbuilder.config import Config
 from qubesbuilder.distribution import QubesDistribution
-from qubesbuilder.plugins import WindowsDistributionPlugin
+from qubesbuilder.plugins import PluginContext
 from qubesbuilder.plugins.chroot import ChrootPlugin
 
 
-class WindowsChrootPlugin(WindowsDistributionPlugin, ChrootPlugin):
+class WindowsChrootPlugin(ChrootPlugin):
+    dist_filter = staticmethod(lambda d: d.is_windows())
     """
     WindowsChrootPlugin - dummy init-cache stage for Windows distributions.
 
