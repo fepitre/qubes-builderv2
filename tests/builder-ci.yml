@@ -116,6 +116,14 @@ components:
       url: https://github.com/marmarek/qubes-linux-gbulb
       branch: files-git-builderv2-tests
       verification-mode: less-secure-signed-commits-sufficient
+  - skeleton:
+      url: https://github.com/qubesos-contrib/qubes-skeleton
+      branch: master
+      maintainers:
+        # fepitre's @qubes-os.org
+        - 9FA64B92F95E706BF28E2CA6484010B5CDC576E2
+        # fepitre's @invisiblethingslab.com
+        - 77EEEF6D0386962AEA8CF84A9B8273F80AC219E6
   - dummy-component:
       # disable by default, as most CI jobs build only one dist at a time
       packages: false
@@ -188,6 +196,7 @@ less-secure-signed-commits-sufficient:
   - vmm-xen-guest
   - qubes-release
   - vmm-xen-windows-pvdrivers
+  - skeleton
 
 repository-publish:
   components: current-testing
