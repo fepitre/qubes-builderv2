@@ -33,7 +33,7 @@ DEFAULT_BUILDER_CONF = PROJECT_PATH / "tests/builder-ci.yml"
 
 # upload/publish are dist-level (always instantiated); sign/prep are
 # component+dist-level (filtered by has_component_packages when sources absent).
-COMPONENT = "core-qrexec"
+COMPONENT = "example-advanced"
 DISTRIBUTION = "host-fc37"
 
 

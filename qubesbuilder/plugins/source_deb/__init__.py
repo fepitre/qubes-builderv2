@@ -196,7 +196,10 @@ class DEBSourcePlugin(SourcePlugin):
                 source_debian = f"{package_release_name_full}.tar.xz"
             else:
                 source_debian = f"{package_release_name_full}.debian.tar.xz"
-            if parameters.get("files", []):
+            create_archive = parameters.get(
+                "create-archive", not parameters.get("files", [])
+            )
+            if parameters.get("files", []) and not create_archive:
                 # FIXME: The first file is the source archive. Is it valid for all the cases?
                 ext = Path(get_archive_name(parameters["files"][0])).suffix
                 msg = f"{self.component}:{self.dist}:{directory}: Invalid extension '{ext}'."
@@ -271,11 +274,13 @@ class DEBSourcePlugin(SourcePlugin):
                         f"{self.executor.get_plugins_dir()}/fetch/scripts/create-archive {source_dir} {source_orig}",
                         f"mv {source_dir}/{source_orig} {self.executor.get_builder_dir()}",
                     ]
-                for file in parameters.get("files", []):
-                    fn = get_archive_name(file)
-                    cmd.append(
-                        f"mv {self.executor.get_distfiles_dir() / self.component.name / fn} {self.executor.get_builder_dir()}/{source_orig}"
-                    )
+                # Only use external files as orig when create-archive is not explicitly set.
+                if not parameters.get("create-archive", False):
+                    for file in parameters.get("files", []):
+                        fn = get_archive_name(file)
+                        cmd.append(
+                            f"mv {self.executor.get_distfiles_dir() / self.component.name / fn} {self.executor.get_builder_dir()}/{source_orig}"
+                        )
 
             # Update changelog, after create-archive
             cmd += [
