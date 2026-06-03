@@ -63,7 +63,7 @@ fi
 printf "ok\n"
 
 printf "Generating digests... "
-ALGOS="md5 sha1 sha256 sha512"
+ALGOS="sha256 sha512"
 
 if [ "${ISO_BASE}.iso" -nt "${ISO_BASE}.iso.DIGESTS" ]; then
     rm -f "${ISO_BASE}.iso.DIGESTS"
