@@ -476,6 +476,7 @@ Commands:
   config      Config CLI
   cleanup     Cleanup CLI
   list-deps   List build dependencies
+  self        Self-management CLI (upgrade qubes-builderv2 in place)
 
 Stages:
     fetch prep build post verify sign publish upload
@@ -658,6 +659,85 @@ $ ./qb list-deps show --exclude '^xen-' --exclude '^perl-'
   blocked to prevent shell injection). Anything satisfied only by
   a virtual provide will not be pre-installed via
   `cache.<dist>.packages`.
+
+### Self-upgrade
+
+`qb self upgrade` fast-forwards the running qubes-builderv2 checkout in
+place by running the same fetch + signature-verification logic that is used
+for every other component. It is the only supported way to update
+qubes-builderv2 from `qb`.
+
+```bash
+$ ./qb self upgrade
+```
+
+This is a separate and non-chainable subcommand for the following reasons:
+
+- The Python process that runs `qb self upgrade` has already imported the
+  old `qubesbuilder` modules. If you chained `qb self upgrade package fetch`,
+  the package stage would run against newly written plugin scripts
+  on disk while still executing the old in-memory Python code. Click's
+  top-level group is not chained, so `qb self upgrade` always runs alone.
+  Re-run `qb` afterwards to pick up the new code.
+- `force-fetch` is rejected, since the normal fetch path would `rm -rf` the
+  source directory. For the self-component that directory is the running
+  builderv2 checkout itself.
+- A dirty working tree blocks the upgrade. Commit or stash your changes first
+  (the merge is `--ff-only`, so real conflicts still fail).
+- The `artifacts/` directory is never touched.
+
+Configure in `builder.yml`:
+
+```yaml
+self-upgrade:
+  url: https://github.com/QubesOS/qubes-builderv2
+  branch: main
+  # maintainers: inherited from git.maintainers if omitted
+  # verification-mode: signed-tag | less-secure-signed-commits-sufficient | insecure-skip-checking
+  # check-for-updates: true        # automatic notice on build commands
+  # check-interval: 86400          # seconds between remote checks (once a day)
+```
+
+If `self-upgrade` is omitted, defaults are:
+- URL `https://github.com/QubesOS/qubes-builderv2`,
+- the current git branch when it exists on the remote and `main` otherwise,
+- maintainers taken from `git.maintainers`, `verification-mode: signed-tag`.
+
+An explicitly configured `branch` is used as-is (no fallback).
+Maintainer keys must be present as `{KEYID}.asc` in one of the `key-dirs` configured in `builder.yml`.
+Developer keys bundled under `qubesbuilder/plugins/fetch/keys/` are always trusted.
+
+Branch handling:
+
+- The upgraded branch is your current branch when it exists on the remote,
+  otherwise `main`. An explicit `self-upgrade.branch` is never overridden.
+- When you upgrade from a different branch than the upgraded one (e.g. a dev
+  branch), `qb self upgrade` advances the target branch (e.g. local `main`)
+  and checks your original branch back out. Your branch is left untouched.
+  Merge or rebase it onto the updated branch yourself.
+
+#### Update notifications
+
+Build subcommands (`package`, `template`, `installer`) print a one-line notice
+when a newer qubes-builderv2 is available on the configured branch:
+
+- Queried with `git ls-remote` (no fetch) at most once per `check-interval`
+  (default daily). The last check is recorded in `artifacts/self-upgrade-check.json`.
+- *Available* means the remote tip is not yet in the history of the matching
+  local branch (e.g. local `main`), not the checked-out HEAD, so a divergent
+  dev branch does not fail the result. Local commits on top do not cause a
+  false notice.
+- No signatures are checked for the notice. An unsigned or badly signed commit
+  still shows, but `qb self upgrade` refuses to apply it.
+
+Disable with `self-upgrade.check-for-updates: false`, or per-invocation with
+`QUBES_BUILDER_NO_UPDATE_CHECK=1` (handy in CI).
+
+Check on demand (ignores the throttle, never modifies the checkout):
+
+```bash
+$ ./qb self check
+```
 
 ### Template
 

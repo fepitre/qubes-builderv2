@@ -15,6 +15,10 @@ debug: true
 verbose: true
 qubes-release: devel
 
+self-upgrade:
+  url: https://github.com/QubesOS/qubes-builderv2
+  branch: main
+
 distributions:
   - host-fc41
   - vm-bookworm
