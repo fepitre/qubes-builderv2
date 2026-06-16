@@ -127,12 +127,10 @@ def test_run_self_check_unknown_branch(repos):
         run_self_check(cfg, repo=repos["local"])
 
 
-def test_query_auto_branch_falls_back_to_main(repos, monkeypatch):
+def test_query_auto_branch_falls_back_to_main(repos):
     # Local checkout is on a dev branch absent from the remote and no branch is
     # configured: the check falls back to main rather than erroring.
-    monkeypatch.setattr(
-        "qubesbuilder.self_upgrade._current_branch", lambda: "devel-local"
-    )
+    _git(repos["local"], "checkout", "-q", "-b", "devel-local")
     cfg = _config(repos["tmp"], repos["remote"], branch=None)
     latest, behind, params = query_remote_update(cfg, repo=repos["local"])
     assert params["branch"] == "main"
@@ -140,10 +138,8 @@ def test_query_auto_branch_falls_back_to_main(repos, monkeypatch):
     assert behind is True
 
 
-def test_run_self_check_auto_branch_falls_back_to_main(repos, monkeypatch):
-    monkeypatch.setattr(
-        "qubesbuilder.self_upgrade._current_branch", lambda: "devel-local"
-    )
+def test_run_self_check_auto_branch_falls_back_to_main(repos):
+    _git(repos["local"], "checkout", "-q", "-b", "devel-local")
     cfg = _config(repos["tmp"], repos["remote"], branch=None)
     assert run_self_check(cfg, repo=repos["local"]) is True
 
@@ -373,10 +369,10 @@ def test_collect_keys_layers_key_dirs(repos):
     assert "qubes-developers-keys.asc" in names
 
 
-def test_upgrade_auto_branch_falls_back_to_main(repos, monkeypatch):
-    monkeypatch.setattr(
-        "qubesbuilder.self_upgrade._current_branch", lambda: "devel-local"
-    )
+def test_upgrade_auto_branch_falls_back_to_main(repos):
+    # On a dev branch absent from the remote with no configured branch, the
+    # upgrade falls back to main, advances it, and restores the dev branch.
+    _git(repos["local"], "checkout", "-q", "-b", "devel-local")
     cfg = _upgrade_config(
         repos["tmp"],
         repos["remote"],
@@ -384,7 +380,11 @@ def test_upgrade_auto_branch_falls_back_to_main(repos, monkeypatch):
         verification_mode="insecure-skip-checking",
     )
     run_self_upgrade(cfg, repo=repos["local"])
-    assert _git(repos["local"], "rev-parse", "HEAD") == repos["sha_b"]
+    assert _git(repos["local"], "rev-parse", "main") == repos["sha_b"]
+    assert (
+        _git(repos["local"], "rev-parse", "--abbrev-ref", "HEAD")
+        == "devel-local"
+    )
 
 
 def test_upgrade_restores_original_branch(repos, caplog):
@@ -407,15 +407,12 @@ def test_upgrade_restores_original_branch(repos, caplog):
     assert any("Restored branch 'devel'" in r.message for r in caplog.records)
 
 
-def test_upgrade_auto_fallback_restores_dev_branch(repos, monkeypatch):
+def test_upgrade_auto_fallback_restores_dev_branch(repos):
     # The reported case: on devel (not on the remote), upgrade falls back to
     # main, advances local main, and returns us to devel.
     local = repos["local"]
     _git(local, "checkout", "-q", "-b", "devel20260605")
     devel_head = _commit(local, "devwork.txt")
-    monkeypatch.setattr(
-        "qubesbuilder.self_upgrade._current_branch", lambda: "devel20260605"
-    )
     cfg = _upgrade_config(
         repos["tmp"],
         repos["remote"],

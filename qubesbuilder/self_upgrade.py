@@ -98,11 +98,11 @@ def _parse_verification_mode(value: str) -> VerificationMode:
         )
 
 
-def _resolve_self_config(config: Config) -> dict:
+def _resolve_self_config(config: Config, repo: Path = PROJECT_PATH) -> dict:
     self_conf = config.get("self-upgrade", {}) or {}
     url = self_conf.get("url", DEFAULT_URL)
     configured_branch = self_conf.get("branch")
-    branch = configured_branch or _current_branch() or DEFAULT_BRANCH
+    branch = configured_branch or _current_branch(repo) or DEFAULT_BRANCH
     git_maintainers = config.get("git", {}).get("maintainers", []) or []
     maintainers = self_conf.get("maintainers", git_maintainers)
     verification_mode = _parse_verification_mode(
@@ -124,9 +124,9 @@ def _resolve_self_config(config: Config) -> dict:
     }
 
 
-def _current_branch() -> Optional[str]:
+def _current_branch(repo: Path = PROJECT_PATH) -> Optional[str]:
     try:
-        out = _git("rev-parse", "--abbrev-ref", "HEAD", cwd=PROJECT_PATH)
+        out = _git("rev-parse", "--abbrev-ref", "HEAD", cwd=repo)
     except subprocess.CalledProcessError:
         return None
     return out if out and out != "HEAD" else None
@@ -238,7 +238,7 @@ def query_remote_update(
     the corresponding local branch's history.
     """
     repo = (repo or PROJECT_PATH).resolve()
-    params = _resolve_self_config(config)
+    params = _resolve_self_config(config, repo)
     params["branch"], latest = _resolve_remote_branch(
         params["url"], params["branch"], params["branch_explicit"]
     )
@@ -362,7 +362,7 @@ def run_self_upgrade(
             "Commit or stash them before self-upgrading."
         )
 
-    params = _resolve_self_config(config)
+    params = _resolve_self_config(config, project)
     if not params["maintainers"] and params["verification_mode"] != (
         VerificationMode.Insecure
     ):
