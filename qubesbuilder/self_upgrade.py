@@ -434,18 +434,17 @@ def run_self_upgrade(
         original_branch = _git("rev-parse", "--abbrev-ref", "HEAD", cwd=project)
         old_head = _git("rev-parse", "HEAD", cwd=project)
         old_branch_tip = _branch_tip(project, params["branch"])
+        # The fetch script checks out params["branch"]. If we started elsewhere
+        # (e.g. a dev branch), switch back so the checkout is left where it was.
+        need_restore = original_branch != params["branch"]
         upgrade_error: Optional[subprocess.CalledProcessError] = None
         try:
             subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError as e:
             upgrade_error = e
         finally:
-            # The fetch script checks out the upgraded branch (e.g. 'main'). If
-            # we started elsewhere (a dev branch), switch back so the working
-            # checkout is left where the user had it.
-            branch_now = _git("rev-parse", "--abbrev-ref", "HEAD", cwd=project)
             restored = False
-            if branch_now != original_branch:
+            if need_restore:
                 restore_to = (
                     original_branch if original_branch != "HEAD" else old_head
                 )
@@ -455,7 +454,7 @@ def run_self_upgrade(
                 except subprocess.CalledProcessError as e:
                     log.warning(
                         f"Upgraded, but could not restore branch "
-                        f"'{original_branch}'. You are on '{branch_now}'. ({e})"
+                        f"'{original_branch}'. ({e})"
                     )
         if upgrade_error is not None:
             raise SelfUpgradeError(
