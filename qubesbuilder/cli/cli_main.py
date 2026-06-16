@@ -255,8 +255,9 @@ def main(
     init_logger(verbose=obj.config.verbose, log_file=log_file)
 
     # Throttled update notice, build subcommands only (keeps query output clean).
+    # Run it on close so it prints at the end, after the build output.
     if ctx.invoked_subcommand in ("package", "template", "installer"):
-        notify_if_update_available(obj.config)
+        ctx.call_on_close(lambda: notify_if_update_available(obj.config))
 
 
 main.epilog = f"""Stages:

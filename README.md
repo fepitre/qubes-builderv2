@@ -719,7 +719,8 @@ Branch handling:
 #### Update notifications
 
 Build subcommands (`package`, `template`, `installer`) print a one-line notice
-when a newer qubes-builderv2 is available on the configured branch:
+at the end of the run when a newer qubes-builderv2 is available on the
+configured branch (at the end so it is not lost in the build output):
 
 - Queried with `git ls-remote` (no fetch) at most once per `check-interval`
   (default daily). The last check is recorded in `artifacts/self-upgrade-check.json`.
