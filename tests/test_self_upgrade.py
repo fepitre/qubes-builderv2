@@ -242,6 +242,7 @@ def _upgrade_config(
     branch="main",
     verification_mode=None,
     maintainers=None,
+    key_dirs=None,
 ):
     lines = [f"artifacts-dir: {tmp_path / 'artifacts'}"]
     lines.append("self-upgrade:")
@@ -254,6 +255,10 @@ def _upgrade_config(
         lines.append("  maintainers:")
         for m in maintainers:
             lines.append(f"    - {m}")
+    if key_dirs:
+        lines.append("key-dirs:")
+        for d in key_dirs:
+            lines.append(f"  - {d}")
     conf = tmp_path / "builder-upgrade.yml"
     conf.write_text("\n".join(lines) + "\n")
     return Config(conf_file=str(conf))
@@ -423,3 +428,88 @@ def test_upgrade_auto_fallback_restores_dev_branch(repos):
     assert _git(local, "rev-parse", "--abbrev-ref", "HEAD") == "devel20260605"
     assert _git(local, "rev-parse", "HEAD") == devel_head
     assert _git(local, "rev-parse", "main") == repos["sha_b"]
+
+
+# tests/gnupg keyring.
+TEST_KEY = "8B080B3E649B153AA44FE43E722F2B7B164FDEF7"
+
+
+def _git_env(repo, env, *args):
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    ).stdout.strip()
+
+
+def _signed_repos(home, *, sign_tag):
+    # Build a local 'remote' with a new commit, optionally with a signed tag on
+    # it, plus a clone to upgrade. When signing, both commits and the tag are
+    # signed with the tests/gnupg key.
+    gnupg = str(home / "gnupg")
+    env = {**os.environ, "GNUPGHOME": gnupg, "HOME": str(home)}
+    remote = home / "remote"
+    remote.mkdir()
+    _git_env(remote, env, "init", "-q", "-b", "main")
+    _git_env(remote, env, "config", "user.signingkey", TEST_KEY)
+    if sign_tag:
+        _git_env(remote, env, "config", "commit.gpgsign", "true")
+    (remote / "a.txt").write_text("a")
+    _git_env(remote, env, "add", "a.txt")
+    _git_env(remote, env, "commit", "-q", "-m", "add a")
+    sha_a = _git_env(remote, env, "rev-parse", "HEAD")
+    local = home / "local"
+    subprocess.run(
+        ["git", "clone", "-q", str(remote), str(local)],
+        check=True,
+        capture_output=True,
+        env=env,
+    )
+    (remote / "b.txt").write_text("b")
+    _git_env(remote, env, "add", "b.txt")
+    _git_env(remote, env, "commit", "-q", "-m", "add b")
+    sha_b = _git_env(remote, env, "rev-parse", "HEAD")
+    if sign_tag:
+        _git_env(remote, env, "tag", "-s", "v1.0", "-m", "release 1.0")
+    keys = home / "keys"
+    keys.mkdir()
+    pub = subprocess.run(
+        ["gpg", "--export", "--armor", TEST_KEY],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={"GNUPGHOME": gnupg},
+    ).stdout
+    (keys / f"{TEST_KEY}.asc").write_text(pub)
+    return {
+        "home": home,
+        "remote": remote,
+        "local": local,
+        "sha_a": sha_a,
+        "sha_b": sha_b,
+        "keys": keys,
+    }
+
+
+def test_upgrade_signed_tag_verifies_and_fast_forwards(home_directory):
+    s = _signed_repos(home_directory, sign_tag=True)
+    cfg = _upgrade_config(
+        s["home"], s["remote"], maintainers=[TEST_KEY], key_dirs=[s["keys"]]
+    )
+    run_self_upgrade(cfg, repo=s["local"])
+    assert _git(s["local"], "rev-parse", "HEAD") == s["sha_b"]
+
+
+def test_upgrade_unsigned_rejected_and_branch_unchanged(home_directory):
+    # No signed tag on the new commit: verification fails and the local branch
+    # is left unchanged.
+    s = _signed_repos(home_directory, sign_tag=False)
+    cfg = _upgrade_config(
+        s["home"], s["remote"], maintainers=[TEST_KEY], key_dirs=[s["keys"]]
+    )
+    with pytest.raises(SelfUpgradeError):
+        run_self_upgrade(cfg, repo=s["local"])
+    assert _git(s["local"], "rev-parse", "HEAD") == s["sha_a"]
+    assert _git(s["local"], "rev-parse", "main") == s["sha_a"]
