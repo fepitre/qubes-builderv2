@@ -671,17 +671,9 @@ qubes-builderv2 from `qb`.
 $ ./qb self upgrade
 ```
 
-This is a separate and non-chainable subcommand for the following reasons:
+This is a separate, non-chainable subcommand: it always runs on its own. Re-run
+`qb` afterwards so the freshly fetched code is loaded.
 
-- The Python process that runs `qb self upgrade` has already imported the
-  old `qubesbuilder` modules. If you chained `qb self upgrade package fetch`,
-  the package stage would run against newly written plugin scripts
-  on disk while still executing the old in-memory Python code. Click's
-  top-level group is not chained, so `qb self upgrade` always runs alone.
-  Re-run `qb` afterwards to pick up the new code.
-- `force-fetch` is rejected, since the normal fetch path would `rm -rf` the
-  source directory. For the self-component that directory is the running
-  builderv2 checkout itself.
 - A dirty working tree blocks the upgrade. Commit or stash your changes first
   (the merge is `--ff-only`, so real conflicts still fail).
 - The `artifacts/` directory is never touched.

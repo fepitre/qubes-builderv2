@@ -246,11 +246,8 @@ def _upgrade_config(
     branch="main",
     verification_mode=None,
     maintainers=None,
-    force_fetch=False,
 ):
     lines = [f"artifacts-dir: {tmp_path / 'artifacts'}"]
-    if force_fetch:
-        lines.append("force-fetch: true")
     lines.append("self-upgrade:")
     lines.append(f"  url: {remote}")
     if branch is not None:
@@ -276,17 +273,6 @@ def test_upgrade_not_a_git_tree(repos):
     )
     with pytest.raises(SelfUpgradeError, match="not a git working tree"):
         run_self_upgrade(cfg, repo=plain)
-
-
-def test_upgrade_force_fetch_rejected(repos):
-    cfg = _upgrade_config(
-        repos["tmp"],
-        repos["remote"],
-        verification_mode="insecure-skip-checking",
-        force_fetch=True,
-    )
-    with pytest.raises(SelfUpgradeError, match="force-fetch"):
-        run_self_upgrade(cfg, repo=repos["local"])
 
 
 def test_upgrade_dirty_worktree_blocks(repos):

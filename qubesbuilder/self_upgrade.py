@@ -356,14 +356,6 @@ def run_self_upgrade(
             f"{project} is not a git working tree. Cannot self-upgrade."
         )
 
-    # Never wipe the running tree.
-    if config.force_fetch:
-        raise SelfUpgradeError(
-            "'force-fetch' is set. Refusing to self-upgrade because that "
-            "would delete the running qubes-builderv2 checkout. Unset it "
-            "before running 'qb self upgrade'."
-        )
-
     if not _is_clean_worktree(project):
         raise SelfUpgradeError(
             f"Working tree at {project} has uncommitted changes. "
