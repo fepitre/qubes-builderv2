@@ -208,13 +208,15 @@ def test_notify_throttled(repos, monkeypatch):
     cfg = _config(repos["tmp"], repos["remote"], **{"check-interval": 100000})
     state_path = cfg.artifacts_dir / "self-upgrade-check.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
+    last_check = time.time() - 1
     state_path.write_text(
-        json.dumps({"last_check": time.time(), "latest_commit": "deadbeef"})
+        json.dumps({"last_check": last_check, "latest_commit": "deadbeef"})
     )
     notify_if_update_available(cfg, repo=repos["local"])
     # Still inside the window: no remote contact, cached state untouched.
     state = json.loads(state_path.read_text())
     assert state["latest_commit"] == "deadbeef"
+    assert state["last_check"] == last_check
 
 
 def test_notify_env_gate(repos, monkeypatch):
