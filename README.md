@@ -693,6 +693,7 @@ self-upgrade:
   url: https://github.com/QubesOS/qubes-builderv2
   branch: main
   # maintainers: inherited from git.maintainers if omitted
+  # min-distinct-maintainers: 1    # distinct maintainer signatures required
   # verification-mode: signed-tag | less-secure-signed-commits-sufficient | insecure-skip-checking
   # check-for-updates: true        # automatic notice on build commands
   # check-interval: 86400          # seconds between remote checks (once a day)
