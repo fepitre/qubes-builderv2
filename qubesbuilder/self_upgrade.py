@@ -35,8 +35,8 @@ from qubesbuilder.log import QubesBuilderLogger
 DEFAULT_URL = "https://github.com/QubesOS/qubes-builderv2"
 DEFAULT_BRANCH = "main"
 
-# Developer keys bundled with the fetch plugin. The normal fetch path uses this
-# directory directly, so self-upgrade seeds its keyring from it too.
+# Keys shipped with the fetch plugin. Like a component fetch, these are only the
+# available keys, trust is decided by the maintainers list.
 FETCH_KEYS_DIR = PROJECT_PATH / "qubesbuilder" / "plugins" / "fetch" / "keys"
 
 # Min seconds between remote checks during builds.

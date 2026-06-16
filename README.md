@@ -703,9 +703,11 @@ If `self-upgrade` is omitted, defaults are:
 - the current git branch when it exists on the remote and `main` otherwise,
 - maintainers taken from `git.maintainers`, `verification-mode: signed-tag`.
 
-An explicitly configured `branch` is used as-is (no fallback).
-Maintainer keys must be present as `{KEYID}.asc` in one of the `key-dirs` configured in `builder.yml`.
-Developer keys bundled under `qubesbuilder/plugins/fetch/keys/` are always trusted.
+An explicitly configured `branch` is used as-is (no fallback). Verification
+works like a component fetch: the commit or tag must be signed by a key listed
+in `maintainers` (inherited from `git.maintainers`), and nothing is trusted just
+for being bundled. Key files are looked up as `{KEYID}.asc` in the configured
+`key-dirs` and in the keys shipped under `qubesbuilder/plugins/fetch/keys/`.
 
 Branch handling:
 
