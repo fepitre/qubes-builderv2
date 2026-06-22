@@ -61,7 +61,14 @@ def _git(*args: str, cwd: Path) -> str:
 
 def _is_clean_worktree(repo: Path) -> bool:
     status = subprocess.run(
-        ["git", "-C", str(repo), "status", "--porcelain"],
+        [
+            "git",
+            "-C",
+            str(repo),
+            "status",
+            "--porcelain",
+            "--untracked-files=no",
+        ],
         check=True,
         capture_output=True,
         text=True,

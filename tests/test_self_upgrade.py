@@ -279,7 +279,8 @@ def test_upgrade_not_a_git_tree(repos):
 
 
 def test_upgrade_dirty_worktree_blocks(repos):
-    (repos["local"] / "dirty.txt").write_text("uncommitted")
+    # A tracked, uncommitted change blocks the upgrade.
+    (repos["local"] / "a.txt").write_text("modified tracked file")
     cfg = _upgrade_config(
         repos["tmp"],
         repos["remote"],
@@ -287,6 +288,18 @@ def test_upgrade_dirty_worktree_blocks(repos):
     )
     with pytest.raises(SelfUpgradeError, match="uncommitted changes"):
         run_self_upgrade(cfg, repo=repos["local"])
+
+
+def test_upgrade_untracked_files_allowed(repos):
+    # Untracked files (e.g. build leftovers) do not block the upgrade.
+    (repos["local"] / "untracked.txt").write_text("not tracked")
+    cfg = _upgrade_config(
+        repos["tmp"],
+        repos["remote"],
+        verification_mode="insecure-skip-checking",
+    )
+    run_self_upgrade(cfg, repo=repos["local"])
+    assert _git(repos["local"], "rev-parse", "HEAD") == repos["sha_b"]
 
 
 def test_upgrade_requires_maintainers(repos):
