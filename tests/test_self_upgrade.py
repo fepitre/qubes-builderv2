@@ -424,7 +424,11 @@ def test_upgrade_restores_original_branch(repos, caplog):
     assert _git(local, "rev-parse", "--abbrev-ref", "HEAD") == "devel"
     assert _git(local, "rev-parse", "HEAD") == devel_head
     assert _git(local, "rev-parse", "main") == repos["sha_b"]
-    assert any("Restored branch 'devel'" in r.message for r in caplog.records)
+    warnings = [
+        r.message for r in caplog.records if r.levelno == logging.WARNING
+    ]
+    assert any("on branch 'devel', NOT 'main'" in m for m in warnings)
+    assert any("was NOT changed" in m for m in warnings)
 
 
 def test_upgrade_auto_fallback_restores_dev_branch(repos):

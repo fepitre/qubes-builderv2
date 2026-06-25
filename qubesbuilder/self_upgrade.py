@@ -477,11 +477,21 @@ def run_self_upgrade(
                 f"'{params['branch']}' already up to date at {new_branch_tip}. "
                 f"Staying on '{original_branch}'."
             )
-        else:
-            log.info(
-                f"Updated '{params['branch']}' {old_branch_tip or '(new)'} -> "
-                f"{new_branch_tip}. Restored branch '{original_branch}'."
+            return
+        rule = "=" * 70
+        log.warning(
+            "\n".join(
+                [
+                    "",
+                    rule,
+                    f"Updated '{params['branch']}' {old_branch_tip or '(new)'} -> {new_branch_tip}.",
+                    f"You are on branch '{original_branch}', NOT '{params['branch']}'.",
+                    f"Your branch '{original_branch}' was NOT changed and does not have the update yet.",
+                    f"To get it, rebase or merge '{params['branch']}' into '{original_branch}'.",
+                    rule,
+                ]
             )
+        )
         return
 
     if old_head == new_head:
