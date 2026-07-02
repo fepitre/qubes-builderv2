@@ -108,6 +108,8 @@ components:
       branch: main
   - app-linux-split-gpg2:
       branch: main
+  - app-linux-split-ssh:
+      branch: main
   - app-linux-gpg-sign:
       branch: main
   - app-thunderbird:
