@@ -14,6 +14,7 @@ from qubesbuilder.plugins.publish import PublishPlugin, COMPONENT_REPOSITORIES
 from qubesbuilder.plugins.template import (
     TemplateBuilderPlugin,
     TEMPLATE_REPOSITORIES,
+    upload_template_repository,
 )
 from qubesbuilder.template import QubesTemplate
 
@@ -371,7 +372,17 @@ def _upload(
     templates: List[QubesTemplate],
     repository_publish: str,
 ):
-    jobs = []
+    if repository_publish in TEMPLATE_REPOSITORIES:
+        # A template repository upload is a single rsync of the published
+        # repository, independent of the configured templates (which may be
+        # empty). This is not modelled in the job DAG, so run it directly.
+        upload_template_repository(
+            config,
+            repository_publish,
+            config.get_executor_from_config("upload"),
+        )
+        return
+
     if repository_publish in COMPONENT_REPOSITORIES:
         jobs = config.get_jobs(
             distributions=distributions,
@@ -379,15 +390,13 @@ def _upload(
             templates=[],
             stages=["upload"],
         )
-    elif repository_publish in TEMPLATE_REPOSITORIES:
-        jobs = config.get_jobs(
-            templates=templates,
-            distributions=[],
-            components=[],
-            stages=["upload"],
-        )
-    for job in jobs:
-        job.run(repository_publish=repository_publish)
+        for job in jobs:
+            # get_jobs pulls in the dependency closure; only run the upload
+            # stage itself so we push what is already published. Mirrors
+            # _publish.
+            if job.stage != "upload":
+                continue
+            job.run(repository_publish=repository_publish)
 
 
 @click.command(
