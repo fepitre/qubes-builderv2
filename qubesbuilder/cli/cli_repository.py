@@ -41,6 +41,7 @@ def _publish(
             components=components,
             distributions=distributions,
             templates=[],
+            installers=[],
             stages=["publish"],
             with_dependencies=not create_and_sign_metadata_only,
         )
@@ -49,6 +50,7 @@ def _publish(
             templates=templates,
             components=[],
             distributions=[],
+            installers=[],
             stages=["publish"],
             with_dependencies=not create_and_sign_metadata_only,
         )
@@ -388,6 +390,7 @@ def _upload(
             distributions=distributions,
             components=[],
             templates=[],
+            installers=[],
             stages=["upload"],
         )
         for job in jobs:

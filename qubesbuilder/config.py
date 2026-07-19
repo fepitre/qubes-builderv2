@@ -702,21 +702,25 @@ class Config:
         components: List[QubesComponent],
         distributions: List[QubesDistribution],
         templates: List[QubesTemplate],
+        installers: List[QubesDistribution],
         stages: List[str],
     ):
         factory = JobFactory(self)
-        return factory.create(components, distributions, templates, stages)
+        return factory.create(
+            components, distributions, templates, installers, stages
+        )
 
     def get_jobs(
         self,
         components: List[QubesComponent],
         distributions: List[QubesDistribution],
         templates: List[QubesTemplate],
+        installers: List[QubesDistribution],
         stages: List[str],
         with_dependencies: bool = True,
     ):
         pipeline = self.get_pipeline(
-            components, distributions, templates, stages
+            components, distributions, templates, installers, stages
         )
         if not with_dependencies:
             return list(pipeline)

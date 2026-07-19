@@ -49,7 +49,7 @@ class InstallerError(PluginError):
 
 
 class InstallerPlugin(Plugin):
-    context = PluginContext.DIST
+    context = PluginContext.INSTALLER
     dist: QubesDistribution
     dist_filter = staticmethod(lambda d: d.is_rpm())
     """
@@ -101,14 +101,6 @@ class InstallerPlugin(Plugin):
             config.installer_comps,
             relative_to=self.config.sources_dir / "qubes-release",
         )
-
-        if not self.kickstart_path.exists():
-            raise InstallerError(
-                f"Cannot find kickstart: '{self.kickstart_path}'"
-            )
-
-        if not self.comps_path.exists():
-            raise InstallerError(f"Cannot find comps: '{self.comps_path}'")
 
     def get_iso_timestamp(self, stage: str, iso_timestamp: str = None) -> str:
         if not self.iso_timestamp:
@@ -277,6 +269,17 @@ class InstallerPlugin(Plugin):
 
         if self.stage not in self.stages:
             return
+
+        # The kickstart and comps come from the 'qubes-release' component, which
+        # is fetched as a job dependency. Only check for them here, once the
+        # fetch has run, and only for the stages that consume them.
+        if self.stage in ("init-cache", "prep", "build"):
+            if not self.kickstart_path.exists():
+                raise InstallerError(
+                    f"Cannot find kickstart: '{self.kickstart_path}'"
+                )
+            if not self.comps_path.exists():
+                raise InstallerError(f"Cannot find comps: '{self.comps_path}'")
 
         self.update_parameters(stage=self.stage, iso_timestamp=iso_timestamp)
 
@@ -770,3 +773,6 @@ class InstallerPlugin(Plugin):
                 raise InstallerError(
                     f"{self.dist}: Failed to upload to remote host: {str(e)}"
                 ) from e
+
+
+PLUGINS = [InstallerPlugin]

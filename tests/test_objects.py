@@ -843,6 +843,7 @@ executor:
                 components=config.get_components(),
                 distributions=config.get_distributions(),
                 templates=[],
+                installers=[],
                 stages=["fetch"],
             )
             executor = config.get_executor_from_config("build", jobs[0])
